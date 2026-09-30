@@ -113,6 +113,9 @@
 .home-v12.methodology-v12 .me-vendors tbody td { padding: 13px 18px; border-top: 1px solid var(--hair); color: var(--ink-soft); font-size: var(--v13-t3); line-height: 1.6; vertical-align: top; }
 .home-v12.methodology-v12 .me-vendors tbody tr:first-child td { border-top: 0; }
 .home-v12.methodology-v12 .me-vendors tbody td:first-child { color: var(--ink); font-weight: 600; }
+/* <b> is `bolder`: inside the 600-weight first cell it resolved to 900, off the
+   three-weight scale. Pin it. */
+.home-v12.methodology-v12 .me-vendors tbody td b { font-weight: 700; }
 .home-v12.methodology-v12 .me-vendors thead th:first-child,
 .home-v12.methodology-v12 .me-vendors tbody td:first-child { padding-left: 22px; }
 .home-v12.methodology-v12 .me-vendors thead th:last-child,

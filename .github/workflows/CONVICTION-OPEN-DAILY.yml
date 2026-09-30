@@ -13,6 +13,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MACROTILT_BOT_PAT }}
       - name: Halted
         run: echo "::warning::CONVICTION-OPEN-DAILY is DISABLED. No orders are placed."
       - name: Dump repo tree for agent read-back

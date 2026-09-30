@@ -50,8 +50,13 @@ jobs:
             sleep 1
           done
 
+      # Install the browser build that the repo's OWN pinned playwright-core
+      # expects. `npx --yes playwright` fetched whatever was newest that day,
+      # which stopped matching the pinned package; the rendered checks then
+      # died on "Executable doesn't exist" (hidden until 2026-09-30 because the
+      # static step above was failing first).
       - name: Install a browser for the rendered checks
-        run: npx --yes playwright install --with-deps chromium
+        run: npx playwright-core install --with-deps chromium
 
       # Rendered half: no prose in the mono face, no fourth family on screen,
       # no empty grid track, no short row.
