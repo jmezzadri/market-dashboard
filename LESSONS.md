@@ -245,6 +245,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `10.8` A note whose central claim has to be decoded has failed, however good its evidence is; and a chart drawn from typed-in numbers is a second source of truth
 - `10.9` Fixing "unclear" by writing an instruction produces a cold call; a research claim needs a horizon, and a tile is cramped when its shape is wrong, not when its type is too big
 - `10.10` Style guidance in a prompt does not hold a length; and prose is the worst container ever invented for a number
+- `10.11` A measured edge is necessary, not sufficient: a Trade Idea calls for at least 20% over its horizon on the position the reader holds, or it does not publish
 
 **A · Archive** — retired, not binding. Nothing new goes there.
 
@@ -2461,6 +2462,19 @@ pages only. (c) When telling Joe about any schedule, state times in ET only.
 
 
 ---
+
+
+### 10.11 (2026-09-30) — A measured edge is necessary, not sufficient: a Trade Idea calls for at least 20% over its horizon on the position the reader holds, or it does not publish
+
+**What happened:** The first weekly thesis review printed, beside each open call, the return its note had called for. Half the book was under 4% over its horizon; the two calls closed that day had called for +0.9% (TIPS against Treasuries, six months) and +3.7% (banks against the Nasdaq, six months). Joe: *"Did we really make a call for a trade that would have been 'successful' if it returned 0.9% and 3.7% over 6 months?! Are you shitting me? These are our BEST TRADE IDEAS?!... I want a minimum of 20% expected return... If I want 10% I'll buy the SPY."* Every one of those notes had passed the bar — measured edge, base rate, variant view, horizon — because the bar had no magnitude in it at all. A 12-basis-point breakeven move with a 77% hit rate is a real statistical edge and a worthless trade idea.
+
+**Rule:**
+
+1. **Twenty per cent, minimum, over the note's own horizon, on the position the reader is told to hold.** The contract requires `expected_return{pct, basis, instrument}` on every note and rejects `pct` under 20 (`scripts/build_trade_idea.py`, from 2026-10-01). The weekly review grades against that same number.
+2. **A small underlying move publishes only through an instrument that gets it to 20%+** — futures, options, a leveraged fund, stated sizing — with the risk of that instrument stated in the note. If no instrument does, there is no note. The Scorecard still marks the underlying series; the note says how its stated return and the mark relate.
+3. **Magnitude is a gate, not a preference.** Provenance rules (6.9, 6.17) say whether an edge is real; this rule says whether it is worth a reader's capital. Both are checked at publication, neither is judged on the day.
+
+**Applies to:** the Trade Idea run (every note), Senior Quant (the expected-return figure and its instrument), the weekly thesis review (grades against the stated figure).
 
 # A · ARCHIVE — closed 2026-09-01. Superseded and retired only. NOTHING NEW GOES BELOW THIS LINE.
 
