@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-29T23:50:56Z",
+  "generated_at": "2026-09-30T16:02:30Z",
   "window": {
-    "from": "2026-09-22",
-    "to": "2026-12-08"
+    "from": "2026-09-23",
+    "to": "2026-12-09"
   },
   "counts": {
-    "total": 108,
-    "tier1": 33
+    "total": 107,
+    "tier1": 32
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -24,19 +24,11 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [],
+  "problems": [
+    "NASS calendar fetch failed (2026-12): HTTP Error 504: Gateway Time-out",
+    "WASDE page fetch failed: HTTP Error 403: Forbidden"
+  ],
   "events": [
-    {
-      "date": "2026-09-22",
-      "time_et": "8:30 AM",
-      "name": "Philadelphia Fed services survey",
-      "short": "Philly Svc",
-      "tier": 3,
-      "category": "Surveys",
-      "blurb": "Philadelphia Fed non-manufacturing outlook survey.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-24",
       "time_et": "8:30 AM",
@@ -310,17 +302,6 @@
       "category": "Surveys",
       "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
       "source": "UMich release schedule (computed: two Fridays before the final)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-09",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
@@ -808,17 +789,6 @@
       "time_source": "published release policy"
     },
     {
-      "date": "2026-11-10",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
-      "time_source": "published release policy"
-    },
-    {
       "date": "2026-11-12",
       "time_et": "8:30 AM",
       "name": "Jobless claims",
@@ -1212,6 +1182,28 @@
       "category": "Labor",
       "blurb": "Output per hour and what each unit of output costs in labor.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-09",
+      "time_et": "10:00 AM",
+      "name": "Wholesale inventories",
+      "short": "Wholesale",
+      "tier": 3,
+      "category": "Growth",
+      "blurb": "Wholesale-level sales and inventories \u2014 an input to the GDP inventory line.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-09",
+      "time_et": "2:00 PM",
+      "name": "Fed decision (FOMC)",
+      "short": "FOMC",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "Federal Reserve rate decision and statement, with the quarterly rate and economic projections and a 2:30 PM press conference.",
+      "source": "Federal Reserve FOMC calendar",
       "time_source": "published release policy"
     }
   ]
