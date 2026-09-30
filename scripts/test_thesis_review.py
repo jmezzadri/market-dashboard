@@ -256,6 +256,10 @@ class TestEndToEnd(unittest.TestCase):
         self.assertIsNotNone(q["range_at_horizon"])
         self.assertEqual(q["called_for_pct"], 3.2)
         self.assertIn("p_touch_before_horizon", q["stop"])
+        risk = doc["latest"]["book_risk"]
+        self.assertEqual(risk["book"]["positions"], 1)
+        self.assertLess(risk["book"]["range_21_sessions"]["p10"], 0)
+        self.assertGreater(risk["book"]["range_21_sessions"]["p90"], 0)
         html_ = T.render_email_html(doc)
         self.assertIn("WEEKLY THESIS REVIEW", html_)
         self.assertIn("INTACT", html_)

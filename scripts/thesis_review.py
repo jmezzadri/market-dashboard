@@ -344,6 +344,100 @@ def quant_one(row: dict, idea: dict, hist: dict, called_for_pct: float | None, u
     return out
 
 
+# ---------------------------------------------------------------- the book
+
+FACTORS = {"spx_index": ("US equities", True), "ust_10y": ("10-year yield", False), "usd": ("the dollar", True)}
+
+
+def _factor_increments(hist: dict, key: str, proportional: bool, end_date: str, sessions: int) -> dict:
+    s = [(d, v) for d, v in (hist.get(key) or []) if d <= end_date][-(sessions + 1):]
+    out = {}
+    for i in range(1, len(s)):
+        (d0, v0), (d1, v1) = s[i - 1], s[i]
+        out[d1] = (100.0 * (v1 / v0 - 1.0) if proportional and v0 else (v1 - v0))
+    return out
+
+
+def _corr(a: dict, b: dict):
+    ds = sorted(set(a) & set(b))
+    if len(ds) < MIN_VOL_SESSIONS:
+        return None
+    xa, xb = [a[d] for d in ds], [b[d] for d in ds]
+    ma, mb = sum(xa) / len(xa), sum(xb) / len(xb)
+    cov = sum((x - ma) * (y - mb) for x, y in zip(xa, xb))
+    va, vb = sum((x - ma) ** 2 for x in xa), sum((y - mb) ** 2 for y in xb)
+    return cov / (va * vb) ** 0.5 if va > 0 and vb > 0 else None
+
+
+def _beta(pos: dict, fac: dict):
+    ds = sorted(set(pos) & set(fac))
+    if len(ds) < MIN_VOL_SESSIONS:
+        return None
+    x, y = [fac[d] for d in ds], [pos[d] for d in ds]
+    mx, my = sum(x) / len(x), sum(y) / len(y)
+    vx = sum((a - mx) ** 2 for a in x)
+    return sum((a - mx) * (b - my) for a, b in zip(x, y)) / vx if vx > 0 else None
+
+
+def book_risk(open_rows: list[dict], hist: dict, mark_date: str) -> dict:
+    """The open calls as ONE book: pairwise correlation of their daily mark
+    changes, each call's sensitivity to equities / the 10-year yield / the
+    dollar, and a driftless 21-session range for the equal-weight book. Joe,
+    2026-09-30: "significant alpha generating ideas, ensuring we have
+    downside protection, not an overly correlated book."""
+    series = {}
+    for r in open_rows:
+        incs = mark_increments(r, hist, mark_date, REVIEW_VOL_SESSIONS)
+        if len(incs) >= MIN_VOL_SESSIONS:
+            legs = r.get("legs") or []
+            common = None
+            for leg in legs:
+                ds = {d for d, _ in (hist.get(leg["series"]) or []) if d <= mark_date}
+                common = ds if common is None else common & ds
+            dates = sorted(common or [])[-(REVIEW_VOL_SESSIONS + 1):][1:]
+            if len(dates) == len(incs):
+                series[r["id"]] = dict(zip(dates, incs))
+    labels = {r["id"]: r.get("trade_label") for r in open_rows}
+    ids = [i for i in labels if i in series]
+    pairs, flagged = [], []
+    for i in range(len(ids)):
+        for j in range(i + 1, len(ids)):
+            c = _corr(series[ids[i]], series[ids[j]])
+            if c is None:
+                continue
+            pairs.append({"a": labels[ids[i]], "b": labels[ids[j]], "correlation": round(c, 2)})
+            if abs(c) > 0.6:
+                flagged.append(pairs[-1])
+    factors = {}
+    for key, (name, prop) in FACTORS.items():
+        factors[key] = _factor_increments(hist, key, prop, mark_date, REVIEW_VOL_SESSIONS)
+    exposures = []
+    for i in ids:
+        row = {"trade_label": labels[i]}
+        for key, (name, prop) in FACTORS.items():
+            b = _beta(series[i], factors[key])
+            # equities / dollar: position % per 1% move; yield: position % per +10bp
+            row[name] = None if b is None else round(b * (1.0 if prop else 0.10), 2)
+        exposures.append(row)
+    book = None
+    if ids:
+        ds = sorted(set.intersection(*[set(series[i]) for i in ids]))
+        if len(ds) >= MIN_VOL_SESSIONS:
+            tot = [sum(series[i][d] for i in ids) / len(ids) for d in ds]
+            sd = sample_sd(tot)
+            if sd:
+                w = sd * math.sqrt(21)
+                bb = {name: None for name, _ in FACTORS.values()}
+                for key, (name, prop) in FACTORS.items():
+                    b = _beta({d: sum(series[i][d] for i in ids) / len(ids) for d in ds}, factors[key])
+                    bb[name] = None if b is None else round(b * (1.0 if prop else 0.10), 2)
+                book = {"positions": len(ids), "sigma_day_pct": round(sd, 3), "annualised_pct": round(sd * math.sqrt(SESSIONS_PER_YEAR), 1),
+                        "range_21_sessions": {"p10": round(Z[10] * w, 2), "p90": round(Z[90] * w, 2)},
+                        "beta": bb, "basis": "equal weight across the open calls, one unit each, trailing 63 sessions; a 21-session driftless range"}
+    return {"pairs": pairs, "flagged_pairs": flagged, "exposures": exposures, "book": book,
+            "note": "correlations are of daily mark changes over the trailing 63 sessions; exposure is the position's % move per 1% in equities or the dollar and per +10bp in the 10-year yield"}
+
+
 # ------------------------------------------------------------- the contract
 
 def _txt(x) -> str:
@@ -528,11 +622,16 @@ def prepare(sub_path: str, out_path: str, ideas_path=IDEAS_PATH, scores_path=SCO
             prior = json.load(f)
     reviews = validate_submission(sub, scores, ideas, prior)
     calls = build_calls(reviews, ideas, scores, hist, units)
+    rows_by_id = {r["id"]: r for r in scores.get("scores", [])}
+    keep = [rows_by_id[c["id"]] for c in calls if c["verdict"] != "broken" and c["id"] in rows_by_id]
+    mark_to = max((r.get("mark_date") or "" for r in keep), default=scores.get("as_of") or "")
+    risk = book_risk(keep, hist, mark_to) if keep else None
     latest = {
         "review_date": sub["review_date"],
         "marked_to": scores.get("as_of"),
         "scores_generated_at": scores.get("generated_at"),
         "book_now": _txt(sub.get("book_now")),
+        "book_risk": risk,
         "counts": {v: sum(1 for c in calls if c["verdict"] == v) for v in VERDICTS},
         "calls": calls,
     }
@@ -604,6 +703,8 @@ def check(out_path: str, ideas_path=IDEAS_PATH, scores_path=SCORES_PATH, max_age
 def _pct(v, signed=True, dp=1):
     if v is None:
         return "—"
+    if abs(v) < 0.5 * 10 ** (-dp):
+        v = 0.0
     s = "+" if (signed and v > 0) else ""
     return f"{s}{v:.{dp}f}%"
 
@@ -632,6 +733,25 @@ def render_email_html(doc: dict) -> str:
     o.append(f'<div style="font-size:12px;color:{MUTE};margin-bottom:14px">Review of {e(L.get("review_date", ""))} · marks to {e(L.get("marked_to", ""))} · price only, no costs</div>')
     if L.get("book_now"):
         o.append(f'<div style="font-size:13px;line-height:1.55;color:{BODY};padding:12px 14px;background:#F6F7F9;border-radius:8px;margin-bottom:18px"><strong style="color:{INK}">The book now.</strong> {e(L["book_now"])}</div>')
+
+    R = L.get("book_risk") or {}
+    if R.get("book"):
+        bk = R["book"]
+        o.append(f'<div style="font-size:12px;font-weight:700;color:{INK};margin:0 0 4px">The book as one position — {bk["positions"]} calls, equal weight</div>')
+        o.append('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;line-height:1.5;margin-bottom:8px">')
+        rows0 = [("Book volatility", f'{bk["annualised_pct"]}% a year · a normal month runs {_pct(bk["range_21_sessions"]["p10"])} to {_pct(bk["range_21_sessions"]["p90"])} (no view)'),
+                 ("If equities fall 1%", _pct(-(bk["beta"].get("US equities") or 0)) if bk["beta"].get("US equities") is not None else "—"),
+                 ("If the 10-year yield rises 10bp", _pct(bk["beta"].get("10-year yield")) if bk["beta"].get("10-year yield") is not None else "—"),
+                 ("If the dollar rises 1%", _pct(bk["beta"].get("the dollar")) if bk["beta"].get("the dollar") is not None else "—")]
+        for k, val in rows0:
+            o.append(f'<tr><td style="padding:2px 10px 2px 0;color:{MUTE};white-space:nowrap;width:34%">{e(k)}</td><td style="padding:2px 0;color:{BODY};font-family:{MONO};font-size:12.5px">{val}</td></tr>')
+        o.append('</table>')
+        if R.get("pairs"):
+            hi = sorted(R["pairs"], key=lambda p: -abs(p["correlation"]))[:4]
+            txt = " · ".join(f'{e(p["a"])} / {e(p["b"])} {p["correlation"]:+.2f}' for p in hi)
+            col = RED if R.get("flagged_pairs") else MUTE
+            o.append(f'<div style="font-size:12px;color:{col};margin-bottom:16px">Most correlated pairs (daily, last quarter): {txt}'
+                     + (' — above the 0.60 limit; the book holds the same bet twice' if R.get("flagged_pairs") else ' — no pair above the 0.60 limit') + '</div>')
 
     for call in L.get("calls", []):
         q = call.get("quant") or {}

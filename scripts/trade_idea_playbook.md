@@ -458,6 +458,7 @@ is told to hold.** Every note carries an `expected_return` block:
 ```json
 "expected_return": {
   "pct": 24.0,
+  "loss_at_stop_pct": 8.0,
   "basis": "the base-rate median move (+7.6% in front-month gas over three months) expressed through the March futures contract at 3x notional, which is how the note tells the reader to hold it",
   "instrument": "March 2027 Henry Hub futures, sized at three times the cash exposure"
 }
@@ -472,6 +473,20 @@ and states the risk that comes with it; if there is no such instrument, there
 is no note. The scorecard block still marks the underlying series; the
 weekly review compares the mark against `expected_return.pct`, so the two
 must be stated on the same basis (say so in `basis`).
+
+**0b. Downside stated, and the call pays at least twice it.**
+`expected_return.loss_at_stop_pct` is what the position loses if the stop
+prints, on the same basis as `pct`; the contract requires `pct` to be at least
+2x that number. A 20% call with a 15% stop is a coin flip with a story.
+
+**0c. Not the same bet twice.** The contract computes the candidate
+position's daily returns over the last 126 sessions and rejects it if the
+correlation with any live call exceeds 0.60 (warns above 0.40 — say in
+`book.stance` how the two sit together). Long euro and short dollar index are
+one trade; so are two commodity longs in the same energy shock. The weekly
+review prints the book's pairwise correlations and its sensitivity to
+equities, the 10-year yield and the dollar, so the PM sees the book as one
+position.
 
 **1. Next several quarters. Maximum 18 months.** A ten-year valuation view is an
 asset-allocation opinion, not a trade. `horizon` is rejected above 18 months.
