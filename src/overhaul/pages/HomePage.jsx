@@ -33,6 +33,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useTweaks } from '../tweaks/TweaksContext';
 import useEngineRegime from '../lib/useEngineRegime';
+import { stressGaugePct, yieldGaugePct, stressMessage } from '../lib/engineGauges';
 import useMarketLevels from '../lib/useMarketLevels';
 import useLseLive from '../../hooks/useLseLive';
 import IndicatorDrillModal from '../components/IndicatorDrillModal';
@@ -189,19 +190,6 @@ function tapeTile(r, lv, liveQ, marketOpen) {
   };
 }
 
-/* ── engine gauge math (linear scales; bands = engine thresholds) ───────── */
-const clampPct = (x) => Math.max(0, Math.min(100, x));
-function stressGauge(move) {
-  const MIN = 40, MAX = 160, R = MAX - MIN; // sensible MOVE range
-  const mk = move == null ? null : clampPct(((move - MIN) / R) * 100);
-  return { mk };
-}
-function yieldGauge(bp) {
-  const MIN = -40, MAX = 60, R = MAX - MIN;
-  const mk = bp == null ? null : clampPct(((bp - MIN) / R) * 100);
-  return { mk };
-}
-
 /* Reveal — scroll-reveal wrapper. Replays in BOTH directions (Joe 2026-07-07).
    State lives in React so data-poll re-renders preserve the revealed class. */
 function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
@@ -271,13 +259,11 @@ export default function HomePage() {
     return ds.length ? ds[ds.length - 1] : null;
   }, [level]);
 
-  const stress = stressGauge(regime.move);
-  const yld = yieldGauge(regime.yieldDeltaBp);
+  const stress = { mk: stressGaugePct(regime.move) };
+  const yld = { mk: yieldGaugePct(regime.yieldDeltaBp) };
   const stressZone = regime.stressZone;
   const stressCls = stressZone === 'Risk On' ? 'ok' : stressZone === 'Watch' ? 'warm' : stressZone === 'Risk Off' ? 'bad' : '';
-  const stressMsg = stressZone === 'Risk On' ? 'Calm — far from any de-risk line.'
-    : stressZone === 'Watch' ? 'Watch — approaching the de-risk line.'
-    : stressZone === 'Risk Off' ? 'Risk off — the de-risk line is breached.' : '—';
+  const stressMsg = stressMessage(stressZone, regime.move);
   const yReg = regime.yieldRegime;
   const nearInfl = yReg === 'Neutral' && regime.yieldDeltaBp != null && 32 - regime.yieldDeltaBp <= 8;
   const yCls = yReg === 'Inflationary' ? 'warm' : yReg === 'Deflationary' ? 'ok' : nearInfl ? 'warm' : '';

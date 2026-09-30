@@ -249,6 +249,17 @@
   width: 2px; height: 12px; border-radius: 1px;
   background: var(--v13-ink); border: 0; box-shadow: none;
 }
+/* Zone edges. The bar is three equal zones, one per label underneath; these
+   two ticks are the engine thresholds (LESSONS 3.5 — the marker must sit over
+   the label of the zone it is in). */
+.v13.home-v12 .track::before,
+.v13.home-v12 .track::after {
+  content: ""; position: absolute; top: -3px; bottom: -3px; width: 1px;
+  background: var(--v13-ink-3); opacity: 0.55; pointer-events: none;
+}
+.v13.home-v12 .track::before { left: 33.333%; }
+.v13.home-v12 .track::after { left: 66.667%; }
+.v13.home-v12 .track .pin { z-index: 1; }
 /* Three labels under a narrow gauge collided into "NEUTRALINFL ≥+32". */
 .v13.home-v12 .gauge .ends {
   display: flex; justify-content: space-between; gap: var(--v13-s2); flex-wrap: nowrap;

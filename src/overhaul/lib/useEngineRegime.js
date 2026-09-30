@@ -12,8 +12,8 @@
 import { useMemo } from 'react';
 import useIndicators from './useIndicators';
 
-const STRESS_THRESH = { watch: 116, riskOff: 124 };
-const YIELD_THRESH = { inflBp: 32, deflBp: -11 };
+export const STRESS_THRESH = { watch: 116, riskOff: 124 };
+export const YIELD_THRESH = { inflBp: 32, deflBp: -11 };
 
 function stressZone(moveValue) {
   if (moveValue == null || !Number.isFinite(moveValue)) return null;
