@@ -110,14 +110,16 @@ function Row({ r, idea, review, reviewDate, onOpenNote }) {
         {showMark && vs != null ? fmt(vs, '%') : '—'}
       </td>
       <td className="sc-reviewcell">
-        {rv
-          ? (
-            <span className={`sc-verdict sc-verdict--${rv.verdict}`} title={rv.view_now || ''}>
-              {VERDICT_LABEL[rv.verdict] || rv.verdict}
-              <span className="sc-verdict-date"> · {reviewDate}</span>
-            </span>
-          )
-          : <span className="sc-dim">—</span>}
+        {/* A call the review closed already says so in the Status column —
+            the date is enough here (Joe, 2026-09-30: "stop overdoing it"). */}
+        {rv && r.status === 'closed_thesis' && <span className="sc-verdict-date">{reviewDate}</span>}
+        {rv && r.status !== 'closed_thesis' && (
+          <span className={`sc-verdict sc-verdict--${rv.verdict}`} title={rv.view_now || ''}>
+            {VERDICT_LABEL[rv.verdict] || rv.verdict}
+            <span className="sc-verdict-date"> · {reviewDate}</span>
+          </span>
+        )}
+        {!rv && <span className="sc-dim">—</span>}
       </td>
       <td className="sc-notecell">
         {idea
@@ -254,7 +256,7 @@ export default function ScorecardPage() {
                   <p className="sc-tile-l" style={{ marginBottom: 6 }}>How we&rsquo;re doing</p>
                   <p style={{ lineHeight: 1.55 }}>{s.overall.line}</p>
                   {s.overall.basis && (
-                    <p className="sc-dim" style={{ marginTop: 6, fontSize: 'var(--v13-t2)' }}>{s.overall.basis}</p>
+                    <p className="sc-dim" style={{ marginTop: 6, fontSize: '0.85em' }}>{s.overall.basis}</p>
                   )}
                 </section>
               )}
