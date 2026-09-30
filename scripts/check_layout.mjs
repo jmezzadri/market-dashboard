@@ -46,7 +46,7 @@ if (!base || !routes.length) {
   process.exit(2);
 }
 
-const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || undefined });
 const ctx = await browser.newContext({ viewport: VIEWPORT });
 let failures = 0;
 
