@@ -582,6 +582,8 @@ credential-questioning anti-pattern wearing a new hat.
 
 **Rule:** A redesign re-decides, from scratch: surface/color system (each color must have a stated reason — e.g. one accent card for the single most important read), sizing (no card taller than its content needs), and every piece of copy. Three copy checks are mandatory on any tile: (1) a rendered count must equal the number of items visibly listed — if a cap exists, either drop the count or drop the cap; (2) no time-window claim ("this week") unless the data actually resets on that window; (3) status labels are the shortest accurate words (Oversold/Overbought), not methodology sentences.
 
+**Repeat 2026-09-30 — a gauge marker is a rendered claim too.** The MOVE gauge drew its marker on a straight 40–160 scale while its three labels sat at left / centre / right. At 107 the marker landed dead centre, over the word "Watch", beside a caption reading "Calm — far from any de-risk line"; Joe read the bar. Home and Macro each carried a private copy of the scale. Rule addition: a marker may only sit over the label of the zone the engine is in — zone edges are drawn at the thresholds, the scale is one shared function for every page that draws the gauge, and a caption states a distance in numbers, never an adjective.
+
 **Applies to:** UX Designer and Lead Developer, every layout or copy change.
 
 ### 3.6 (2026-08-11) — I graded a live system by reading a repo file the running code does not fetch; and a live-trading flag on a step that never trades is a rogue order waiting for a bug

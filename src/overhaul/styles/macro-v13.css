@@ -164,6 +164,17 @@
   background: var(--v13-ink); border: 0; box-shadow: none;
   transform: translate(-50%, -50%);
 }
+/* Zone edges. The bar is three equal zones, one per label underneath; these
+   two ticks are the engine thresholds (LESSONS 3.5 — the marker must sit over
+   the label of the zone it is in). */
+.v13.macro-v13 .track::before,
+.v13.macro-v13 .track::after {
+  content: ""; position: absolute; top: -3px; bottom: -3px; width: 1px;
+  background: var(--v13-ink-3); opacity: 0.55; pointer-events: none;
+}
+.v13.macro-v13 .track::before { left: 33.333%; }
+.v13.macro-v13 .track::after { left: 66.667%; }
+.v13.macro-v13 .track .pin { z-index: 1; }
 .v13.macro-v13 .gauge .ends {
   display: flex; justify-content: space-between; gap: var(--v13-s2);
   font-size: var(--v13-t2); font-weight: 600; letter-spacing: 0.05em;

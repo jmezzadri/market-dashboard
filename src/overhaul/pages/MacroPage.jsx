@@ -33,6 +33,7 @@ import IndicatorDetail from '../components/IndicatorDetail';
 import PositioningDetail from '../components/PositioningDetail';
 import useIndicators, { MOVE_FLAG_PCTILE } from '../lib/useIndicators';
 import useEngineRegime from '../lib/useEngineRegime';
+import { stressGaugePct, yieldGaugePct, stressMessage } from '../lib/engineGauges';
 import '../styles/cream-system.css';
 import '../styles/v13.css';
 import '../styles/macro-v13.css';
@@ -492,14 +493,13 @@ export default function MacroPage() {
     return out;
   }, [indicators, cotPos, indexSeries]);
 
-  const clampPct = (x) => Math.max(0, Math.min(100, x));
   const ddOf = (ind) => { const p=ind.points; if(!p||p.length<2) return null; const last=p[p.length-1][1], prev=p[p.length-2][1]; if(!Number.isFinite(last)||!Number.isFinite(prev)) return null; const dec=Math.min(ind.decimals??2,2); const r=Number((last-prev).toFixed(dec)); if(r===0) return null; const a=Math.abs(r).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); return {arrow:r>0?'▲':'▼', txt:a, cls:r>0?'up':'down'}; };
-  const stressG = (() => { const MIN=40,MAX=160,R=MAX-MIN,m=regime.move; return { on:((116-MIN)/R)*100, watch:((124-116)/R)*100, off:((MAX-124)/R)*100, mk:m==null?null:clampPct(((m-MIN)/R)*100) }; })();
-  const yieldG = (() => { const MIN=-40,MAX=60,R=MAX-MIN,b=regime.yieldDeltaBp; return { defl:((-11-MIN)/R)*100, neutral:((32- -11)/R)*100, infl:((MAX-32)/R)*100, mk:b==null?null:clampPct(((b-MIN)/R)*100) }; })();
+  const stressG = { mk: stressGaugePct(regime.move) };
+  const yieldG = { mk: yieldGaugePct(regime.yieldDeltaBp) };
   const verdictParts = (regime.regimeLabel || '—').split('·').map((x) => x.trim());
   const sZone = regime.stressZone, yReg = regime.yieldRegime;
   const sCls = sZone==='Risk On'?'up':sZone==='Watch'?'amb':sZone==='Risk Off'?'down':'';
-  const sMsg = sZone==='Risk On'?'Calm — far from any de-risk line.':sZone==='Watch'?'Watch — approaching the de-risk line.':sZone==='Risk Off'?'Risk off — the de-risk line is breached.':'—';
+  const sMsg = stressMessage(sZone, regime.move);
   const nearInfl = yReg==='Neutral' && regime.yieldDeltaBp!=null && 32-regime.yieldDeltaBp<=8;
   const yCls = yReg==='Inflationary'?'amb':yReg==='Deflationary'?'up':nearInfl?'amb':'';
   const yMsg = yReg==='Inflationary'?'Inflationary — the Fed is back in play.':yReg==='Deflationary'?'Deflationary — a growth scare.':nearInfl?'Neutral — nearing the inflationary edge.':'Neutral.';
