@@ -532,3 +532,60 @@ html, body, #root { background: var(--lg-ground); }
 .v13.home-v12.home-cockpit .brief-card .ni.open .body > div { padding: 0 var(--sp-12) var(--sp-10); }
 .mt-overhaul .mt-navsheet { background: var(--lg-sheet); }
 .mt-overhaul .mt-navsheet-signin, .mt-overhaul .mt-navsheet-signout { font-size: var(--v13-t4); min-height: var(--mt-tap); display: inline-flex; align-items: center; }
+
+/* ── ONE SPACING SYSTEM (Joe, 2026-10-01: "make all tile spacing the same") ──
+   Every card on the site sits on the same stage as the nav (24px in from the
+   viewport, 1400px max) and every gap between cards — vertical or horizontal,
+   chrome or content, on every page — is --lg-gap. Nothing else sets a gap. */
+.mt-overhaul { --lg-gap: var(--sp-12); --lg-edge: var(--sp-24); --lg-stage: 1400px; }
+/* chrome */
+.mt-overhaul .mt-topnav, .mt-overhaul .mt-header, .v13.home-v12 .tape { margin: var(--lg-gap) auto 0; width: calc(100% - 2 * var(--lg-edge)); max-width: var(--lg-stage); }
+/* page stages: inner width == chrome width */
+.v13.home-v12 .wrap, .v13.home-v12 section.wrap, .v13.macro-v13 .wrap, .v13.home-v12 .meth-hero.wrap, .v13.home-v12.sc-wrap, .home-v12.data-v12 .wrap.df-stage,
+.v13.home-v12.ticker-v12 .wrap, .mt-overhaul .mt-static-page, .login-v12 .lg-wrap { max-width: calc(var(--lg-stage) + 2 * var(--lg-edge)); padding-left: var(--lg-edge); padding-right: var(--lg-edge); margin-left: auto; margin-right: auto; box-sizing: border-box; width: 100%; }
+.mt-overhaul .wrap.qtt { max-width: calc(var(--lg-stage) + 2 * var(--lg-edge)) !important; padding: var(--lg-gap) var(--lg-edge) var(--lg-edge) !important; }
+.mt-overhaul .mt-static-page { padding: var(--sp-28) var(--sp-32); width: calc(100% - 2 * var(--lg-edge)); max-width: var(--lg-stage); margin: var(--lg-gap) auto var(--lg-edge); }
+/* vertical rhythm: first card is one gap under the header, every stacked card one gap apart */
+.v13.home-v12 section.wrap, .v13.macro-v13 section.wrap { padding-top: 0; padding-bottom: 0; margin-top: 0; }
+.v13.macro-v13 section:first-of-type { padding-top: var(--lg-gap); }
+.v13.macro-v13 section + section { margin-top: var(--lg-gap); }
+.v13.home-v12.home-cockpit .bgrid { margin-top: var(--lg-gap); gap: var(--lg-gap); }
+.v13.home-v12.home-cockpit { padding-bottom: var(--lg-gap); }
+.v13.macro-v13 .mac-catgrid { gap: var(--lg-gap); }
+.v13.macro-v13 .engine-card { margin-bottom: 0; }
+.v13.home-v12.sc-wrap .sc-head { padding-top: var(--lg-gap); }
+.v13.home-v12.sc-wrap .sc-tiles { gap: var(--lg-gap); margin-top: var(--lg-gap); }
+.v13.home-v12.sc-wrap .sc-book, .v13.home-v12.sc-wrap .sc-list, .v13.home-v12.sc-wrap .sc-err { margin-top: var(--lg-gap); margin-bottom: 0; }
+.v13.home-v12.data-v12 .df-totals, .v13.home-v12.data-v12 .df-legend-top, .v13.home-v12.data-v12 .df-banner { margin: var(--lg-gap) 0 0; }
+.v13.home-v12.data-v12 .df-layout { gap: var(--lg-gap); margin-top: var(--lg-gap); }
+.v13.home-v12.data-v12 .df-cols { gap: var(--lg-gap); }
+.v13.home-v12.data-v12 .df-stack { gap: var(--sp-8); }
+.v13.home-v12.methodology-v12 .meth-hero { margin: var(--lg-gap) auto 0; }
+.v13.home-v12.methodology-v12 .meth-main { padding-top: var(--lg-gap); }
+.v13.home-v12.methodology-v12 .me-layout { gap: var(--lg-gap); }
+.v13.home-v12.methodology-v12 .me-section { margin-bottom: var(--lg-gap); }
+.v13.home-v12.methodology-v12 .me-section:last-child { margin-bottom: 0; }
+.v13.home-v12.ticker-v12 .mt-pagehero { margin: var(--lg-gap) auto 0; }
+.home-v12.ticker-v12 .mt-card, .home-v12.ticker-v12 .tk-relcard { margin-top: var(--lg-gap); }
+.home-v12.lab-v12 .lab-grid { gap: var(--lg-gap); }
+.paper-v12 .qtt-card { margin-bottom: var(--lg-gap) !important; }
+.paper-v12 .qtt-card:last-child { margin-bottom: 0 !important; }
+.paper-v12 .qtt-secgrid { gap: var(--lg-gap) !important; }
+.mt-overhaul .mt-footer { padding-top: var(--lg-edge); }
+@media (max-width: 430px) {
+  .mt-overhaul { --lg-edge: var(--sp-12); }
+  .mt-overhaul .mt-topnav, .mt-overhaul .mt-header, .v13.home-v12 .tape, .mt-overhaul .mt-static-page { width: calc(100% - 2 * var(--lg-edge)); }
+}
+.v13.macro-v13 section.wrap + section.wrap { margin-top: var(--lg-gap); }
+.v13.home-v12.sc-wrap .sc-book, .v13.home-v12.sc-wrap .sc-list { margin: var(--lg-gap) 0 0 !important; }
+.v13.home-v12.sc-wrap .sc-tiles { margin: var(--lg-gap) 0 0; }
+.mt-overhaul .wrap.qtt > div[style*="grid"] { gap: var(--lg-gap) !important; margin-bottom: var(--lg-gap) !important; }
+.mt-overhaul .wrap.qtt > div:first-child { margin-bottom: var(--lg-gap) !important; }
+.v13.home-v12.methodology-v12 .meth-hero.wrap { max-width: var(--lg-stage); width: calc(100% - 2 * var(--lg-edge)); padding: var(--sp-22) var(--sp-26); }
+.v13.home-v12.home-cockpit .bgrid > .tile { padding-top: var(--sp-12); padding-bottom: var(--sp-14); }
+.v13.home-v12 .tape { padding-top: 0; padding-bottom: 0; }
+.v13.home-v12 .tape .t { padding-top: var(--sp-2); padding-bottom: var(--sp-2); }
+.mt-overhaul .mt-header { padding-top: var(--sp-4); padding-bottom: var(--sp-4); }
+.v13.home-v12.home-cockpit .bgrid > .tile { gap: var(--sp-8); }
+.v13.home-v12.home-cockpit .bgrid > .tile { padding-bottom: var(--sp-12); }
+.v13.home-v12.home-cockpit .bgrid > .idea-tile { gap: var(--sp-6); }
