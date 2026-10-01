@@ -18,6 +18,7 @@
 */
 
 import { useEffect, useMemo, useState } from 'react';
+import useEngineLevels, { engineZone } from './useEngineLevels';
 import { IND, DIRECTION, TAILS } from '../../data/indicatorRegistry';
 import jsonOnce from './jsonOnce';
 
@@ -168,6 +169,7 @@ const DEF = {
 };
 
 export default function useIndicators() {
+  const engineLv = useEngineLevels();
   const [hist, setHist] = useState(null);
   const [manifest, setManifest] = useState(null);
   const [err, setErr] = useState(null);
@@ -266,13 +268,20 @@ export default function useIndicators() {
       // warning (ERP, breadth, payrolls, 2s10s, reserves) went unflagged.
       // scripts/check_directions.mjs fails the build on a missing entry.
       const direction = DIRECTION[id] || h.stats?.direction || 'hw';
-      const state = stateFor(pct, direction);
+      // MOVE is the Engine's stress trigger: its row is flagged by the Engine's
+      // own Watch / Risk Off lines, the same ones its chart is shaded with, so
+      // the row, the chart and the Home/Macro call can never disagree
+      // (LESSONS 7.19; Joe 2026-10-01).
+      const zone = id === 'move' ? engineZone(value, engineLv) : null;
+      const state = zone ? (zone === 'Risk Off' ? 'extreme' : zone === 'Watch' ? 'elevated' : 'calm')
+        : stateFor(pct, direction);
       // WHICH tail, in this indicator's own words. Joe, 2026-09-03, on HY OAS
       // at the 3rd percentile flagged red: "super low, and we're calling that
       // stretched?" It IS at a tail — but the tile said nothing about which
       // one, and red implied stress on the least-stressed reading in 3 years.
       // Only shown when the row is flagged; a calm row stays a bare number.
-      const tailWord = (state === 'calm' || pct == null || !TAILS[id]) ? null
+      const tailWord = zone ? (zone === 'Risk On' ? null : zone)
+        : (state === 'calm' || pct == null || !TAILS[id]) ? null
         : (pct <= 50 ? TAILS[id][0] : TAILS[id][1]);
       const familyId = meta[2];
       const src = sourceFor[id] || {};
@@ -359,7 +368,7 @@ export default function useIndicators() {
       if (prevPct != null) i.deltaPct = i.pct - prevPct;
     });
     return out;
-  }, [hist, sourceFor]);
+  }, [hist, sourceFor, engineLv.watch, engineLv.riskOff]);
 
   // Major-index overlay series for the detail charts (S&P 500 / Nasdaq /
   // Dow). These live in the history file but are NOT registry indicators —

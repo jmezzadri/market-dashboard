@@ -11,8 +11,9 @@
 
 import { useMemo } from 'react';
 import useIndicators from './useIndicators';
+import { STRESS_THRESH } from './useEngineLevels';
 
-export const STRESS_THRESH = { watch: 116, riskOff: 124 };
+export { STRESS_THRESH };
 export const YIELD_THRESH = { inflBp: 32, deflBp: -11 };
 
 function stressZone(moveValue) {
