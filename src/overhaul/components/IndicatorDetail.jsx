@@ -106,12 +106,12 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
     };
     const AMBER = 'var(--mt-warn)', RED = 'var(--mt-down)';
     const top = [
-      { from: q(0.85), to: null, color: RED, opacity: 0.08, label: 'Red zone' },
-      { from: q(0.75), to: q(0.85), color: AMBER, opacity: 0.10, label: 'Amber zone' },
+      { from: q(0.85), to: null, color: RED, opacity: 0.34, label: 'Red zone' },
+      { from: q(0.75), to: q(0.85), color: AMBER, opacity: 0.26, label: 'Amber zone' },
     ];
     const bottom = [
-      { from: null, to: q(0.15), color: RED, opacity: 0.08, label: 'Red zone' },
-      { from: q(0.15), to: q(0.25), color: AMBER, opacity: 0.10, label: 'Amber zone' },
+      { from: null, to: q(0.15), color: RED, opacity: 0.34, label: 'Red zone' },
+      { from: q(0.15), to: q(0.25), color: AMBER, opacity: 0.26, label: 'Amber zone' },
     ];
     if (ind.direction === 'lw') return bottom;
     if (ind.direction === 'bw') return [...top, ...bottom];
@@ -259,9 +259,11 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
       )}
 
       {/* History chart */}
+      {/* The line is ink, not the state colour: a red line on the red zone
+          (or amber on amber) was unreadable in both themes. Joe 2026-10-01. */}
       <BigHistoryChart
         points={sliced}
-        accent={accent}
+        accent="var(--lg-fg)"
         height={260}
         freq={ind.freq}
         yFormat={(v) => fmtNum(v, ind.decimals ?? 2)}
