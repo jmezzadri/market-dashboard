@@ -254,9 +254,32 @@ export default function BigHistoryChart({
           const y = yOf(hiV);
           const hPx = yOf(loV) - yOf(hiV);
           if (!(hPx > 0)) return null;
+          // Joe 2026-10-01: "can't even see the shading on light or dark" —
+          // bands are now a solid tint plus a 1px edge on the threshold side.
+          const edgeY = b.to == null ? yOf(loV) : (b.from == null ? yOf(hiV) : null);
+          // An open-ended zone (red, running to the chart edge) fades away from
+          // its threshold so the chart is not one solid block of colour; the
+          // bounded amber band stays solid.
+          const openTop = b.to == null, openBottom = b.from == null;
+          const gid = `bandg${k}`;
+          const col = b.color || 'var(--mt-warn)';
           return (
-            <rect key={`band${k}`} x={padL} y={y} width={w - padL - padR} height={hPx}
-              fill={b.color || 'var(--mt-warn)'} opacity={b.opacity ?? 0.09} />
+            <g key={`band${k}`}>
+              {(openTop || openBottom) && (
+                <defs>
+                  <linearGradient id={gid} x1="0" y1={openTop ? '1' : '0'} x2="0" y2={openTop ? '0' : '1'}>
+                    <stop offset="0" stopColor={col} stopOpacity={b.opacity ?? 0.22} />
+                    <stop offset="1" stopColor={col} stopOpacity="0.03" />
+                  </linearGradient>
+                </defs>
+              )}
+              <rect x={padL} y={y} width={w - padL - padR} height={hPx}
+                fill={(openTop || openBottom) ? `url(#${gid})` : col} opacity={(openTop || openBottom) ? 1 : (b.opacity ?? 0.22)} />
+              {edgeY != null && (
+                <line x1={padL} x2={w - padR} y1={edgeY} y2={edgeY}
+                  stroke={b.color || 'var(--mt-warn)'} strokeWidth="1" strokeDasharray="4 3" opacity="0.8" />
+              )}
+            </g>
           );
         })}
 
@@ -299,7 +322,7 @@ export default function BigHistoryChart({
         )}
 
         {/* area + price line */}
-        <path d={areaPath} fill={accent} opacity={0.10} />
+        <path d={areaPath} fill={accent} opacity={0.06} />
         <path d={path} fill="none" stroke={accent} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
 
         {/* moving-average overlays */}
@@ -419,7 +442,7 @@ function LegendSwatch({ color, label, dash, block, dot }) {
       {dot ? (
         <span style={{ width: 8, height: 8, background: color, display: 'inline-block', borderRadius: 'var(--r-50pct)' }} />
       ) : block ? (
-        <span style={{ width: 9, height: 9, background: color, opacity: 0.4, display: 'inline-block', borderRadius: 'var(--r-1)' }} />
+        <span style={{ width: 9, height: 9, background: color, opacity: 0.8, display: 'inline-block', borderRadius: 'var(--r-1)' }} />
       ) : (
         <span style={{ width: 14, height: 0, borderTop: `2px ${dash ? 'dashed' : 'solid'} ${color}`, display: 'inline-block' }} />
       )}
