@@ -256,7 +256,16 @@ export default function BigHistoryChart({
           if (!(hPx > 0)) return null;
           // Joe 2026-10-01: "can't even see the shading on light or dark" —
           // bands are now a solid tint plus a 1px edge on the threshold side.
-          const edgeY = b.to == null ? yOf(loV) : (b.from == null ? yOf(hiV) : null);
+          // `edge: false` suppresses the line (a zone whose boundary a
+          // neighbour already draws); `edgeLabel` names the line and its value
+          // and gives a bounded zone a line at its lower threshold too.
+          const edgeY = b.edge === false ? null
+            : b.to == null ? yOf(loV)
+            : b.from == null ? yOf(hiV)
+            : (b.edgeLabel && b.from > yLo && b.from < yHi ? yOf(b.from) : null);
+          // Watch sits just under Risk Off: the lower label goes beneath its
+          // line so the two never collide.
+          const below = b.edgeLabel && b.to != null && b.from != null && (yOf(b.from) - yOf(b.to)) < 14;
           // An open-ended zone (red, running to the chart edge) fades away from
           // its threshold so the chart is not one solid block of colour; the
           // bounded amber band stays solid.
@@ -278,6 +287,12 @@ export default function BigHistoryChart({
               {edgeY != null && (
                 <line x1={padL} x2={w - padR} y1={edgeY} y2={edgeY}
                   stroke={b.color || 'var(--mt-warn)'} strokeWidth="1" strokeDasharray="4 3" opacity="0.8" />
+              )}
+              {edgeY != null && b.edgeLabel && (
+                <text x={w - padR - 4} y={edgeY + (below ? 11 : -4)} textAnchor="end"
+                  style={{ fontSize: 'var(--v13-t1)', fill: col, fontFamily: 'var(--mt-type-mono)' }}>
+                  {b.label} {yFormat(b.from)}
+                </text>
               )}
             </g>
           );

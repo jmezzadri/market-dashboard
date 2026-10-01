@@ -11,6 +11,7 @@ import PercentileBar from './PercentileBar';
 import FreshnessChip from './FreshnessChip';
 import IndexOverlayToggles from './IndexOverlayToggles';
 import { TAILS } from '../../data/indicatorRegistry';
+import useEngineLevels, { engineZone } from '../lib/useEngineLevels';
 
 function sliceByTimeframe(points, tf) {
   if (!points?.length) return [];
@@ -67,6 +68,11 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
   const [overlayKey, setOverlayKey] = useState('');
   const [idxOn, setIdxOn] = useState({});
   const navigate = useNavigate();
+  // MOVE is the Engine's stress trigger, so its chart is shaded with the
+  // Engine's own Risk On / Watch / Risk Off lines, not the generic pill zones
+  // (LESSONS 7.19).
+  const engineLv = useEngineLevels();
+  const isEngineInd = ind.id === 'move';
 
   const sliced = useMemo(() => sliceByTimeframe(ind.points, tf), [ind.points, tf]);
   const overlay = useMemo(() => {
@@ -86,6 +92,13 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
   //   low-warns:            amber 15th–25th percentile, red below 15th
   //   both-ends:            both of the above
   const bands = useMemo(() => {
+    if (isEngineInd) {
+      return [
+        { from: engineLv.riskOff, to: null, color: 'var(--mt-down)', opacity: 0.34, label: 'Risk Off', edgeLabel: true },
+        { from: engineLv.watch, to: engineLv.riskOff, color: 'var(--mt-warn)', opacity: 0.26, label: 'Watch', edgeLabel: true },
+        { from: null, to: engineLv.watch, color: 'var(--mt-up)', opacity: 0.16, label: 'Risk On', edge: false },
+      ];
+    }
     const pts = ind.points || [];
     if (!pts.length) return [];
     const lastT = Date.parse(String(pts[pts.length - 1][0]).slice(0, 10) + 'T00:00:00Z');
@@ -116,7 +129,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
     if (ind.direction === 'lw') return bottom;
     if (ind.direction === 'bw') return [...top, ...bottom];
     return top; // 'hw' and anything unmapped — mirrors stateFor's default
-  }, [ind.points, ind.direction]);
+  }, [ind.points, ind.direction, isEngineInd, engineLv.watch, engineLv.riskOff]);
 
   const idxCompares = useMemo(
     () => indexSeries
@@ -142,8 +155,12 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
     return Math.round((below / vals.length) * 100);
   }, [sliced, ind.value, ind.pct]);
 
+  const zone = isEngineInd ? engineZone(ind.value, engineLv) : null;
   const accent =
-    ind.state === 'extreme'
+    zone === 'Risk Off' ? 'var(--mt-down)'
+    : zone === 'Watch' ? 'var(--mt-warn)'
+    : zone === 'Risk On' ? 'var(--mt-up)'
+    : ind.state === 'extreme'
       ? 'var(--mt-down)'
       : ind.state === 'elevated'
         ? 'var(--mt-warn)'
@@ -274,8 +291,9 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
       />
       {bands.length > 0 && (
         <div style={{ marginTop: 'var(--sp-6)', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>
-          Shaded bands mark where this pill turns amber and red — fixed to the same
-          3-year basis that colors the pill, whatever timeframe you select.
+          {isEngineInd
+            ? `Shaded bands are the Engine's own lines, the same ones behind the Risk On / Watch / Risk Off call on Home and Macro: Watch from ${fmtNum(engineLv.watch, 0)}, Risk Off from ${fmtNum(engineLv.riskOff, 0)} (the 75th and 85th percentile of the last five years of Friday closes). Today reads ${zone || '—'}.`
+            : 'Shaded bands mark where this pill turns amber and red — fixed to the same 3-year basis that colors the pill, whatever timeframe you select.'}
         </div>
       )}
 
