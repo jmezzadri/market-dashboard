@@ -201,19 +201,19 @@ export function InfoTip({ term, def, size = 12, inline = true, style }) {
     justifyContent: "center",
     width: size + 2,
     height: size + 2,
-    borderRadius: "50%",
-    background: "var(--surface-solid, #fff)",
-    color: "var(--text-muted, #6b7280)",
-    border: "1px solid var(--border-faint, #d4d7db)",
+    borderRadius: "var(--r-50pct)",
+    background: "var(--surface-solid, var(--c-ffffff))",
+    color: "var(--text-muted, var(--c-6b7280))",
+    border: "1px solid var(--border-faint, var(--c-d4d7db))",
     fontSize: size - 3,
-    fontWeight: 700,
+    fontWeight: 'var(--fw-700)',
     fontFamily: 'var(--mt-type-mono)',
     cursor: "help",
     userSelect: "none",
     lineHeight: 1,
-    marginLeft: 4,
+    marginLeft: 'var(--sp-4)',
     verticalAlign: inline ? "middle" : "baseline",
-    transition: "background 120ms, color 120ms",
+    transition: "background var(--dur-120), color var(--dur-120)",
     ...style,
   };
 
@@ -242,15 +242,15 @@ export function InfoTip({ term, def, size = 12, inline = true, style }) {
             top: pos.flip ? undefined : pos.y,
             bottom: pos.flip ? window.innerHeight - pos.y : undefined,
             width: 280,
-            padding: "10px 12px",
-            background: "var(--surface-solid, #fff)",
-            color: "var(--text, #111)",
-            border: "1px solid var(--border, #d4d7db)",
-            borderRadius: 8,
+            padding: "var(--sp-10) var(--sp-12)",
+            background: "var(--surface-solid, var(--c-ffffff))",
+            color: "var(--text, var(--c-111111))",
+            border: "1px solid var(--border, var(--c-d4d7db))",
+            borderRadius: 'var(--r-8)',
             fontSize: 'var(--v13-t2)',
             lineHeight: 1.5,
             fontFamily: "var(--mt-type-sans)",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+            boxShadow: "var(--sh-5)",
             zIndex: 9999,
             pointerEvents: "none",
             whiteSpace: "pre-wrap",
@@ -259,7 +259,7 @@ export function InfoTip({ term, def, size = 12, inline = true, style }) {
           }}
         >
           {term && (
-            <div style={{ fontWeight: 700, fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)', letterSpacing: "0.06em", color: "var(--text-muted, #6b7280)", marginBottom: 4 }}>
+            <div style={{ fontWeight: 'var(--fw-700)', fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)', letterSpacing: "0.06em", color: "var(--text-muted, var(--c-6b7280))", marginBottom: 'var(--sp-4)' }}>
               {String(term).toUpperCase()}
             </div>
           )}
@@ -277,7 +277,7 @@ export function InfoTip({ term, def, size = 12, inline = true, style }) {
  */
 export function HeadWithTip({ label, term }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 'var(--sp-2)' }}>
       {label}
       <InfoTip term={term || label} size={11} />
     </span>
@@ -335,15 +335,15 @@ export function Tip({ children, def, label }) {
             top: pos.flip ? undefined : pos.y,
             bottom: pos.flip ? window.innerHeight - pos.y : undefined,
             width: 280,
-            padding: "10px 12px",
-            background: "var(--surface-solid, #fff)",
-            color: "var(--text, #111)",
-            border: "1px solid var(--border, #d4d7db)",
-            borderRadius: 8,
+            padding: "var(--sp-10) var(--sp-12)",
+            background: "var(--surface-solid, var(--c-ffffff))",
+            color: "var(--text, var(--c-111111))",
+            border: "1px solid var(--border, var(--c-d4d7db))",
+            borderRadius: 'var(--r-8)',
             fontSize: 'var(--v13-t2)',
             lineHeight: 1.5,
             fontFamily: "var(--mt-type-sans)",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+            boxShadow: "var(--sh-5)",
             zIndex: 9999,
             pointerEvents: "none",
             whiteSpace: "pre-wrap",
@@ -352,7 +352,7 @@ export function Tip({ children, def, label }) {
           }}
         >
           {label && (
-            <div style={{ fontWeight: 700, fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)', letterSpacing: "0.06em", color: "var(--text-muted, #6b7280)", marginBottom: 4 }}>
+            <div style={{ fontWeight: 'var(--fw-700)', fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)', letterSpacing: "0.06em", color: "var(--text-muted, var(--c-6b7280))", marginBottom: 'var(--sp-4)' }}>
               {label}
             </div>
           )}

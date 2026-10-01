@@ -252,37 +252,37 @@ export default function EngineReadBand({ onTip, onHideTip }) {
     + `+${Math.round(inflT)} bp or higher leans gold & short T-bills; in between holds a balanced sleeve. The colored bands mark where those levels fall in the 3-year range.`;
 
   return (
-    <section className="mt-pagesection mer-band" style={{ paddingTop: 28 }}>
+    <section className="mt-pagesection mer-band" style={{ paddingTop: 'var(--sp-28)' }}>
       <style>{`
-        .mer-card{background:var(--mt-surface);border:1px solid var(--mt-line-1);border-radius:var(--mt-r-lg);padding:18px 20px}
-        .mer-state{font-family:var(--mt-type-sans);font-size:var(--v13-t4);font-weight:400;color:var(--mt-ink-0);line-height:1.2}
-        .mer-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
-        .mer-panel{background:var(--mt-surface-2);border:1px solid var(--mt-line-1);border-radius:12px;padding:14px 16px 12px}
-        .mer-ghead{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-        .mer-gtitle{display:flex;align-items:center;gap:8px;font-size:var(--v13-t1);letter-spacing:.1em;text-transform:uppercase;color:var(--mt-ink-3);font-weight:700}
-        .mer-ghval{display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right;flex:0 0 auto}
-        .mer-gval{font-family:var(--mt-type-sans);font-size:var(--v13-t6);font-weight:400;line-height:1;letter-spacing:-.01em}
-        .mer-gunit{font-family:var(--mt-type-sans);font-size:var(--v13-t3);font-weight:400;color:var(--mt-ink-2);margin-left:4px;letter-spacing:0}
+        .mer-card{background:var(--mt-surface);border:1px solid var(--mt-line-1);border-radius:var(--mt-r-lg);padding:var(--sp-18) var(--sp-20)}
+        .mer-state{font-family:var(--mt-type-sans);font-size:var(--v13-t4);font-weight:var(--fw-400);color:var(--mt-ink-0);line-height:1.2}
+        .mer-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-16);margin-top:var(--sp-16)}
+        .mer-panel{background:var(--mt-surface-2);border:1px solid var(--mt-line-1);border-radius:var(--r-12);padding:var(--sp-14) var(--sp-16) var(--sp-12)}
+        .mer-ghead{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-10)}
+        .mer-gtitle{display:flex;align-items:center;gap:var(--sp-8);font-size:var(--v13-t1);letter-spacing:.1em;text-transform:uppercase;color:var(--mt-ink-3);font-weight:var(--fw-700)}
+        .mer-ghval{display:flex;flex-direction:column;align-items:flex-end;gap:var(--sp-1);text-align:right;flex:0 0 auto}
+        .mer-gval{font-family:var(--mt-type-sans);font-size:var(--v13-t6);font-weight:var(--fw-400);line-height:1;letter-spacing:-.01em}
+        .mer-gunit{font-family:var(--mt-type-sans);font-size:var(--v13-t3);font-weight:var(--fw-400);color:var(--mt-ink-2);margin-left:var(--sp-4);letter-spacing:0}
         .mer-gsub{font-size:var(--v13-t2);color:var(--mt-ink-3)}
-        .mer-gcap{font-size:var(--v13-t2);color:var(--mt-ink-2);line-height:1.4;margin:6px 0 2px}
-        .mer-dialrow{display:flex;align-items:center;gap:14px;margin-top:6px}
+        .mer-gcap{font-size:var(--v13-t2);color:var(--mt-ink-2);line-height:1.4;margin:var(--sp-6) 0 var(--sp-2)}
+        .mer-dialrow{display:flex;align-items:center;gap:var(--sp-14);margin-top:var(--sp-6)}
         .mer-dialwrap{cursor:help;flex:1 1 56%;min-width:0}
-        .mer-diallegend{flex:1 1 44%;display:flex;flex-direction:column;gap:7px}
-        .mer-legtile{display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--mt-line-0);border-radius:8px;background:var(--mt-surface-2)}
-        .mer-legdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-        .mer-leglabel{font-size:var(--v13-t2);font-weight:600;letter-spacing:.03em;flex:1}
+        .mer-diallegend{flex:1 1 44%;display:flex;flex-direction:column;gap:var(--sp-7)}
+        .mer-legtile{display:flex;align-items:center;gap:var(--sp-7);padding:var(--sp-7) var(--sp-10);border:1px solid var(--mt-line-0);border-radius:var(--r-8);background:var(--mt-surface-2)}
+        .mer-legdot{width:8px;height:8px;border-radius:var(--r-50pct);flex-shrink:0}
+        .mer-leglabel{font-size:var(--v13-t2);font-weight:var(--fw-600);letter-spacing:.03em;flex:1}
         .mer-legrange{font-size:var(--v13-t2);color:var(--mt-ink-2);font-family:var(--mt-type-mono)}
-        .mer-spark{margin-top:12px;padding-top:10px;border-top:1px solid var(--mt-line-1)}
-        .mer-sparkhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:var(--v13-t1);letter-spacing:.09em;text-transform:uppercase;color:var(--mt-ink-3);font-weight:700;margin-bottom:5px}
-        .mer-sparkval{text-transform:none;letter-spacing:0;font-weight:400;color:var(--mt-ink-1);font-family:var(--mt-type-mono);font-size:var(--v13-t2)}
-        .mer-strip-wrap{margin-top:18px;padding-top:14px;border-top:1px solid var(--mt-line-1)}
-        .mer-strip{display:grid;grid-template-columns:repeat(104,1fr);gap:1.5px;margin-top:8px}
-        .mer-cell{height:30px;border-radius:2px;cursor:default;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--mt-line-1)}
+        .mer-spark{margin-top:var(--sp-12);padding-top:var(--sp-10);border-top:1px solid var(--mt-line-1)}
+        .mer-sparkhead{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-8);font-size:var(--v13-t1);letter-spacing:.09em;text-transform:uppercase;color:var(--mt-ink-3);font-weight:var(--fw-700);margin-bottom:var(--sp-5)}
+        .mer-sparkval{text-transform:none;letter-spacing:0;font-weight:var(--fw-400);color:var(--mt-ink-1);font-family:var(--mt-type-mono);font-size:var(--v13-t2)}
+        .mer-strip-wrap{margin-top:var(--sp-18);padding-top:var(--sp-14);border-top:1px solid var(--mt-line-1)}
+        .mer-strip{display:grid;grid-template-columns:repeat(104,1fr);gap:var(--sp-1_5);margin-top:var(--sp-8)}
+        .mer-cell{height:30px;border-radius:var(--r-2);cursor:default;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--mt-line-1)}
         .mer-celltop,.mer-cellbot{flex:1 1 50%}
-        .mer-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:var(--v13-t1);color:var(--mt-ink-3)}
-        .mer-legend span{display:inline-flex;align-items:center;gap:5px}
-        .mer-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-        @media (max-width:760px){.mer-grid{grid-template-columns:1fr;gap:14px}.mer-strip{grid-template-columns:repeat(26,1fr)}.mer-dialrow{flex-direction:column;align-items:stretch;gap:10px}}
+        .mer-legend{display:flex;flex-wrap:wrap;gap:var(--sp-14);margin-top:var(--sp-10);font-size:var(--v13-t1);color:var(--mt-ink-3)}
+        .mer-legend span{display:inline-flex;align-items:center;gap:var(--sp-5)}
+        .mer-dot{width:9px;height:9px;border-radius:var(--r-50pct);display:inline-block}
+        @media (max-width:760px){.mer-grid{grid-template-columns:1fr;gap:var(--sp-14)}.mer-strip{grid-template-columns:repeat(26,1fr)}.mer-dialrow{flex-direction:column;align-items:stretch;gap:var(--sp-10)}}
       `}</style>
 
       <div className="mer-card">

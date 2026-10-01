@@ -92,9 +92,9 @@ export function useSortableTable({
 // for desc. Color and margin match the existing PositionsTable /
 // WatchlistTable arrow exactly so retrofits read identical.
 export function SortArrow({ dir }) {
-  if (!dir) return <span style={{ opacity: 0.3, marginLeft: 4 }}>↕</span>;
+  if (!dir) return <span style={{ opacity: 0.3, marginLeft: 'var(--sp-4)' }}>↕</span>;
   return (
-    <span style={{ marginLeft: 4, color: "var(--text)" }}>
+    <span style={{ marginLeft: 'var(--sp-4)', color: "var(--text)" }}>
       {dir === "asc" ? "▲" : "▼"}
     </span>
   );

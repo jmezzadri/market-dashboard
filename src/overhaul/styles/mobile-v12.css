@@ -42,7 +42,7 @@
   [data-mt-sidebar='top'] .mt-overhaul .mt-topnav,
   .mt-overhaul .mt-topnav {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; padding: 0 14px; min-height: 56px;
+    gap: var(--sp-12); padding: 0 var(--sp-14); min-height: 56px;
   }
   .mt-overhaul .mt-wordmark { font-size: var(--v13-t5); margin: 0; }
 
@@ -50,14 +50,14 @@
     display: inline-flex; align-items: center; justify-content: center;
     /* 44px is the Apple HIG minimum and this is the one control that has to be
        hittable before anything else on the page matters. */
-    width: 44px; height: 44px; margin-right: -8px;
-    background: none; border: 0; cursor: pointer; color: var(--ink, #212C33);
+    width: 44px; height: 44px; margin-right: var(--sp-n8);
+    background: none; border: 0; cursor: pointer; color: var(--ink, var(--c-212c33));
     -webkit-tap-highlight-color: transparent;
   }
   .mt-overhaul .mt-navtoggle-bars { display: block; width: 22px; height: 16px; position: relative; }
   .mt-overhaul .mt-navtoggle-bars i {
-    position: absolute; left: 0; width: 100%; height: 2px; border-radius: 2px;
-    background: currentColor; transition: transform .18s ease, opacity .18s ease;
+    position: absolute; left: 0; width: 100%; height: 2px; border-radius: var(--r-2);
+    background: currentColor; transition: transform var(--dur-180) ease, opacity var(--dur-180) ease;
   }
   .mt-overhaul .mt-navtoggle-bars i:nth-child(1) { top: 0; }
   .mt-overhaul .mt-navtoggle-bars i:nth-child(2) { top: 7px; }
@@ -70,44 +70,44 @@
      into the X that closes it. Without this the sheet paints over its own
      close control and the only way out is the backdrop. */
   [data-mt-sidebar='top'] .mt-overhaul .mt-topnav,
-  .mt-overhaul .mt-topnav { position: relative; z-index: 950; background: var(--bg, #F2EEE6); }
+  .mt-overhaul .mt-topnav { position: relative; z-index: 950; background: var(--bg, var(--c-f2eee6)); }
 
   .mt-overhaul .mt-navsheet-veil {
     position: fixed; inset: 0; z-index: 900;
-    background: rgba(20, 24, 28, .42);
+    background: var(--c-14181c-a42);
     -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
   }
   .mt-overhaul .mt-navsheet {
     position: absolute; top: 0; right: 0; left: 0;
-    background: var(--bg2, #F9F6F0);
-    border-bottom: 1px solid var(--hair, rgba(33,44,51,.14));
-    box-shadow: 0 12px 30px rgba(20, 24, 28, .16);
+    background: var(--bg2, var(--c-f9f6f0));
+    border-bottom: 1px solid var(--hair, var(--c-212c33-a14));
+    box-shadow: var(--sh-16);
     /* Clear the nav bar, and never grow past the screen on a short phone in
        landscape — the sheet scrolls instead. */
-    padding: 60px 0 8px;
+    padding: var(--sp-60) 0 var(--sp-8);
     max-height: 100dvh; overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
   .mt-overhaul .mt-navsheet-link {
-    display: block; padding: 15px 18px; min-height: 52px;
+    display: block; padding: var(--sp-15) var(--sp-18); min-height: 52px;
     font-size: var(--v13-t5); line-height: 22px; text-decoration: none;
-    color: var(--ink, #212C33);
-    border-bottom: 1px solid var(--hair, rgba(33,44,51,.10));
+    color: var(--ink, var(--c-212c33));
+    border-bottom: 1px solid var(--hair, var(--c-212c33-a10));
     -webkit-tap-highlight-color: transparent;
   }
-  .mt-overhaul .mt-navsheet-link.on { color: var(--gold-deep, #B7975C); font-weight: 600; }
+  .mt-overhaul .mt-navsheet-link.on { color: var(--gold-deep, var(--c-b7975c)); font-weight: var(--fw-600); }
   .mt-overhaul .mt-navsheet-auth {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; padding: 16px 18px 12px; min-height: 52px;
+    gap: var(--sp-12); padding: var(--sp-16) var(--sp-18) var(--sp-12); min-height: 52px;
   }
   .mt-overhaul .mt-navsheet-email {
-    font-size: var(--v13-t3); color: var(--mut, #7C7668);
+    font-size: var(--v13-t3); color: var(--mut, var(--c-7c7668));
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .mt-overhaul .mt-navsheet-signin,
   .mt-overhaul .mt-navsheet-signout {
-    font-size: var(--v13-t4); font-weight: 600; color: var(--gold-deep, #B7975C);
-    background: none; border: 0; padding: 10px 0; cursor: pointer; text-decoration: none;
+    font-size: var(--v13-t4); font-weight: var(--fw-600); color: var(--gold-deep, var(--c-b7975c));
+    background: none; border: 0; padding: var(--sp-10) 0; cursor: pointer; text-decoration: none;
   }
 }
 
@@ -118,11 +118,11 @@
 @media (max-width: 780px) {
   .mt-overhaul .mt-header {
     display: grid; grid-template-columns: 1fr auto; align-items: center;
-    gap: 8px 10px; padding: 10px 14px;
+    gap: var(--sp-8) var(--sp-10); padding: var(--sp-10) var(--sp-14);
   }
   .mt-overhaul .mt-headmeta { font-size: var(--v13-t3); min-width: 0; overflow: hidden; }
   .mt-overhaul .mt-headmeta > * { white-space: nowrap; }
-  .mt-overhaul .mt-headstatus { display: flex; align-items: center; gap: 8px; }
+  .mt-overhaul .mt-headstatus { display: flex; align-items: center; gap: var(--sp-8); }
   /* The freshness pill is a desktop affordance — a tap target that navigates
      nowhere, costing a whole row on a phone. The Data page carries the same
      information in full. */
@@ -172,14 +172,14 @@
 
   .mt-overhaul .mt-main-wrap,
   .mt-overhaul .wrap,
-  .mt-overhaul section.wrap { padding-left: 14px; padding-right: 14px; }
+  .mt-overhaul section.wrap { padding-left: var(--sp-14); padding-right: var(--sp-14); }
 
   /* Display headlines authored at desktop sizes. */
   .mt-overhaul h1 { font-size: var(--v13-t6); line-height: 1.18; }
   .mt-overhaul h2 { font-size: var(--v13-t5); line-height: 1.22; }
   .mt-overhaul .hero h1 { font-size: var(--v13-t6); }
-  .mt-overhaul .hero { padding: 40px 0 34px !important; }
-  .mt-overhaul section { margin-top: 34px; }
+  .mt-overhaul .hero { padding: var(--sp-40) 0 var(--sp-34) !important; }
+  .mt-overhaul section { margin-top: var(--sp-34); }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -222,7 +222,7 @@
   .mt-overhaul table tbody { display: table; width: max-content; min-width: 100%; }
   .mt-overhaul table tr { display: table-row; }
   .mt-overhaul table th, .mt-overhaul table td {
-    display: table-cell; white-space: nowrap; padding: 9px 10px;
+    display: table-cell; white-space: nowrap; padding: var(--sp-9) var(--sp-10);
   }
   /* A cell holding prose should wrap rather than force a 600px scroll. */
   .mt-overhaul table td[data-wrap], .mt-overhaul table td.wrap {
@@ -262,13 +262,13 @@
   .mt-overhaul .briefmodal {
     width: 100% !important; max-width: 100% !important;
     max-height: 100dvh !important; height: 100dvh !important;
-    border-radius: 0 !important; padding: 52px 16px 32px !important;
+    border-radius: 0 !important; padding: var(--sp-52) var(--sp-16) var(--sp-32) !important;
     overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
   .mt-overhaul .briefmodal-x {
     position: fixed !important; top: 8px; right: 8px;
     width: 44px; height: 44px; font-size: var(--v13-t6); z-index: 5;
-    background: var(--bg2, #F9F6F0); border-radius: 50%;
+    background: var(--bg2, var(--c-f9f6f0)); border-radius: var(--r-50pct);
   }
   .mt-overhaul .briefmodal-h { font-size: var(--v13-t5); line-height: 1.25; }
   /* Charts inside a note are authored at a fixed desktop width. */
@@ -282,10 +282,10 @@
    ───────────────────────────────────────────────────────────────────────── */
 @media (max-width: 780px) {
   /* HOME — the badge row overflowed its tile; the fact strip was 3 columns. */
-  .mt-overhaul .idea-badges { flex-wrap: wrap; gap: 6px; }
-  .mt-overhaul .idea-badges > * { font-size: var(--v13-t1); padding: 4px 8px; }
+  .mt-overhaul .idea-badges { flex-wrap: wrap; gap: var(--sp-6); }
+  .mt-overhaul .idea-badges > * { font-size: var(--v13-t1); padding: var(--sp-4) var(--sp-8); }
   .mt-overhaul .idea-facts,
-  .mt-overhaul .es-verdict { grid-template-columns: 1fr !important; gap: 12px; }
+  .mt-overhaul .es-verdict { grid-template-columns: 1fr !important; gap: var(--sp-12); }
   .mt-overhaul .idea-modal-facts,
   .mt-overhaul .idea-backtest { grid-template-columns: 1fr !important; }
   /* The tape is .tape > .wrap > .row > .t — the CELLS live two levels down.
@@ -297,8 +297,8 @@
     gap: 0;
   }
   .mt-overhaul .tape .t {
-    padding: 14px 4px 12px; border-left: none;
-    border-top: 1px solid var(--hair, rgba(33,44,51,.14));
+    padding: var(--sp-14) var(--sp-4) var(--sp-12); border-left: none;
+    border-top: 1px solid var(--hair, var(--c-212c33-a14));
     min-width: 0; overflow: hidden;
   }
   .mt-overhaul .tape .tv {
@@ -308,17 +308,17 @@
   .mt-overhaul .tape .tk { font-size: var(--v13-t1)!important; letter-spacing: .06em; }
 
   /* SCORECARD — the ledger row is a six-column grid on desktop. */
-  .mt-overhaul .sc-trade { grid-template-columns: 1fr !important; gap: 2px 0; }
-  .mt-overhaul .sc-tradefact .k { padding-top: 10px; }
+  .mt-overhaul .sc-trade { grid-template-columns: 1fr !important; gap: var(--sp-2) 0; }
+  .mt-overhaul .sc-tradefact .k { padding-top: var(--sp-10); }
   .mt-overhaul .sc-call { font-size: var(--v13-t4); }
-  .mt-overhaul .sc-wrap { padding: 18px 14px 48px; }
+  .mt-overhaul .sc-wrap { padding: var(--sp-18) var(--sp-14) var(--sp-48); }
 
   /* MACRO — indicator rows are a wide multi-column table on desktop. */
   .mt-overhaul .mac-row, .mt-overhaul .ind-row { grid-template-columns: 1fr auto !important; }
 
   /* FOOTER — four columns of links. */
   .mt-overhaul .mt-footer-cols,
-  .mt-overhaul footer .cols { grid-template-columns: 1fr 1fr !important; gap: 20px 16px; }
+  .mt-overhaul footer .cols { grid-template-columns: 1fr 1fr !important; gap: var(--sp-20) var(--sp-16); }
 }
 
 @media (max-width: 520px) {
@@ -362,7 +362,7 @@
   .mt-overhaul .tk,
   .mt-overhaul .when { font-size: var(--v13-t2)!important; }
   .mt-overhaul .mac-lean .lean {
-    font-size: var(--v13-t2)!important; padding: 3px 9px; letter-spacing: .04em;
+    font-size: var(--v13-t2)!important; padding: var(--sp-3) var(--sp-9); letter-spacing: .04em;
   }
 
   /* A table that resolves `width:100%` against an already-overflowing parent
@@ -378,8 +378,8 @@
   /* Give a scrollable table a visible edge so it reads as scrollable rather
      than as content that has been cut off. */
   .mt-overhaul table {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
-            mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, var(--c-000000) calc(100% - 18px), transparent 100%);
+            mask-image: linear-gradient(to right, var(--c-000000) calc(100% - 18px), transparent 100%);
   }
   .mt-overhaul table:not(:hover) { -webkit-mask-image: none; mask-image: none; }
 }
@@ -396,8 +396,8 @@
   .mt-overhaul .home-v12 > section:first-child,
   .mt-overhaul section.pp-hero,
   .mt-overhaul section.df-hero,
-  .mt-overhaul section.mac-hero { margin-top: 14px !important; padding-top: 14px !important; }
-  .mt-overhaul .mt-main-wrap { padding-top: 4px; }
+  .mt-overhaul section.mac-hero { margin-top: var(--sp-14) !important; padding-top: var(--sp-14) !important; }
+  .mt-overhaul .mt-main-wrap { padding-top: var(--sp-4); }
 
   /* Centred prose is a wide-canvas device. At 393px a centred paragraph breaks
      into a ragged stack with orphans pushed to the right edge ("no leverage"
@@ -409,4 +409,50 @@
   .mt-overhaul [class*='-hero'] p,
   .mt-overhaul [class*='-sub'] { text-align: left !important; }
   .mt-overhaul .hero, .mt-overhaul .hero h1, .mt-overhaul .hero p { text-align: left !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PHONE TAP TARGETS (2026-10-01). Driven by --mt-tap (44px under 430px, 0
+   above), so this block is inert on tablet and desktop. Standalone controls
+   only — a link inside a sentence stays a link inside a sentence.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 430px) {
+  .mt-overhaul button,
+  .mt-overhaul [role='button'],
+  .mt-overhaul .mt-btn,
+  .mt-overhaul .mt-pill,
+  .mt-overhaul .lab-btn,
+  .mt-overhaul .lab-seg button,
+  .mt-overhaul input:not([type='checkbox']):not([type='radio']),
+  .mt-overhaul select,
+  .mt-overhaul .mt-iconbtn,
+  .mt-overhaul .mt-wordmark,
+  .mt-overhaul .mt-footer-wordmark,
+  .mt-overhaul .mt-topnav a,
+  .mt-overhaul .mt-nav a,
+  .mt-overhaul .mt-footer-col a,
+  .mt-overhaul .mt-footer-loc a,
+  .mt-overhaul .mt-footer-bottomlinks a,
+  .mt-overhaul .es-link,
+  .mt-overhaul .tk-newslink,
+  .mt-overhaul .mt-static-page nav a,
+  .mt-overhaul .me-toc a,
+  .mt-overhaul .eyebrow2 a,
+  .login-v12 button,
+  .login-v12 .lg-input {
+    min-height: var(--mt-tap) !important;   /* page sheets set fixed heights */
+    min-width: var(--mt-tap) !important;
+    box-sizing: border-box;
+  }
+  .mt-overhaul .mt-footer-col a,
+  .mt-overhaul .mt-footer-loc a,
+  .mt-overhaul .mt-footer-bottomlinks a,
+  .mt-overhaul .mt-wordmark,
+  .mt-overhaul .mt-footer-wordmark,
+  .mt-overhaul .es-link,
+  .mt-overhaul .tk-newslink,
+  .mt-overhaul .eyebrow2 a {
+    display: inline-flex; align-items: center;
+  }
+  .mt-overhaul .mt-footer-col li { margin-bottom: 0; }
 }

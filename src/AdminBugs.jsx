@@ -41,17 +41,17 @@ const LEGACY_ALIAS = {
 function normStatus(s) { return LEGACY_ALIAS[s] || s || "new"; }
 
 const STATUS_META = {
-  new:               { label: "New",               color: "#60a5fa", group: "open" },
+  new:               { label: "New",               color: "var(--c-60a5fa)", group: "open" },
   triaged:           { label: "Triaged",           color: "var(--accent)", group: "open" },
   awaiting_approval: { label: "Awaiting approval", color: "var(--yellow)", group: "awaiting_approval" },
   approved:          { label: "Approved",          color: "var(--text-muted)", group: "in_flight" },
   merged:            { label: "Merged",            color: "var(--green)", group: "in_flight" },
-  deployed:          { label: "Deployed",          color: "#10b981", group: "in_flight" },
-  verified_closed:   { label: "Closed",            color: "#6b7280", group: "closed" },
+  deployed:          { label: "Deployed",          color: "var(--c-10b981)", group: "in_flight" },
+  verified_closed:   { label: "Closed",            color: "var(--c-6b7280)", group: "closed" },
   reopened:          { label: "Reopened",          color: "var(--red)", group: "open" },
-  wontfix:           { label: "Won't fix",         color: "#475569", group: "wontfix" },
-  duplicate:         { label: "Duplicate",         color: "#475569", group: "wontfix" },
-  needs_info:        { label: "Needs info",        color: "#475569", group: "wontfix" },
+  wontfix:           { label: "Won't fix",         color: "var(--c-475569)", group: "wontfix" },
+  duplicate:         { label: "Duplicate",         color: "var(--c-475569)", group: "wontfix" },
+  needs_info:        { label: "Needs info",        color: "var(--c-475569)", group: "wontfix" },
 };
 function statusLabel(raw) { const m = STATUS_META[normStatus(raw)]; return m?.label || raw; }
 function statusColor(raw) { const m = STATUS_META[normStatus(raw)]; return m?.color || "var(--text-muted)"; }
@@ -102,12 +102,12 @@ function DesyncChip({ reasons }) {
     <span
       title={tip}
       style={{
-        display: "inline-flex", alignItems: "center", gap: 3,
-        fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', fontWeight: 700,
-        color: "var(--yellow)", padding: "1px 5px", borderRadius: 3,
-        border: "1px solid var(--yellow)", background: "rgba(107,122,133,0.10)",
+        display: "inline-flex", alignItems: "center", gap: 'var(--sp-3)',
+        fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', fontWeight: 'var(--fw-700)',
+        color: "var(--yellow)", padding: "var(--sp-1) var(--sp-5)", borderRadius: 'var(--r-3)',
+        border: "1px solid var(--yellow)", background: "var(--c-6b7a85-a10)",
         textTransform: "uppercase", letterSpacing: "0.08em",
-        marginLeft: 6, cursor: "help",
+        marginLeft: 'var(--sp-6)', cursor: "help",
       }}>
       ⚠ desync
     </span>
@@ -192,8 +192,8 @@ function complexityColor(c) {
 // strip was removed on the tile-first redesign (2026-04-24).
 function KpiTile({ label, value, sub, tone, active, onClick }) {
   const toneColor = tone === "good" ? "var(--green)" : tone === "warn" ? "var(--yellow)" : tone === "bad" ? "var(--red)" : "var(--text)";
-  const borderColor = active ? "var(--accent, #2563eb)" : "var(--border)";
-  const bg = active ? "rgba(37, 99, 235, 0.06)" : "var(--surface)";
+  const borderColor = active ? "var(--accent, var(--c-2563eb))" : "var(--border)";
+  const bg = active ? "var(--c-2563eb-a6)" : "var(--surface)";
   return (
     <button
       type="button"
@@ -202,21 +202,21 @@ function KpiTile({ label, value, sub, tone, active, onClick }) {
       style={{
         background: bg,
         border: `1px solid ${borderColor}`,
-        borderRadius: 8,
-        padding: "14px 16px",
+        borderRadius: 'var(--r-8)',
+        padding: "var(--sp-14) var(--sp-16)",
         display: "flex",
         flexDirection: "column",
-        gap: 4,
+        gap: 'var(--sp-4)',
         textAlign: "left",
         cursor: onClick ? "pointer" : "default",
-        boxShadow: active ? "0 0 0 1px var(--accent, #2563eb)" : "none",
-        transition: "background 120ms, border-color 120ms, box-shadow 120ms",
+        boxShadow: active ? "0 0 0 1px var(--accent, var(--c-2563eb))" : "none",
+        transition: "background var(--dur-120), border-color var(--dur-120), box-shadow var(--dur-120)",
         fontFamily: "inherit",
         color: "inherit",
         width: "100%",
       }}>
       <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text-muted)", fontFamily: 'var(--mt-type-mono)', letterSpacing: "0.1em", textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontSize: 'var(--v13-t5)', fontWeight: 700, color: toneColor, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+      <div style={{ fontSize: 'var(--v13-t5)', fontWeight: 'var(--fw-700)', color: toneColor, fontVariantNumeric: "tabular-nums" }}>{value}</div>
       {sub && <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text-muted)" }}>{sub}</div>}
     </button>
   );
@@ -225,8 +225,8 @@ function KpiTile({ label, value, sub, tone, active, onClick }) {
 function StatusBadge({ status }) {
   const color = statusColor(status);
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 'var(--v13-t2)', fontWeight: 600, color, fontFamily: 'var(--mt-type-mono)', textTransform: "uppercase", letterSpacing: "0.05em" }}>
-      <span style={{ width: 6, height: 6, borderRadius: 3, background: color, display: "inline-block" }} />
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 'var(--sp-5)', fontSize: 'var(--v13-t2)', fontWeight: 'var(--fw-600)', color, fontFamily: 'var(--mt-type-mono)', textTransform: "uppercase", letterSpacing: "0.05em" }}>
+      <span style={{ width: 6, height: 6, borderRadius: 'var(--r-3)', background: color, display: "inline-block" }} />
       {statusLabel(status)}
     </span>
   );
@@ -235,7 +235,7 @@ function StatusBadge({ status }) {
 function ComplexityBadge({ value }) {
   if (!value) return <span style={{ color: "var(--text-muted)", fontSize: 'var(--v13-t2)' }}>—</span>;
   return (
-    <span style={{ display: "inline-block", minWidth: 18, textAlign: "center", padding: "1px 6px", fontSize: 'var(--v13-t2)', fontWeight: 700, fontFamily: 'var(--mt-type-mono)', borderRadius: 4, border: `1px solid ${complexityColor(value)}`, color: complexityColor(value), background: "transparent" }}>
+    <span style={{ display: "inline-block", minWidth: 18, textAlign: "center", padding: "var(--sp-1) var(--sp-6)", fontSize: 'var(--v13-t2)', fontWeight: 'var(--fw-700)', fontFamily: 'var(--mt-type-mono)', borderRadius: 'var(--r-4)', border: `1px solid ${complexityColor(value)}`, color: complexityColor(value), background: "transparent" }}>
       {value}
     </span>
   );
@@ -250,7 +250,7 @@ function UatModeBadge({ row }) {
   if (s !== "deployed") return null;
   const mode = (row?.uat_mode || "manual").toLowerCase();
   const isManual = mode === "manual";
-  const color = isManual ? "var(--yellow)" : "#60a5fa";
+  const color = isManual ? "var(--yellow)" : "var(--c-60a5fa)";
   const label = isManual ? "UAT: you" : "UAT: auto";
   return (
     <span
@@ -259,12 +259,12 @@ function UatModeBadge({ row }) {
         : "Deployed to prod. Auto-UAT will verify and close this on its next sweep."}
       style={{
         display: "inline-block",
-        padding: "1px 6px",
-        marginLeft: 6,
+        padding: "var(--sp-1) var(--sp-6)",
+        marginLeft: 'var(--sp-6)',
         fontSize: 'var(--v13-t1)',
-        fontWeight: 700,
+        fontWeight: 'var(--fw-700)',
         fontFamily: 'var(--mt-type-mono)',
-        borderRadius: 4,
+        borderRadius: 'var(--r-4)',
         border: `1px solid ${color}`,
         color,
         background: "transparent",
@@ -316,24 +316,24 @@ function BugTable({ rows, selectedId, onSelect }) {
   });
   if (!rows?.length) {
     return (
-      <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 'var(--v13-t3)' }}>
+      <div style={{ padding: "var(--sp-32) var(--sp-20)", textAlign: "center", color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 'var(--r-8)', fontSize: 'var(--v13-t3)' }}>
         No bugs in this filter.
       </div>
     );
   }
   const headerCellStyle = {
-    padding: "10px 14px",
+    padding: "var(--sp-10) var(--sp-14)",
     borderBottom: "1px solid var(--border)",
     fontSize: 'var(--v13-t1)',
     color: "var(--text-muted)",
     fontFamily: 'var(--mt-type-mono)',
     textTransform: "uppercase",
     letterSpacing: "0.08em",
-    fontWeight: 600,
+    fontWeight: 'var(--fw-600)',
     background: "var(--surface)",
   };
   const cellStyle = {
-    padding: "10px 14px",
+    padding: "var(--sp-10) var(--sp-14)",
     borderBottom: "1px solid var(--border)",
     fontSize: 'var(--v13-t2)',
     verticalAlign: "middle",
@@ -342,7 +342,7 @@ function BugTable({ rows, selectedId, onSelect }) {
     whiteSpace: "nowrap",
   };
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 'var(--r-8)', overflow: "hidden" }}>
       <div style={{ maxHeight: 580, overflowY: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 'var(--v13-t2)', tableLayout: "fixed" }}>
           <colgroup>
@@ -382,7 +382,7 @@ function BugTable({ rows, selectedId, onSelect }) {
                   onClick={() => onSelect(r)}
                   style={{
                     cursor: "pointer",
-                    background: isSel ? "var(--hover, rgba(96,165,250,0.08))" : "transparent",
+                    background: isSel ? "var(--hover, var(--c-60a5fa-a8))" : "transparent",
                   }}
                 >
                   <td style={{ ...cellStyle, fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>#{r.report_number || "—"}</td>
@@ -433,7 +433,7 @@ function Screenshot({ path }) {
   if (!url) return <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text-muted)" }}>Loading screenshot…</div>;
   return (
     <a href={url} target="_blank" rel="noreferrer" style={{ display: "block" }}>
-      <img src={url} alt="bug screenshot" style={{ maxWidth: "100%", border: "1px solid var(--border)", borderRadius: 6 }} />
+      <img src={url} alt="bug screenshot" style={{ maxWidth: "100%", border: "1px solid var(--border)", borderRadius: 'var(--r-6)' }} />
     </a>
   );
 }
@@ -444,13 +444,13 @@ function ActivityLog({ bugId }) {
   if (loading) return <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text-muted)" }}>Loading activity…</div>;
   if (!rows?.length) return <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text-muted)" }}>No status changes logged.</div>;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 'var(--sp-6)' }}>
       {rows.map(l => (
-        <div key={l.id} style={{ display: "flex", gap: 10, fontSize: 'var(--v13-t2)', alignItems: "baseline" }}>
+        <div key={l.id} style={{ display: "flex", gap: 'var(--sp-10)', fontSize: 'var(--v13-t2)', alignItems: "baseline" }}>
           <div style={{ fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", fontSize: 'var(--v13-t2)', minWidth: 110 }}>{etDateTime(l.changed_at)}</div>
           <div>
             <StatusBadge status={l.from_status || "new"} /> <span style={{ color: "var(--text-muted)" }}>→</span> <StatusBadge status={l.to_status} />
-            {l.note && <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text-muted)", marginTop: 2 }}>{l.note}</div>}
+            {l.note && <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text-muted)", marginTop: 'var(--sp-2)' }}>{l.note}</div>}
           </div>
         </div>
       ))}
@@ -520,17 +520,17 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
 
   return (
     <div style={{
-      background: "rgba(251, 191, 36, 0.06)",
-      border: "1px solid rgba(251, 191, 36, 0.45)",
-      borderRadius: 8,
-      padding: "14px 16px",
+      background: "var(--c-fbbf24-a6)",
+      border: "1px solid var(--c-fbbf24-a45)",
+      borderRadius: 'var(--r-8)',
+      padding: "var(--sp-14) var(--sp-16)",
       display: "flex",
       flexDirection: "column",
-      gap: 12,
+      gap: 'var(--sp-12)',
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 4, background: "var(--yellow)" }} />
-        <div style={{ fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-mono)', color: "var(--yellow)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 'var(--sp-8)' }}>
+        <span style={{ width: 8, height: 8, borderRadius: 'var(--r-4)', background: "var(--yellow)" }} />
+        <div style={{ fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-mono)', color: "var(--yellow)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 'var(--fw-700)' }}>
           Proposed fix — awaiting your approval
         </div>
         {gated && (
@@ -539,10 +539,10 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
             fontSize: 'var(--v13-t1)',
             fontFamily: 'var(--mt-type-mono)',
             color: "var(--yellow)",
-            background: "rgba(251, 191, 36, 0.15)",
-            border: "1px solid rgba(251, 191, 36, 0.45)",
-            borderRadius: 4,
-            padding: "2px 8px",
+            background: "var(--c-fbbf24-a15)",
+            border: "1px solid var(--c-fbbf24-a45)",
+            borderRadius: 'var(--r-4)',
+            padding: "var(--sp-2) var(--sp-8)",
             letterSpacing: "0.06em",
             textTransform: "uppercase",
           }}>
@@ -568,8 +568,8 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
           color: "var(--text-muted)",
           background: "var(--surface)",
           border: "1px dashed var(--border)",
-          borderRadius: 6,
-          padding: "8px 10px",
+          borderRadius: 'var(--r-6)',
+          padding: "var(--sp-8) var(--sp-10)",
           lineHeight: 1.5,
         }}>
           This proposal asks you to pick between two options. Use the buttons
@@ -585,28 +585,28 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
         style={{
           background: "var(--surface)",
           border: "1px solid var(--border)",
-          borderRadius: 6,
-          padding: "8px 10px",
+          borderRadius: 'var(--r-6)',
+          padding: "var(--sp-8) var(--sp-10)",
           color: "var(--text)",
           fontSize: 'var(--v13-t2)',
           fontFamily: "inherit",
           resize: "vertical",
         }}
       />
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 'var(--sp-8)', flexWrap: "wrap" }}>
         {gated ? (
           <>
             <button
               onClick={() => onApprove(row.id, buildNote("A"))}
               disabled={isPending}
               style={{
-                background: "#10b981",
+                background: "var(--c-10b981)",
                 border: "none",
-                borderRadius: 6,
-                padding: "9px 14px",
-                color: "white",
+                borderRadius: 'var(--r-6)',
+                padding: "var(--sp-9) var(--sp-14)",
+                color: "var(--c-ffffff)",
                 fontSize: 'var(--v13-t3)',
-                fontWeight: 700,
+                fontWeight: 'var(--fw-700)',
                 cursor: isPending ? "wait" : "pointer",
                 opacity: isPending ? 0.6 : 1,
               }}>
@@ -616,13 +616,13 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
               onClick={() => onApprove(row.id, buildNote("B"))}
               disabled={isPending}
               style={{
-                background: "#10b981",
+                background: "var(--c-10b981)",
                 border: "none",
-                borderRadius: 6,
-                padding: "9px 14px",
-                color: "white",
+                borderRadius: 'var(--r-6)',
+                padding: "var(--sp-9) var(--sp-14)",
+                color: "var(--c-ffffff)",
                 fontSize: 'var(--v13-t3)',
-                fontWeight: 700,
+                fontWeight: 'var(--fw-700)',
                 cursor: isPending ? "wait" : "pointer",
                 opacity: isPending ? 0.6 : 1,
               }}>
@@ -633,13 +633,13 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
                 onClick={() => onApprove(row.id, buildNote("Both"))}
                 disabled={isPending}
                 style={{
-                  background: "#0f766e",
+                  background: "var(--c-0f766e)",
                   border: "none",
-                  borderRadius: 6,
-                  padding: "9px 14px",
-                  color: "white",
+                  borderRadius: 'var(--r-6)',
+                  padding: "var(--sp-9) var(--sp-14)",
+                  color: "var(--c-ffffff)",
                   fontSize: 'var(--v13-t3)',
-                  fontWeight: 700,
+                  fontWeight: 'var(--fw-700)',
                   cursor: isPending ? "wait" : "pointer",
                   opacity: isPending ? 0.6 : 1,
                 }}>
@@ -652,13 +652,13 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
             onClick={() => onApprove(row.id, buildNote(""))}
             disabled={isPending}
             style={{
-              background: "#10b981",
+              background: "var(--c-10b981)",
               border: "none",
-              borderRadius: 6,
-              padding: "9px 16px",
-              color: "white",
+              borderRadius: 'var(--r-6)',
+              padding: "var(--sp-9) var(--sp-16)",
+              color: "var(--c-ffffff)",
               fontSize: 'var(--v13-t3)',
-              fontWeight: 700,
+              fontWeight: 'var(--fw-700)',
               cursor: isPending ? "wait" : "pointer",
               opacity: isPending ? 0.6 : 1,
             }}>
@@ -671,11 +671,11 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
           style={{
             background: "transparent",
             border: "1px solid var(--red)",
-            borderRadius: 6,
-            padding: "9px 14px",
+            borderRadius: 'var(--r-6)',
+            padding: "var(--sp-9) var(--sp-14)",
             color: "var(--red)",
             fontSize: 'var(--v13-t3)',
-            fontWeight: 600,
+            fontWeight: 'var(--fw-600)',
             cursor: isPending ? "wait" : "pointer",
             opacity: isPending ? 0.6 : 1,
           }}>
@@ -714,15 +714,15 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
       <div style={{
         display: "flex",
         flexDirection: "column",
-        gap: 10,
-        padding: "12px 14px",
-        background: "rgba(239, 68, 68, 0.06)",
-        border: "1px solid rgba(239, 68, 68, 0.45)",
-        borderRadius: 8,
+        gap: 'var(--sp-10)',
+        padding: "var(--sp-12) var(--sp-14)",
+        background: "var(--c-ef4444-a6)",
+        border: "1px solid var(--c-ef4444-a45)",
+        borderRadius: 'var(--r-8)',
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 4, background: "var(--red)" }} />
-          <div style={{ fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-mono)', color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 'var(--sp-8)' }}>
+          <span style={{ width: 8, height: 8, borderRadius: 'var(--r-4)', background: "var(--red)" }} />
+          <div style={{ fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-mono)', color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 'var(--fw-700)' }}>
             Reopen — tell the fix-builder what's still broken
           </div>
         </div>
@@ -735,8 +735,8 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
           style={{
             background: "var(--surface)",
             border: "1px solid var(--border)",
-            borderRadius: 6,
-            padding: "8px 10px",
+            borderRadius: 'var(--r-6)',
+            padding: "var(--sp-8) var(--sp-10)",
             color: "var(--text)",
             fontSize: 'var(--v13-t3)',
             fontFamily: "inherit",
@@ -744,7 +744,7 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
             lineHeight: 1.5,
           }}
         />
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 'var(--sp-8)', flexWrap: "wrap", alignItems: "center" }}>
           <button
             type="button"
             onClick={() => { if (canSubmit) onReopen(row.id, trimmed); }}
@@ -753,10 +753,10 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
               background: canSubmit ? "var(--red)" : "transparent",
               color: canSubmit ? "white" : "var(--text-muted)",
               border: canSubmit ? "none" : "1px solid var(--border)",
-              borderRadius: 6,
-              padding: "9px 16px",
+              borderRadius: 'var(--r-6)',
+              padding: "var(--sp-9) var(--sp-16)",
               fontSize: 'var(--v13-t3)',
-              fontWeight: 700,
+              fontWeight: 'var(--fw-700)',
               cursor: canSubmit ? "pointer" : "not-allowed",
               opacity: isPending ? 0.6 : 1,
             }}>
@@ -769,11 +769,11 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
             style={{
               background: "transparent",
               border: "1px solid var(--border)",
-              borderRadius: 6,
-              padding: "9px 14px",
+              borderRadius: 'var(--r-6)',
+              padding: "var(--sp-9) var(--sp-14)",
               color: "var(--text-2)",
               fontSize: 'var(--v13-t3)',
-              fontWeight: 600,
+              fontWeight: 'var(--fw-600)',
               cursor: isPending ? "wait" : "pointer",
             }}>
             Cancel
@@ -798,7 +798,7 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
   }
   if (!buttons.length) return null;
   return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}>
+    <div style={{ display: "flex", gap: 'var(--sp-8)', flexWrap: "wrap", padding: "var(--sp-10) var(--sp-12)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 'var(--r-8)' }}>
       {buttons.map(b => {
         const style = actionBtnStyle(b.tone, isPending);
         return (
@@ -811,10 +811,10 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
   );
 }
 function actionBtnStyle(tone, disabled) {
-  const base = { borderRadius: 6, padding: "7px 12px", fontSize: 'var(--v13-t2)', fontWeight: 600, cursor: disabled ? "wait" : "pointer", opacity: disabled ? 0.6 : 1 };
-  if (tone === "good")    return { ...base, background: "#10b981", color: "white", border: "none" };
+  const base = { borderRadius: 'var(--r-6)', padding: "var(--sp-7) var(--sp-12)", fontSize: 'var(--v13-t2)', fontWeight: 'var(--fw-600)', cursor: disabled ? "wait" : "pointer", opacity: disabled ? 0.6 : 1 };
+  if (tone === "good")    return { ...base, background: "var(--c-10b981)", color: "var(--c-ffffff)", border: "none" };
   if (tone === "bad")     return { ...base, background: "transparent", color: "var(--red)", border: "1px solid var(--red)" };
-  if (tone === "primary") return { ...base, background: "var(--accent, #2563eb)", color: "white", border: "none" };
+  if (tone === "primary") return { ...base, background: "var(--accent, var(--c-2563eb))", color: "var(--c-ffffff)", border: "none" };
   return { ...base, background: "transparent", color: "var(--text-2)", border: "1px solid var(--border)" };
 }
 
@@ -858,17 +858,17 @@ function SidePanel({ row, onClose, onActed }) {
   };
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 'var(--r-8)', padding: 'var(--sp-18)', display: "flex", flexDirection: "column", gap: 'var(--sp-14)' }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 'var(--sp-12)' }}>
         <div>
           <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text-muted)", fontFamily: 'var(--mt-type-mono)' }}>#{row.report_number} · {etDateTime(row.created_at)}</div>
-          <div style={{ fontSize: 'var(--v13-t4)', fontWeight: 700, color: "var(--text)", marginTop: 3 }}>{row.title || shortTitle(row)}</div>
+          <div style={{ fontSize: 'var(--v13-t4)', fontWeight: 'var(--fw-700)', color: "var(--text)", marginTop: 'var(--sp-3)' }}>{row.title || shortTitle(row)}</div>
         </div>
-        <button onClick={onClose} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", color: "var(--text-muted)", fontSize: 'var(--v13-t2)', cursor: "pointer" }}>Close</button>
+        <button onClick={onClose} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 'var(--r-6)', padding: "var(--sp-4) var(--sp-10)", color: "var(--text-muted)", fontSize: 'var(--v13-t2)', cursor: "pointer" }}>Close</button>
       </div>
 
       {/* Meta strip */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 10, fontSize: 'var(--v13-t2)' }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 'var(--sp-10)', fontSize: 'var(--v13-t2)' }}>
         <MetaField label="Status" value={<span style={{ display: "inline-flex", alignItems: "center" }}><StatusBadge status={row.status} /><DesyncChip reasons={desyncReasons(row)} /><UatModeBadge row={row} /></span>} />
         <MetaField label="Complexity" value={<ComplexityBadge value={row.complexity} />} />
         <MetaField label="Priority" value={row.priority || "—"} mono />
@@ -909,7 +909,7 @@ function SidePanel({ row, onClose, onActed }) {
       )}
 
       {actions.error && (
-        <div style={{ fontSize: 'var(--v13-t2)', color: "var(--red)", fontFamily: 'var(--mt-type-mono)', padding: "6px 10px", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6 }}>
+        <div style={{ fontSize: 'var(--v13-t2)', color: "var(--red)", fontFamily: 'var(--mt-type-mono)', padding: "var(--sp-6) var(--sp-10)", background: "var(--c-ef4444-a6)", border: "1px solid var(--c-ef4444-a30)", borderRadius: 'var(--r-6)' }}>
           Action failed: {actions.error.message || String(actions.error)}
         </div>
       )}
@@ -953,7 +953,7 @@ function SidePanel({ row, onClose, onActed }) {
           pipeline stage, and only when at least one is populated. */}
       {(row.ack_email_sent_at || row.resurface_at) && (
         <Section title="Housekeeping">
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", rowGap: 4, columnGap: 14, fontSize: 'var(--v13-t2)' }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", rowGap: 'var(--sp-4)', columnGap: 'var(--sp-14)', fontSize: 'var(--v13-t2)' }}>
             {row.ack_email_sent_at && <StampRow label="Ack email"    iso={row.ack_email_sent_at} />}
             {row.resurface_at     && <StampRow label="Resurface at" iso={row.resurface_at} />}
           </div>
@@ -963,7 +963,7 @@ function SidePanel({ row, onClose, onActed }) {
       {/* Console errors */}
       {Array.isArray(row.console_errors) && row.console_errors.length > 0 && (
         <Section title={`Console errors (${row.console_errors.length})`}>
-          <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)', color: "var(--red)", lineHeight: 1.45, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 6, padding: 10, maxHeight: 160, overflow: "auto" }}>
+          <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)', color: "var(--red)", lineHeight: 1.45, background: "var(--c-ef4444-a6)", border: "1px solid var(--c-ef4444-a25)", borderRadius: 'var(--r-6)', padding: 'var(--sp-10)', maxHeight: 160, overflow: "auto" }}>
             {row.console_errors.map((e, i) => (typeof e === "string" ? e : JSON.stringify(e))).join("\n")}
           </pre>
         </Section>
@@ -981,7 +981,7 @@ function SidePanel({ row, onClose, onActed }) {
 
       {/* Client context */}
       <Section title="Client context">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", rowGap: 4, columnGap: 14, fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", rowGap: 'var(--sp-4)', columnGap: 'var(--sp-14)', fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
           <div>viewport: {row.viewport || "—"}</div>
           <div>build: {row.build_sha ? row.build_sha.slice(0, 7) : "—"}</div>
           <div style={{ gridColumn: "1 / -1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={row.user_agent || ""}>ua: {row.user_agent || "—"}</div>
@@ -995,7 +995,7 @@ function SidePanel({ row, onClose, onActed }) {
 function Section({ title, children }) {
   return (
     <div>
-      <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{title}</div>
+      <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 'var(--sp-6)' }}>{title}</div>
       {children}
     </div>
   );
@@ -1004,13 +1004,13 @@ function MetaField({ label, value, mono }) {
   return (
     <div>
       <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</div>
-      <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text)", fontFamily: mono ? 'var(--mt-type-mono)' : "inherit", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
+      <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text)", fontFamily: mono ? 'var(--mt-type-mono)' : "inherit", marginTop: 'var(--sp-2)', overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
     </div>
   );
 }
 function StampRow({ label, iso }) {
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+    <div style={{ display: "flex", gap: 'var(--sp-8)', alignItems: "baseline" }}>
       <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", minWidth: 86 }}>{label}</div>
       <div style={{ fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)', color: iso ? "var(--text-2)" : "var(--text-muted)" }}>{iso ? etDateTime(iso) : "—"}</div>
     </div>
@@ -1034,11 +1034,11 @@ function VerifyShippedPanel({ row }) {
   const columnStyle = {
     background: "var(--surface)",
     border: "1px solid var(--border)",
-    borderRadius: 6,
-    padding: "10px 12px",
+    borderRadius: 'var(--r-6)',
+    padding: "var(--sp-10) var(--sp-12)",
     display: "flex",
     flexDirection: "column",
-    gap: 6,
+    gap: 'var(--sp-6)',
     minWidth: 0,
   };
   const labelStyle = {
@@ -1060,21 +1060,21 @@ function VerifyShippedPanel({ row }) {
 
   return (
     <div style={{
-      background: "rgba(16, 185, 129, 0.05)",
-      border: "1px solid rgba(16, 185, 129, 0.35)",
-      borderRadius: 8,
-      padding: 14,
+      background: "var(--c-10b981-a5)",
+      border: "1px solid var(--c-10b981-a35)",
+      borderRadius: 'var(--r-8)',
+      padding: 'var(--sp-14)',
       display: "flex",
       flexDirection: "column",
-      gap: 10,
+      gap: 'var(--sp-10)',
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 4, background: "#10b981" }} />
-        <div style={{ fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-mono)', color: "var(--green-text)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 'var(--sp-8)' }}>
+        <span style={{ width: 8, height: 8, borderRadius: 'var(--r-4)', background: "var(--c-10b981)" }} />
+        <div style={{ fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-mono)', color: "var(--green-text)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 'var(--fw-700)' }}>
           Verify before reopening — does what shipped match what you asked for?
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 'var(--sp-8)' }}>
         <div style={columnStyle}>
           <div style={labelStyle}>1. What you reported</div>
           <div style={bodyStyle}>{row.description || "(empty)"}</div>
@@ -1087,19 +1087,19 @@ function VerifyShippedPanel({ row }) {
           <div style={labelStyle}>3. What shipped</div>
           <div style={{ ...bodyStyle, fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t2)' }}>
             {prUrl && (
-              <div style={{ marginBottom: 4 }}>
+              <div style={{ marginBottom: 'var(--sp-4)' }}>
                 <a href={prUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--green-text)", textDecoration: "underline" }}>
                   PR #{row.fixed_pr || row.merged_pr}
                 </a>
               </div>
             )}
             {commitUrl && (
-              <div style={{ marginBottom: 4 }}>
+              <div style={{ marginBottom: 'var(--sp-4)' }}>
                 commit <a href={commitUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--green-text)", textDecoration: "underline" }}>{shortSha}</a>
               </div>
             )}
             {row.deployed_at && (
-              <div style={{ marginBottom: 4, color: "var(--text-2)" }}>
+              <div style={{ marginBottom: 'var(--sp-4)', color: "var(--text-2)" }}>
                 deployed {etDateTime(row.deployed_at)}
               </div>
             )}
@@ -1161,13 +1161,13 @@ export default function AdminBugs() {
   }, [rows]);
 
   if (adminLoading) {
-    return <div style={{ padding: "40px 20px", color: "var(--text-muted)", textAlign: "center" }}>Checking access…</div>;
+    return <div style={{ padding: "var(--sp-40) var(--sp-20)", color: "var(--text-muted)", textAlign: "center" }}>Checking access…</div>;
   }
   if (!isAdmin) {
     return (
-      <div style={{ padding: "40px 20px", display: "flex", justifyContent: "center" }}>
-        <div style={{ maxWidth: 460, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "24px", textAlign: "center" }}>
-          <div style={{ fontSize: 'var(--v13-t4)', fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Not authorized</div>
+      <div style={{ padding: "var(--sp-40) var(--sp-20)", display: "flex", justifyContent: "center" }}>
+        <div style={{ maxWidth: 460, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 'var(--r-8)', padding: "var(--sp-24)", textAlign: "center" }}>
+          <div style={{ fontSize: 'var(--v13-t4)', fontWeight: 'var(--fw-700)', color: "var(--text)", marginBottom: 'var(--sp-6)' }}>Not authorized</div>
           <div style={{ fontSize: 'var(--v13-t3)', color: "var(--text-muted)", lineHeight: 1.6 }}>
             This page is visible only to MacroTilt admins. If you think this is a mistake, sign in with the admin account.
           </div>
@@ -1199,7 +1199,7 @@ export default function AdminBugs() {
   return (
     <main className="fade-in main-padded" style={{ maxWidth: 1400, margin: "0 auto", padding: "var(--space-4) var(--space-8) var(--space-10)" }}>
       {/* KPI strip (clickable = filter) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0,1fr))", gap: 'var(--sp-10)', marginBottom: 'var(--sp-16)' }}>
         <KpiTile
           label="All"
           value={all}
@@ -1256,18 +1256,18 @@ export default function AdminBugs() {
       </div>
 
       {error && (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--red)", borderRadius: 8, padding: "12px 14px", color: "var(--red)", fontSize: 'var(--v13-t2)', marginBottom: 12, fontFamily: 'var(--mt-type-mono)' }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--red)", borderRadius: 'var(--r-8)', padding: "var(--sp-12) var(--sp-14)", color: "var(--red)", fontSize: 'var(--v13-t2)', marginBottom: 'var(--sp-12)', fontFamily: 'var(--mt-type-mono)' }}>
           Query failed: {error.message || String(error)}
         </div>
       )}
       {loading && !rows && (
-        <div style={{ padding: "40px 20px", color: "var(--text-muted)", textAlign: "center" }}>Loading bugs…</div>
+        <div style={{ padding: "var(--sp-40) var(--sp-20)", color: "var(--text-muted)", textAlign: "center" }}>Loading bugs…</div>
       )}
 
       {/* Shown-count strip — the filter itself now lives on the KPI tiles
           above, so we only need the "N of M shown" readout + a Clear button
           when the current filter is not `all`. */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 'var(--sp-12)', marginBottom: 'var(--sp-10)', flexWrap: "wrap" }}>
         <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text-muted)", fontFamily: 'var(--mt-type-mono)' }}>
           {filter === "all"
             ? `${rows?.length || 0} total`
@@ -1277,22 +1277,22 @@ export default function AdminBugs() {
           <button
             type="button"
             onClick={() => setFilter("all")}
-            style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", color: "var(--text-2)", fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-mono)', cursor: "pointer" }}>
+            style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 'var(--r-6)', padding: "var(--sp-4) var(--sp-10)", color: "var(--text-2)", fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-mono)', cursor: "pointer" }}>
             Clear filter
           </button>
         )}
       </div>
 
       {/* Body: table + side panel */}
-      <div style={{ display: "grid", gridTemplateColumns: selected ? "minmax(0, 1.3fr) minmax(420px, 1fr)" : "1fr", gap: 16, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: selected ? "minmax(0, 1.3fr) minmax(420px, 1fr)" : "1fr", gap: 'var(--sp-16)', alignItems: "start" }}>
         <BugTable rows={filtered} selectedId={selected?.id} onSelect={setSelected} />
         {selected && <SidePanel row={(rows || []).find(r => r.id === selected.id) || selected} onClose={() => setSelected(null)} onActed={() => { reload(); setSelected(null); }} />}
       </div>
 
       {/* Footer */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 'var(--v13-t2)', color: "var(--text-muted)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 'var(--sp-14)', fontSize: 'var(--v13-t2)', color: "var(--text-muted)" }}>
         <div>Read-only (Phase 1) · RLS-gated via <code style={{ fontFamily: 'var(--mt-type-mono)' }}>public.is_admin()</code> · v2 vocab (migration 013).</div>
-        <button onClick={reload} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: "5px 10px", color: "var(--text-2)", fontSize: 'var(--v13-t2)', cursor: "pointer" }}>Reload</button>
+        <button onClick={reload} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 'var(--r-6)', padding: "var(--sp-5) var(--sp-10)", color: "var(--text-2)", fontSize: 'var(--v13-t2)', cursor: "pointer" }}>Reload</button>
       </div>
     </main>
   );

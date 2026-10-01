@@ -29,63 +29,22 @@
 .mt-overhaul {
   /* — Legacy "surface" family (used by AdminBugs, AdminDataHealth, and
        miscellaneous v2 helpers) — */
-  --surface:       var(--mt-surface);
-  --surface-2:     var(--mt-surface-2);
-  --surface-3:     var(--mt-surface-3);
-  --surface-solid: var(--mt-surface);
-  --hover:         var(--mt-surface-3);
 
   /* — Legacy "bg" family (used by V2 page components including
        PaperPortfolioPage, RegimeCanvas, BigGauge, etc.) — */
-  --bg:            var(--mt-bg);
-  --bg-0:          var(--mt-bg);
-  --bg-1:          var(--mt-surface);
-  --bg-2:          var(--mt-surface-2);
-  --bg-3:          var(--mt-surface-3);
 
   /* — Borders — */
-  --border:        var(--mt-line-0);
-  --border-strong: var(--mt-line-1);
-  --border-faint:  var(--mt-line-0);
-  --line-0:        var(--mt-line-0);
-  --line-1:        var(--mt-line-1);
 
   /* — Text (legacy --text family) — */
-  --text:          var(--mt-ink-0);
-  --text-2:        var(--mt-ink-1);
-  --text-muted:    var(--mt-ink-2);
-  --text-dim:      var(--mt-ink-3);
 
   /* — Text (V2 --ink family) — */
-  --ink-0:         var(--mt-ink-0);
-  --ink-1:         var(--mt-ink-1);
-  --ink-2:         var(--mt-ink-2);
-  --ink-3:         var(--mt-ink-3);
 
   /* — Accent — */
-  --accent:        var(--mt-accent);
-  --accent-soft:   var(--mt-accent-soft);
-  --link:          var(--mt-accent);
 
   /* — Semantic — map to overhaul semantic tokens so dark/navy get
      contrast-correct greens and reds, not the legacy light hues — */
-  --green:       var(--mt-up);
-  --green-text:  var(--mt-up);
-  --red:         var(--mt-down);
-  --red-text:    var(--mt-down);
-  --yellow:      var(--mt-warn);
-  --yellow-text: var(--mt-warn);
-  --orange:      var(--mt-warn);
-  --orange-text: var(--mt-warn);
-  --blue:        var(--mt-accent);
-  --blue-text:   var(--mt-accent);
-  --purple:      var(--mt-ink-1);
-  --purple-text: var(--mt-ink-1);
 
   /* — V2 semantic (used by PaperPortfolioPage and similar) — */
-  --up:          var(--mt-up);
-  --down:        var(--mt-down);
-  --warn:        var(--mt-warn);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

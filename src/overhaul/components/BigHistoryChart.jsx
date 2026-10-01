@@ -346,7 +346,7 @@ export default function BigHistoryChart({
       </svg>
 
       {(overlays.length > 0 || anyCompare || volume || rsi || hasInsiderEv || hasDarkEv || (bands || []).length > 0) && (
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6, fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
+        <div style={{ display: 'flex', gap: 'var(--sp-14)', flexWrap: 'wrap', marginTop: 'var(--sp-6)', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
           <LegendSwatch color={accent} label={primaryLabel} />
           {overlays.map((o, k) => <LegendSwatch key={k} color={o.color || 'var(--mt-ink-2)'} label={o.label} dash />)}
           {compareDrawn.map((cs, k) => cs && <LegendSwatch key={`lc${k}`} color={compareList[k].color} label={`${compareList[k].label} (indexed)`} dash />)}
@@ -384,23 +384,23 @@ export default function BigHistoryChart({
               position: 'absolute', left, top: Math.max(6, hover.y - 16),
               transform: 'translate(-50%, -100%)',
               background: 'var(--mt-surface)', border: '1px solid var(--mt-line-1)',
-              borderRadius: 6, padding: '7px 9px', fontSize: 'var(--v13-t2)', minWidth: 150,
+              borderRadius: 'var(--r-6)', padding: 'var(--sp-7) var(--sp-9)', fontSize: 'var(--v13-t2)', minWidth: 150,
               color: 'var(--mt-ink-0)', fontFamily: 'var(--mt-type-sans)',
-              boxShadow: '0 6px 18px rgba(0,0,0,0.16)', pointerEvents: 'none', zIndex: 5,
+              boxShadow: 'var(--sh-27)', pointerEvents: 'none', zIndex: 5,
             }}
           >
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>{hoverDateLabel(i)}</div>
+            <div style={{ fontWeight: 'var(--fw-600)', marginBottom: 'var(--sp-4)' }}>{hoverDateLabel(i)}</div>
             {rows.map(([label, val, color], k) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, lineHeight: 1.5 }}>
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--sp-14)', lineHeight: 1.5 }}>
                 <span style={{ color: 'var(--mt-ink-2)' }}>
-                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: color, marginRight: 5, verticalAlign: 'middle' }} />
+                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 'var(--r-2)', background: color, marginRight: 'var(--sp-5)', verticalAlign: 'middle' }} />
                   {label}
                 </span>
                 <span className="num" style={{ color: 'var(--mt-ink-0)' }}>{val}</span>
               </div>
             ))}
             {evs.length > 0 && (
-              <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--mt-line-0)' }}>
+              <div style={{ marginTop: 'var(--sp-6)', paddingTop: 'var(--sp-6)', borderTop: '1px solid var(--mt-line-0)' }}>
                 {evs.map((e, k) => (
                   <div key={k} style={{ color: e.color || 'var(--mt-ink-1)', lineHeight: 1.5 }}>● {e.label}</div>
                 ))}
@@ -415,11 +415,11 @@ export default function BigHistoryChart({
 
 function LegendSwatch({ color, label, dash, block, dot }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--sp-5)' }}>
       {dot ? (
-        <span style={{ width: 8, height: 8, background: color, display: 'inline-block', borderRadius: '50%' }} />
+        <span style={{ width: 8, height: 8, background: color, display: 'inline-block', borderRadius: 'var(--r-50pct)' }} />
       ) : block ? (
-        <span style={{ width: 9, height: 9, background: color, opacity: 0.4, display: 'inline-block', borderRadius: 1 }} />
+        <span style={{ width: 9, height: 9, background: color, opacity: 0.4, display: 'inline-block', borderRadius: 'var(--r-1)' }} />
       ) : (
         <span style={{ width: 14, height: 0, borderTop: `2px ${dash ? 'dashed' : 'solid'} ${color}`, display: 'inline-block' }} />
       )}

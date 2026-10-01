@@ -18,10 +18,6 @@
   /* The page passes these four as inline var() strings from stateColor() and
      the regime-history colour map. They MUST resolve or the state dots and
      history strip render transparent. */
-  --up: var(--v13-up);
-  --down: var(--v13-down);
-  --amber: var(--v13-warn);
-  --track: var(--v13-rule);
   padding-bottom: var(--v13-s6);
   /* Set on the .v13.macro-v13 pair (0,2,0) so it beats cream-system's
      `.home-v12` (0,1,0) regardless of bundle order. Relying on source order
@@ -49,12 +45,12 @@
 
 .v13.macro-v13 .mt-eyebrow,
 .v13.macro-v13 .eyebrow2 {
-  display: flex; align-items: center; gap: 6px; margin: 0;
-  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.1em;
+  display: flex; align-items: center; gap: var(--sp-6); margin: 0;
+  font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .eyebrow2 .dot,
-.v13.macro-v13 .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.v13.macro-v13 .dot { width: 6px; height: 6px; border-radius: var(--r-50pct); flex: none; }
 
 /* ── the engine band ──────────────────────────────────────────────────────
    Was a 56/64px-padded ink card with a 60px serif headline. Now the same card
@@ -89,7 +85,7 @@
 .v13.macro-v13 .engine-card .eyebrow2 { margin-bottom: var(--v13-s1); color: var(--v13-ink-3); }
 .v13.macro-v13 .engine-card .eyebrow2 .dot { background: var(--v13-brand); }
 .v13.macro-v13 .engine-card h2 {
-  margin: 0; font-family: var(--mt-type-sans); font-size: var(--v13-t6); font-weight: 600;
+  margin: 0; font-family: var(--mt-type-sans); font-size: var(--v13-t6); font-weight: var(--fw-600);
   line-height: 1.1; letter-spacing: -0.02em; color: var(--v13-ink);
 }
 .v13.macro-v13 .engine-card h2 em { font-style: normal; color: var(--v13-brand); }
@@ -109,9 +105,9 @@
 .v13.macro-v13 .so-list li:last-child { padding-bottom: 0; }
 .v13.macro-v13 .so-list li::before {
   content: ''; position: absolute; left: 0; top: 8px;
-  width: 4px; height: 4px; border-radius: 50%; background: var(--v13-ink-3);
+  width: 4px; height: 4px; border-radius: var(--r-50pct); background: var(--v13-ink-3);
 }
-.v13.macro-v13 .so-list b { color: var(--v13-ink); font-weight: 600; }
+.v13.macro-v13 .so-list b { color: var(--v13-ink); font-weight: var(--fw-600); }
 .v13.macro-v13 .mac-engine { row-gap: var(--v13-s3); }
 /* The two dials sit side by side and use the whole of column two. */
 .v13.macro-v13 .engine-card > *:nth-child(2) {
@@ -138,29 +134,29 @@
    the regime word in the headline. */
 .v13.macro-v13 .gauge .gl {
   display: flex; justify-content: space-between; align-items: baseline; gap: var(--v13-s2);
-  font-size: var(--v13-t3); font-weight: 700; letter-spacing: 0.07em;
+  font-size: var(--v13-t3); font-weight: var(--fw-700); letter-spacing: 0.07em;
   text-transform: uppercase; color: var(--v13-brand);
 }
 .v13.macro-v13 .gauge .gl b {
   font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
-  font-size: var(--v13-t6); font-weight: 400; letter-spacing: -0.02em; color: var(--v13-ink);
+  font-size: var(--v13-t6); font-weight: var(--fw-400); letter-spacing: -0.02em; color: var(--v13-ink);
 }
 .v13.macro-v13 .gauge .gl b i {
   font-style: normal; font-family: var(--mt-type-sans); font-size: var(--v13-t2);
-  font-weight: 400; letter-spacing: 0.04em; color: var(--v13-ink-3);
+  font-weight: var(--fw-400); letter-spacing: 0.04em; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .track {
-  position: relative; height: 6px; margin: 12px 0 8px;
-  border-radius: 3px; background: var(--v13-surface-3);
+  position: relative; height: 6px; margin: var(--sp-12) 0 var(--sp-8);
+  border-radius: var(--r-3); background: var(--v13-surface-3);
 }
 .v13.macro-v13 .track .fill {
   position: absolute; inset: 0; width: var(--w, 0%);
-  border-radius: 3px; background: var(--v13-rule-2);
-  transition: width 900ms var(--v13-ease);
+  border-radius: var(--r-3); background: var(--v13-rule-2);
+  transition: width var(--dur-900) var(--v13-ease);
 }
 .v13.macro-v13 .track .pin {
   position: absolute; top: 50%; left: var(--w, 0%);
-  width: 2px; height: 16px; border-radius: 1px;
+  width: 2px; height: 16px; border-radius: var(--r-1);
   background: var(--v13-ink); border: 0; box-shadow: none;
   transform: translate(-50%, -50%);
 }
@@ -177,11 +173,11 @@
 .v13.macro-v13 .track .pin { z-index: 1; }
 .v13.macro-v13 .gauge .ends {
   display: flex; justify-content: space-between; gap: var(--v13-s2);
-  font-size: var(--v13-t2); font-weight: 600; letter-spacing: 0.05em;
+  font-size: var(--v13-t2); font-weight: var(--fw-600); letter-spacing: 0.05em;
   text-transform: uppercase; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .gauge .read {
-  margin-top: var(--v13-s3); font-size: var(--v13-t3); font-weight: 400; color: var(--v13-ink-2);
+  margin-top: var(--v13-s3); font-size: var(--v13-t3); font-weight: var(--fw-400); color: var(--v13-ink-2);
 }
 .v13.macro-v13 .gauge .read.ok { color: var(--v13-up); }
 .v13.macro-v13 .gauge .read.warm { color: var(--v13-warn); }
@@ -196,7 +192,7 @@
 .v13.macro-v13 .mac-histlbl {
   display: flex; justify-content: space-between; align-items: baseline; gap: var(--v13-s4);
   margin-bottom: var(--v13-s2);
-  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.09em;
+  font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.09em;
   text-transform: uppercase; color: var(--v13-ink-3); opacity: 1;
 }
 .v13.macro-v13 .mac-histcta { color: var(--v13-accent); opacity: 0.8; white-space: nowrap; }
@@ -207,11 +203,11 @@
 .v13.macro-v13 .mac-hist--click:hover { background: var(--v13-accent-soft); }
 .v13.macro-v13 .mac-hist--click:hover .mac-histcta { opacity: 1; }
 .v13.macro-v13 .mac-hist--click:focus-visible { outline: 2px solid var(--v13-accent); outline-offset: 3px; }
-.v13.macro-v13 .mac-histrow { display: flex; gap: 1px; margin-bottom: 2px; }
+.v13.macro-v13 .mac-histrow { display: flex; gap: var(--sp-1); margin-bottom: var(--sp-2); }
 .v13.macro-v13 .mac-histrow span { flex: 1; height: 8px; border-radius: 0; }
 .v13.macro-v13 .mac-histaxis {
   display: flex; justify-content: space-between; margin-top: var(--v13-s1);
-  font-size: var(--v13-t1); font-weight: 600; letter-spacing: 0.08em;
+  font-size: var(--v13-t1); font-weight: var(--fw-600); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--v13-ink-3); opacity: 1;
 }
 
@@ -239,7 +235,7 @@
   background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule);
 }
 .v13.macro-v13 .mac-catname {
-  font-family: var(--mt-type-sans); font-size: var(--v13-t2); font-weight: 700;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t2); font-weight: var(--fw-700);
   letter-spacing: 0.02em; line-height: 1; color: var(--v13-ink);
 }
 /* Joe, 2026-09-03: "there's no way to know the 1 BIG MOVE is associated with
@@ -263,9 +259,9 @@
    Blue is now reserved for big move alone. Direction still reads off the
    arrow glyph, which every change cell carries. */
 .v13.macro-v13 .mac-catcount {
-  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.07em;
+  font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.07em;
   text-transform: uppercase; white-space: nowrap;
-  padding: 2px 6px; border-radius: var(--v13-r);
+  padding: var(--sp-2) var(--sp-6); border-radius: var(--v13-r);
   background: var(--v13-surface-3); color: var(--v13-ink-2);
 }
 .v13.macro-v13 .mac-catcount--ext  { background: var(--v13-down-bg); color: var(--v13-down); }
@@ -282,7 +278,7 @@
   padding: 0 var(--v13-s3) 0 var(--v13-s3);
 }
 .v13.macro-v13 .mac-rows::-webkit-scrollbar { width: 7px; }
-.v13.macro-v13 .mac-rows::-webkit-scrollbar-thumb { background: var(--v13-rule-2); border-radius: 4px; }
+.v13.macro-v13 .mac-rows::-webkit-scrollbar-thumb { background: var(--v13-rule-2); border-radius: var(--r-4); }
 .v13.macro-v13 .mac-rows::-webkit-scrollbar-track { background: transparent; }
 
 .v13.macro-v13 .mac-irow { display: contents; cursor: pointer; text-decoration: none; color: inherit; }
@@ -301,31 +297,31 @@
 .v13.macro-v13 .mac-irow:hover > * { background: var(--v13-accent-soft); transform: none; border-radius: 0; }
 .v13.macro-v13 .mac-irow:hover > :first-child::before { transform: scaleY(1); }
 
-.v13.macro-v13 .mac-nm { gap: var(--v13-s2); font-weight: 400; color: var(--v13-ink); }
+.v13.macro-v13 .mac-nm { gap: var(--v13-s2); font-weight: var(--fw-400); color: var(--v13-ink); }
 .v13.macro-v13 .mac-nm .mac-name { overflow: hidden; text-overflow: ellipsis; }
-.v13.macro-v13 .mac-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.v13.macro-v13 .mac-dot { width: 6px; height: 6px; border-radius: var(--r-50pct); flex: none; }
 .v13.macro-v13 .mac-val {
   font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
   font-size: var(--v13-t3); letter-spacing: -0.02em; color: var(--v13-ink);
 }
 .v13.macro-v13 .mac-chg {
   font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
-  font-size: var(--v13-t2); font-weight: 400; color: var(--v13-ink-3);
+  font-size: var(--v13-t2); font-weight: var(--fw-400); color: var(--v13-ink-3);
 }
 .v13.macro-v13 .mac-pct {
   font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
-  font-size: var(--v13-t2); font-weight: 400; color: var(--v13-ink-3);
+  font-size: var(--v13-t2); font-weight: var(--fw-400); color: var(--v13-ink-3);
 }
 .v13.macro-v13 .mac-chev {
   padding-left: var(--v13-s1);
-  font-size: var(--v13-t2); font-weight: 600; color: var(--v13-ink-3); opacity: 0.5;
+  font-size: var(--v13-t2); font-weight: var(--fw-600); color: var(--v13-ink-3); opacity: 0.5;
   transition: opacity var(--v13-fast) var(--v13-ease), transform var(--v13-fast) var(--v13-ease);
 }
 .v13.macro-v13 .mac-irow:hover .mac-chev { opacity: 1; color: var(--v13-accent); transform: translateX(2px); }
 
 .v13.macro-v13 .mac-lean .lean {
-  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
-  padding: 2px 6px; border: 0; border-radius: var(--v13-r);
+  font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.07em; text-transform: uppercase;
+  padding: var(--sp-2) var(--sp-6); border: 0; border-radius: var(--v13-r);
   background: var(--v13-surface-3); color: var(--v13-ink-2);
 }
 .v13.macro-v13 .lean.wash { background: var(--v13-accent-mid); color: var(--v13-accent); }
@@ -335,7 +331,7 @@
   grid-column: 1 / -1; margin: var(--v13-s2) 0 0;
   padding: var(--v13-s2) 0 var(--v13-s1);
   border-top: 1px solid var(--v13-rule);
-  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.09em;
+  font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.09em;
   text-transform: uppercase; color: var(--v13-ink-3);
 }
 .v13.macro-v13 .mac-empty {
@@ -356,12 +352,12 @@
 .mac-tip {
   position: fixed; z-index: 6000; pointer-events: none;
   transform: translate(-50%, -100%);
-  max-width: 320px; padding: 8px 10px;
-  border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.10);
-  background: #16191D; color: #E9EAE6;
+  max-width: 320px; padding: var(--sp-8) var(--sp-10);
+  border-radius: var(--r-4); border: 1px solid var(--c-ffffff-a10);
+  background: var(--c-16191d); color: var(--c-e9eae6);
   font-family: var(--mt-type-sans);
   font-size: var(--v13-t2); line-height: 1.45; white-space: pre-line; text-align: left;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--sh-14);
 }
 
 /* ── responsive ── */
@@ -396,14 +392,14 @@
 /* 1 — level extreme. Was 10.5px grey, indistinguishable from the 47th. */
 .v13.macro-v13 .mac-pct {
   font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
-  font-size: var(--v13-t2); font-weight: 400; color: var(--v13-ink-3);
+  font-size: var(--v13-t2); font-weight: var(--fw-400); color: var(--v13-ink-3);
 }
-.v13.macro-v13 .mac-pct.ext  { font-weight: 700; color: var(--v13-down); }
-.v13.macro-v13 .mac-pct.elev { font-weight: 700; color: var(--v13-warn); }
+.v13.macro-v13 .mac-pct.ext  { font-weight: var(--fw-700); color: var(--v13-down); }
+.v13.macro-v13 .mac-pct.elev { font-weight: var(--fw-700); color: var(--v13-warn); }
 /* A rule under the figure, so the flag reads in a grey-scale glance and for a
    red/green-colour-blind reader. */
 .v13.macro-v13 .mac-pct.ext,
-.v13.macro-v13 .mac-pct.elev { box-shadow: inset 0 -2px 0 currentColor; }
+.v13.macro-v13 .mac-pct.elev { box-shadow: var(--sh-15); }
 
 /* 2 — big move. Top decile of this indicator's own regime-adjusted changes. */
 /* Identical chip to .mac-catcount--move above — that identity IS the tie:
@@ -413,8 +409,8 @@
 .v13.macro-v13 .mac-chg.mac-bigmove,
 .v13.macro-v13 .mac-chg.mac-bigmove.up,
 .v13.macro-v13 .mac-chg.mac-bigmove.down {
-  font-weight: 700;
-  padding: 2px 5px;
+  font-weight: var(--fw-700);
+  padding: var(--sp-2) var(--sp-5);
   border-radius: var(--v13-r);
   background: var(--v13-accent-mid);
   color: var(--v13-accent);
@@ -433,6 +429,22 @@
    Inherits currentColor, so it can never drift from the figure it labels. */
 .v13.macro-v13 .mac-tail {
   font-family: var(--mt-type-sans); font-style: normal;
-  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.06em;
-  text-transform: uppercase; opacity: 0.75; margin-right: 5px;
+  font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.06em;
+  text-transform: uppercase; opacity: 0.75; margin-right: var(--sp-5);
+}
+/* ── phone (2026-10-01, mobile is a release requirement) ──────────────────
+   At 390px the two dials shared 374px, so their three end labels ran past
+   the screen edge ("OFF ≥1", "INFL ≥+") and the body clipped them. Stack
+   the dials and let the labels wrap. Nothing above 520px changes. */
+@media (max-width: 520px) {
+  .v13.macro-v13 .engine-card > *:nth-child(2) { grid-template-columns: minmax(0, 1fr); }
+  .v13.home-v12 .gauge .ends { white-space: normal; }
+  .v13.home-v12 .gauge .ends span { flex: 1 1 0; min-width: 0; }
+  .v13.home-v12 .gauge .ends span:nth-child(2) { text-align: center; }
+  .v13.home-v12 .gauge .ends span:last-child { text-align: right; }
+}
+@media (max-width: 520px) {
+  /* "See it against the market ↗" ran off the screen on one line. */
+  .v13.macro-v13 .mac-histlbl { flex-wrap: wrap; }
+  .v13.macro-v13 .mac-histcta { white-space: normal; }
 }

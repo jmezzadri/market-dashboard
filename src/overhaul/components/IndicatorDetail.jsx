@@ -168,15 +168,15 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
   return (
     <div
       className="mt-card mt-fade ind-detail"
-      style={{ marginTop: 16, padding: 24 }}
+      style={{ marginTop: 'var(--sp-16)', padding: 'var(--sp-24)' }}
     >
       <header
         style={{
           display: 'flex',
           alignItems: 'baseline',
-          gap: 16,
+          gap: 'var(--sp-16)',
           flexWrap: 'wrap',
-          marginBottom: 16,
+          marginBottom: 'var(--sp-16)',
         }}
       >
         <div style={{ flex: 1 }}>
@@ -185,9 +185,9 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
             style={{
               fontFamily: 'var(--mt-type-mono)',
               fontSize: 'var(--v13-t6)',
-              fontWeight: 400,
+              fontWeight: 'var(--fw-400)',
               letterSpacing: '-0.02em',
-              margin: '4px 0 0',
+              margin: 'var(--sp-4) 0 0',
               lineHeight: 1.1,
             }}
           >
@@ -195,13 +195,13 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div className="num" style={{ fontSize: 'var(--v13-t6)', fontWeight: 400, color: accent, lineHeight: 1 }}>
+          <div className="num" style={{ fontSize: 'var(--v13-t6)', fontWeight: 'var(--fw-400)', color: accent, lineHeight: 1 }}>
             {fmtNum(ind.value, ind.decimals ?? 2)}
-            <span style={{ fontSize: 'var(--v13-t3)', color: 'var(--mt-ink-2)', marginLeft: 6, fontWeight: 400 }}>
+            <span style={{ fontSize: 'var(--v13-t3)', color: 'var(--mt-ink-2)', marginLeft: 'var(--sp-6)', fontWeight: 'var(--fw-400)' }}>
               {ind.unit}
             </span>
           </div>
-          <div style={{ marginTop: 6 }}>
+          <div style={{ marginTop: 'var(--sp-6)' }}>
             <FreshnessChip
               elementId={ind.manifestId || ind.id}
               fallback={{ asOfIso: ind.asOf }}
@@ -212,13 +212,13 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
       </header>
 
       {ind.description && (
-        <p style={{ fontSize: 'var(--v13-t3)', color: 'var(--mt-ink-1)', lineHeight: 1.65, margin: '0 0 18px' }}>
+        <p style={{ fontSize: 'var(--v13-t3)', color: 'var(--mt-ink-1)', lineHeight: 1.65, margin: '0 0 var(--sp-18)' }}>
           {ind.description}
         </p>
       )}
 
       {/* TF pills */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-12)' }}>
         <div className="mt-pillgroup">
           {['1Y', '3Y', '5Y', '10Y', 'Max'].map((k) => (
             <button
@@ -238,10 +238,10 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
 
       {/* Overlay picker — compare another series (indexed to the same start) */}
       {catalog.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-8)', marginBottom: 'var(--sp-8)', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
           <span>Overlay:</span>
           <select value={overlayKey} onChange={(e) => setOverlayKey(e.target.value)}
-            style={{ font: 'inherit', fontSize: 'var(--v13-t2)', padding: '3px 8px', borderRadius: 6, border: '1px solid var(--mt-line-1)', background: 'var(--mt-surface)', color: 'var(--mt-ink-1)', maxWidth: 280 }}>
+            style={{ font: 'inherit', fontSize: 'var(--v13-t2)', padding: 'var(--sp-3) var(--sp-8)', borderRadius: 'var(--r-6)', border: '1px solid var(--mt-line-1)', background: 'var(--mt-surface)', color: 'var(--mt-ink-1)', maxWidth: 280 }}>
             <option value="">None</option>
             {catalog.filter((c) => c.label !== ind.name).map((c) => (
               <option key={c.key} value={c.key}>{c.label}</option>
@@ -252,7 +252,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
       )}
 
       {indexSeries.length > 0 && (
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ marginBottom: 'var(--sp-8)' }}>
           <IndexOverlayToggles series={indexSeries} on={idxOn}
             onToggle={(k) => setIdxOn((prev) => ({ ...prev, [k]: !prev[k] }))} />
         </div>
@@ -271,20 +271,20 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
         bands={bands}
       />
       {bands.length > 0 && (
-        <div style={{ marginTop: 6, fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>
+        <div style={{ marginTop: 'var(--sp-6)', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>
           Shaded bands mark where this pill turns amber and red — fixed to the same
           3-year basis that colors the pill, whatever timeframe you select.
         </div>
       )}
 
       {/* Percentile bar */}
-      <div style={{ marginTop: 22, marginBottom: 16 }}>
+      <div style={{ marginTop: 'var(--sp-22)', marginBottom: 'var(--sp-16)' }}>
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'baseline',
-            marginBottom: 8,
+            marginBottom: 'var(--sp-8)',
           }}
         >
           <div className="mt-eyebrow">Where today sits in the {tf} distribution</div>
@@ -294,7 +294,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
             {slicePct != null && TAILS[ind.id] && (slicePct >= 75 || slicePct <= 25) && (
               <b style={{ color: (slicePct >= 85 || slicePct <= 15) ? 'var(--mt-down)' : 'var(--mt-warn)',
-                          letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 6 }}>
+                          letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 'var(--sp-6)' }}>
                 {slicePct <= 50 ? TAILS[ind.id][0] : TAILS[ind.id][1]}
               </b>
             )}
@@ -309,9 +309,9 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 12,
-          marginTop: 28,
-          paddingTop: 16,
+          gap: 'var(--sp-12)',
+          marginTop: 'var(--sp-28)',
+          paddingTop: 'var(--sp-16)',
           borderTop: '1px solid var(--mt-line-0)',
         }}
       >
@@ -323,7 +323,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
         ].map(([lbl, v]) => (
           <div key={lbl}>
             <div className="mt-eyebrow">{lbl}</div>
-            <div className="num" style={{ fontSize: 'var(--v13-t5)', marginTop: 4, color: 'var(--mt-ink-0)' }}>
+            <div className="num" style={{ fontSize: 'var(--v13-t5)', marginTop: 'var(--sp-4)', color: 'var(--mt-ink-0)' }}>
               {v}
             </div>
           </div>
@@ -339,7 +339,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           static reference copy (formula, source, thresholds) — that does not
           go stale and stays. */}
       {(ind.methodology || ind.description) && (
-        <details style={{ marginTop: 12 }}>
+        <details style={{ marginTop: 'var(--sp-12)' }}>
           <summary
             style={{
               cursor: 'pointer',
@@ -347,14 +347,14 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
               color: 'var(--mt-ink-2)',
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
-              fontWeight: 600,
+              fontWeight: 'var(--fw-600)',
             }}
           >
             How it's measured
           </summary>
           <p
             style={{
-              marginTop: 8,
+              marginTop: 'var(--sp-8)',
               fontSize: 'var(--v13-t3)',
               lineHeight: 1.55,
               color: 'var(--mt-ink-1)',
@@ -371,7 +371,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           from somewhere but derive the indicator in-house, that must be on the
           screen so nobody mistakes a computed series for a vendor feed. */}
       {ind.sourceVendor && (
-        <div style={{ marginTop: 14, fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
+        <div style={{ marginTop: 'var(--sp-14)', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)' }}>
           Source: <b style={{ color: 'var(--mt-ink-1)' }}>{ind.sourceVendor}</b>
           {ind.sourceEndpoint ? <> · {/FRED/i.test(ind.sourceVendor || '') ? linkifyFred(ind.sourceEndpoint) : ind.sourceEndpoint}</> : ''}
           {sourcingNote && (
@@ -383,11 +383,11 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
       {/* Buttons */}
       <div
         style={{
-          marginTop: 18,
-          paddingTop: 14,
+          marginTop: 'var(--sp-18)',
+          paddingTop: 'var(--sp-14)',
           borderTop: '1px solid var(--mt-line-0)',
           display: 'flex',
-          gap: 8,
+          gap: 'var(--sp-8)',
           justifyContent: 'flex-end',
         }}
       >

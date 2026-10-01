@@ -116,19 +116,19 @@ function GaugePill({ label, valueText, changeText, tipText, pct, state, trend = 
         border: dashed ? '1px dashed var(--mt-line-1)' : '1px solid var(--mt-line-0)',
         background: shadeBg(pct, state),
         color: 'var(--mt-ink-0)',
-        font: 'inherit', padding: '5px 8px', lineHeight: 1.25,
-        width: '100%', display: 'block', textAlign: 'left', borderRadius: 7,
-        opacity: dimmed ? 0.85 : 1, transition: 'opacity .25s ease, filter .12s ease, transform .12s ease',
+        font: 'inherit', padding: 'var(--sp-5) var(--sp-8)', lineHeight: 1.25,
+        width: '100%', display: 'block', textAlign: 'left', borderRadius: 'var(--r-7)',
+        opacity: dimmed ? 0.85 : 1, transition: 'opacity var(--dur-250) ease, filter var(--dur-120) ease, transform var(--dur-120) ease',
       }}
     >
       {/* Single line, no wrap (Joe 2026-06-23): name (truncates) + reading,
           change and percentile as a fixed right-aligned cluster. */}
-      <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'nowrap' }}>
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--sp-6)', flexWrap: 'nowrap' }}>
         <span style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-1)' }}>{label}</span>
-        <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
-          <span className="num" style={{ fontWeight: 600, color: 'var(--mt-ink-0)', fontSize: 'var(--v13-t2)' }}>{valueText != null ? valueText : '—'}</span>
-          <span className="num" style={{ fontSize: 'var(--v13-t1)', color: arrowColor, fontWeight: 700 }}>{arrow}{trend !== 0 && changeText ? changeText : ''}</span>
-          <span className="num" style={{ fontSize: 'var(--v13-t1)', color: 'var(--mt-ink-3)', fontWeight: 600 }}>{pct == null ? '—' : `${Math.round(pct)}${ordSfx(pct)}`}</span>
+        <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'baseline', gap: 'var(--sp-5)', whiteSpace: 'nowrap' }}>
+          <span className="num" style={{ fontWeight: 'var(--fw-600)', color: 'var(--mt-ink-0)', fontSize: 'var(--v13-t2)' }}>{valueText != null ? valueText : '—'}</span>
+          <span className="num" style={{ fontSize: 'var(--v13-t1)', color: arrowColor, fontWeight: 'var(--fw-700)' }}>{arrow}{trend !== 0 && changeText ? changeText : ''}</span>
+          <span className="num" style={{ fontSize: 'var(--v13-t1)', color: 'var(--mt-ink-3)', fontWeight: 'var(--fw-600)' }}>{pct == null ? '—' : `${Math.round(pct)}${ordSfx(pct)}`}</span>
         </span>
       </span>
     </button>
@@ -137,13 +137,13 @@ function GaugePill({ label, valueText, changeText, tipText, pct, state, trend = 
 
 export default function DomainBars({ inds = [], markets = [], shortLabel, posDimmed, posNextPrint, onSelectInd, onSelectPos, onTip, onHideTip }) {
   const head = {
-    fontSize: 'var(--v13-t2)', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase',
-    color: 'var(--mt-ink-1)', marginBottom: 7,
+    fontSize: 'var(--v13-t2)', fontWeight: 'var(--fw-700)', letterSpacing: '.04em', textTransform: 'uppercase',
+    color: 'var(--mt-ink-1)', marginBottom: 'var(--sp-7)',
   };
   return (
-    <div style={{ marginTop: 10 }}>
+    <div style={{ marginTop: 'var(--sp-10)' }}>
       <div style={head}>Indicators</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-5)' }}>
         {inds.map((i) => {
           const delta = changeOf(i.points, i.freq);
           const chgUnit = faceUnit(i.unit);
@@ -172,10 +172,10 @@ export default function DomainBars({ inds = [], markets = [], shortLabel, posDim
       </div>
       {markets.length > 0 && (
         <>
-          <div style={{ ...head, margin: '13px 0 7px', paddingTop: 12, borderTop: '1px solid var(--mt-line-1)' }}>
+          <div style={{ ...head, margin: 'var(--sp-13) 0 var(--sp-7)', paddingTop: 'var(--sp-12)', borderTop: '1px solid var(--mt-line-1)' }}>
             Positioning signals
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-5)' }}>
             {markets.map((m) => {
               const mstate = m.spec <= 10 || m.spec >= 90 ? 'extreme' : m.spec <= 25 || m.spec >= 75 ? 'elevated' : 'calm';
               const h = Array.isArray(m.history) ? m.history : [];

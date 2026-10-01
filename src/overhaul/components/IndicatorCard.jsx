@@ -30,11 +30,11 @@ export default function IndicatorCard({ ind, onClick }) {
         cursor: 'pointer',
         background: 'var(--mt-surface)',
         border: '1px solid var(--mt-line-0)',
-        padding: 16,
+        padding: 'var(--sp-16)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
-        transition: 'transform 160ms var(--mt-ease), box-shadow 160ms var(--mt-ease)',
+        gap: 'var(--sp-8)',
+        transition: 'transform var(--dur-160) var(--mt-ease), box-shadow var(--dur-160) var(--mt-ease)',
       }}
     >
       <header
@@ -42,14 +42,14 @@ export default function IndicatorCard({ ind, onClick }) {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'baseline',
-          gap: 8,
+          gap: 'var(--sp-8)',
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
               fontSize: 'var(--v13-t3)',
-              fontWeight: 600,
+              fontWeight: 'var(--fw-600)',
               color: 'var(--mt-ink-0)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -58,7 +58,7 @@ export default function IndicatorCard({ ind, onClick }) {
           >
             {ind.name}
           </div>
-          <div style={{ fontSize: 'var(--v13-t1)', color: 'var(--mt-ink-2)', marginTop: 2 }}>
+          <div style={{ fontSize: 'var(--v13-t1)', color: 'var(--mt-ink-2)', marginTop: 'var(--sp-2)' }}>
             {ind.familyFull || ind.domain}
           </div>
         </div>
@@ -69,12 +69,12 @@ export default function IndicatorCard({ ind, onClick }) {
           display: 'flex',
           alignItems: 'baseline',
           justifyContent: 'space-between',
-          gap: 12,
+          gap: 'var(--sp-12)',
         }}
       >
-        <div className="num" style={{ fontSize: 'var(--v13-t6)', fontWeight: 400, color: accent }}>
+        <div className="num" style={{ fontSize: 'var(--v13-t6)', fontWeight: 'var(--fw-400)', color: accent }}>
           {fmtNum(ind.value, ind.decimals ?? 2)}
-          <span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', marginLeft: 4, fontWeight: 400 }}>
+          <span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', marginLeft: 'var(--sp-4)', fontWeight: 'var(--fw-400)' }}>
             {ind.unit}
           </span>
         </div>

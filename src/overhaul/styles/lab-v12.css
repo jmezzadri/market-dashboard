@@ -8,60 +8,60 @@
    light and dark. Responsive collapse lives in responsive.css (LESSONS 8.7).
    ========================================================================= */
 
-.home-v12.lab-v12 { padding-bottom: 90px; }
+.home-v12.lab-v12 { padding-bottom: var(--sp-90); }
 .home-v12.lab-v12 .num { font-variant-numeric: tabular-nums; }
-.home-v12.lab-v12 .label { font-size: var(--v13-t2); letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
-.home-v12.lab-v12 .tick { font-weight: 700; color: var(--gold-deep); letter-spacing: .02em; }
+.home-v12.lab-v12 .label { font-size: var(--v13-t2); letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: var(--fw-700); }
+.home-v12.lab-v12 .tick { font-weight: var(--fw-700); color: var(--gold-deep); letter-spacing: .02em; }
 .home-v12.lab-v12 .up { color: var(--up); }
 .home-v12.lab-v12 .down { color: var(--down); }
-.home-v12.lab-v12 .strong { font-weight: 700; }
+.home-v12.lab-v12 .strong { font-weight: var(--fw-700); }
 .home-v12.lab-v12 .lab-dim { color: var(--mut); font-size: var(--v13-t3); }
 
 /* ── head ── */
-.home-v12.lab-v12 .lab-head { padding: 56px 0 8px; }
-.home-v12.lab-v12 .lab-head h1 { font-size: var(--v13-t6); line-height: 1.08; margin: 10px 0 10px; }
-.home-v12.lab-v12 .lab-sub { color: var(--ink-soft);  font-size: var(--v13-t4); margin: 0 0 22px; }
+.home-v12.lab-v12 .lab-head { padding: var(--sp-56) 0 var(--sp-8); }
+.home-v12.lab-v12 .lab-head h1 { font-size: var(--v13-t6); line-height: 1.08; margin: var(--sp-10) 0 var(--sp-10); }
+.home-v12.lab-v12 .lab-sub { color: var(--ink-soft);  font-size: var(--v13-t4); margin: 0 0 var(--sp-22); }
 
-.home-v12.lab-v12 .lab-controls { display: grid; grid-template-columns: auto 1fr; gap: 18px 44px; align-items: start; }
-.home-v12.lab-v12 .lab-ctl { display: flex; flex-direction: column; gap: 8px; }
-.home-v12.lab-v12 .lab-seg { display: inline-flex; border: 1px solid var(--hair); border-radius: 999px; overflow: hidden; background: var(--bg2); width: max-content; }
-.home-v12.lab-v12 .lab-seg button { border: 0; background: transparent; color: var(--ink-soft); font: inherit; font-size: var(--v13-t3); padding: 7px 14px; cursor: pointer; }
-.home-v12.lab-v12 .lab-seg button.on { background: var(--ink); color: var(--bg); font-weight: 700; }
+.home-v12.lab-v12 .lab-controls { display: grid; grid-template-columns: auto 1fr; gap: var(--sp-18) var(--sp-44); align-items: start; }
+.home-v12.lab-v12 .lab-ctl { display: flex; flex-direction: column; gap: var(--sp-8); }
+.home-v12.lab-v12 .lab-seg { display: inline-flex; border: 1px solid var(--hair); border-radius: var(--r-999); overflow: hidden; background: var(--bg2); width: max-content; }
+.home-v12.lab-v12 .lab-seg button { border: 0; background: transparent; color: var(--ink-soft); font: inherit; font-size: var(--v13-t3); padding: var(--sp-7) var(--sp-14); cursor: pointer; }
+.home-v12.lab-v12 .lab-seg button.on { background: var(--ink); color: var(--bg); font-weight: var(--fw-700); }
 [data-mt-theme='dark'] .home-v12.lab-v12 .lab-seg button.on,
-[data-mt-theme='navy'] .home-v12.lab-v12 .lab-seg button.on { background: var(--gold-deep); color: #16202B; }
+[data-mt-theme='navy'] .home-v12.lab-v12 .lab-seg button.on { background: var(--gold-deep); color: var(--c-16202b); }
 
-.home-v12.lab-v12 .lab-savedrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 24px; }
-.home-v12.lab-v12 .lab-savedchip { display: inline-flex; align-items: center; border: 1px solid var(--hair); border-radius: 999px; background: var(--bg2); overflow: hidden; }
-.home-v12.lab-v12 .lab-savedchip button { border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--v13-t3); padding: 5px 4px 5px 12px; cursor: pointer; }
-.home-v12.lab-v12 .lab-savedchip .x { padding: 5px 10px 5px 4px; color: var(--mut); font-size: var(--v13-t4); line-height: 1; }
+.home-v12.lab-v12 .lab-savedrow { display: flex; flex-wrap: wrap; gap: var(--sp-8); align-items: center; min-height: 24px; }
+.home-v12.lab-v12 .lab-savedchip { display: inline-flex; align-items: center; border: 1px solid var(--hair); border-radius: var(--r-999); background: var(--bg2); overflow: hidden; }
+.home-v12.lab-v12 .lab-savedchip button { border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--v13-t3); padding: var(--sp-5) var(--sp-4) var(--sp-5) var(--sp-12); cursor: pointer; }
+.home-v12.lab-v12 .lab-savedchip .x { padding: var(--sp-5) var(--sp-10) var(--sp-5) var(--sp-4); color: var(--mut); font-size: var(--v13-t4); line-height: 1; }
 .home-v12.lab-v12 .lab-savedchip .x:hover { color: var(--down); }
-.home-v12.lab-v12 .lab-savedchip.on { border-color: var(--gold-deep); box-shadow: 0 0 0 1px var(--gold-deep) inset; }
-.home-v12.lab-v12 .lab-saverow { display: flex; gap: 8px; align-items: center; }
-.home-v12.lab-v12 .lab-saverow input { border: 1px solid var(--hair); background: var(--bg2); color: var(--ink); border-radius: 10px; padding: 7px 12px; font: inherit; font-size: var(--v13-t3); width: 220px; }
+.home-v12.lab-v12 .lab-savedchip.on { border-color: var(--gold-deep); box-shadow: var(--shx-6); }
+.home-v12.lab-v12 .lab-saverow { display: flex; gap: var(--sp-8); align-items: center; }
+.home-v12.lab-v12 .lab-saverow input { border: 1px solid var(--hair); background: var(--bg2); color: var(--ink); border-radius: var(--r-10); padding: var(--sp-7) var(--sp-12); font: inherit; font-size: var(--v13-t3); width: 220px; }
 
-.home-v12.lab-v12 .lab-btn { border: 1px solid var(--ink); background: var(--ink); color: var(--bg); border-radius: 999px; font: inherit; font-size: var(--v13-t3); font-weight: 700; padding: 7px 16px; cursor: pointer; }
+.home-v12.lab-v12 .lab-btn { border: 1px solid var(--ink); background: var(--ink); color: var(--bg); border-radius: var(--r-999); font: inherit; font-size: var(--v13-t3); font-weight: var(--fw-700); padding: var(--sp-7) var(--sp-16); cursor: pointer; }
 [data-mt-theme='dark'] .home-v12.lab-v12 .lab-btn,
-[data-mt-theme='navy'] .home-v12.lab-v12 .lab-btn { background: var(--gold-deep); border-color: var(--gold-deep); color: #16202B; }
+[data-mt-theme='navy'] .home-v12.lab-v12 .lab-btn { background: var(--gold-deep); border-color: var(--gold-deep); color: var(--c-16202b); }
 .home-v12.lab-v12 .lab-btn.ghost { background: transparent; color: var(--ink); }
 [data-mt-theme='dark'] .home-v12.lab-v12 .lab-btn.ghost,
 [data-mt-theme='navy'] .home-v12.lab-v12 .lab-btn.ghost { color: var(--ink); border-color: var(--hair); }
 
 /* ── cards ── */
-.home-v12.lab-v12 .lab-card { background: var(--putty); border-radius: var(--card-r); box-shadow: var(--sh); padding: 34px 38px 32px; margin: 26px 0; }
+.home-v12.lab-v12 .lab-card { background: var(--putty); border-radius: var(--card-r); box-shadow: var(--sh); padding: var(--sp-34) var(--sp-38) var(--sp-32); margin: var(--sp-26) 0; }
 /* While the add-ticker menu is open, lift its card above the later cards —
    the reveal animation's filter makes every card a stacking context, which
    otherwise paints the next card over the open menu (Joe, 7/27). */
 .home-v12.lab-v12 .lab-card:has(.lab-add-menu) { position: relative; z-index: 40; }
-.home-v12.lab-v12 .lab-cardhead { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-bottom: 16px; }
+.home-v12.lab-v12 .lab-cardhead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-18); flex-wrap: wrap; margin-bottom: var(--sp-16); }
 .home-v12.lab-v12 .lab-cardhead h2 { font-size: var(--v13-t6); margin: 0; }
-.home-v12.lab-v12 .lab-empty { color: var(--mut); font-size: var(--v13-t3); padding: 12px 0 4px; }
-.home-v12.lab-v12 .lab-warn { color: var(--down); font-size: var(--v13-t3); margin: 0 0 10px; }
+.home-v12.lab-v12 .lab-empty { color: var(--mut); font-size: var(--v13-t3); padding: var(--sp-12) 0 var(--sp-4); }
+.home-v12.lab-v12 .lab-warn { color: var(--down); font-size: var(--v13-t3); margin: 0 0 var(--sp-10); }
 
 /* ── ticker add ── */
 .home-v12.lab-v12 .lab-add { position: relative; }
-.home-v12.lab-v12 .lab-add input { border: 1px solid var(--hair); background: var(--bg2); color: var(--ink); border-radius: 999px; padding: 8px 16px; font: inherit; font-size: var(--v13-t3); width: 240px; }
-.home-v12.lab-v12 .lab-add-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; background: var(--bg2); border: 1px solid var(--hair); border-radius: 14px; box-shadow: var(--sh); overflow: hidden; min-width: 300px; }
-.home-v12.lab-v12 .lab-add-item { display: flex; gap: 10px; align-items: baseline; width: 100%; text-align: left; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--v13-t3); padding: 9px 14px; cursor: pointer; }
+.home-v12.lab-v12 .lab-add input { border: 1px solid var(--hair); background: var(--bg2); color: var(--ink); border-radius: var(--r-999); padding: var(--sp-8) var(--sp-16); font: inherit; font-size: var(--v13-t3); width: 240px; }
+.home-v12.lab-v12 .lab-add-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; background: var(--bg2); border: 1px solid var(--hair); border-radius: var(--r-14); box-shadow: var(--sh); overflow: hidden; min-width: 300px; }
+.home-v12.lab-v12 .lab-add-item { display: flex; gap: var(--sp-10); align-items: baseline; width: 100%; text-align: left; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--v13-t3); padding: var(--sp-9) var(--sp-14); cursor: pointer; }
 .home-v12.lab-v12 .lab-add-item b { color: var(--gold-deep); min-width: 52px; }
 .home-v12.lab-v12 .lab-add-item span { color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-v12.lab-v12 .lab-add-item.hi { background: color-mix(in srgb, var(--gold-deep) 10%, var(--bg2)); }
@@ -70,34 +70,34 @@
 /* ── holdings table ── */
 .home-v12.lab-v12 .lab-tablewrap { overflow-x: auto; }
 .home-v12.lab-v12 .lab-table { width: 100%; border-collapse: collapse; font-size: var(--v13-t3); }
-.home-v12.lab-v12 .lab-table th { text-align: left; font-size: var(--v13-t2); letter-spacing: .12em; text-transform: uppercase; color: var(--mut); font-weight: 700; padding: 8px 12px; border-bottom: 1px solid var(--hair); }
+.home-v12.lab-v12 .lab-table th { text-align: left; font-size: var(--v13-t2); letter-spacing: .12em; text-transform: uppercase; color: var(--mut); font-weight: var(--fw-700); padding: var(--sp-8) var(--sp-12); border-bottom: 1px solid var(--hair); }
 .home-v12.lab-v12 .lab-table th.num, .home-v12.lab-v12 .lab-table td.num { text-align: right; }
-.home-v12.lab-v12 .lab-table td { padding: 10px 12px; border-bottom: 1px solid var(--hair); color: var(--ink); }
+.home-v12.lab-v12 .lab-table td { padding: var(--sp-10) var(--sp-12); border-bottom: 1px solid var(--hair); color: var(--ink); }
 .home-v12.lab-v12 .lab-table tr.dim td { opacity: .5; }
-.home-v12.lab-v12 .lab-w { width: 76px; text-align: right; border: 1px solid var(--hair); background: var(--bg2); color: var(--ink); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: var(--v13-t3); }
-.home-v12.lab-v12 .lab-method { border: 1px solid var(--hair); background: var(--bg2); color: var(--ink); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: var(--v13-t3); }
-.home-v12.lab-v12 .lab-scenbtn { border: 0; background: transparent; color: var(--gold-deep); font: inherit; font-size: var(--v13-t3); font-weight: 700; cursor: pointer; margin-left: 8px; }
+.home-v12.lab-v12 .lab-w { width: 76px; text-align: right; border: 1px solid var(--hair); background: var(--bg2); color: var(--ink); border-radius: var(--r-8); padding: var(--sp-5) var(--sp-8); font: inherit; font-size: var(--v13-t3); }
+.home-v12.lab-v12 .lab-method { border: 1px solid var(--hair); background: var(--bg2); color: var(--ink); border-radius: var(--r-8); padding: var(--sp-5) var(--sp-8); font: inherit; font-size: var(--v13-t3); }
+.home-v12.lab-v12 .lab-scenbtn { border: 0; background: transparent; color: var(--gold-deep); font: inherit; font-size: var(--v13-t3); font-weight: var(--fw-700); cursor: pointer; margin-left: var(--sp-8); }
 .home-v12.lab-v12 .lab-x { border: 0; background: transparent; color: var(--mut); font-size: var(--v13-t3); cursor: pointer; line-height: 1; }
 .home-v12.lab-v12 .lab-x:hover { color: var(--down); }
 
-.home-v12.lab-v12 .lab-scenrow td { background: var(--bg2); border-radius: 14px; }
-.home-v12.lab-v12 .lab-scen { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-end; padding: 6px 2px; }
-.home-v12.lab-v12 .lab-scencase { display: flex; gap: 12px; align-items: flex-end; }
+.home-v12.lab-v12 .lab-scenrow td { background: var(--bg2); border-radius: var(--r-14); }
+.home-v12.lab-v12 .lab-scen { display: flex; gap: var(--sp-26); flex-wrap: wrap; align-items: flex-end; padding: var(--sp-6) var(--sp-2); }
+.home-v12.lab-v12 .lab-scencase { display: flex; gap: var(--sp-12); align-items: flex-end; }
 .home-v12.lab-v12 .lab-scencase .label.bull { color: var(--up); }
 .home-v12.lab-v12 .lab-scencase .label.bear { color: var(--down); }
-.home-v12.lab-v12 .lab-scencase label { display: flex; flex-direction: column; gap: 4px; font-size: var(--v13-t2); color: var(--mut); }
-.home-v12.lab-v12 .lab-scencase input { width: 96px; border: 1px solid var(--hair); background: var(--putty); color: var(--ink); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: var(--v13-t3); text-align: right; }
+.home-v12.lab-v12 .lab-scencase label { display: flex; flex-direction: column; gap: var(--sp-4); font-size: var(--v13-t2); color: var(--mut); }
+.home-v12.lab-v12 .lab-scencase input { width: 96px; border: 1px solid var(--hair); background: var(--putty); color: var(--ink); border-radius: var(--r-8); padding: var(--sp-5) var(--sp-8); font: inherit; font-size: var(--v13-t3); text-align: right; }
 .home-v12.lab-v12 .lab-scensum { font-size: var(--v13-t3); flex-basis: 100%; }
 .home-v12.lab-v12 .lab-scensum.ok { color: var(--mut); }
-.home-v12.lab-v12 .lab-scensum.bad { color: var(--down); font-weight: 700; }
+.home-v12.lab-v12 .lab-scensum.bad { color: var(--down); font-weight: var(--fw-700); }
 
 /* Holdings the optimizer had to drop — a quiet, factual note directly under
    the table, not an alarm bar (UX Designer, 7/30). */
-.home-v12.lab-v12 .lab-excluded { margin: 14px 0 0; font-size: var(--v13-t3); line-height: 1.5; }
+.home-v12.lab-v12 .lab-excluded { margin: var(--sp-14) 0 0; font-size: var(--v13-t3); line-height: 1.5; }
 
-.home-v12.lab-v12 .lab-tally { display: flex; align-items: center; gap: 14px; padding-top: 14px; font-size: var(--v13-t3); }
+.home-v12.lab-v12 .lab-tally { display: flex; align-items: center; gap: var(--sp-14); padding-top: var(--sp-14); font-size: var(--v13-t3); }
 .home-v12.lab-v12 .lab-tally .ok { color: var(--mut); }
-.home-v12.lab-v12 .lab-tally .warn { color: var(--down); font-weight: 700; }
+.home-v12.lab-v12 .lab-tally .warn { color: var(--down); font-weight: var(--fw-700); }
 
 /* ── charts ── */
 .home-v12.lab-v12 .lab-chartwrap { position: relative; }
@@ -108,7 +108,7 @@
 .home-v12.lab-v12 .lab-chartwrap { width: 100%; }
 .home-v12.lab-v12 .lab-grid { stroke: var(--hair); stroke-width: 1; }
 .home-v12.lab-v12 .lab-tick { fill: var(--mut); font-size: var(--v13-t2); font-family: var(--mt-type-sans); }
-.home-v12.lab-v12 .lab-axis { fill: var(--mut); font-size: var(--v13-t2); letter-spacing: .1em; text-transform: uppercase; font-weight: 700; }
+.home-v12.lab-v12 .lab-axis { fill: var(--mut); font-size: var(--v13-t2); letter-spacing: .1em; text-transform: uppercase; font-weight: var(--fw-700); }
 .home-v12.lab-v12 .lab-curve { stroke: var(--ink); stroke-width: 2.4; }
 [data-mt-theme='dark'] .home-v12.lab-v12 .lab-curve,
 [data-mt-theme='navy'] .home-v12.lab-v12 .lab-curve { stroke: var(--gold-deep); }
@@ -120,8 +120,8 @@
 .home-v12.lab-v12 .lab-markdot { fill: var(--gold-deep); stroke: var(--bg2); stroke-width: 1.5; }
 .home-v12.lab-v12 .lab-minvoldot { fill: var(--ink); stroke: var(--bg2); stroke-width: 1.5; }
 .home-v12.lab-v12 .lab-eqdot { fill: var(--bg2); stroke: var(--ink-soft); stroke-width: 1.6; }
-.home-v12.lab-v12 .lab-fmarks { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; padding-top: 12px; font-size: var(--v13-t3); color: var(--ink-soft); }
-.home-v12.lab-v12 .lab-fmark { display: inline-flex; align-items: center; gap: 6px; }
+.home-v12.lab-v12 .lab-fmarks { display: flex; gap: var(--sp-18); flex-wrap: wrap; align-items: center; padding-top: var(--sp-12); font-size: var(--v13-t3); color: var(--ink-soft); }
+.home-v12.lab-v12 .lab-fmark { display: inline-flex; align-items: center; gap: var(--sp-6); }
 .home-v12.lab-v12 .lab-fmark.asbtn { border: 0; background: transparent; color: var(--ink-soft); font: inherit; font-size: var(--v13-t3); padding: 0; cursor: pointer; }
 .home-v12.lab-v12 .lab-fmark.asbtn:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 /* pointer-events:all — a hollow (fill:none) SVG circle otherwise only
@@ -136,8 +136,8 @@
 .home-v12.lab-v12 .lab-youdot { fill: var(--up); stroke: var(--bg2); stroke-width: 2; }
 .home-v12.lab-v12 .lab-hoverdot { fill: none; stroke: var(--ink); stroke-width: 1.5; }
 .home-v12.lab-v12 .lab-dotlabel { fill: var(--ink-soft); font-size: var(--v13-t2); font-family: var(--mt-type-sans); }
-.home-v12.lab-v12 .lab-dotlabel.you { fill: var(--up); font-weight: 700; }
-.home-v12.lab-v12 .lab-frontier-read { color: var(--ink-soft); font-size: var(--v13-t3); padding-top: 10px; min-height: 20px; }
+.home-v12.lab-v12 .lab-dotlabel.you { fill: var(--up); font-weight: var(--fw-700); }
+.home-v12.lab-v12 .lab-frontier-read { color: var(--ink-soft); font-size: var(--v13-t3); padding-top: var(--sp-10); min-height: 20px; }
 
 .home-v12.lab-v12 .lab-line { stroke-width: 2; }
 .home-v12.lab-v12 .lab-line.you { stroke: var(--up); stroke-width: 2.6; }
@@ -149,61 +149,51 @@
 [data-mt-theme='dark'] .home-v12.lab-v12 .lab-line.b0,
 [data-mt-theme='navy'] .home-v12.lab-v12 .lab-line.b0 { stroke: var(--ink-soft); }
 
-.home-v12.lab-v12 .lab-chartctl { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.home-v12.lab-v12 .lab-seg.small button { padding: 5px 11px; font-size: var(--v13-t3); }
-.home-v12.lab-v12 .lab-benchpick { display: inline-flex; gap: 6px; flex-wrap: wrap; }
-.home-v12.lab-v12 .lab-benchpick button { border: 1px solid var(--hair); background: var(--bg2); color: var(--ink-soft); border-radius: 999px; font: inherit; font-size: var(--v13-t3); padding: 5px 13px; cursor: pointer; }
-.home-v12.lab-v12 .lab-benchpick button.on { border-color: var(--gold-deep); color: var(--ink); font-weight: 700; box-shadow: 0 0 0 1px var(--gold-deep) inset; }
-.home-v12.lab-v12 .lab-legend { display: flex; gap: 20px; flex-wrap: wrap; padding-top: 12px; font-size: var(--v13-t3); color: var(--ink-soft); }
-.home-v12.lab-v12 .lab-leg { display: inline-flex; align-items: center; gap: 7px; }
-.home-v12.lab-v12 .lab-leg i { width: 16px; height: 3px; border-radius: 2px; background: var(--mut); display: inline-block; }
+.home-v12.lab-v12 .lab-chartctl { display: flex; align-items: center; gap: var(--sp-16); flex-wrap: wrap; }
+.home-v12.lab-v12 .lab-seg.small button { padding: var(--sp-5) var(--sp-11); font-size: var(--v13-t3); }
+.home-v12.lab-v12 .lab-benchpick { display: inline-flex; gap: var(--sp-6); flex-wrap: wrap; }
+.home-v12.lab-v12 .lab-benchpick button { border: 1px solid var(--hair); background: var(--bg2); color: var(--ink-soft); border-radius: var(--r-999); font: inherit; font-size: var(--v13-t3); padding: var(--sp-5) var(--sp-13); cursor: pointer; }
+.home-v12.lab-v12 .lab-benchpick button.on { border-color: var(--gold-deep); color: var(--ink); font-weight: var(--fw-700); box-shadow: var(--shx-6); }
+.home-v12.lab-v12 .lab-legend { display: flex; gap: var(--sp-20); flex-wrap: wrap; padding-top: var(--sp-12); font-size: var(--v13-t3); color: var(--ink-soft); }
+.home-v12.lab-v12 .lab-leg { display: inline-flex; align-items: center; gap: var(--sp-7); }
+.home-v12.lab-v12 .lab-leg i { width: 16px; height: 3px; border-radius: var(--r-2); background: var(--mut); display: inline-block; }
 .home-v12.lab-v12 .lab-leg.you i { background: var(--up); }
 .home-v12.lab-v12 .lab-leg.b0 i { background: var(--ink); }
 .home-v12.lab-v12 .lab-leg.b1 i { background: var(--gold-deep); }
 .home-v12.lab-v12 .lab-leg.b2 i { background: var(--navy); }
 .home-v12.lab-v12 .lab-leg.b3 i { background: var(--mut); }
 .home-v12.lab-v12 .lab-leg.mix i { background: var(--down); }
-.home-v12.lab-v12 .lab-leg b { margin-left: 4px; color: var(--ink); }
-.home-v12.lab-v12 .lab-foot { color: var(--mut); font-size: var(--v13-t3); margin: 10px 0 0; }
+.home-v12.lab-v12 .lab-leg b { margin-left: var(--sp-4); color: var(--ink); }
+.home-v12.lab-v12 .lab-foot { color: var(--mut); font-size: var(--v13-t3); margin: var(--sp-10) 0 0; }
 
 /* ── statistics ── */
 .home-v12.lab-v12 .lab-statgrid { max-width: 560px; }
-.home-v12.lab-v12 .lab-statrow { display: grid; grid-template-columns: 1fr 130px 130px; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--hair); font-size: var(--v13-t3); color: var(--ink); }
-.home-v12.lab-v12 .lab-statrow.head { font-size: var(--v13-t2); letter-spacing: .12em; text-transform: uppercase; color: var(--mut); font-weight: 700; border-bottom-width: 1px; }
+.home-v12.lab-v12 .lab-statrow { display: grid; grid-template-columns: 1fr 130px 130px; gap: var(--sp-10); padding: var(--sp-9) 0; border-bottom: 1px solid var(--hair); font-size: var(--v13-t3); color: var(--ink); }
+.home-v12.lab-v12 .lab-statrow.head { font-size: var(--v13-t2); letter-spacing: .12em; text-transform: uppercase; color: var(--mut); font-weight: var(--fw-700); border-bottom-width: 1px; }
 .home-v12.lab-v12 .lab-statrow .num { text-align: right; }
 
-.home-v12.lab-v12 .lab-substats { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; padding-top: 26px; }
-.home-v12.lab-v12 .lab-sub-col h3 { margin: 0 0 12px; }
-.home-v12.lab-v12 .lab-rcrow { display: grid; grid-template-columns: 64px 1fr 56px; gap: 12px; align-items: center; padding: 5px 0; font-size: var(--v13-t3); }
+.home-v12.lab-v12 .lab-substats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-36); padding-top: var(--sp-26); }
+.home-v12.lab-v12 .lab-sub-col h3 { margin: 0 0 var(--sp-12); }
+.home-v12.lab-v12 .lab-rcrow { display: grid; grid-template-columns: 64px 1fr 56px; gap: var(--sp-12); align-items: center; padding: var(--sp-5) 0; font-size: var(--v13-t3); }
 .home-v12.lab-v12 .lab-rcrow .num { text-align: right; color: var(--ink); }
-.home-v12.lab-v12 .lab-rcbar { height: 8px; border-radius: 4px; background: var(--bg2); overflow: hidden; display: block; }
-.home-v12.lab-v12 .lab-rcbar i { display: block; height: 100%; background: var(--gold-bar); border-radius: 4px; }
+.home-v12.lab-v12 .lab-rcbar { height: 8px; border-radius: var(--r-4); background: var(--bg2); overflow: hidden; display: block; }
+.home-v12.lab-v12 .lab-rcbar i { display: block; height: 100%; background: var(--gold-bar); border-radius: var(--r-4); }
 
-.home-v12.lab-v12 .lab-corr { display: grid; gap: 3px; font-size: var(--v13-t2); }
-.home-v12.lab-v12 .lab-corrhead { color: var(--mut); font-weight: 700; font-size: var(--v13-t2); align-self: center; }
-.home-v12.lab-v12 .lab-corrcell { padding: 5px 0; text-align: center; border-radius: 6px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.home-v12.lab-v12 .lab-corr { display: grid; gap: var(--sp-3); font-size: var(--v13-t2); }
+.home-v12.lab-v12 .lab-corrhead { color: var(--mut); font-weight: var(--fw-700); font-size: var(--v13-t2); align-self: center; }
+.home-v12.lab-v12 .lab-corrcell { padding: var(--sp-5) 0; text-align: center; border-radius: var(--r-6); color: var(--ink); font-variant-numeric: tabular-nums; }
 
-.home-v12.lab-v12 .lab-method-foot { color: var(--mut); font-size: var(--v13-t3);  margin: 8px 0 0; }
+.home-v12.lab-v12 .lab-method-foot { color: var(--mut); font-size: var(--v13-t3);  margin: var(--sp-8) 0 0; }
 
 /* ── Implied vol method (Phase 3, LSE feed, 2026-07-27) ── */
-.home-v12.lab-v12 .lab-ivnote { display: block; color: var(--mut); font-size: var(--v13-t2); margin-top: 2px; white-space: nowrap; }
-.home-v12.lab-v12 .lab-ivchip { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; }
-.home-v12.lab-v12 .lab-ivtag { font-size: var(--v13-t1); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); margin-left: 4px; font-weight: 700; }
+.home-v12.lab-v12 .lab-ivnote { display: block; color: var(--mut); font-size: var(--v13-t2); margin-top: var(--sp-2); white-space: nowrap; }
+.home-v12.lab-v12 .lab-ivchip { display: inline-flex; align-items: center; gap: var(--sp-6); margin-left: var(--sp-10); }
+.home-v12.lab-v12 .lab-ivtag { font-size: var(--v13-t1); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); margin-left: var(--sp-4); font-weight: var(--fw-700); }
 
 /* --mt-* token bridge for shared components rendered inside the lab scope
    (FreshnessChip's status dot resolves var(--mt-up) etc.). Same pattern as
    the scanner-v12 bridge — without it the chip dot rendered TRANSPARENT
    (caught in live UAT 2026-07-27). */
-.home-v12.lab-v12 {
-  --mt-ink-0: var(--ink);
-  --mt-ink-1: var(--ink-soft);
-  --mt-ink-2: var(--mut);
-  --mt-ink-3: var(--mut);
-  --mt-up: var(--up);
-  --mt-down: var(--down);
-  --mt-warn: var(--amber);
-  --mt-amber: var(--amber);
-}
 
 /* Tickers anywhere in the Lab click through to the ticker page (Joe, 7/27).
    Button reset + the same quiet link affordance as the Paper table. */
@@ -213,22 +203,22 @@
 /* Holdings rows: whole row is a click target for the ticker page (controls
    inside keep their own behavior) with a quiet hover animation — same gold
    tint family as the scanner rows. */
-.home-v12.lab-v12 .lab-table tbody tr.lab-row { cursor: pointer; transition: background .16s ease, transform .16s ease; }
+.home-v12.lab-v12 .lab-table tbody tr.lab-row { cursor: pointer; transition: background var(--dur-160) ease, transform var(--dur-160) ease; }
 .home-v12.lab-v12 .lab-table tbody tr.lab-row:hover { background: color-mix(in srgb, var(--gold-deep) 8%, transparent); }
 .home-v12.lab-v12 .lab-table tbody tr.lab-row:hover td.tick .lab-ticklink { color: var(--gold-deep); text-decoration: underline; text-underline-offset: 3px; }
 
 /* Holdings card header: set-all-methods segment beside the add box. */
-.home-v12.lab-v12 .lab-headtools { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
-.home-v12.lab-v12 .lab-allmethod { display: flex; flex-direction: column; gap: 6px; }
+.home-v12.lab-v12 .lab-headtools { display: flex; align-items: flex-end; gap: var(--sp-18); flex-wrap: wrap; }
+.home-v12.lab-v12 .lab-allmethod { display: flex; flex-direction: column; gap: var(--sp-6); }
 /* Card controls live on their own row UNDER the title bar, never inside it.
    The bar is a fixed 28px band site-wide; a 40px control cluster placed in it
    overflowed and painted over the table header row (Joe, 2026-09-09). */
 .home-v12.lab-v12 .lab-toolbar {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 18px; flex-wrap: wrap; padding: 12px 0 14px;
+  gap: var(--sp-18); flex-wrap: wrap; padding: var(--sp-12) 0 var(--sp-14);
 }
 .home-v12.lab-v12 .lab-toolbar .lab-headtools { width: 100%; justify-content: space-between; align-items: center; }
-.home-v12.lab-v12 .lab-toolbar .lab-allmethod { flex-direction: row; align-items: center; gap: 10px; }
+.home-v12.lab-v12 .lab-toolbar .lab-allmethod { flex-direction: row; align-items: center; gap: var(--sp-10); }
 .home-v12.lab-v12 .lab-toolbar .lab-chartctl { width: 100%; justify-content: space-between; }
 /* Caption line: the long method sentences that used to be crammed into the bar. */
-.home-v12.lab-v12 .lab-cap { margin: 12px 0 0; font-size: var(--v13-t2); color: var(--mut); line-height: 1.5; }
+.home-v12.lab-v12 .lab-cap { margin: var(--sp-12) 0 0; font-size: var(--v13-t2); color: var(--mut); line-height: 1.5; }

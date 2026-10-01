@@ -796,7 +796,7 @@ export default function TickerPage() {
                 {hasPrice ? `$${fmt(price, 2)}` : '—'} <span className="tk-windowlabel">{chartMode === 'tv' ? '· TradingView · candles · intraday · indicators · drawing tools' : `· ${customRange ? 'custom range' : `${tf} window`}${priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}`}</span>
               </div>
             </div>
-            <div className="tk-chartmodes" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
+            <div className="tk-chartmodes" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-8)', alignItems: 'center', justifyContent: 'flex-end' }}>
               <div className="mt-pillgroup">
                 <button
                   type="button"
@@ -1089,7 +1089,7 @@ function ShortInterestTab({ pos }) {
   return (
     <article className="mt-card mt-fade">
       <div className="tk-tabhead">
-        <div className="mt-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="mt-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-6)' }}>
           Short interest
           {/* These numbers are FINRA settlement short interest (pos.finra),
               written to public.short_interest by SHORT_INTEREST_INGEST_DAILY.

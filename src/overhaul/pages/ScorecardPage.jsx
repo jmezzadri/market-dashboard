@@ -252,11 +252,11 @@ export default function ScorecardPage() {
                 )}
               </div>
               {s.overall.line && (
-                <section className="sc-book" style={{ margin: '14px 0 6px' }}>
-                  <p className="sc-tile-l" style={{ marginBottom: 6 }}>How we&rsquo;re doing</p>
+                <section className="sc-book" style={{ margin: 'var(--sp-14) 0 var(--sp-6)' }}>
+                  <p className="sc-tile-l" style={{ marginBottom: 'var(--sp-6)' }}>How we&rsquo;re doing</p>
                   <p style={{ lineHeight: 1.55 }}>{s.overall.line}</p>
                   {s.overall.basis && (
-                    <p className="sc-dim" style={{ marginTop: 6, fontSize: 'var(--v13-t2)' }}>{s.overall.basis}</p>
+                    <p className="sc-dim" style={{ marginTop: 'var(--sp-6)', fontSize: 'var(--v13-t2)' }}>{s.overall.basis}</p>
                   )}
                 </section>
               )}
@@ -296,8 +296,8 @@ export default function ScorecardPage() {
         const asOf = useReview ? L.review_date : bk.date;
         const stance = useReview ? L.book_now : bk.book.stance;
         return (
-          <section className="sc-book" style={{ margin: '18px 0 6px' }}>
-            <p className="sc-tile-l" style={{ marginBottom: 6 }}>The book right now · as of {asOf}{useReview ? ' · weekly thesis review' : ''}</p>
+          <section className="sc-book" style={{ margin: 'var(--sp-18) 0 var(--sp-6)' }}>
+            <p className="sc-tile-l" style={{ marginBottom: 'var(--sp-6)' }}>The book right now · as of {asOf}{useReview ? ' · weekly thesis review' : ''}</p>
             {/* No max-width. Joe, 2026-09-09: "Why do you always jam fucking
                 text to the left!!!" — third time (LESSONS 9.14, 7.15). Prose
                 inside a card uses the card. If a measure is wanted, the CARD

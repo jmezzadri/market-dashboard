@@ -20,17 +20,6 @@
 /* ── remap the cream chrome variables onto v13 ───────────────────────────
    Every --ch-* consumer in chrome-v12.css and footer-v12.css follows these
    automatically; that is the whole point of keeping the names. */
-.mt-overhaul {
-  --ch-bg: var(--v13-ground);
-  --ch-surface: var(--v13-surface);
-  --ch-putty: var(--v13-surface-2);
-  --ch-ink: var(--v13-ink);
-  --ch-ink-soft: var(--v13-ink-2);
-  --ch-mut: var(--v13-ink-3);
-  --ch-gold-deep: var(--v13-accent);   /* links and actives are accent now */
-  --ch-hair: var(--v13-rule);
-  --ch-nav-h: 44px;
-}
 
 /* The shell ground. `background-image: none` kills the tokens.css radial
    gradient — a fixed-attachment gradient behind a dense grid reads as haze. */
@@ -54,18 +43,18 @@
 .mt-overhaul .mt-wordmark {
   font-family: var(--mt-type-serif);
   font-size: var(--v13-t5);
-  font-weight: 600;
+  font-weight: var(--fw-600);
   letter-spacing: -0.01em;
   color: var(--v13-ink);
 }
 .mt-overhaul .mt-wordmark em { font-style: normal; color: var(--v13-brand); }
 
-.mt-overhaul .mt-topnav-links { gap: 2px; }
+.mt-overhaul .mt-topnav-links { gap: var(--sp-2); }
 .mt-overhaul .mt-navlink {
-  padding: 6px 10px;
+  padding: var(--sp-6) var(--sp-10);
   border-radius: var(--v13-r);
   font-size: var(--v13-t2);
-  font-weight: 600;
+  font-weight: var(--fw-600);
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--v13-ink-3);
@@ -84,7 +73,7 @@
 .mt-overhaul .mt-topnav-signout,
 .mt-overhaul .mt-topnav-dim { font-size: var(--v13-t2); color: var(--v13-ink-3); }
 .mt-overhaul .mt-topnav-signin {
-  font-size: var(--v13-t2); font-weight: 700; letter-spacing: 0.06em;
+  font-size: var(--v13-t2); font-weight: var(--fw-700); letter-spacing: 0.06em;
   text-transform: uppercase; color: var(--v13-accent);
 }
 .mt-overhaul .mt-navtoggle { color: var(--v13-ink-2); }
@@ -114,7 +103,7 @@
 .mt-overhaul .mt-tickersearch input:focus {
   outline: 0;
   border-color: var(--v13-accent);
-  box-shadow: 0 0 0 3px var(--v13-accent-soft);
+  box-shadow: var(--shx-4);
 }
 
 /* ── mobile nav sheet ────────────────────────────────────────────────── */
@@ -134,9 +123,9 @@
 .mt-overhaul .mt-navsheet-email { font-size: var(--v13-t2); color: var(--v13-ink-3); }
 .mt-overhaul .mt-navsheet-signin,
 .mt-overhaul .mt-navsheet-signout {
-  font-size: var(--v13-t2); font-weight: 700; color: var(--v13-accent);
+  font-size: var(--v13-t2); font-weight: var(--fw-700); color: var(--v13-accent);
 }
-.mt-overhaul .mt-navsheet-veil { background: rgba(20, 23, 26, 0.45); }
+.mt-overhaul .mt-navsheet-veil { background: var(--c-14171a-a45); }
 
 /* ── footer ──────────────────────────────────────────────────────────── */
 .mt-overhaul .mt-footer {
@@ -151,7 +140,7 @@
 .mt-overhaul .mt-footer-wordmark {
   font-family: var(--mt-type-serif);
   font-size: var(--v13-t5);
-  font-weight: 600;
+  font-weight: var(--fw-600);
   color: var(--v13-ink);
 }
 .mt-overhaul .mt-footer-wordmark em { font-style: normal; color: var(--v13-brand); }
@@ -159,7 +148,7 @@
 .mt-overhaul .mt-footer-loc { font-size: var(--v13-t2); color: var(--v13-ink-2);  }
 .mt-overhaul .mt-footer-col h4,
 .mt-overhaul .mt-footer-col > span:first-child {
-  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.1em;
+  font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--v13-ink-3);
 }
 .mt-overhaul .mt-footer-col a {
@@ -195,5 +184,5 @@
 }
 .mt-overhaul .v13-search-input::placeholder { color: var(--v13-ink-3); }
 .mt-overhaul .v13-search-input:focus {
-  border-color: var(--v13-accent); box-shadow: 0 0 0 3px var(--v13-accent-soft);
+  border-color: var(--v13-accent); box-shadow: var(--shx-4);
 }
