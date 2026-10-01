@@ -5,6 +5,9 @@ import ReactDOM from 'react-dom/client'
 import './overhaul/styles/type.css'
 import './theme.css'
 import OverhaulApp from './overhaul/OverhaulApp.jsx'
+// Liquid Glass look (2026-10-01). Imported AFTER the app so it is the last
+// stylesheet in the bundle and wins over every page sheet it restyles.
+import './overhaul/styles/glass.css'
 import { installClientErrorLog } from './lib/clientErrorLog'
 
 // Start collecting browser errors before anything renders, so a bug filed
