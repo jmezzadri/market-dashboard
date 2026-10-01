@@ -201,6 +201,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `7.13` Tooltips must be INSTANT; never use the native title attribute
 - `7.14` A component that is rendered but never defined is a white screen, and it takes every other modal down with it
 - `7.15` A design rule that lives only in a prompt is a rule you will be told about again
+- `7.19` An indicator that drives a published call is charted with that call's lines, never a second yardstick; every zone has a visible, labelled boundary
 
 **8 · PLATFORM FACTS & CREDENTIALS**
 
@@ -1943,6 +1944,14 @@ His own suggestion — *"expensive vs. cheap might be the right nomenclature?"* 
 5. **When the user asks "am I thinking about this correctly?", the answer is usually that the display is wrong, not the user.** He was reading the tile exactly as designed. That is the bug report.
 
 **Applies to:** UX Designer and Lead Developer, on any bidirectional indicator, threshold or alert.
+
+### 7.19 (2026-10-01) — An indicator that drives a published call is charted with THAT call's lines, never a second yardstick
+
+**What happened:** The MOVE Index chart shaded the generic 3-year pill zones (amber from ~107) while the Engine on Home and Macro ranks MOVE against five years of Friday closes (Watch 116, Risk Off 124). At 110 the chart said amber while the Engine said Risk On, and the shading was too faint to read at all. Joe: "the shaded chart should anchor to what we're saying is Risk On, Watch and Risk off on the Home page and Macro page."
+
+**Rule:** Where an indicator is the input to a named call (MOVE → the Engine), its chart bands, band names and headline colour come from that call's own published levels (`macrotilt_engine.json`), read through one hook. The Engine lines are labelled with their name and value on the chart.
+
+**Applies to:** UX Designer + Senior Quant — any chart with threshold shading.
 
 ### 8.1 (2026-05-26; paths updated 2026-06-11) — The GitHub token is on disk; read it, never ask Joe for it
 
