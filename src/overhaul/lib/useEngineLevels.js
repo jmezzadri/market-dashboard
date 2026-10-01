@@ -11,7 +11,9 @@
    to STRESS_THRESH, the constants the Home and Macro regime call uses. */
 
 import { useEffect, useState } from 'react';
-import { STRESS_THRESH } from './useEngineRegime';
+// The fallback lives here (not in useEngineRegime) because useIndicators reads
+// this hook and useEngineRegime reads useIndicators — one direction only.
+export const STRESS_THRESH = { watch: 116, riskOff: 124 };
 
 let cached = null;
 let pending = null;

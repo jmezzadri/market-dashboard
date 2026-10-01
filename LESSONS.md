@@ -1949,7 +1949,7 @@ His own suggestion — *"expensive vs. cheap might be the right nomenclature?"* 
 
 **What happened:** The MOVE Index chart shaded the generic 3-year pill zones (amber from ~107) while the Engine on Home and Macro ranks MOVE against five years of Friday closes (Watch 116, Risk Off 124). At 110 the chart said amber while the Engine said Risk On, and the shading was too faint to read at all. Joe: "the shaded chart should anchor to what we're saying is Risk On, Watch and Risk off on the Home page and Macro page."
 
-**Rule:** Where an indicator is the input to a named call (MOVE → the Engine), its chart bands, band names and headline colour come from that call's own published levels (`macrotilt_engine.json`), read through one hook. The Engine lines are labelled with their name and value on the chart.
+**Rule:** Where an indicator is the input to a named call (MOVE → the Engine), its table row flag, chart bands, band names and headline colour come from that call's own published levels (`macrotilt_engine.json`), read through one hook. The Engine lines are labelled with their name and value on the chart.
 
 **Applies to:** UX Designer + Senior Quant — any chart with threshold shading.
 
