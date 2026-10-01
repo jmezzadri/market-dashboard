@@ -34,7 +34,7 @@ export default function PercentileBar({ pct, direction = 'hw', height = 14 }) {
         position: 'relative',
         width: '100%',
         height,
-        borderRadius: 999,
+        borderRadius: 'var(--r-999)',
         overflow: 'visible',
         background: 'transparent',
       }}
@@ -43,7 +43,7 @@ export default function PercentileBar({ pct, direction = 'hw', height = 14 }) {
         style={{
           position: 'absolute',
           inset: 0,
-          borderRadius: 999,
+          borderRadius: 'var(--r-999)',
           background:
             direction === 'bw'
               ? 'linear-gradient(90deg, var(--mt-down), var(--mt-warn) 20%, var(--mt-up) 50%, var(--mt-warn) 80%, var(--mt-down))'
@@ -62,9 +62,9 @@ export default function PercentileBar({ pct, direction = 'hw', height = 14 }) {
             bottom: -4,
             width: 3,
             background: colorAt(safePct),
-            borderRadius: 2,
+            borderRadius: 'var(--r-2)',
             transform: 'translateX(-50%)',
-            boxShadow: '0 0 0 2px var(--mt-surface)',
+            boxShadow: 'var(--shx-18)',
           }}
           aria-label={`${safePct}th percentile`}
         />
@@ -77,7 +77,7 @@ export default function PercentileBar({ pct, direction = 'hw', height = 14 }) {
           right: 0,
           display: 'flex',
           justifyContent: 'space-between',
-          marginTop: 4,
+          marginTop: 'var(--sp-4)',
           fontSize: 'var(--v13-t1)',
           color: 'var(--mt-ink-3)',
         }}

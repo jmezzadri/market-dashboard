@@ -696,14 +696,14 @@ function buildDotTip(status, worst) {
         : 'Grey — these feeds aren’t on a daily schedule (they update on change / on demand), or aren’t tracked yet.';
   return (
     <div style={{ minWidth: 180 }}>
-      <div style={{ fontWeight: 600, color: 'var(--mt-ink-0)', marginBottom: (worst && worst.length) ? 6 : 0 }}>
+      <div style={{ fontWeight: 'var(--fw-600)', color: 'var(--mt-ink-0)', marginBottom: (worst && worst.length) ? 6 : 0 }}>
         {meaning}
       </div>
       {worst && worst.length > 0 && (
-        <ul style={{ margin: '4px 0 0', paddingLeft: 16, color: 'var(--mt-ink-2)', lineHeight: 1.5 }}>
+        <ul style={{ margin: 'var(--sp-4) 0 0', paddingLeft: 'var(--sp-16)', color: 'var(--mt-ink-2)', lineHeight: 1.5 }}>
           {worst.slice(0, 4).map((w) => (
             <li key={w.name}>
-              <span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{w.name}</span>
+              <span style={{ color: 'var(--mt-ink-0)', fontWeight: 'var(--fw-600)' }}>{w.name}</span>
               {w.detail ? <span> — {w.detail}</span> : null}
             </li>
           ))}

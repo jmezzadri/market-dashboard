@@ -263,7 +263,7 @@ export default function MethodologyPage() {
 
             {/* The Engine — lives on the Macro page; folded into this section
                 2026-07-28 so the TOC matches the nav exactly. Anchor kept. */}
-            <div className="mt-eyebrow" id="engine" style={{ marginTop: 34, scrollMarginTop: 120 }}>The Engine</div>
+            <div className="mt-eyebrow" id="engine" style={{ marginTop: 'var(--sp-34)', scrollMarginTop: 120 }}>The Engine</div>
             <h2 className="me-h2">Two axes set the regime · stress &amp; yield</h2>
             <p className="me-body-p">
               Bond-market volatility (<b>MOVE</b>) sets the <b>stress axis</b> — it decides how much of the
@@ -723,7 +723,7 @@ export default function MethodologyPage() {
 
             {/* Data sources & vendors — merged into the Data section
                 2026-07-28; anchor kept for deep links. */}
-            <div className="mt-eyebrow" id="sources" style={{ marginTop: 34, scrollMarginTop: 120 }}>Data sources &amp; vendors</div>
+            <div className="mt-eyebrow" id="sources" style={{ marginTop: 'var(--sp-34)', scrollMarginTop: 120 }}>Data sources &amp; vendors</div>
             <h2 className="me-h2">Where every number comes from</h2>
             <p className="me-body-p">
               Every indicator and every market-data field is registered in the data manifest with its

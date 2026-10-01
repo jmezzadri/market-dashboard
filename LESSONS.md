@@ -232,6 +232,8 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.19` A card header is a fixed 28px band; a control cluster in it lands on the row below
 - `9.20` A viewBox scales the type inside it; a chart is drawn at its measured pixel width
 - `9.21` A row that truncates hides in proportion to how much there is to see; a "see all" link lands on the thing it names
+- `9.22` Visual feedback is systemic: change the token, not the component, and list every page affected; never hard-code a style value in a component
+- `9.23` Every UI change is verified at 390, 820 and 1440 wide, in light and dark, before the PR is opened; a mobile failure blocks the PR
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2269,6 +2271,24 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 
 **Applies to:** UX Designer + Lead Developer on every list, calendar, and "see all" affordance; Senior Quant + Data Steward on the release-history feed.
 
+
+### 9.22 (2026-10-01) — Visual feedback is systemic. Change the token, not the component; list every page affected. Never hard-code a style value in a component.
+
+**What happened:** Joe's standing complaint — the same visual defect reported on page after page — had one mechanism: the site had two competing token systems and 2,100+ raw style values (217 distinct colours, 48 shadows, 24 radii, 53 spacings) written straight into component stylesheets and inline JSX styles, so fixing a colour on one page fixed one page. PR 1 of the 2026-10-01 restyle moved every colour, font size, weight, spacing, radius, shadow and duration into ONE file, `src/overhaul/styles/tokens.css`, with every colour token declared for light and dark, and every page rendering pixel-identical before and after.
+
+**Rule (Joe, verbatim):** *"Visual feedback is systemic. When Joe flags one visual issue, change the token, not the component, and list every page affected. Never hard-code a style value in a component."* Concretely: a colour, size, weight, spacing, radius, shadow or duration in a component (CSS, JSX style object, CSS-in-JSX) is a defect; it is a `var(--…)` from `tokens.css` or it does not ship. A fix to a visual issue edits the token and the reply to Joe names every page that token touches. Two things cannot be tokens: a third-party widget's own config (the TradingView embed) and canvas paint used for the bug-report screenshot — both are listed in `tokens.css`'s header, nothing else is exempt.
+
+**Also learned, so nobody repeats it:** a custom property resolves on the element that DECLARES it, not where it is used. A shadow token on `:root` that references a scoped token (`--gold-deep` lives on `.home-v12`) resolves to nothing. Tokens that reference scoped tokens are declared on every scope root (`:root, .mt-overhaul, .v13, .home-v12, …`) so the innermost declaration wins with the reference in reach. And equal-specificity custom-property blocks moved between files keep their BUNDLE order, or the Data page loses 32px of padding and nobody knows why until the pixel diff says so.
+
+**Applies to:** UX Designer and Lead Developer, every change to a stylesheet or component.
+
+### 9.23 (2026-10-01) — Every UI change is verified at 390, 820 and 1440 wide, in light and dark, before the PR is opened. A mobile failure blocks the PR.
+
+**What happened:** The Macro page scrolled sideways on a phone (two dials' end labels ran to 460px on a 390px screen), the Home tiles stacked in the wrong order, and 40+ controls were under 44px — none of it caught, because every check ran at one desktop width in one theme. 9.7 already said "every new multi-column layout ships with a 390px check"; it was a prompt, not a check (7.15).
+
+**Rule (Joe, verbatim):** *"Every UI change is verified at 390, 820 and 1440 wide, in light and dark, before the PR is opened. A mobile failure blocks the PR."* The check that enforces it is `scripts/check_rendered_dom.mjs` (RENDERED-DOM-SMOKE): it renders every public page at 390px in both themes and fails on horizontal scroll or any element overflowing the viewport; it runs on every frontend PR against the PR's own build and can be pointed at any URL (`BASE_URL`). At 390: no horizontal scroll, nothing cut off, tap targets at least 44px (`--mt-tap`), body text at least 14px, nav reachable, Home tiles in the order engine · brief · trade idea · upcoming data. The six screenshots per page (3 widths × 2 themes) are taken BEFORE and AFTER and diffed; a difference nobody intended is a bug.
+
+**Applies to:** Lead Developer on every PR touching `src/`; UX Designer signs off on the phone screenshots, not only the desktop ones.
 
 # 10 · THE PUBLISHED BOOK — trade ideas & notes
 

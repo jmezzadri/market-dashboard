@@ -252,12 +252,12 @@ export default function FreshnessChip({
         display: 'inline-block',
         width: 6,
         height: 6,
-        borderRadius: '50%',
+        borderRadius: 'var(--r-50pct)',
         background: color,
         flexShrink: 0,
         verticalAlign: 'middle',
         boxShadow: hover ? `0 0 0 3px ${color}28` : 'none',
-        transition: 'box-shadow 120ms ease-out',
+        transition: 'box-shadow var(--dur-120) ease-out',
       }}
     />
   );
@@ -271,7 +271,7 @@ export default function FreshnessChip({
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 6,
+          gap: 'var(--sp-6)',
           fontSize: 'var(--v13-t2)',
           fontFamily: 'var(--mt-type-sans)',
           color: 'var(--mt-ink-2)',
@@ -290,11 +290,11 @@ export default function FreshnessChip({
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 6,
+          gap: 'var(--sp-6)',
           fontSize: 'var(--v13-t1)',
           fontFamily: 'var(--mt-type-sans)',
-          padding: '3px 8px',
-          borderRadius: 999,
+          padding: 'var(--sp-3) var(--sp-8)',
+          borderRadius: 'var(--r-999)',
           background:
             status === 'stale'
               ? 'color-mix(in oklab, var(--mt-down) 14%, transparent)'
@@ -305,7 +305,7 @@ export default function FreshnessChip({
                   : 'color-mix(in oklab, var(--mt-ink-3) 14%, transparent)',
           color,
           letterSpacing: '0.04em',
-          fontWeight: 400,
+          fontWeight: 'var(--fw-400)',
         }}
       >
         {dot}
@@ -337,13 +337,13 @@ export default function FreshnessChip({
               background: 'var(--mt-surface)',
               color: 'var(--mt-ink-0)',
               border: '1px solid var(--mt-line-1)',
-              borderRadius: 8,
-              padding: '10px 12px',
+              borderRadius: 'var(--r-8)',
+              padding: 'var(--sp-10) var(--sp-12)',
               fontSize: 'var(--v13-t2)',
               lineHeight: 1.45,
               maxWidth: 320,
               fontFamily: 'var(--mt-type-sans)',
-              boxShadow: '0 8px 24px rgba(0,0,0,.18)',
+              boxShadow: 'var(--sh-28)',
               pointerEvents: 'none',
               zIndex: 100000,
             }}
@@ -354,19 +354,19 @@ export default function FreshnessChip({
                 never shown later than Last pull. "SLA" states the freshness
                 budget (how long after the last successful pull the chip allows
                 before it reds); the reason line below names what fired when red. */}
-            <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--mt-ink-2)', lineHeight: 1.6 }}>
+            <ol style={{ margin: 0, paddingLeft: 'var(--sp-18)', color: 'var(--mt-ink-2)', lineHeight: 1.6 }}>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Source:</span> {f?.sourceVendor || '—'}</li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Frequency:</span> {f?.cadenceLabel || freqLabel(f?.cadence, f?.calendar)}{' '}· fetch ~{etLabel(f?.scheduledFetchET)} ET</li>
-              <li style={{ marginTop: 2 }}><span style={{ color: 'var(--mt-ink-1)' }}>As of:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{asOfExact}</span></li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>Last pull:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 600 }}>{fetchedExact}</span></li>
+              <li style={{ marginTop: 'var(--sp-2)' }}><span style={{ color: 'var(--mt-ink-1)' }}>As of:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 'var(--fw-600)' }}>{asOfExact}</span></li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Last pull:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 'var(--fw-600)' }}>{fetchedExact}</span></li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>SLA:</span> {slaText}</li>
             </ol>
             {/* When red, say why right under the five fields (spec: "shows the
                 reason if red"). Reason comes from the shared grade function. */}
             {status === 'stale' && f?.reason && (
               <div style={{
-                marginTop: 7,
-                paddingTop: 7,
+                marginTop: 'var(--sp-7)',
+                paddingTop: 'var(--sp-7)',
                 borderTop: '1px solid var(--mt-line-1)',
                 color: 'var(--mt-down)',
                 fontSize: 'var(--v13-t2)',

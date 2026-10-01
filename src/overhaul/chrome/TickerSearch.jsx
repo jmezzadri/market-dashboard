@@ -56,7 +56,7 @@ export default function TickerSearch() {
   const fmtCap = (c) => { const n = Number(c); if (!Number.isFinite(n) || n <= 0) return ''; if (n >= 1e12) return '$' + (n/1e12).toFixed(1) + 'T'; if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B'; if (n >= 1e6) return '$' + (n/1e6).toFixed(0) + 'M'; return ''; };
 
   return (
-    <div ref={boxRef} className="mt-tickersearch" style={{ position: 'relative', flex: '1 1 280px', maxWidth: 420, margin: '0 16px' }}>
+    <div ref={boxRef} className="mt-tickersearch" style={{ position: 'relative', flex: '1 1 280px', maxWidth: 420, margin: '0 var(--sp-16)' }}>
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -74,15 +74,15 @@ export default function TickerSearch() {
         className="v13-search-input"
       />
       {open && res.length > 0 && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--mt-surface)', border: '1px solid var(--mt-line-1)', borderRadius: 12, boxShadow: '0 16px 40px rgba(0,0,0,.22)', overflow: 'hidden', zIndex: 9999 }}>
+        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--mt-surface)', border: '1px solid var(--mt-line-1)', borderRadius: 'var(--r-12)', boxShadow: 'var(--sh-26)', overflow: 'hidden', zIndex: 9999 }}>
           {res.map((r, i) => (
             <div
               key={r.ticker}
               onMouseDown={() => go(r.ticker)}
               onMouseEnter={() => setHi(i)}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 13px', cursor: 'pointer', background: i === hi ? 'var(--mt-surface-2)' : 'transparent' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-10)', padding: 'var(--sp-8) var(--sp-13)', cursor: 'pointer', background: i === hi ? 'var(--mt-surface-2)' : 'transparent' }}
             >
-              <span style={{ fontWeight: 700, fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t3)', minWidth: 58, color: 'var(--mt-ink-0)' }}>{r.ticker}</span>
+              <span style={{ fontWeight: 'var(--fw-700)', fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t3)', minWidth: 58, color: 'var(--mt-ink-0)' }}>{r.ticker}</span>
               <span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{r.name}</span>
               <span style={{ fontSize: 'var(--v13-t1)', color: 'var(--mt-ink-3)', fontFamily: 'var(--mt-type-mono)' }}>{fmtCap(r.market_cap)}</span>
             </div>

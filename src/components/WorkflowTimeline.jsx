@@ -51,12 +51,12 @@ const STAGES = [
 ];
 
 const STAGE_META = {
-  filed:             { label: "Filed",              color: "#60a5fa", sla_h:  24 },
+  filed:             { label: "Filed",              color: "var(--c-60a5fa)", sla_h:  24 },
   triaged:           { label: "Triaged",            color: "var(--accent)", sla_h:   8 },
-  awaiting_approval: { label: "Awaiting approval",  color: "#B8860B", sla_h:  48 },
+  awaiting_approval: { label: "Awaiting approval",  color: "var(--c-b8860b)", sla_h:  48 },
   approved:          { label: "Approved",           color: "var(--text-muted)", sla_h:  24 },
   merged:            { label: "Merged",             color: "var(--green)", sla_h:   1 },
-  deployed:          { label: "Deployed",           color: "#10b981", sla_h:  24 },
+  deployed:          { label: "Deployed",           color: "var(--c-10b981)", sla_h:  24 },
   verified_closed:   { label: "Verified closed",    color: "var(--text-muted)", sla_h: null },
 };
 
@@ -130,9 +130,9 @@ function ownerFor(stage, row) {
 
 function ownerColor(tone) {
   if (tone === "claude") return "var(--accent)";
-  if (tone === "joe")    return "#B8860B";
+  if (tone === "joe")    return "var(--c-b8860b)";
   if (tone === "auto")   return "var(--green)";
-  if (tone === "info")   return "#60a5fa";
+  if (tone === "info")   return "var(--c-60a5fa)";
   return "var(--text-muted)";
 }
 
@@ -218,8 +218,8 @@ function slaState(row, stage, active) {
 
 function slaColor(state) {
   if (state === "breached") return "var(--red)";
-  if (state === "warning")  return "#B8860B";
-  return "#10b981";
+  if (state === "warning")  return "var(--c-b8860b)";
+  return "var(--c-10b981)";
 }
 
 // ── main component ────────────────────────────────────────────────────────
@@ -234,7 +234,7 @@ export default function WorkflowTimeline({ row, blockers = [] }) {
         <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
           Workflow
         </div>
-        <div style={{ fontSize: 'var(--v13-t3)', color: "var(--text)", marginTop: 4 }}>
+        <div style={{ fontSize: 'var(--v13-t3)', color: "var(--text)", marginTop: 'var(--sp-4)' }}>
           Closed as <b style={{ color: "var(--text-muted)" }}>{normalized.replace("_", " ")}</b>{" "}
           {row.verified_at || row.resolved_at ? `· ${etDateTime(row.verified_at || row.resolved_at)}` : ""}
         </div>
@@ -304,25 +304,25 @@ function StageRow({ row, stage, stamp, isActive, isComplete, isFuture, sla }) {
   const body = stageBody(row, stage);
 
   return (
-    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+    <div style={{ display: "flex", gap: 'var(--sp-12)', alignItems: "flex-start" }}>
       <div style={{ position: "relative", zIndex: 1 }}>
         <div style={{
-          width: 18, height: 18, borderRadius: 10,
+          width: 18, height: 18, borderRadius: 'var(--r-10)',
           background: dotFill, border: dotBorder,
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: isActive ? `0 0 0 4px rgba(251,191,36,0.15)` : "none",
+          boxShadow: isActive ? 'var(--sh-wf-active)' : "none",
         }}>
-          {isComplete && <span style={{ color: "white", fontSize: 'var(--v13-t1)', lineHeight: 1 }}>✓</span>}
+          {isComplete && <span style={{ color: "var(--c-ffffff)", fontSize: 'var(--v13-t1)', lineHeight: 1 }}>✓</span>}
         </div>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           onClick={body ? () => setExpanded(x => !x) : undefined}
           style={{
-            display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+            display: "flex", alignItems: "center", gap: 'var(--sp-8)', flexWrap: "wrap",
             cursor: body ? "pointer" : "default",
           }}>
-          <div style={{ fontSize: 'var(--v13-t2)', fontWeight: 700, color: isFuture ? "var(--text-muted)" : "var(--text)" }}>
+          <div style={{ fontSize: 'var(--v13-t2)', fontWeight: 'var(--fw-700)', color: isFuture ? "var(--text-muted)" : "var(--text)" }}>
             {meta.label}
           </div>
           <OwnerPill owner={owner} />
@@ -333,13 +333,13 @@ function StageRow({ row, stage, stamp, isActive, isComplete, isFuture, sla }) {
             </div>
           )}
           {isActive && stamp == null && (
-            <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "#B8860B", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
+            <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--c-b8860b)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 'var(--fw-700)' }}>
               ← current
             </div>
           )}
         </div>
         {body && expanded && (
-          <div style={{ marginTop: 6, padding: "8px 10px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 'var(--v13-t2)', color: "var(--text-2)", lineHeight: 1.5 }}>
+          <div style={{ marginTop: 'var(--sp-6)', padding: "var(--sp-8) var(--sp-10)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 'var(--r-6)', fontSize: 'var(--v13-t2)', color: "var(--text-2)", lineHeight: 1.5 }}>
             {body}
           </div>
         )}
@@ -363,9 +363,9 @@ function OwnerPill({ owner }) {
   const color = ownerColor(owner.tone);
   return (
     <span style={{
-      fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', fontWeight: 700,
+      fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', fontWeight: 'var(--fw-700)',
       color, textTransform: "uppercase", letterSpacing: "0.08em",
-      padding: "2px 6px", borderRadius: 4,
+      padding: "var(--sp-2) var(--sp-6)", borderRadius: 'var(--r-4)',
       border: `1px solid ${color}`, background: `${color}14`,
     }}>
       {owner.name}
@@ -380,8 +380,8 @@ function SlaChip({ sla }) {
   const budget  = sla.sla >= 24 ? `${sla.sla / 24}d` : `${sla.sla}h`;
   return (
     <span style={{
-      fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', fontWeight: 700,
-      color, padding: "2px 6px", borderRadius: 4,
+      fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', fontWeight: 'var(--fw-700)',
+      color, padding: "var(--sp-2) var(--sp-6)", borderRadius: 'var(--r-4)',
       border: `1px solid ${color}`, background: `${color}14`,
     }}>
       {label} · {elapsed} / {budget}
@@ -392,16 +392,16 @@ function SlaChip({ sla }) {
 function OwnerLegend() {
   const items = [
     { label: "Claude", color: "var(--accent)" },
-    { label: "Joe",    color: "#B8860B" },
+    { label: "Joe",    color: "var(--c-b8860b)" },
     { label: "Auto",   color: "var(--green)" },
   ];
   return (
-    <div style={{ display: "flex", gap: 6 }}>
+    <div style={{ display: "flex", gap: 'var(--sp-6)' }}>
       {items.map(it => (
         <span key={it.label} style={{
-          fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', fontWeight: 700,
+          fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', fontWeight: 'var(--fw-700)',
           color: it.color, textTransform: "uppercase", letterSpacing: "0.08em",
-          padding: "1px 5px", borderRadius: 3,
+          padding: "var(--sp-1) var(--sp-5)", borderRadius: 'var(--r-3)',
           border: `1px solid ${it.color}44`,
         }}>{it.label}</span>
       ))}
@@ -412,23 +412,23 @@ function OwnerLegend() {
 function BlockerBanner({ blockers }) {
   return (
     <div style={{
-      background: "rgba(239,68,68,0.06)",
-      border: "1px solid rgba(239,68,68,0.4)",
-      borderRadius: 6,
-      padding: "8px 10px",
-      marginBottom: 8,
+      background: "var(--c-ef4444-a6)",
+      border: "1px solid var(--c-ef4444-a40)",
+      borderRadius: 'var(--r-6)',
+      padding: "var(--sp-8) var(--sp-10)",
+      marginBottom: 'var(--sp-8)',
       fontSize: 'var(--v13-t2)',
       color: "var(--text)",
     }}>
-      <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: 4 }}>
+      <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 'var(--fw-700)', marginBottom: 'var(--sp-4)' }}>
         ⏸ Blocked — this bug can't start until:
       </div>
-      <ul style={{ margin: 0, paddingLeft: 16 }}>
+      <ul style={{ margin: 0, paddingLeft: 'var(--sp-16)' }}>
         {blockers.map(b => (
-          <li key={b.id} style={{ fontSize: 'var(--v13-t2)', color: "var(--text-2)", marginBottom: 2 }}>
+          <li key={b.id} style={{ fontSize: 'var(--v13-t2)', color: "var(--text-2)", marginBottom: 'var(--sp-2)' }}>
             <b style={{ fontFamily: 'var(--mt-type-mono)', color: "var(--text)" }}>#{b.report_number}</b>
-            {b.status && <span style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--accent)", marginLeft: 6 }}>[{b.status}]</span>}
-            {b.title && <span style={{ marginLeft: 6 }}>{b.title}</span>}
+            {b.status && <span style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--accent)", marginLeft: 'var(--sp-6)' }}>[{b.status}]</span>}
+            {b.title && <span style={{ marginLeft: 'var(--sp-6)' }}>{b.title}</span>}
           </li>
         ))}
       </ul>
@@ -445,15 +445,15 @@ function BlockerBanner({ blockers }) {
 function ResolvedBlockerChip({ blockers }) {
   return (
     <div style={{
-      background: "rgba(16,185,129,0.06)",
-      border: "1px solid rgba(16,185,129,0.4)",
-      borderRadius: 6,
-      padding: "6px 10px",
-      marginBottom: 8,
+      background: "var(--c-10b981-a6)",
+      border: "1px solid var(--c-10b981-a40)",
+      borderRadius: 'var(--r-6)',
+      padding: "var(--sp-6) var(--sp-10)",
+      marginBottom: 'var(--sp-8)',
       fontSize: 'var(--v13-t2)',
       color: "var(--text)",
     }}>
-      <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "#10b981", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: 2 }}>
+      <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--c-10b981)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 'var(--fw-700)', marginBottom: 'var(--sp-2)' }}>
         ✓ Blockers cleared — ready to re-triage
       </div>
       <div style={{ fontSize: 'var(--v13-t2)', color: "var(--text-2)" }}>
@@ -461,7 +461,7 @@ function ResolvedBlockerChip({ blockers }) {
           <span key={b.id}>
             {i > 0 && ", "}
             <b style={{ fontFamily: 'var(--mt-type-mono)', color: "var(--text)" }}>#{b.report_number}</b>
-            {b.status && <span style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "#10b981", marginLeft: 4 }}>[{b.status}]</span>}
+            {b.status && <span style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--c-10b981)", marginLeft: 'var(--sp-4)' }}>[{b.status}]</span>}
           </span>
         ))}
       </div>
@@ -483,11 +483,11 @@ function stageBody(row, stage) {
         <div>
           <div><b>Reporter:</b> {who}</div>
           {desc && (
-            <div style={{ marginTop: 4, color: "var(--text-muted)", whiteSpace: "pre-wrap" }}>
+            <div style={{ marginTop: 'var(--sp-4)', color: "var(--text-muted)", whiteSpace: "pre-wrap" }}>
               {desc}
             </div>
           )}
-          <div style={{ marginTop: 6, fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
+          <div style={{ marginTop: 'var(--sp-6)', fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
             {row.complexity && <>complexity: <b style={{ color: "var(--text-2)" }}>{row.complexity}</b> · </>}
             {row.priority && <>priority: <b style={{ color: "var(--text-2)" }}>{row.priority}</b></>}
           </div>
@@ -505,9 +505,9 @@ function stageBody(row, stage) {
       const since = row.awaiting_approval_at;
       return (
         <div>
-          <div>Waiting on <b style={{ color: "#B8860B" }}>Joe</b> to approve (or reject) the proposed fix above.</div>
+          <div>Waiting on <b style={{ color: "var(--c-b8860b)" }}>Joe</b> to approve (or reject) the proposed fix above.</div>
           {since && (
-            <div style={{ marginTop: 4, fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
+            <div style={{ marginTop: 'var(--sp-4)', fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
               Entered: {etDateTime(since)} · aging: {ageText(since)}
             </div>
           )}
@@ -520,8 +520,8 @@ function stageBody(row, stage) {
         <div>
           <div>Approved by <b>Joe</b>{row.approved_at ? ` · ${etDateTime(row.approved_at)}` : ""}.</div>
           {row.approval_notes && (
-            <div style={{ marginTop: 6, padding: "6px 8px", borderLeft: "2px solid #B8860B", background: "rgba(251,191,36,0.06)" }}>
-              <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "#B8860B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>
+            <div style={{ marginTop: 'var(--sp-6)', padding: "var(--sp-6) var(--sp-8)", borderLeft: "2px solid var(--c-b8860b)", background: "var(--c-fbbf24-a6)" }}>
+              <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--c-b8860b)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 'var(--sp-3)' }}>
                 Feedback / conditions
               </div>
               <div style={{ whiteSpace: "pre-wrap" }}>{row.approval_notes}</div>
@@ -541,7 +541,7 @@ function stageBody(row, stage) {
           {pr && <div>PR: <b>#{pr}</b>{sha ? ` · ${sha.slice(0, 7)}` : ""}</div>}
           {branch && <div>branch: {branch}</div>}
           {at && <div>merged: {etDateTime(at)}</div>}
-          <div style={{ marginTop: 4, fontFamily: "inherit", color: "var(--text-muted)", fontSize: 'var(--v13-t2)' }}>
+          <div style={{ marginTop: 'var(--sp-4)', fontFamily: "inherit", color: "var(--text-muted)", fontSize: 'var(--v13-t2)' }}>
             Vercel will pick this up and deploy automatically — usually &lt;2 minutes.
           </div>
         </div>
@@ -558,19 +558,19 @@ function stageBody(row, stage) {
               deployed: {etDateTime(at)}{sha ? ` · ${sha.slice(0, 7)}` : ""}
             </div>
           )}
-          <div style={{ marginTop: 6 }}>
-            UAT owner: <b style={{ color: auto ? "var(--accent)" : "#B8860B" }}>
+          <div style={{ marginTop: 'var(--sp-6)' }}>
+            UAT owner: <b style={{ color: auto ? "var(--accent)" : "var(--c-b8860b)" }}>
               {auto ? "Claude — auto-UAT via Chrome" : "Joe — manual UAT on live site"}
             </b>
           </div>
           {auto && row.auto_uat_checklist && (
-            <div style={{ marginTop: 6, padding: "6px 8px", background: "rgba(167,139,250,0.06)", border: "1px solid rgba(167,139,250,0.3)", borderRadius: 4 }}>
-              <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>
+            <div style={{ marginTop: 'var(--sp-6)', padding: "var(--sp-6) var(--sp-8)", background: "var(--c-a78bfa-a6)", border: "1px solid var(--c-a78bfa-a30)", borderRadius: 'var(--r-4)' }}>
+              <div style={{ fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 'var(--sp-3)' }}>
                 UAT checklist
               </div>
               <div style={{ whiteSpace: "pre-wrap", fontSize: 'var(--v13-t2)' }}>{row.auto_uat_checklist}</div>
               {row.auto_uat_attempted_at && (
-                <div style={{ marginTop: 4, fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
+                <div style={{ marginTop: 'var(--sp-4)', fontSize: 'var(--v13-t1)', fontFamily: 'var(--mt-type-mono)', color: "var(--text-muted)" }}>
                   Last attempt: {etDateTime(row.auto_uat_attempted_at)}
                   {row.auto_uat_failed ? " · FAILED (manual override required)" : ""}
                 </div>
@@ -598,15 +598,15 @@ function stageBody(row, stage) {
 const wrapStyle = {
   background: "var(--surface-2, var(--surface))",
   border: "1px solid var(--border)",
-  borderRadius: 8,
-  padding: "14px 16px",
+  borderRadius: 'var(--r-8)',
+  padding: "var(--sp-14) var(--sp-16)",
 };
 
 const headerRow = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  marginBottom: 10,
+  marginBottom: 'var(--sp-10)',
 };
 
 const olStyle = {
@@ -618,6 +618,6 @@ const olStyle = {
 const sideBranchStyle = {
   background: "var(--surface-2, var(--surface))",
   border: "1px solid var(--border)",
-  borderRadius: 8,
-  padding: "12px 14px",
+  borderRadius: 'var(--r-8)',
+  padding: "var(--sp-12) var(--sp-14)",
 };

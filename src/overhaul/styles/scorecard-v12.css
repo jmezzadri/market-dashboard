@@ -16,18 +16,7 @@
 .mt-overhaul .sc-wrap {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 28px 20px 64px;
-
-  --mt-ink:      var(--ink);
-  --mt-ink-2:    var(--ink-soft);
-  --mt-ink-3:    var(--mut);
-  --mt-rule:     var(--hair);
-  --mt-surface:  var(--bg2);
-  --mt-surface-2: var(--putty);
-  --mt-accent:   var(--gold-deep);
-  --mt-up:       var(--up);
-  --mt-down:     var(--down);
-  --mt-serif:    "Newsreader", Georgia, "Times New Roman", serif;
+  padding: var(--sp-28) var(--sp-20) var(--sp-64);
 
   color: var(--mt-ink);
 }
@@ -37,32 +26,32 @@
   font-size: var(--v13-t6);
   line-height: 1.15;
   letter-spacing: -0.01em;
-  margin: 0 0 6px;
+  margin: 0 0 var(--sp-6);
   color: var(--mt-ink);
 }
-.mt-overhaul .sc-sub { margin: 0 0 22px; color: var(--mt-ink-3); font-size: var(--v13-t3);  line-height: 1.55; }
-.mt-overhaul .sc-dim { color: var(--mt-ink-3); font-weight: 400; }
+.mt-overhaul .sc-sub { margin: 0 0 var(--sp-22); color: var(--mt-ink-3); font-size: var(--v13-t3);  line-height: 1.55; }
+.mt-overhaul .sc-dim { color: var(--mt-ink-3); font-weight: var(--fw-400); }
 .mt-overhaul .sc-err { color: var(--mt-down); font-size: var(--v13-t3); }
 
-.mt-overhaul .sc-tiles { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; }
+.mt-overhaul .sc-tiles { display: flex; flex-wrap: wrap; gap: var(--sp-10); margin: 0 0 var(--sp-16); }
 .mt-overhaul .sc-tile {
-  flex: 1 1 130px; border: 1px solid var(--mt-rule); border-radius: 10px;
-  padding: 12px 14px; background: var(--mt-surface);
+  flex: 1 1 130px; border: 1px solid var(--mt-rule); border-radius: var(--r-10);
+  padding: var(--sp-12) var(--sp-14); background: var(--mt-surface);
 }
 .mt-overhaul .sc-tile--warn { border-color: var(--mt-down); }
 .mt-overhaul .sc-tile-n {
-  display: block; font-size: var(--v13-t6); font-weight: 600;
+  display: block; font-size: var(--v13-t6); font-weight: var(--fw-600);
   letter-spacing: -0.015em; color: var(--mt-ink); font-variant-numeric: tabular-nums;
 }
 .mt-overhaul .sc-tile-l {
   display: block; font-size: var(--v13-t1); text-transform: uppercase;
-  letter-spacing: 0.09em; color: var(--mt-ink-3); margin-top: 3px;
+  letter-spacing: 0.09em; color: var(--mt-ink-3); margin-top: var(--sp-3);
 }
 
 .mt-overhaul .sc-withheld {
   border: 1px solid var(--mt-rule); border-left: 3px solid var(--mt-accent);
-  border-radius: 8px; padding: 12px 14px; font-size: var(--v13-t3); line-height: 1.6;
-  color: var(--mt-ink-2); background: var(--mt-surface); margin: 0 0 22px; 
+  border-radius: var(--r-8); padding: var(--sp-12) var(--sp-14); font-size: var(--v13-t3); line-height: 1.6;
+  color: var(--mt-ink-2); background: var(--mt-surface); margin: 0 0 var(--sp-22); 
 }
 .mt-overhaul .sc-withheld strong { color: var(--mt-ink); }
 
@@ -70,8 +59,8 @@
 .mt-overhaul .sc-row { border-bottom: 1px solid var(--mt-rule); }
 .mt-overhaul .sc-rowhead {
   display: grid; grid-template-columns: 96px 88px 1fr 148px 96px 22px;
-  gap: 14px; align-items: baseline; width: 100%; text-align: left;
-  background: none; border: 0; padding: 14px 6px; cursor: pointer; font: inherit; color: inherit;
+  gap: var(--sp-14); align-items: baseline; width: 100%; text-align: left;
+  background: none; border: 0; padding: var(--sp-14) var(--sp-6); cursor: pointer; font: inherit; color: inherit;
 }
 .mt-overhaul .sc-rowhead:hover { background: var(--mt-surface-2); }
 .mt-overhaul .sc-date { font-size: var(--v13-t3); color: var(--mt-ink-3); font-variant-numeric: tabular-nums; }
@@ -79,7 +68,7 @@
 .mt-overhaul .sc-title { font-size: var(--v13-t4); line-height: 1.45; color: var(--mt-ink); }
 .mt-overhaul .sc-status { font-size: var(--v13-t1); text-transform: uppercase; letter-spacing: 0.07em; color: var(--mt-ink-3); }
 .mt-overhaul .sc-status--closed_invalidated { color: var(--mt-down); }
-.mt-overhaul .sc-mark { font-size: var(--v13-t4); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.mt-overhaul .sc-mark { font-size: var(--v13-t4); font-weight: var(--fw-600); text-align: right; font-variant-numeric: tabular-nums; }
 .mt-overhaul .sc-mark--up, .mt-overhaul .sc-up { color: var(--mt-up); }
 .mt-overhaul .sc-mark--down, .mt-overhaul .sc-down { color: var(--mt-down); }
 .mt-overhaul .sc-mark--flat, .mt-overhaul .sc-flat { color: var(--mt-ink-3); }
@@ -88,22 +77,22 @@
 /* The expanded card is now the five-row table and one link (2026-08-18).
    Narrower than the old 88ch: two short columns of numbers stretched to
    the full text measure read as a table with a hole in the middle. */
-.mt-overhaul .sc-detail { padding: 4px 6px 20px; }
-.mt-overhaul .sc-reason { font-size: var(--v13-t3); color: var(--mt-ink-2); margin: 0 0 10px; line-height: 1.6; }
+.mt-overhaul .sc-detail { padding: var(--sp-4) var(--sp-6) var(--sp-20); }
+.mt-overhaul .sc-reason { font-size: var(--v13-t3); color: var(--mt-ink-2); margin: 0 0 var(--sp-10); line-height: 1.6; }
 .mt-overhaul .sc-facts {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px 24px; margin: 0 0 14px;
+  gap: var(--sp-12) var(--sp-24); margin: 0 0 var(--sp-14);
 }
 .mt-overhaul .sc-facts > div { min-width: 0; }
 .mt-overhaul .sc-facts dt {
   font-size: var(--v13-t1); text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--mt-ink-3); margin-bottom: 3px;
+  color: var(--mt-ink-3); margin-bottom: var(--sp-3);
 }
 .mt-overhaul .sc-facts dd { margin: 0; font-size: var(--v13-t3); line-height: 1.5; color: var(--mt-ink); }
 .mt-overhaul .sc-leg { display: block; }
 .mt-overhaul .sc-inval {
   font-size: var(--v13-t3); line-height: 1.6; color: var(--mt-ink-2);
-  border-left: 2px solid var(--mt-rule); padding-left: 11px; margin: 0;
+  border-left: 2px solid var(--mt-rule); padding-left: var(--sp-11); margin: 0;
 }
 .mt-overhaul .sc-inval--hit { border-left-color: var(--mt-down); }
 .mt-overhaul .sc-inval strong { color: var(--mt-ink); }
@@ -112,14 +101,14 @@
   .mt-overhaul .sc-rowhead {
     grid-template-columns: 1fr 84px 20px;
     grid-template-areas: "title status toggle" "date kind kind" "mark mark mark";
-    gap: 4px 10px;
+    gap: var(--sp-4) var(--sp-10);
   }
   .mt-overhaul .sc-title  { grid-area: title; }
   .mt-overhaul .sc-status { grid-area: status; text-align: right; }
   .mt-overhaul .sc-toggle { grid-area: toggle; }
   .mt-overhaul .sc-date   { grid-area: date; }
   .mt-overhaul .sc-kind   { grid-area: kind; }
-  .mt-overhaul .sc-mark   { grid-area: mark; text-align: left; margin-top: 4px; }
+  .mt-overhaul .sc-mark   { grid-area: mark; text-align: left; margin-top: var(--sp-4); }
 }
 
 /* Neutralise two rules the shared `home-v12` scope applies to bare elements.
@@ -139,58 +128,58 @@
   font-size: var(--v13-t5);
   line-height: 1.45;
   color: var(--mt-ink);
-  margin: 6px 0 14px;
+  margin: var(--sp-6) 0 var(--sp-14);
 
 }
 .mt-overhaul .sc-trade {
   display: grid;
   grid-template-columns: 152px minmax(0, 1fr);
-  gap: 8px 16px;
-  margin: 0 0 16px;
-  padding: 12px 14px;
+  gap: var(--sp-8) var(--sp-16);
+  margin: 0 0 var(--sp-16);
+  padding: var(--sp-12) var(--sp-14);
   border: 1px solid var(--mt-rule);
-  border-radius: 8px;
+  border-radius: var(--r-8);
   background: var(--mt-surface);
 }
 .mt-overhaul .sc-tradefact { display: contents; }
 .mt-overhaul .sc-tradefact .k {
   font-size: var(--v13-t1); text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--mt-ink-3); padding-top: 2px;
+  color: var(--mt-ink-3); padding-top: var(--sp-2);
 }
 .mt-overhaul .sc-tradefact .v { font-size: var(--v13-t3); line-height: 1.55; color: var(--mt-ink-2); }
 
-.mt-overhaul .sc-readnote { margin: 16px 0 0; }
+.mt-overhaul .sc-readnote { margin: var(--sp-16) 0 0; }
 .mt-overhaul .sc-notebtn {
   background: none; border: 0; padding: 0; font: inherit; cursor: pointer;
-  font-size: var(--v13-t3); font-weight: 600; color: var(--mt-ink);
+  font-size: var(--v13-t3); font-weight: var(--fw-600); color: var(--mt-ink);
   border-bottom: 1px solid var(--mt-accent);
 }
 .mt-overhaul .sc-notebtn:hover { color: var(--mt-accent); }
 
 @media (max-width: 820px) {
-  .mt-overhaul .sc-trade { grid-template-columns: 1fr; gap: 2px 0; }
-  .mt-overhaul .sc-tradefact .k { padding-top: 8px; }
+  .mt-overhaul .sc-trade { grid-template-columns: 1fr; gap: var(--sp-2) 0; }
+  .mt-overhaul .sc-tradefact .k { padding-top: var(--sp-8); }
 }
 
 /* Leg decomposition table (2026-08-18) — buy leg, sell leg, net, benchmark.
    Joe: a relative-value call has to show both sides and the net, or the reader
    cannot tell which half of the trade is working. */
-.mt-overhaul .sc-legs { width: 100%; border-collapse: collapse; margin: 4px 0 2px; font-size: var(--v13-t3); }
+.mt-overhaul .sc-legs { width: 100%; border-collapse: collapse; margin: var(--sp-4) 0 var(--sp-2); font-size: var(--v13-t3); }
 .mt-overhaul .sc-legs th { text-align: left; font-size: var(--v13-t1); letter-spacing: .12em; text-transform: uppercase;
-  color: var(--mt-ink-3); font-weight: 600; padding: 0 0 6px; border-bottom: 1px solid var(--mt-hair); }
+  color: var(--mt-ink-3); font-weight: var(--fw-600); padding: 0 0 var(--sp-6); border-bottom: 1px solid var(--mt-hair); }
 .mt-overhaul .sc-legs th.num, .mt-overhaul .sc-legs td.num { text-align: right; font-variant-numeric: tabular-nums; }
-.mt-overhaul .sc-legs td { padding: 9px 0; border-bottom: 1px solid var(--mt-hair); vertical-align: baseline; }
+.mt-overhaul .sc-legs td { padding: var(--sp-9) 0; border-bottom: 1px solid var(--mt-hair); vertical-align: baseline; }
 .mt-overhaul .sc-legs th.num { padding-right: 0; }
-.mt-overhaul .sc-legs td.num { white-space: nowrap; padding-left: 18px; }
-.mt-overhaul .sc-legs-net td { font-weight: 700; border-bottom: 1px solid var(--mt-ink-1); }
+.mt-overhaul .sc-legs td.num { white-space: nowrap; padding-left: var(--sp-18); }
+.mt-overhaul .sc-legs-net td { font-weight: var(--fw-700); border-bottom: 1px solid var(--mt-ink-1); }
 .mt-overhaul .sc-legs-bm td { color: var(--mt-ink-2); border-bottom: 0; }
-.mt-overhaul .sc-legnote { font-size: var(--v13-t2); line-height: 1.5; color: var(--mt-ink-3); margin: 6px 0 0;  }
+.mt-overhaul .sc-legnote { font-size: var(--v13-t2); line-height: 1.5; color: var(--mt-ink-3); margin: var(--sp-6) 0 0;  }
 /* The last note before the facts list needs air, or the caveat reads as a
    label of the row beneath it (live UAT, 2026-08-18). */
-.mt-overhaul .sc-legnote:last-of-type { margin-bottom: 18px; }
+.mt-overhaul .sc-legnote:last-of-type { margin-bottom: var(--sp-18); }
 @media (max-width: 640px) {
   .mt-overhaul .sc-legs { font-size: var(--v13-t3); }
-  .mt-overhaul .sc-legs td.num { padding-left: 10px; }
+  .mt-overhaul .sc-legs td.num { padding-left: var(--sp-10); }
 }
 
 /* ── the scorecard IS a table now (2026-08-18) ──────────────────────────
@@ -201,23 +190,23 @@
 .mt-overhaul .sc-table { width: 100%; border-collapse: collapse; font-size: var(--v13-t3); }
 .mt-overhaul .sc-table th {
   text-align: left; font-size: var(--v13-t1); letter-spacing: .12em; text-transform: uppercase;
-  color: var(--mt-ink-3); font-weight: 600; padding: 0 14px 8px 0; white-space: nowrap;
+  color: var(--mt-ink-3); font-weight: var(--fw-600); padding: 0 var(--sp-14) var(--sp-8) 0; white-space: nowrap;
   border-bottom: 1px solid var(--mt-ink-1);
 }
-.mt-overhaul .sc-table td { padding: 12px 14px 12px 0; border-bottom: 1px solid var(--mt-hair); vertical-align: baseline; }
+.mt-overhaul .sc-table td { padding: var(--sp-12) var(--sp-14) var(--sp-12) 0; border-bottom: 1px solid var(--mt-hair); vertical-align: baseline; }
 .mt-overhaul .sc-table th.num, .mt-overhaul .sc-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mt-overhaul .sc-table th:last-child, .mt-overhaul .sc-table td:last-child { padding-right: 0; text-align: right; }
 .mt-overhaul .sc-trow:hover { background: color-mix(in oklab, var(--mt-ink-1) 3%, transparent); }
 /* The trade is the thing a reader scans for — give it the weight the
    headline used to have. */
-.mt-overhaul .sc-tradecell { font-weight: 600; }
+.mt-overhaul .sc-tradecell { font-weight: var(--fw-600); }
 .mt-overhaul .sc-table .sc-notecell { white-space: nowrap; }
 .mt-overhaul .sc-table .sc-notebtn { border: 0; background: none; padding: 0; font: inherit; cursor: pointer;
   color: var(--mt-accent); text-decoration: underline; text-underline-offset: 3px; }
 .mt-overhaul .sc-table .sc-notebtn:hover { color: var(--mt-ink-1); }
 @media (max-width: 900px) {
   .mt-overhaul .sc-table { font-size: var(--v13-t3); }
-  .mt-overhaul .sc-table th, .mt-overhaul .sc-table td { padding-right: 10px; }
+  .mt-overhaul .sc-table th, .mt-overhaul .sc-table td { padding-right: var(--sp-10); }
 }
 
 /* Weekly thesis review (2026-09-30). One verdict per open call, in the row;
@@ -225,8 +214,8 @@
    green and red mean direction on this site, amber is "watch". */
 .mt-overhaul .sc-status--closed_thesis { color: var(--mt-down); }
 .mt-overhaul .sc-table .sc-reviewcell { white-space: nowrap; }
-.mt-overhaul .sc-verdict { font-size: var(--v13-t1); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
+.mt-overhaul .sc-verdict { font-size: var(--v13-t1); text-transform: uppercase; letter-spacing: 0.07em; font-weight: var(--fw-700); }
 .mt-overhaul .sc-verdict--intact { color: var(--mt-up); }
 .mt-overhaul .sc-verdict--weakened { color: var(--v13-warn, var(--mt-warn)); }
 .mt-overhaul .sc-verdict--broken { color: var(--mt-down); }
-.mt-overhaul .sc-verdict-date { font-weight: 400; color: var(--mt-ink-3); text-transform: none; letter-spacing: 0; font-family: var(--mt-type-mono); }
+.mt-overhaul .sc-verdict-date { font-weight: var(--fw-400); color: var(--mt-ink-3); text-transform: none; letter-spacing: 0; font-family: var(--mt-type-mono); }

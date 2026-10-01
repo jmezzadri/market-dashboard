@@ -59,14 +59,14 @@ function AllFeedsPill() {
   const onLeave = () => { setHover(false); setXY(null); };
 
   const Row = ({ item }) => (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '3px 0' }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--mt-down)', flexShrink: 0, marginTop: 5 }} />
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-7)', padding: 'var(--sp-3) 0' }}>
+      <span style={{ width: 6, height: 6, borderRadius: 'var(--r-50pct)', background: 'var(--mt-down)', flexShrink: 0, marginTop: 'var(--sp-5)' }} />
       <span style={{ color: 'var(--mt-ink-0)', lineHeight: 1.35 }}>{item.label}</span>
     </div>
   );
   const AmberRow = ({ item }) => (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '3px 0' }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--mt-amber)', flexShrink: 0, marginTop: 5 }} />
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-7)', padding: 'var(--sp-3) 0' }}>
+      <span style={{ width: 6, height: 6, borderRadius: 'var(--r-50pct)', background: 'var(--mt-amber)', flexShrink: 0, marginTop: 'var(--sp-5)' }} />
       <span style={{ color: 'var(--mt-ink-0)', lineHeight: 1.35 }}>{item.label}</span>
     </div>
   );
@@ -77,9 +77,9 @@ function AllFeedsPill() {
       style={{
         position: 'fixed', left: xy.x, top: xy.y + 10, transform: 'translate(-50%,0)',
         background: 'var(--mt-surface)', color: 'var(--mt-ink-0)',
-        border: '1px solid var(--mt-line-1)', borderRadius: 8,
-        padding: '10px 12px', fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-sans)',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxWidth: 300, width: 'max-content',
+        border: '1px solid var(--mt-line-1)', borderRadius: 'var(--r-8)',
+        padding: 'var(--sp-10) var(--sp-12)', fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-sans)',
+        boxShadow: 'var(--sh-25)', maxWidth: 300, width: 'max-content',
         zIndex: 9999, pointerEvents: 'none',
       }}
     >
@@ -87,16 +87,16 @@ function AllFeedsPill() {
         <div style={{ color: 'var(--mt-ink-1)' }}>Every tracked feed across the whole site is within its freshness target.</div>
       ) : status === 'untracked' ? (
         <>
-          <div style={{ fontWeight: 600, color: 'var(--mt-ink-0)', marginBottom: 4 }}>
+          <div style={{ fontWeight: 'var(--fw-600)', color: 'var(--mt-ink-0)', marginBottom: 'var(--sp-4)' }}>
             {untracked.length} scheduled feed{untracked.length > 1 ? 's' : ''} without freshness tracking
           </div>
           {untracked.map((item) => (
-            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '3px 0' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--mt-ink-3)', flexShrink: 0, marginTop: 5 }} />
+            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-7)', padding: 'var(--sp-3) 0' }}>
+              <span style={{ width: 6, height: 6, borderRadius: 'var(--r-50pct)', background: 'var(--mt-ink-3)', flexShrink: 0, marginTop: 'var(--sp-5)' }} />
               <span style={{ color: 'var(--mt-ink-0)', lineHeight: 1.35 }}>{item.label}</span>
             </div>
           ))}
-          <div style={{ marginTop: 6, color: 'var(--mt-ink-2)' }}>These feeds are registered but have no health record yet, so their freshness can't be verified.</div>
+          <div style={{ marginTop: 'var(--sp-6)', color: 'var(--mt-ink-2)' }}>These feeds are registered but have no health record yet, so their freshness can't be verified.</div>
         </>
       ) : status === 'checking' ? (
         <div style={{ color: 'var(--mt-ink-2)' }}>Checking feeds…</div>
@@ -104,7 +104,7 @@ function AllFeedsPill() {
         <>
           {red.length > 0 && (
             <>
-              <div style={{ fontWeight: 600, color: 'var(--mt-ink-0)', marginBottom: 4 }}>
+              <div style={{ fontWeight: 'var(--fw-600)', color: 'var(--mt-ink-0)', marginBottom: 'var(--sp-4)' }}>
                 {red.length} feed{red.length > 1 ? 's' : ''} stale
               </div>
               {red.map((item) => <Row key={item.id} item={item} />)}
@@ -112,13 +112,13 @@ function AllFeedsPill() {
           )}
           {amber.length > 0 && (
             <>
-              <div style={{ fontWeight: 600, color: 'var(--mt-ink-0)', margin: '8px 0 4px' }}>
+              <div style={{ fontWeight: 'var(--fw-600)', color: 'var(--mt-ink-0)', margin: 'var(--sp-8) 0 var(--sp-4)' }}>
                 {amber.length} lagging (today's update is late)
               </div>
               {amber.map((item) => <AmberRow key={item.id} item={item} />)}
             </>
           )}
-          <div style={{ marginTop: 8, paddingTop: 7, borderTop: '1px solid var(--mt-line-1)', color: 'var(--mt-ink-2)', fontSize: 'var(--v13-t1)' }}>
+          <div style={{ marginTop: 'var(--sp-8)', paddingTop: 'var(--sp-7)', borderTop: '1px solid var(--mt-line-1)', color: 'var(--mt-ink-2)', fontSize: 'var(--v13-t1)' }}>
             Full status on Admin · Data
           </div>
         </>
@@ -136,9 +136,9 @@ function AllFeedsPill() {
       onBlur={onLeave}
       tabIndex={0}
       aria-label={status === 'red' ? `${red.length} feeds stale: ${red.map((r) => r.label).join(', ')}` : text}
-      style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-sans)', color, padding: '3px 10px', borderRadius: 999, background: `color-mix(in oklab, ${color} 12%, transparent)`, fontWeight: 400 }}
+      style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 'var(--sp-6)', fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-sans)', color, padding: 'var(--sp-3) var(--sp-10)', borderRadius: 'var(--r-999)', background: `color-mix(in oklab, ${color} 12%, transparent)`, fontWeight: 'var(--fw-400)' }}
     >
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+      <span style={{ width: 6, height: 6, borderRadius: 'var(--r-50pct)', background: color, flexShrink: 0 }} />
       {text}
       {tip}
     </span>

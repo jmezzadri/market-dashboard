@@ -86,8 +86,8 @@ function DomainFreshness({ inds }) {
 // theme tokens only, so it follows light/dark like everything else.
 function DomainPositioning({ data }) {
   if (!data) return null;
-  const wrap = { marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--mt-line-1)' };
-  const label = { fontSize: 'var(--v13-t1)', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mt-ink-3)', fontWeight: 700, marginBottom: 5 };
+  const wrap = { marginTop: 'var(--sp-12)', paddingTop: 'var(--sp-10)', borderTop: '1px solid var(--mt-line-1)' };
+  const label = { fontSize: 'var(--v13-t1)', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mt-ink-3)', fontWeight: 'var(--fw-700)', marginBottom: 'var(--sp-5)' };
   if (data.none) {
     return (
       <div style={wrap}>
@@ -100,13 +100,13 @@ function DomainPositioning({ data }) {
   const lo = Math.min(h.spec, h.comm);
   const hi = Math.max(h.spec, h.comm);
   const conn = h.div ? 'var(--mt-warn)' : 'var(--mt-ink-3)';
-  const dot = { position: 'absolute', top: '50%', width: 10, height: 10, borderRadius: '50%', transform: 'translate(-50%,-50%)' };
+  const dot = { position: 'absolute', top: '50%', width: 10, height: 10, borderRadius: 'var(--r-50pct)', transform: 'translate(-50%,-50%)' };
   return (
     <div style={wrap}>
       <div style={label}>Positioning</div>
       <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-1)', lineHeight: 1.4 }}>{data.takeaway}</div>
-      <div style={{ position: 'relative', height: 6, background: 'var(--mt-surface-3)', borderRadius: 4, marginTop: 8 }}>
-        <span style={{ position: 'absolute', top: '50%', height: 3, transform: 'translateY(-50%)', left: `${lo}%`, width: `${hi - lo}%`, background: conn, borderRadius: 2 }} />
+      <div style={{ position: 'relative', height: 6, background: 'var(--mt-surface-3)', borderRadius: 'var(--r-4)', marginTop: 'var(--sp-8)' }}>
+        <span style={{ position: 'absolute', top: '50%', height: 3, transform: 'translateY(-50%)', left: `${lo}%`, width: `${hi - lo}%`, background: conn, borderRadius: 'var(--r-2)' }} />
         <span style={{ ...dot, left: `${h.spec}%`, background: 'var(--mt-accent)' }} />
         <span style={{ ...dot, left: `${h.comm}%`, background: 'var(--mt-bg)', border: '2px solid var(--mt-ink-3)' }} />
       </div>
@@ -200,7 +200,7 @@ function BucketRollupDot({ inds, positioningElementId, positioningAsOf, onTip, o
       <span
         onMouseEnter={onTip ? (e) => onTip(e, title) : undefined}
         onMouseLeave={onHideTip}
-        style={{ width: 10, height: 10, borderRadius: '50%', display: 'inline-block', background: color }} />
+        style={{ width: 10, height: 10, borderRadius: 'var(--r-50pct)', display: 'inline-block', background: color }} />
     </>
   );
 }

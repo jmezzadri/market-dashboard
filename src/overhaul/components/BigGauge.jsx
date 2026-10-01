@@ -96,8 +96,8 @@ export function GaugeLegend({ zones }) {
       style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${zones.length}, 1fr)`,
-        gap: 8,
-        marginTop: 6,
+        gap: 'var(--sp-8)',
+        marginTop: 'var(--sp-6)',
       }}
     >
       {zones.map((z) => {
@@ -113,10 +113,10 @@ export function GaugeLegend({ zones }) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              padding: '6px 10px',
+              gap: 'var(--sp-6)',
+              padding: 'var(--sp-6) var(--sp-10)',
               border: '1px solid var(--mt-line-0)',
-              borderRadius: 8,
+              borderRadius: 'var(--r-8)',
               background: 'var(--mt-surface-2)',
             }}
           >
@@ -124,7 +124,7 @@ export function GaugeLegend({ zones }) {
               style={{
                 width: 8,
                 height: 8,
-                borderRadius: '50%',
+                borderRadius: 'var(--r-50pct)',
                 background: color,
                 flexShrink: 0,
               }}
@@ -132,7 +132,7 @@ export function GaugeLegend({ zones }) {
             <span
               style={{
                 fontSize: 'var(--v13-t2)',
-                fontWeight: 600,
+                fontWeight: 'var(--fw-600)',
                 letterSpacing: '0.04em',
                 color,
                 flex: 1,

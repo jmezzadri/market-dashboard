@@ -27,20 +27,20 @@
   backdrop-filter: blur(20px);
   display: flex;
   flex-direction: column;
-  padding: 18px 12px;
+  padding: var(--sp-18) var(--sp-12);
 }
 .mt-overhaul .mt-sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 10px 18px;
+  gap: var(--sp-10);
+  padding: var(--sp-4) var(--sp-10) var(--sp-18);
   border-bottom: 1px solid var(--mt-line-0);
-  margin-bottom: 10px;
+  margin-bottom: var(--sp-10);
 }
 .mt-overhaul .mt-mark {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--r-8);
   display: grid;
   place-items: center;
   background: var(--mt-surface);
@@ -52,7 +52,7 @@
 .mt-overhaul .mt-sidebar-name {
   font-family: var(--mt-type-sans);
   font-size: var(--v13-t4);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   letter-spacing: -0.01em;
   line-height: 1.1;
 }
@@ -63,21 +63,21 @@
 .mt-overhaul .mt-sidebar-sub {
   font-size: var(--v13-t1);
   color: var(--mt-ink-2);
-  margin-top: 2px;
+  margin-top: var(--sp-2);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 .mt-overhaul .mt-sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-2);
   flex: 1;
 }
 .mt-overhaul .mt-navsep {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 14px 8px 6px;
+  gap: var(--sp-8);
+  margin: var(--sp-14) var(--sp-8) var(--sp-6);
 }
 .mt-overhaul .mt-navsep::before,
 .mt-overhaul .mt-navsep::after {
@@ -88,7 +88,7 @@
 }
 .mt-overhaul .mt-navsep-lbl {
   font-size: var(--v13-t1);
-  font-weight: 600;
+  font-weight: var(--fw-600);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--mt-ink-3);
@@ -99,11 +99,11 @@
   background: transparent;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 7px;
+  gap: var(--sp-10);
+  padding: var(--sp-8) var(--sp-12);
+  border-radius: var(--r-7);
   font-size: var(--v13-t3);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   color: var(--mt-ink-1);
   text-align: left;
   width: 100%;
@@ -119,7 +119,7 @@
 .mt-overhaul .mt-navitem--active {
   background: var(--mt-accent-soft);
   color: var(--mt-accent);
-  font-weight: 600;
+  font-weight: var(--fw-600);
 }
 .mt-overhaul .mt-navicon {
   width: 18px;
@@ -139,11 +139,11 @@
 }
 .mt-overhaul .mt-navchip {
   font-size: var(--v13-t1);
-  padding: 2px 6px;
-  border-radius: 999px;
+  padding: var(--sp-2) var(--sp-6);
+  border-radius: var(--r-999);
   background: var(--mt-accent-soft);
   color: var(--mt-accent);
-  font-weight: 600;
+  font-weight: var(--fw-600);
 }
 
 [data-mt-sidebar='rail-collapsed'] .mt-overhaul .mt-navlbl,
@@ -154,23 +154,23 @@
 [data-mt-sidebar='rail-collapsed'] .mt-overhaul .mt-navsep::after { display: none; }
 [data-mt-sidebar='rail-collapsed'] .mt-overhaul .mt-navsep {
   justify-content: center;
-  padding: 6px 0;
+  padding: var(--sp-6) 0;
 }
 [data-mt-sidebar='rail-collapsed'] .mt-overhaul .mt-sidebar-brand {
-  padding: 4px 0 18px;
+  padding: var(--sp-4) 0 var(--sp-18);
   justify-content: center;
 }
 [data-mt-sidebar='rail-collapsed'] .mt-overhaul .mt-navitem {
   justify-content: center;
-  padding: 8px 0;
+  padding: var(--sp-8) 0;
 }
 
 .mt-overhaul .mt-sidebar-foot {
-  padding: 10px;
+  padding: var(--sp-10);
   font-size: var(--v13-t2);
   color: var(--mt-ink-3);
   border-top: 1px solid var(--mt-line-0);
-  margin-top: 10px;
+  margin-top: var(--sp-10);
 }
 
 /* ── Topnav ─────────────────────────────────────────────────────── */
@@ -181,11 +181,11 @@
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--sp-4);
   background: color-mix(in oklab, var(--mt-surface) 70%, transparent);
   border-bottom: 1px solid var(--mt-line-0);
   backdrop-filter: blur(20px);
-  padding: 10px 24px;
+  padding: var(--sp-10) var(--sp-24);
   overflow-x: auto;
 }
 
@@ -197,8 +197,8 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 24px;
-  padding: 18px var(--mt-pad-page);
+  gap: var(--sp-24);
+  padding: var(--sp-18) var(--mt-pad-page);
   border-bottom: 1px solid var(--mt-line-0);
   background: color-mix(in oklab, var(--mt-surface) 60%, transparent);
   backdrop-filter: blur(20px);
@@ -209,7 +209,7 @@
 .mt-overhaul .mt-headmeta {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--sp-14);
   font-size: var(--v13-t2);
   color: var(--mt-ink-2);
 }
@@ -223,16 +223,16 @@
   display: inline-block;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--r-50pct);
   background: var(--mt-ink-3);
-  margin-right: 6px;
+  margin-right: var(--sp-6);
   vertical-align: middle;
 }
 .mt-overhaul .mt-marketdot--open { background: var(--mt-up); }
 .mt-overhaul .mt-headstatus {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--sp-12);
 }
 .mt-overhaul .mt-iconbtn {
   appearance: none;
@@ -240,7 +240,7 @@
   background: var(--mt-surface);
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--r-8);
   display: grid;
   place-items: center;
   color: var(--mt-ink-1);
@@ -254,11 +254,11 @@
 .mt-overhaul .mt-search {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-8);
   background: var(--mt-surface-3);
   border: 1px solid var(--mt-line-0);
-  border-radius: 999px;
-  padding: 6px 14px;
+  border-radius: var(--r-999);
+  padding: var(--sp-6) var(--sp-14);
   font-size: var(--v13-t2);
   color: var(--mt-ink-2);
   min-width: 280px;
@@ -266,9 +266,9 @@
 .mt-overhaul .mt-search kbd {
   font-family: var(--mt-type-mono);
   font-size: var(--v13-t1);
-  padding: 1px 5px;
+  padding: var(--sp-1) var(--sp-5);
   background: var(--mt-surface);
-  border-radius: 4px;
+  border-radius: var(--r-4);
   border: 1px solid var(--mt-line-1);
   color: var(--mt-ink-2);
   margin-left: auto;
@@ -277,7 +277,7 @@
 /* ── Editorial type ────────────────────────────────────────────── */
 .mt-overhaul .mt-eyebrow {
   font-size: var(--v13-t1);
-  font-weight: 600;
+  font-weight: var(--fw-600);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--mt-ink-2);
@@ -288,10 +288,10 @@
      scale across every page. Was clamp(36,4.2vw,56) — rendered "massive" on
      short headlines and a 5-line block on long sentences. */
   font-size: var(--v13-t6);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   letter-spacing: -0.02em;
   line-height: 1.1;
-  margin: 4px 0 0;
+  margin: var(--sp-4) 0 0;
   text-wrap: pretty;
 }
 .mt-overhaul .mt-h1 i {
@@ -301,13 +301,13 @@
 .mt-overhaul .mt-h2 {
   font-family: var(--mt-type-sans);
   font-size: var(--v13-t6);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   letter-spacing: -0.02em;
   line-height: 1.15;
-  margin: 4px 0 0;
+  margin: var(--sp-4) 0 0;
 }
 .mt-overhaul .mt-deck {
-  margin-top: 14px;
+  margin-top: var(--sp-14);
   font-size: var(--v13-t4);
   line-height: 1.55;
   color: var(--mt-ink-1);
@@ -316,26 +316,26 @@
 }
 .mt-overhaul .mt-deck b {
   color: var(--mt-ink-0);
-  font-weight: 600;
+  font-weight: var(--fw-600);
 }
 .mt-overhaul .mt-deck a { color: var(--mt-accent); }
 
 /* ── Page body ────────────────────────────────────────────────── */
-.mt-overhaul .mt-pagebody { padding: 0 0 80px; }
+.mt-overhaul .mt-pagebody { padding: 0 0 var(--sp-80); }
 .mt-overhaul .mt-pagehero {
   /* Tightened + vertically centered (Joe 2026-06-17 consistency pass): kills
      the top dead-space and the empty block beside short left columns. */
-  padding: 26px var(--mt-pad-page) 18px;
+  padding: var(--sp-26) var(--mt-pad-page) var(--sp-18);
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 32px;
+  gap: var(--sp-32);
   align-items: center;
 }
-.mt-overhaul .mt-pagesection { padding: 32px var(--mt-pad-page); }
-.mt-overhaul .mt-pagesection--tight { padding-top: 16px; padding-bottom: 12px; }
-.mt-overhaul .mt-pagesection--tight2 { padding-top: 8px; }
+.mt-overhaul .mt-pagesection { padding: var(--sp-32) var(--mt-pad-page); }
+.mt-overhaul .mt-pagesection--tight { padding-top: var(--sp-16); padding-bottom: var(--sp-12); }
+.mt-overhaul .mt-pagesection--tight2 { padding-top: var(--sp-8); }
 .mt-overhaul .mt-loadingcard {
-  padding: 36px;
+  padding: var(--sp-36);
   text-align: center;
   color: var(--mt-ink-2);
   background: var(--mt-surface);
@@ -350,7 +350,7 @@
   border-radius: var(--mt-r-lg);
 }
 .mt-overhaul .al-row--push { margin-left: auto; }
-.mt-overhaul .sectionhead-pill { display: flex; align-items: center; gap: 10px; }
+.mt-overhaul .sectionhead-pill { display: flex; align-items: center; gap: var(--sp-10); }
 .mt-overhaul .mt-toast {
   position: fixed;
   bottom: 32px;
@@ -358,16 +358,16 @@
   transform: translateX(-50%);
   background: var(--mt-ink-0);
   color: var(--mt-surface);
-  padding: 10px 16px;
-  border-radius: 8px;
+  padding: var(--sp-10) var(--sp-16);
+  border-radius: var(--r-8);
   font-size: var(--v13-t3);
   z-index: 100000;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  box-shadow: var(--sh-5);
 }
 .mt-overhaul .mt-spacer-flex { flex: 1; }
 .mt-overhaul .mc-legend--push { margin-left: auto; }
 .mt-overhaul .mt-pagesection--flush { padding-top: 0; }
-.mt-overhaul .hm-canvaswrap { margin: 0 -12px; }
+.mt-overhaul .hm-canvaswrap { margin: 0 var(--sp-n12); }
 /* Bar fill: the prototype targets `.hm-allocbar > span` for the colored fill.
    Since the JSX uses .hm-allocbar-fill on that inner span, this rule routes
    the prototype style through that semantic class name and adds the accent. */
@@ -376,13 +376,13 @@
 .mt-overhaul .hm-stat-down { color: var(--mt-down); }
 .mt-overhaul .hm-stat-warn { color: var(--mt-warn); }
 .mt-overhaul .hm-stat-up   { color: var(--mt-up); }
-.mt-overhaul .at-gauge-eyebrow { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
+.mt-overhaul .at-gauge-eyebrow { margin-top: var(--sp-12); display: flex; align-items: center; gap: var(--sp-8); }
 .mt-overhaul .at-spark-placeholder {
   height: 56px;
   border-radius: var(--mt-r-sm);
   background: linear-gradient(90deg, var(--mt-surface-2), var(--mt-surface-3), var(--mt-surface-2));
   background-size: 200% 100%;
-  animation: mt-shimmer 1.6s ease-in-out infinite;
+  animation: mt-shimmer var(--dur-1600) ease-in-out infinite;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -399,26 +399,26 @@
 /* Portfolio page utilities introduced by the content-remediation refactor —
    small layout helpers used by the page chrome that aren't covered by the
    prototype pf-* class set. */
-.mt-overhaul .pf-headcta { display: flex; gap: 8px; flex-wrap: wrap; }
-.mt-overhaul .pf-acctdrillmeta { font-size: var(--v13-t3); color: var(--mt-ink-2); margin-top: 4px; }
+.mt-overhaul .pf-headcta { display: flex; gap: var(--sp-8); flex-wrap: wrap; }
+.mt-overhaul .pf-acctdrillmeta { font-size: var(--v13-t3); color: var(--mt-ink-2); margin-top: var(--sp-4); }
 .mt-overhaul .pf-acctdrillmeta b.num { color: var(--mt-ink-0); }
 .mt-overhaul .pf-acctdrillstats {
-  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
-  margin-top: 8px; font-size: var(--v13-t2); color: var(--mt-ink-2);
+  display: flex; gap: var(--sp-14); align-items: center; flex-wrap: wrap;
+  margin-top: var(--sp-8); font-size: var(--v13-t2); color: var(--mt-ink-2);
 }
 .mt-overhaul .pf-acctdrillstats b.num { color: var(--mt-ink-0); }
 .mt-overhaul .pf-allocempty {
-  padding: 24px 8px; color: var(--mt-ink-2); font-size: var(--v13-t3);
-  display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+  padding: var(--sp-24) var(--sp-8); color: var(--mt-ink-2); font-size: var(--v13-t3);
+  display: flex; flex-direction: column; gap: var(--sp-10); align-items: flex-start;
 }
 .mt-overhaul .pf-drillkv {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-10); margin-top: var(--sp-12);
 }
 .mt-overhaul .pf-drillnote {
-  margin-top: 8px; font-size: var(--v13-t2); color: var(--mt-ink-3); line-height: 1.5;
+  margin-top: var(--sp-8); font-size: var(--v13-t2); color: var(--mt-ink-3); line-height: 1.5;
 }
 .mt-overhaul .lm-drillwhy {
-  margin: 6px 0 0; font-size: var(--v13-t3); line-height: 1.55;
+  margin: var(--sp-6) 0 0; font-size: var(--v13-t3); line-height: 1.55;
   color: var(--mt-ink-1); 
 }
 /* Ticker page utilities introduced by the content-remediation refactor.
@@ -427,9 +427,9 @@
    and the chart head label. */
 .mt-overhaul .tk-backrow {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 18px var(--mt-pad-page) 0;
+  padding: var(--sp-18) var(--mt-pad-page) 0;
 }
-.mt-overhaul .tk-charthead { margin-bottom: 14px; }
+.mt-overhaul .tk-charthead { margin-bottom: var(--sp-14); }
 .mt-overhaul .tk-windowlabel {
   color: var(--mt-ink-2); font-size: var(--v13-t3); font-family: var(--mt-type-sans);
 }
@@ -437,77 +437,77 @@
 /* Source-scanner pills shown when a name has no Insider-scan score
    (2026-07-20) — stacked, centered, same pill language as the sig pill. */
 .mt-overhaul .tk-srcpills {
-  display: flex; flex-direction: column; gap: 6px;
-  align-items: center; padding: 10px 0 4px;
+  display: flex; flex-direction: column; gap: var(--sp-6);
+  align-items: center; padding: var(--sp-10) 0 var(--sp-4);
 }
 .mt-overhaul .tk-scoredelta {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: var(--sp-8);
   font-size: var(--v13-t2); color: var(--mt-ink-2);
-  justify-content: center; margin-top: 6px; flex-wrap: wrap;
+  justify-content: center; margin-top: var(--sp-6); flex-wrap: wrap;
 }
 .mt-overhaul .tk-scoredelta b.num { color: var(--mt-ink-0); }
 .mt-overhaul .tk-tabhead {
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 12px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: var(--sp-10);
+  margin-bottom: var(--sp-12); flex-wrap: wrap;
 }
 .mt-overhaul .tk-empty {
-  padding: 24px 4px; color: var(--mt-ink-2); font-size: var(--v13-t3); line-height: 1.55;
+  padding: var(--sp-24) var(--sp-4); color: var(--mt-ink-2); font-size: var(--v13-t3); line-height: 1.55;
 }
 .mt-overhaul .tk-emptyfoot {
-  margin-top: 10px; font-size: var(--v13-t2); color: var(--mt-ink-3); line-height: 1.5;
+  margin-top: var(--sp-10); font-size: var(--v13-t2); color: var(--mt-ink-3); line-height: 1.5;
 }
-.mt-overhaul .tk-scoretable { margin-top: 14px; }
-.mt-overhaul .tk-keygrid--tight { margin-top: 10px; }
-.mt-overhaul .tk-keygrid--fund { grid-template-columns: repeat(4, 1fr); margin-top: 10px; }
+.mt-overhaul .tk-scoretable { margin-top: var(--sp-14); }
+.mt-overhaul .tk-keygrid--tight { margin-top: var(--sp-10); }
+.mt-overhaul .tk-keygrid--fund { grid-template-columns: repeat(4, 1fr); margin-top: var(--sp-10); }
 .mt-overhaul .tk-relempty {
-  grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--mt-ink-2);
+  grid-column: 1 / -1; padding: var(--sp-24); text-align: center; color: var(--mt-ink-2);
 }
 .mt-overhaul .lm-drilllayerbar--empty { opacity: 0.6; }
 /* Ticker detail wiring 2026-05-27 — utilities for the data-wired tabs */
 .mt-overhaul .tk-tablewrap { overflow-x: auto; }
 .mt-overhaul .tk-evttable { width: 100%; border-collapse: collapse; font-size: var(--v13-t3); }
 .mt-overhaul .tk-evttable th {
-  text-align: left; padding: 10px 12px;
+  text-align: left; padding: var(--sp-10) var(--sp-12);
   font-size: var(--v13-t1); letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--mt-ink-2); font-weight: 600; background: var(--mt-surface-2);
+  color: var(--mt-ink-2); font-weight: var(--fw-600); background: var(--mt-surface-2);
 }
 .mt-overhaul .tk-evttable th.num { text-align: right; }
-.mt-overhaul .tk-evttable td { padding: 10px 12px; border-top: 1px solid var(--mt-line-0); vertical-align: middle; }
+.mt-overhaul .tk-evttable td { padding: var(--sp-10) var(--sp-12); border-top: 1px solid var(--mt-line-0); vertical-align: middle; }
 .mt-overhaul .tk-evttable td.num { text-align: right; }
 .mt-overhaul .tk-evttable td.up   { color: var(--mt-up); }
 .mt-overhaul .tk-evttable td.down { color: var(--mt-down); }
 .mt-overhaul .tk-tag-soft {
-  display: inline-block; margin-left: 6px;
+  display: inline-block; margin-left: var(--sp-6);
   font-size: var(--v13-t1); font-family: var(--mt-type-mono);
-  padding: 1px 5px; border-radius: 3px;
+  padding: var(--sp-1) var(--sp-5); border-radius: var(--r-3);
   background: var(--mt-surface-3); color: var(--mt-ink-2);
 }
-.mt-overhaul .tk-techstrip { margin-top: 22px; }
+.mt-overhaul .tk-techstrip { margin-top: var(--sp-22); }
 .mt-overhaul .tk-techgrid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px; margin-top: 10px;
+  gap: var(--sp-10); margin-top: var(--sp-10);
 }
 .mt-overhaul .tk-techcell {
-  padding: 10px 12px; background: var(--mt-surface-2); border-radius: 8px;
-  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--sp-10) var(--sp-12); background: var(--mt-surface-2); border-radius: var(--r-8);
+  display: flex; flex-direction: column; gap: var(--sp-2);
 }
 .mt-overhaul .tk-techcell b.num {
-  font-family: var(--mt-type-sans); font-size: var(--v13-t4); font-weight: 400;
+  font-family: var(--mt-type-sans); font-size: var(--v13-t4); font-weight: var(--fw-400);
   color: var(--mt-ink-0);
 }
 .mt-overhaul .tk-techsub {
-  font-size: var(--v13-t2); color: var(--mt-ink-3); margin-top: 2px;
+  font-size: var(--v13-t2); color: var(--mt-ink-3); margin-top: var(--sp-2);
 }
 .mt-overhaul .tk-techfoot {
-  margin-top: 10px; font-size: var(--v13-t2); color: var(--mt-ink-2); line-height: 1.55;
+  margin-top: var(--sp-10); font-size: var(--v13-t2); color: var(--mt-ink-2); line-height: 1.55;
 }
 .mt-overhaul .tk-newslist {
-  list-style: none; padding: 0; margin: 8px 0 0;
+  list-style: none; padding: 0; margin: var(--sp-8) 0 0;
   display: flex; flex-direction: column;
 }
 .mt-overhaul .tk-newsrow {
-  display: grid; grid-template-columns: 90px 1fr 140px; gap: 14px;
-  padding: 10px 4px; border-top: 1px solid var(--mt-line-0);
+  display: grid; grid-template-columns: 90px 1fr 140px; gap: var(--sp-14);
+  padding: var(--sp-10) var(--sp-4); border-top: 1px solid var(--mt-line-0);
   font-size: var(--v13-t3); align-items: baseline;
 }
 .mt-overhaul .tk-newsrow:first-child { border-top: none; }
@@ -524,21 +524,21 @@
   letter-spacing: 0.08em; text-align: right; text-transform: uppercase;
 }
 .mt-overhaul .tk-fundheader {
-  display: grid; grid-template-columns: 1fr auto; gap: 22px; align-items: start;
+  display: grid; grid-template-columns: 1fr auto; gap: var(--sp-22); align-items: start;
 }
 .mt-overhaul .tk-fundsplit {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 22px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-22); margin-top: var(--sp-22);
 }
-.mt-overhaul .sc-colcount { font-size: var(--v13-t2); color: var(--mt-ink-2); margin-left: 4px; }
+.mt-overhaul .sc-colcount { font-size: var(--v13-t2); color: var(--mt-ink-2); margin-left: var(--sp-4); }
 .mt-overhaul .mt-sectionhead-tight {
-  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 12px;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-12); margin-bottom: var(--sp-12);
 }
 .mt-overhaul .mt-sectionhead {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 22px;
-  gap: 24px;
+  margin-bottom: var(--sp-22);
+  gap: var(--sp-24);
   flex-wrap: wrap;
 }
 
@@ -552,16 +552,16 @@
 .mt-overhaul .mt-divider {
   height: 1px;
   background: var(--mt-line-0);
-  margin: 12px 0;
+  margin: var(--sp-12) 0;
 }
 .mt-overhaul .mt-btn {
   appearance: none;
   border: 1px solid var(--mt-line-1);
   background: var(--mt-surface);
-  padding: 8px 14px;
-  border-radius: 8px;
+  padding: var(--sp-8) var(--sp-14);
+  border-radius: var(--r-8);
   font-size: var(--v13-t3);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   color: var(--mt-ink-0);
   font-family: var(--mt-type-sans);
   transition: background var(--mt-dur-fast) var(--mt-ease),
@@ -571,10 +571,10 @@
 .mt-overhaul .mt-btn--primary {
   background: var(--mt-accent);
   border-color: var(--mt-accent);
-  color: #fff;
+  color: var(--c-ffffff);
 }
 .mt-overhaul .mt-btn--primary:hover {
-  background: color-mix(in oklab, var(--mt-accent) 85%, black);
+  background: color-mix(in oklab, var(--mt-accent) 85%, var(--c-000000));
 }
 .mt-overhaul .mt-btn--ghost {
   background: transparent;
@@ -587,19 +587,19 @@
 }
 .mt-overhaul .mt-pillgroup {
   display: inline-flex;
-  gap: 2px;
+  gap: var(--sp-2);
   background: var(--mt-surface-3);
-  padding: 3px;
-  border-radius: 8px;
+  padding: var(--sp-3);
+  border-radius: var(--r-8);
 }
 .mt-overhaul .mt-pill {
   appearance: none;
   border: none;
   background: transparent;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: var(--sp-6) var(--sp-12);
+  border-radius: var(--r-6);
   font-size: var(--v13-t2);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   color: var(--mt-ink-2);
   font-family: var(--mt-type-sans);
 }
@@ -607,16 +607,16 @@
 .mt-overhaul .mt-pill.on {
   background: var(--mt-surface);
   color: var(--mt-ink-0);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--sh-6);
 }
 .mt-overhaul .mt-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--sp-4);
   font-size: var(--v13-t2);
-  font-weight: 400;
-  padding: 3px 8px;
-  border-radius: 999px;
+  font-weight: var(--fw-400);
+  padding: var(--sp-3) var(--sp-8);
+  border-radius: var(--r-999);
   letter-spacing: 0.02em;
 }
 .mt-overhaul .mt-tag--extreme {
@@ -641,8 +641,8 @@
 }
 
 /* ── Motion ────────────────────────────────────────────────── */
-.mt-overhaul .mt-fade { animation: mt-fade 280ms var(--mt-ease) forwards; }
-.mt-overhaul .mt-rise { animation: mt-rise 360ms var(--mt-ease) forwards; }
+.mt-overhaul .mt-fade { animation: mt-fade var(--dur-280) var(--mt-ease) forwards; }
+.mt-overhaul .mt-rise { animation: mt-rise var(--dur-360) var(--mt-ease) forwards; }
 @keyframes mt-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes mt-rise {
   from { opacity: 0; transform: translateY(6px); }

@@ -16,17 +16,7 @@
 .rb-root {
   position: relative;
   z-index: 900;
-  --ch-bg:#F2EEE6; --ch-surface:#F9F6F0; --ch-putty:#EDE9DF;
-  --ch-ink:#212C33; --ch-ink-soft:#465660; --ch-mut:#7C7668;
-  --ch-gold-deep:#B7975C; --ch-hair:rgba(33,44,51,.14);
-  --ch-serif: var(--mt-type-serif);
   font-family: var(--mt-type-sans);
-}
-[data-mt-theme='dark'] .rb-root,
-[data-mt-theme='navy'] .rb-root {
-  --ch-bg:#0C1218; --ch-surface:#111927; --ch-putty:#161F2A;
-  --ch-ink:#F5EFE3; --ch-ink-soft:#C9C3B4; --ch-mut:#8B95A0;
-  --ch-gold-deep:#E0C285; --ch-hair:rgba(245,239,227,.13);
 }
 
 /* ── launcher ─────────────────────────────────────────────────────────── */
@@ -35,86 +25,86 @@
   right: clamp(12px, 2vw, 24px);
   bottom: clamp(12px, 2vw, 24px);
   z-index: 900;
-  display: inline-flex; align-items: center; gap: 7px;
-  height: 36px; padding: 0 14px;
-  border: 1px solid var(--ch-hair, rgba(33,44,51,.14));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ch-surface, #F9F6F0) 92%, transparent);
+  display: inline-flex; align-items: center; gap: var(--sp-7);
+  height: 36px; padding: 0 var(--sp-14);
+  border: 1px solid var(--ch-hair, var(--c-212c33-a14));
+  border-radius: var(--r-999);
+  background: color-mix(in srgb, var(--ch-surface, var(--c-f9f6f0)) 92%, transparent);
   -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-  color: var(--ch-ink-soft, #465660);
-  font-family: inherit; font-size: var(--v13-t3); font-weight: 400; letter-spacing: .1px;
+  color: var(--ch-ink-soft, var(--c-465660));
+  font-family: inherit; font-size: var(--v13-t3); font-weight: var(--fw-400); letter-spacing: .1px;
   cursor: pointer;
-  box-shadow: 0 6px 20px -10px rgba(20,30,60,.45);
-  transition: color .18s, border-color .18s, transform .18s, box-shadow .18s;
+  box-shadow: var(--sh-1);
+  transition: color var(--dur-180), border-color var(--dur-180), transform var(--dur-180), box-shadow var(--dur-180);
 }
 .rb-launch:hover {
-  color: var(--ch-ink, #212C33);
-  border-color: color-mix(in srgb, var(--ch-gold-deep, #B7975C) 55%, transparent);
+  color: var(--ch-ink, var(--c-212c33));
+  border-color: color-mix(in srgb, var(--ch-gold-deep, var(--c-b7975c)) 55%, transparent);
   transform: translateY(-1px);
-  box-shadow: 0 10px 26px -12px rgba(20,30,60,.5);
+  box-shadow: var(--sh-2);
 }
-.rb-launch:focus-visible { outline: 2px solid var(--ch-gold-deep, #B7975C); outline-offset: 2px; }
+.rb-launch:focus-visible { outline: 2px solid var(--ch-gold-deep, var(--c-b7975c)); outline-offset: 2px; }
 .rb-launch-icon { width: 15px; height: 15px; flex: 0 0 auto; opacity: .75; }
 
 /* ── dialog ───────────────────────────────────────────────────────────── */
 .rb-veil {
   position: fixed; inset: 0; z-index: 950;
   display: flex; align-items: center; justify-content: center;
-  padding: clamp(10px, 3vw, 32px);
-  background: rgba(20, 26, 32, .42);
+  padding: clamp(var(--sp-10), var(--sp-3vw), var(--sp-32));
+  background: var(--c-141a20-a42);
   -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
 }
 .rb-dialog {
   width: min(720px, 100%);
   max-height: min(88vh, 900px);
   display: flex; flex-direction: column;
-  background: var(--ch-surface, #F9F6F0);
-  border: 1px solid var(--ch-hair, rgba(33,44,51,.14));
-  border-radius: 18px;
-  box-shadow: 0 30px 72px -20px rgba(12,18,24,.55);
+  background: var(--ch-surface, var(--c-f9f6f0));
+  border: 1px solid var(--ch-hair, var(--c-212c33-a14));
+  border-radius: var(--r-18);
+  box-shadow: var(--sh-3);
   overflow: hidden;
 }
 
 .rb-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px 12px;
-  border-bottom: 1px solid var(--ch-hair, rgba(33,44,51,.14));
+  padding: var(--sp-16) var(--sp-20) var(--sp-12);
+  border-bottom: 1px solid var(--ch-hair, var(--c-212c33-a14));
   flex: 0 0 auto;
 }
 .rb-title {
   margin: 0;
   font-family: var(--mt-type-serif);
-  font-size: var(--v13-t6); line-height: 1; font-weight: 400;
-  color: var(--ch-ink, #212C33);
+  font-size: var(--v13-t6); line-height: 1; font-weight: var(--fw-400);
+  color: var(--ch-ink, var(--c-212c33));
 }
 .rb-x {
   background: none; border: none; cursor: pointer;
-  font-size: var(--v13-t6); line-height: 1; padding: 0 2px;
-  color: var(--ch-mut, #7C7668);
+  font-size: var(--v13-t6); line-height: 1; padding: 0 var(--sp-2);
+  color: var(--ch-mut, var(--c-7c7668));
 }
-.rb-x:hover { color: var(--ch-ink, #212C33); }
+.rb-x:hover { color: var(--ch-ink, var(--c-212c33)); }
 .rb-x:disabled { opacity: .4; cursor: default; }
 
 /* min-height:0 is load-bearing: without it a flex child refuses to shrink below
    its content height, the dialog grows past max-height, and the action buttons
    fall off the bottom of a phone screen. */
-.rb-body { padding: 16px 20px 20px; overflow: auto; flex: 1 1 auto; min-height: 0; }
+.rb-body { padding: var(--sp-16) var(--sp-20) var(--sp-20); overflow: auto; flex: 1 1 auto; min-height: 0; }
 
 .rb-capturing, .rb-noshot {
-  font-size: var(--v13-t3); color: var(--ch-mut, #7C7668);
-  padding: 22px 0; text-align: center;
+  font-size: var(--v13-t3); color: var(--ch-mut, var(--c-7c7668));
+  padding: var(--sp-22) 0; text-align: center;
 }
-.rb-noshot { text-align: left; padding: 0 0 14px; }
+.rb-noshot { text-align: left; padding: 0 0 var(--sp-14); }
 
 /* ── screenshot + highlight ───────────────────────────────────────────── */
 .rb-shotlabel {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
-  font-size: var(--v13-t2); color: var(--ch-mut, #7C7668);
-  margin: 0 0 6px;
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-10);
+  font-size: var(--v13-t2); color: var(--ch-mut, var(--c-7c7668));
+  margin: 0 0 var(--sp-6);
 }
 .rb-clear {
   background: none; border: none; padding: 0; cursor: pointer;
-  font-size: var(--v13-t2); color: var(--ch-gold-deep, #B7975C); text-decoration: underline;
+  font-size: var(--v13-t2); color: var(--ch-gold-deep, var(--c-b7975c)); text-decoration: underline;
 }
 .rb-preview {
   position: relative;
@@ -123,10 +113,10 @@
   width: fit-content;
   max-width: 100%;
   margin: 0 auto;
-  border: 1px solid var(--ch-hair, rgba(33,44,51,.14));
-  border-radius: 10px;
+  border: 1px solid var(--ch-hair, var(--c-212c33-a14));
+  border-radius: var(--r-10);
   overflow: hidden;
-  background: var(--ch-putty, #EDE9DF);
+  background: var(--ch-putty, var(--c-ede9df));
   cursor: crosshair;
   touch-action: none;          /* pointer drag must not scroll the dialog */
   line-height: 0;              /* the wrapper must hug the image exactly, or
@@ -146,84 +136,84 @@
 }
 .rb-box {
   position: absolute;
-  border: 2px solid #C1394F;
-  border-radius: 2px;
-  box-shadow: 0 0 0 9999px rgba(12, 18, 24, .38);
+  border: 2px solid var(--c-c1394f);
+  border-radius: var(--r-2);
+  box-shadow: var(--sh-4);
   pointer-events: none;
 }
 
 /* ── form ─────────────────────────────────────────────────────────────── */
 .rb-label {
-  display: block; margin: 16px 0 6px;
-  font-size: var(--v13-t3); font-weight: 600; color: var(--ch-ink, #212C33);
+  display: block; margin: var(--sp-16) 0 var(--sp-6);
+  font-size: var(--v13-t3); font-weight: var(--fw-600); color: var(--ch-ink, var(--c-212c33));
 }
 .rb-textarea {
   width: 100%; box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid var(--ch-hair, rgba(33,44,51,.14));
-  border-radius: 10px;
-  background: var(--ch-bg, #F2EEE6);
-  color: var(--ch-ink, #212C33);
+  padding: var(--sp-10) var(--sp-12);
+  border: 1px solid var(--ch-hair, var(--c-212c33-a14));
+  border-radius: var(--r-10);
+  background: var(--ch-bg, var(--c-f2eee6));
+  color: var(--ch-ink, var(--c-212c33));
   font-family: inherit; font-size: var(--v13-t3); line-height: 1.5;
   resize: vertical;
 }
-.rb-textarea::placeholder { color: var(--ch-mut, #7C7668); }
-.rb-textarea:focus { outline: none; border-color: color-mix(in srgb, var(--ch-gold-deep, #B7975C) 70%, transparent); }
+.rb-textarea::placeholder { color: var(--ch-mut, var(--c-7c7668)); }
+.rb-textarea:focus { outline: none; border-color: color-mix(in srgb, var(--ch-gold-deep, var(--c-b7975c)) 70%, transparent); }
 .rb-textarea:disabled { opacity: .6; }
 
-.rb-meta { margin-top: 10px; font-size: var(--v13-t2); color: var(--ch-mut, #7C7668); }
+.rb-meta { margin-top: var(--sp-10); font-size: var(--v13-t2); color: var(--ch-mut, var(--c-7c7668)); }
 .rb-error {
-  margin-top: 10px; padding: 8px 10px;
-  border: 1px solid rgba(193,57,79,.35); border-radius: 8px;
-  background: rgba(193,57,79,.08);
-  font-size: var(--v13-t3); color: #C1394F;
+  margin-top: var(--sp-10); padding: var(--sp-8) var(--sp-10);
+  border: 1px solid var(--c-c1394f-a35); border-radius: var(--r-8);
+  background: var(--c-c1394f-a8);
+  font-size: var(--v13-t3); color: var(--c-c1394f);
 }
 
 /* The action row lives outside the scrolling body so Send is always on screen. */
 .rb-foot {
-  display: flex; justify-content: flex-end; gap: 10px;
-  padding: 12px 20px 14px;
-  border-top: 1px solid var(--ch-hair, rgba(33,44,51,.14));
-  background: var(--ch-surface, #F9F6F0);
+  display: flex; justify-content: flex-end; gap: var(--sp-10);
+  padding: var(--sp-12) var(--sp-20) var(--sp-14);
+  border-top: 1px solid var(--ch-hair, var(--c-212c33-a14));
+  background: var(--ch-surface, var(--c-f9f6f0));
   flex: 0 0 auto;
 }
 .rb-cancel, .rb-send {
-  height: 38px; padding: 0 18px; border-radius: 999px;
-  font-family: inherit; font-size: var(--v13-t3); font-weight: 400; cursor: pointer;
-  transition: opacity .18s, background .18s, color .18s;
+  height: 38px; padding: 0 var(--sp-18); border-radius: var(--r-999);
+  font-family: inherit; font-size: var(--v13-t3); font-weight: var(--fw-400); cursor: pointer;
+  transition: opacity var(--dur-180), background var(--dur-180), color var(--dur-180);
 }
 .rb-cancel {
   background: transparent;
-  border: 1px solid var(--ch-hair, rgba(33,44,51,.14));
-  color: var(--ch-ink-soft, #465660);
+  border: 1px solid var(--ch-hair, var(--c-212c33-a14));
+  color: var(--ch-ink-soft, var(--c-465660));
 }
-.rb-cancel:hover { color: var(--ch-ink, #212C33); }
+.rb-cancel:hover { color: var(--ch-ink, var(--c-212c33)); }
 .rb-send {
-  background: var(--ch-ink, #212C33);
-  border: 1px solid var(--ch-ink, #212C33);
-  color: var(--ch-surface, #F9F6F0);
+  background: var(--ch-ink, var(--c-212c33));
+  border: 1px solid var(--ch-ink, var(--c-212c33));
+  color: var(--ch-surface, var(--c-f9f6f0));
 }
 .rb-send:hover { opacity: .88; }
 .rb-cancel:disabled, .rb-send:disabled { opacity: .5; cursor: default; }
 
 /* ── confirmation ─────────────────────────────────────────────────────── */
-.rb-done { text-align: center; padding: 14px 0 6px; }
+.rb-done { text-align: center; padding: var(--sp-14) 0 var(--sp-6); }
 .rb-done-num {
   font-family: var(--mt-type-serif);
-  font-size: var(--v13-t6); line-height: 1.1; color: var(--ch-ink, #212C33);
+  font-size: var(--v13-t6); line-height: 1.1; color: var(--ch-ink, var(--c-212c33));
 }
 .rb-done-copy {
-  margin: 10px auto 18px; max-width: 46ch;
-  font-size: var(--v13-t3); line-height: 1.55; color: var(--ch-ink-soft, #465660);
+  margin: var(--sp-10) auto var(--sp-18); max-width: 46ch;
+  font-size: var(--v13-t3); line-height: 1.55; color: var(--ch-ink-soft, var(--c-465660));
 }
 
 /* ── narrow screens (390px check, LESSONS 8.10) ───────────────────────── */
 @media (max-width: 560px) {
-  .rb-launch { height: 34px; padding: 0 12px; font-size: var(--v13-t2); right: 10px; bottom: 10px; }
-  .rb-dialog { border-radius: 14px; max-height: 92vh; }
-  .rb-head { padding: 13px 15px 10px; }
+  .rb-launch { height: 34px; padding: 0 var(--sp-12); font-size: var(--v13-t2); right: 10px; bottom: 10px; }
+  .rb-dialog { border-radius: var(--r-14); max-height: 92vh; }
+  .rb-head { padding: var(--sp-13) var(--sp-15) var(--sp-10); }
   .rb-title { font-size: var(--v13-t5); }
-  .rb-body { padding: 13px 15px 16px; }
-  .rb-foot { flex-direction: column-reverse; padding: 10px 15px 12px; }
+  .rb-body { padding: var(--sp-13) var(--sp-15) var(--sp-16); }
+  .rb-foot { flex-direction: column-reverse; padding: var(--sp-10) var(--sp-15) var(--sp-12); }
   .rb-cancel, .rb-send { width: 100%; }
 }

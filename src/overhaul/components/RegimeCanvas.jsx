@@ -81,7 +81,7 @@ export default function RegimeCanvas({
   const py = (y) => H - 60 - (y + 1) / 2 * (H - 120);
 
   return (
-    <div className="mt-card" style={{ padding: 12, position: 'relative' }}>
+    <div className="mt-card" style={{ padding: 'var(--sp-12)', position: 'relative' }}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"

@@ -40,39 +40,17 @@
 .v13,
 .mt-overhaul {
   /* ── surfaces ── */
-  --v13-ground: #F4F4F1;
-  --v13-surface: #FFFFFF;
-  --v13-surface-2: #FAFAF8;
-  --v13-surface-3: #EEEEEA;
 
   /* ── ink ── */
-  --v13-ink: #14171A;
-  --v13-ink-2: #565C63;
-  --v13-ink-3: #888E95;
 
   /* ── rules ── */
-  --v13-rule: #E3E4DF;
-  --v13-rule-2: #CBCDC6;
 
   /* ── accent: links, tickers, hover rail, selection. Never decoration. ── */
-  --v13-accent: #14477A;
-  --v13-accent-soft: rgba(20, 71, 122, 0.07);
-  --v13-accent-mid: rgba(20, 71, 122, 0.14);
 
   /* ── semantic direction. NEVER used decoratively — a green that does not
         mean "up" is a bug. ── */
-  --v13-up: #0B6E45;
-  --v13-down: #A8322A;
-  --v13-warn: #8A6A1F;
-  --v13-up-bg: rgba(11, 110, 69, 0.10);
-  --v13-down-bg: rgba(168, 50, 42, 0.10);
-  --v13-warn-bg: rgba(138, 106, 31, 0.11);
 
   /* ── brand gold: wordmark and the regime line ONLY ── */
-  --v13-brand: #A8853F;
-
-  --v13-shadow: 0 1px 2px rgba(20, 23, 26, 0.05);
-  --v13-shadow-lift: 0 2px 10px rgba(20, 23, 26, 0.10);
 
   /* ── type: three roles, no more ──
         ui    every control, label, table cell
@@ -89,32 +67,12 @@
         t4  editorial reading size
         t5  panel headline
         t6  the one big number / regime line */
-  --v13-t1: 10px;
-  --v13-t2: 11px;
-  --v13-t3: 13px;
-  --v13-t4: 15px;
-  --v13-t5: 18px;
-  --v13-t6: 26px;
 
   /* ── SIX spacing steps ── */
-  --v13-s1: 4px;
-  --v13-s2: 8px;
-  --v13-s3: 12px;
-  --v13-s4: 16px;
-  --v13-s5: 24px;
-  --v13-s6: 32px;
 
   /* ── fixed geometry ── */
-  --v13-r: 4px;          /* the only radius. Pills are 999px, dots are 50%. */
-  --v13-row: 30px;       /* every table row on every page */
-  --v13-bar: 28px;       /* every card header on every page */
-  --v13-tile: 380px;     /* the equal-tile track. See .v13-grid.eq */
-  --v13-page: 1600px;
 
   /* ── motion. Joe explicitly asked to keep the dynamic feel. ── */
-  --v13-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --v13-fast: 120ms;
-  --v13-med: 220ms;
 
   color-scheme: light;
 }
@@ -128,27 +86,6 @@
      — a 3% lift, which across a full-width panel reads as no card at all. Joe,
      on /portfolio-lab in dark: "what is this?!" Grounds go darker and surfaces
      lift, so a card is unmistakably a card. */
-  --v13-ground: #0A0C0F;
-  --v13-surface: #171B21;
-  --v13-surface-2: #1E232A;
-  --v13-surface-3: #282E36;
-  --v13-ink: #E9EAE6;
-  --v13-ink-2: #9BA1A8;
-  --v13-ink-3: #6E747B;
-  --v13-rule: #2E343C;
-  --v13-rule-2: #454C56;
-  --v13-accent: #7FA8DB;
-  --v13-accent-soft: rgba(127, 168, 219, 0.10);
-  --v13-accent-mid: rgba(127, 168, 219, 0.20);
-  --v13-up: #3EB37E;
-  --v13-down: #E0705F;
-  --v13-warn: #D6A94B;
-  --v13-up-bg: rgba(62, 179, 126, 0.13);
-  --v13-down-bg: rgba(224, 112, 95, 0.13);
-  --v13-warn-bg: rgba(214, 169, 75, 0.13);
-  --v13-brand: #C8A45F;
-  --v13-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --v13-shadow-lift: 0 2px 12px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 
@@ -172,7 +109,7 @@
 .v13 small, .mt-overhaul small { font-size: var(--v13-t1); }
 .v13 .up { color: var(--v13-up); }
 .v13 .down { color: var(--v13-down); }
-.v13 :focus-visible { outline: 2px solid var(--v13-accent); outline-offset: 2px; border-radius: 2px; }
+.v13 :focus-visible { outline: 2px solid var(--v13-accent); outline-offset: 2px; border-radius: var(--r-2); }
 
 /* ── grid. `.eq` is the symmetry rule: the TRACK owns the height. ──────── */
 .v13 .v13-grid { display: grid; gap: var(--v13-s3); }
@@ -200,11 +137,11 @@
   background: var(--v13-surface-2);
 }
 .v13 .v13-card-h h2, .v13 .v13-card-h h3 {
-  margin: 0; font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.1em;
+  margin: 0; font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--v13-ink-2);
 }
 .v13 .v13-card-h .meta {
-  margin-left: auto; font-size: var(--v13-t1); font-weight: 600; letter-spacing: 0.06em;
+  margin-left: auto; font-size: var(--v13-t1); font-weight: var(--fw-600); letter-spacing: 0.06em;
   text-transform: uppercase; color: var(--v13-ink-3); white-space: nowrap;
 }
 .v13 .v13-card-h a.meta { color: var(--v13-accent); text-decoration: none; opacity: 0.75; }
@@ -212,7 +149,7 @@
 .v13 .v13-card-b { flex: 1; min-height: 0; overflow: auto; padding: var(--v13-s3); }
 .v13 .v13-card-b.flush { padding: 0; }
 .v13 .v13-card-b::-webkit-scrollbar { width: 7px; height: 7px; }
-.v13 .v13-card-b::-webkit-scrollbar-thumb { background: var(--v13-rule-2); border-radius: 4px; }
+.v13 .v13-card-b::-webkit-scrollbar-thumb { background: var(--v13-rule-2); border-radius: var(--r-4); }
 .v13 .v13-card-b::-webkit-scrollbar-track { background: transparent; }
 
 /* ── THE table. Column widths: numeric cells take width:1%, the name column
@@ -222,13 +159,13 @@
 .v13 .v13-dt th {
   position: sticky; top: 0; z-index: 2;
   height: 24px; padding: 0 var(--v13-s2); text-align: left; white-space: nowrap;
-  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+  font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.09em; text-transform: uppercase;
   color: var(--v13-ink-3); background: var(--v13-surface-2);
   border-bottom: 1px solid var(--v13-rule); user-select: none;
 }
 .v13 .v13-dt th.sortable { cursor: pointer; transition: color var(--v13-fast) var(--v13-ease); }
 .v13 .v13-dt th.sortable:hover { color: var(--v13-ink); }
-.v13 .v13-dt th.sortable::after { content: '⇅'; margin-left: 5px; opacity: 0.3; }
+.v13 .v13-dt th.sortable::after { content: '⇅'; margin-left: var(--sp-5); opacity: 0.3; }
 .v13 .v13-dt th.sortable[data-dir='asc']::after { content: '↑'; opacity: 1; color: var(--v13-accent); }
 .v13 .v13-dt th.sortable[data-dir='desc']::after { content: '↓'; opacity: 1; color: var(--v13-accent); }
 .v13 .v13-dt td {
@@ -240,8 +177,8 @@
 .v13 .v13-dt td.r, .v13 .v13-dt th.r,
 .v13 .v13-dt td.fix, .v13 .v13-dt th.fix { width: 1%; white-space: nowrap; }
 .v13 .v13-dt .n { font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-.v13 .v13-dt .nm { font-weight: 500; }
-.v13 .v13-dt .tk { font-family: var(--mt-type-mono); font-weight: 600; color: var(--v13-accent); }
+.v13 .v13-dt .nm { font-weight: var(--fw-500); }
+.v13 .v13-dt .tk { font-family: var(--mt-type-mono); font-weight: var(--fw-600); color: var(--v13-accent); }
 
 /* row interaction — the "dynamic feel" Joe asked to keep */
 .v13 .v13-dt tbody tr.click { cursor: pointer; transition: background var(--v13-fast) var(--v13-ease); }
@@ -263,9 +200,9 @@
 
 /* ── chip ──────────────────────────────────────────────────────────────── */
 .v13 .v13-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 6px; border-radius: var(--v13-r); white-space: nowrap;
-  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: var(--sp-4);
+  padding: var(--sp-2) var(--sp-6); border-radius: var(--v13-r); white-space: nowrap;
+  font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.07em; text-transform: uppercase;
   background: var(--v13-surface-3); color: var(--v13-ink-2);
 }
 .v13 .v13-chip.up { background: var(--v13-up-bg); color: var(--v13-up); }
@@ -276,10 +213,10 @@
 /* ── percentile track ──────────────────────────────────────────────────── */
 .v13 .v13-pct {
   display: inline-block; position: relative; vertical-align: middle;
-  width: 56px; height: 3px; border-radius: 2px; background: var(--v13-surface-3);
+  width: 56px; height: 3px; border-radius: var(--r-2); background: var(--v13-surface-3);
 }
 .v13 .v13-pct i {
-  position: absolute; top: -2px; width: 2px; height: 7px; border-radius: 1px;
+  position: absolute; top: -2px; width: 2px; height: 7px; border-radius: var(--r-1);
   background: var(--v13-ink-2);
   transition: height var(--v13-fast) var(--v13-ease), top var(--v13-fast) var(--v13-ease);
 }
@@ -289,22 +226,22 @@
 
 /* ── stat ──────────────────────────────────────────────────────────────── */
 .v13 .v13-stat .k {
-  font-size: var(--v13-t1); font-weight: 700; letter-spacing: 0.09em;
+  font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.09em;
   text-transform: uppercase; color: var(--v13-ink-3);
 }
 .v13 .v13-stat .v {
-  font-family: var(--mt-type-mono); font-size: var(--v13-t5); font-weight: 500;
+  font-family: var(--mt-type-mono); font-size: var(--v13-t5); font-weight: var(--fw-500);
   letter-spacing: -0.02em; line-height: 1.2;
 }
 .v13 .v13-stat .v small {
-  font-family: var(--mt-type-sans); font-size: var(--v13-t2); font-weight: 500; color: var(--v13-ink-3);
+  font-family: var(--mt-type-sans); font-size: var(--v13-t2); font-weight: var(--fw-500); color: var(--v13-ink-3);
 }
 .v13 .v13-statrow { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--v13-s3); }
 
 /* ── editorial: the ONLY serif surface, plus the wordmark ──────────────── */
 .v13 .v13-read h3 {
   margin: 0 0 var(--v13-s2);
-  font-family: var(--mt-type-serif); font-size: var(--v13-t5); font-weight: 400;
+  font-family: var(--mt-type-serif); font-size: var(--v13-t5); font-weight: var(--fw-400);
   line-height: 1.32; letter-spacing: -0.01em; text-wrap: balance;
 }
 .v13 .v13-read p {
@@ -315,8 +252,8 @@
 
 /* ── controls ──────────────────────────────────────────────────────────── */
 .v13 .v13-btn {
-  font: inherit; font-size: var(--v13-t2); font-weight: 600; cursor: pointer;
-  padding: 5px 10px; border-radius: var(--v13-r);
+  font: inherit; font-size: var(--v13-t2); font-weight: var(--fw-600); cursor: pointer;
+  padding: var(--sp-5) var(--sp-10); border-radius: var(--v13-r);
   border: 1px solid var(--v13-rule-2); background: var(--v13-surface); color: var(--v13-ink-2);
   transition: color var(--v13-fast) var(--v13-ease),
               border-color var(--v13-fast) var(--v13-ease),
@@ -324,16 +261,16 @@
 }
 .v13 .v13-btn:hover { color: var(--v13-ink); border-color: var(--v13-ink-3); background: var(--v13-surface-3); }
 .v13 .v13-btn:active { transform: translateY(1px); }
-.v13 .v13-btn.on { background: var(--v13-accent); border-color: var(--v13-accent); color: #fff; }
-[data-mt-theme='dark'] .v13 .v13-btn.on { color: #0F1114; }
+.v13 .v13-btn.on { background: var(--v13-accent); border-color: var(--v13-accent); color: var(--c-ffffff); }
+[data-mt-theme='dark'] .v13 .v13-btn.on { color: var(--c-0f1114); }
 .v13 .v13-input {
   font: inherit; font-size: var(--v13-t3); width: 100%;
-  padding: 6px 10px; border-radius: var(--v13-r);
+  padding: var(--sp-6) var(--sp-10); border-radius: var(--v13-r);
   border: 1px solid var(--v13-rule-2); background: var(--v13-surface); color: var(--v13-ink);
   transition: border-color var(--v13-fast) var(--v13-ease), box-shadow var(--v13-fast) var(--v13-ease);
 }
 .v13 .v13-input::placeholder { color: var(--v13-ink-3); }
-.v13 .v13-input:focus { outline: 0; border-color: var(--v13-accent); box-shadow: 0 0 0 3px var(--v13-accent-soft); }
+.v13 .v13-input:focus { outline: 0; border-color: var(--v13-accent); box-shadow: var(--shx-4); }
 
 /* ── motion ────────────────────────────────────────────────────────────── */
 .v13 .v13-enter { animation: v13enter var(--v13-med) var(--v13-ease); }
@@ -341,7 +278,7 @@
 .v13 .v13-rise { opacity: 0; transform: translateY(8px); }
 .v13 .v13-rise.in {
   opacity: 1; transform: none;
-  transition: opacity 500ms var(--v13-ease), transform 500ms var(--v13-ease);
+  transition: opacity var(--dur-500) var(--v13-ease), transform var(--dur-500) var(--v13-ease);
 }
 
 /* FAILSAFE — content must never stay invisible because an observer did not
@@ -352,7 +289,7 @@
    zero-duration, 3s-delayed animation forces them visible regardless; if the
    observer does fire first, the normal transition has already run and this
    changes nothing. A reveal is a flourish, never a gate on readability. */
-.v13 .rv:not(.in) { animation: v13reveal-failsafe 0s linear 3s forwards; }
+.v13 .rv:not(.in) { animation: v13reveal-failsafe 0s linear var(--dur-3000) forwards; }
 @keyframes v13reveal-failsafe { to { opacity: 1; transform: none; filter: none; } }
 
 /* Reduced motion kills all of it. A page must never depend on an animation

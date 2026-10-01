@@ -22,17 +22,6 @@
    which follow the OS colour scheme. Mounted inside the always-light modern app
    it would otherwise render dark on a phone set to dark mode, mismatching the
    page. Pin the wrapper to the light palette so the card always matches. */
-.mt-overhaul .mt-main-wrap {
-  --surface:        #ffffff;
-  --surface-1:      #ffffff;
-  --surface-2:      #f4f5f7;
-  --text:           #0e1115;
-  --text-muted:     #5e5e63;
-  --border:         rgba(14, 17, 21, 0.10);
-  --border-strong:  rgba(14, 17, 21, 0.18);
-  --border-faint:   rgba(14, 17, 21, 0.06);
-  --shadow-sm:      0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
-}
 
 /* ─────────────────────────────────────────────────────────────────────────
    TABLET / LARGE PHONE — ≤ 900px : collapse the shell to a single column.
@@ -52,11 +41,11 @@
     z-index: 10;
     align-items: center;
     flex-wrap: wrap;
-    gap: 4px 6px;
+    gap: var(--sp-4) var(--sp-6);
     background: color-mix(in oklab, var(--mt-surface) 88%, transparent);
     border-bottom: 1px solid var(--mt-line-0);
     backdrop-filter: blur(20px);
-    padding: 8px 14px;
+    padding: var(--sp-8) var(--sp-14);
   }
   .mt-overhaul .mt-topnav .mt-pill { flex: 0 0 auto; white-space: nowrap; }
 
@@ -65,11 +54,11 @@
     margin-left: auto;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--sp-8);
   }
   .mt-overhaul .mt-topnav-signin {
     color: var(--mt-accent);
-    font-weight: 600;
+    font-weight: var(--fw-600);
     font-size: var(--v13-t3);
     text-decoration: none;
     white-space: nowrap;
@@ -86,27 +75,26 @@
   .mt-overhaul .mt-topnav-signout {
     background: transparent;
     border: 1px solid var(--mt-line-1);
-    border-radius: 6px;
+    border-radius: var(--r-6);
     color: var(--mt-ink-2);
     font-size: var(--v13-t2);
-    padding: 3px 8px;
+    padding: var(--sp-3) var(--sp-8);
     cursor: pointer;
     white-space: nowrap;
   }
 
   /* Tighten the global page padding token so content gets the full width. */
-  .mt-overhaul { --mt-pad-page: 18px; }
 
   /* Header: let it wrap instead of forcing a 3-column auto/1fr/auto row. */
   .mt-overhaul .mt-header {
     grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 12px var(--mt-pad-page);
+    gap: var(--sp-10);
+    padding: var(--sp-12) var(--mt-pad-page);
   }
   .mt-overhaul .mt-search { min-width: 0 !important; width: 100%; }
 
   .mt-overhaul .mt-pagehero { grid-template-columns: 1fr !important; }
-  .mt-overhaul .mt-pagesection { padding: 22px var(--mt-pad-page); }
+  .mt-overhaul .mt-pagesection { padding: var(--sp-22) var(--mt-pad-page); }
 
   /* ── Overflow containment (the "overhangs") ────────────────────────────
      Grid and flex items default to `min-width:auto`, so a long headline or a
@@ -130,7 +118,6 @@
    column and cap the oversized display headlines.
    ───────────────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .mt-overhaul { --mt-pad-page: 14px; }
 
   /* Home */
   .mt-overhaul .hm-todaygrid,
@@ -146,7 +133,7 @@
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    gap: 8px;
+    gap: var(--sp-8);
   }
   .mt-overhaul .mc-domcell { flex: 0 0 auto; min-width: 150px; }
 
@@ -201,7 +188,7 @@
    ───────────────────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   /* Shell: trim the desktop side padding so content gets the full width. */
-  .mt-overhaul .home-v11 .shell { padding: 14px 14px 22px !important; }
+  .mt-overhaul .home-v11 .shell { padding: var(--sp-14) var(--sp-14) var(--sp-22) !important; }
 
   /* Editorial + data-rail layout → single column. */
   .mt-overhaul .home-v11 .layout { grid-template-columns: 1fr !important; }
@@ -218,7 +205,7 @@
 
   /* Editorial headline cap so it never overflows the card. */
   .mt-overhaul .home-v11 .editorial h1 { font-size: var(--v13-t6)!important; }
-  .mt-overhaul .home-v11 .editorial { padding: 18px 16px 20px !important; }
+  .mt-overhaul .home-v11 .editorial { padding: var(--sp-18) var(--sp-16) var(--sp-20) !important; }
 }
 
 @media (max-width: 640px) {
@@ -286,13 +273,13 @@
     -webkit-overflow-scrolling: touch;
   }
   .mt-overhaul .me-section,
-  .mt-overhaul .home-v11.methodology-page .me-section { overflow-x: hidden; padding-left: 16px; padding-right: 16px; }
+  .mt-overhaul .home-v11.methodology-page .me-section { overflow-x: hidden; padding-left: var(--sp-16); padding-right: var(--sp-16); }
   /* Each section is a `80px number | content` grid (proto-pages.css). The
      content column is a grid item whose default min-width:auto lets the
      vendors table's intrinsic width (~433px) blow the 1fr track past the
      card — every sibling then renders 433px wide and clips. Unlock the
      track and stack the number above the content at phone width. */
-  .mt-overhaul .me-section { grid-template-columns: 1fr !important; row-gap: 6px; }
+  .mt-overhaul .me-section { grid-template-columns: 1fr !important; row-gap: var(--sp-6); }
   .mt-overhaul .me-section > * { min-width: 0 !important; }
   .mt-overhaul .me-num { font-size: var(--v13-t6)!important; }
   .mt-overhaul .me-formula,
@@ -311,9 +298,9 @@
 @media (max-width: 900px) {
   .home-v12 .ind { grid-template-columns: 1fr !important; }
   .home-v12 .engine-card { grid-template-columns: 1fr !important; }
-  .home-v12 .idea-facts { grid-template-columns: 1fr !important; gap: 14px 0 !important; }
+  .home-v12 .idea-facts { grid-template-columns: 1fr !important; gap: var(--sp-14) 0 !important; }
   .home-v12 .idea-modal-facts { grid-template-columns: 1fr !important; }
-  .home-v12 .bgrid { gap: 18px !important; }
+  .home-v12 .bgrid { gap: var(--sp-18) !important; }
 }
 @media (max-width: 640px) {
   .home-v12 .tape .row { grid-template-columns: repeat(3, 1fr) !important; }
@@ -347,10 +334,10 @@
   .home-v12 section.sc-hero > * { min-width: 0 !important; }
 }
 @media (max-width: 900px) {
-  .home-v12.scanner-v12 .sc-tablecard { border-radius: 28px !important; padding: 10px !important; }
-  .home-v12.scanner-v12 .sc-inset { margin: 10px 10px 14px !important; }
-  .home-v12.scanner-v12 .ce-note { margin: 10px 10px 0 !important; }
-  .home-v12.scanner-v12 .sc-panelhead { padding: 22px 18px 12px !important; }
+  .home-v12.scanner-v12 .sc-tablecard { border-radius: var(--r-28) !important; padding: var(--sp-10) !important; }
+  .home-v12.scanner-v12 .sc-inset { margin: var(--sp-10) var(--sp-10) var(--sp-14) !important; }
+  .home-v12.scanner-v12 .ce-note { margin: var(--sp-10) var(--sp-10) 0 !important; }
+  .home-v12.scanner-v12 .sc-panelhead { padding: var(--sp-22) var(--sp-18) var(--sp-12) !important; }
 }
 
 /* ── home-v12 Portfolio Lab (2026-07-27, LESSONS 8.7 / 8.10) — the controls
@@ -366,8 +353,8 @@
 @media (max-width: 900px) {
   .home-v12.lab-v12 .lab-controls { grid-template-columns: 1fr !important; }
   .home-v12.lab-v12 .lab-controls > * { min-width: 0 !important; }
-  .home-v12.lab-v12 .lab-card { padding: 22px 18px 20px !important; border-radius: 28px !important; }
-  .home-v12.lab-v12 .lab-cardhead { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .home-v12.lab-v12 .lab-card { padding: var(--sp-22) var(--sp-18) var(--sp-20) !important; border-radius: var(--r-28) !important; }
+  .home-v12.lab-v12 .lab-cardhead { flex-direction: column; align-items: flex-start; gap: var(--sp-10); }
   .home-v12.lab-v12 .lab-add input { width: 100% !important; }
   .home-v12.lab-v12 .lab-add { width: 100%; }
   .home-v12.lab-v12 .lab-add-menu { left: 0; right: auto; }

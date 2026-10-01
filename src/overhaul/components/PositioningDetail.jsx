@@ -76,39 +76,39 @@ export default function PositioningDetail({ item, domain, blurb, onClose }) {
   );
   const hasComm = comm != null && commPts.some((p) => p[1] != null);
 
-  const label = { fontSize: 'var(--v13-t1)', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mt-ink-3)', fontWeight: 700 };
-  const statV = { fontSize: 'var(--v13-t5)', fontWeight: 400, letterSpacing: '-0.02em', marginTop: 2 };
+  const label = { fontSize: 'var(--v13-t1)', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mt-ink-3)', fontWeight: 'var(--fw-700)' };
+  const statV = { fontSize: 'var(--v13-t5)', fontWeight: 'var(--fw-400)', letterSpacing: '-0.02em', marginTop: 'var(--sp-2)' };
   const accent = spec >= 90 || spec <= 10 ? 'var(--mt-down)' : spec >= 75 || spec <= 25 ? 'var(--mt-warn)' : 'var(--mt-ink-0)';
 
   return (
-    <div className="mt-card mt-fade ind-detail" style={{ marginTop: 0, padding: 24 }}>
-      <header style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap', marginBottom: 14 }}>
+    <div className="mt-card mt-fade ind-detail" style={{ marginTop: 0, padding: 'var(--sp-24)' }}>
+      <header style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--sp-16)', flexWrap: 'wrap', marginBottom: 'var(--sp-14)' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="mt-eyebrow">{domain ? `${domain} · Positioning` : 'Positioning'}</div>
-          <div style={{ fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t6)', fontWeight: 400, letterSpacing: '-0.02em', margin: '4px 0 0', lineHeight: 1.1 }}>
+          <div style={{ fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t6)', fontWeight: 'var(--fw-400)', letterSpacing: '-0.02em', margin: 'var(--sp-4) 0 0', lineHeight: 1.1 }}>
             {market}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div className="num" style={{ fontSize: 'var(--v13-t6)', fontWeight: 400, color: accent, lineHeight: 1 }}>
+          <div className="num" style={{ fontSize: 'var(--v13-t6)', fontWeight: 'var(--fw-400)', color: accent, lineHeight: 1 }}>
             {ord(spec)}
           </div>
-          <div style={{ ...label, marginTop: 4 }}>Speculator percentile</div>
+          <div style={{ ...label, marginTop: 'var(--sp-4)' }}>Speculator percentile</div>
         </div>
       </header>
 
       {blurb && (
-        <p style={{ fontSize: 'var(--v13-t4)', lineHeight: 1.6, color: 'var(--mt-ink-1)', margin: '0 0 14px' }}>
+        <p style={{ fontSize: 'var(--v13-t4)', lineHeight: 1.6, color: 'var(--mt-ink-1)', margin: '0 0 var(--sp-14)' }}>
           {blurb}
         </p>
       )}
 
-      <p style={{ fontSize: 'var(--v13-t4)', lineHeight: 1.6, color: 'var(--mt-ink-1)', margin: '0 0 18px' }}>
+      <p style={{ fontSize: 'var(--v13-t4)', lineHeight: 1.6, color: 'var(--mt-ink-1)', margin: '0 0 var(--sp-18)' }}>
         {specRead(market, spec, specNet)}
       </p>
 
       {div && (
-        <div style={{ border: '1px solid var(--mt-warn)', borderRadius: 'var(--mt-r-md)', padding: '10px 14px', marginBottom: 18, fontSize: 'var(--v13-t3)', lineHeight: 1.55, color: 'var(--mt-ink-1)' }}>
+        <div style={{ border: '1px solid var(--mt-warn)', borderRadius: 'var(--mt-r-md)', padding: 'var(--sp-10) var(--sp-14)', marginBottom: 'var(--sp-18)', fontSize: 'var(--v13-t3)', lineHeight: 1.55, color: 'var(--mt-ink-1)' }}>
           <b>Divergence.</b> Speculators and commercial hedgers sit at opposite three-year extremes.
           The people who use the physical commodity are taking the other side of the crowd — historically
           the more informed side of that trade.
@@ -116,17 +116,17 @@ export default function PositioningDetail({ item, domain, blurb, onClose }) {
       )}
 
       {/* ── percentile bars ── */}
-      <div style={{ display: 'grid', gap: 22, marginBottom: 26 }}>
+      <div style={{ display: 'grid', gap: 'var(--sp-22)', marginBottom: 'var(--sp-26)' }}>
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--sp-7)' }}>
             <span style={label}>Speculators — the crowd</span>
             <span className="num" style={{ fontSize: 'var(--v13-t3)', color: 'var(--mt-ink-1)' }}>{ord(spec)} percentile</span>
           </div>
           <PercentileBar pct={spec} direction="bw" />
         </div>
         {hasComm && (
-          <div style={{ marginTop: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>
+          <div style={{ marginTop: 'var(--sp-8)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--sp-7)' }}>
               <span style={label}>Commercial hedgers — the users</span>
               <span className="num" style={{ fontSize: 'var(--v13-t3)', color: 'var(--mt-ink-1)' }}>{ord(comm)} percentile</span>
             </div>
@@ -136,21 +136,21 @@ export default function PositioningDetail({ item, domain, blurb, onClose }) {
       </div>
 
       {/* ── the numbers ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, padding: '16px 0', borderTop: '1px solid var(--mt-line-1)', borderBottom: '1px solid var(--mt-line-1)', marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--sp-16)', padding: 'var(--sp-16) 0', borderTop: '1px solid var(--mt-line-1)', borderBottom: '1px solid var(--mt-line-1)', marginBottom: 'var(--sp-20)' }}>
         <div>
           <div style={label}>Speculator net</div>
-          <div className="num" style={statV}>{signed(specNet)}<span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', marginLeft: 4 }}>% of OI</span></div>
+          <div className="num" style={statV}>{signed(specNet)}<span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', marginLeft: 'var(--sp-4)' }}>% of OI</span></div>
         </div>
         {commNet != null && (
           <div>
             <div style={label}>Hedger net</div>
-            <div className="num" style={statV}>{signed(commNet)}<span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', marginLeft: 4 }}>% of OI</span></div>
+            <div className="num" style={statV}>{signed(commNet)}<span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', marginLeft: 'var(--sp-4)' }}>% of OI</span></div>
           </div>
         )}
         {oi != null && (
           <div>
             <div style={label}>Open interest</div>
-            <div className="num" style={statV}>{Number(oi).toLocaleString()}<span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', marginLeft: 4 }}>contracts</span></div>
+            <div className="num" style={statV}>{Number(oi).toLocaleString()}<span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', marginLeft: 'var(--sp-4)' }}>contracts</span></div>
           </div>
         )}
         <div>
@@ -162,7 +162,7 @@ export default function PositioningDetail({ item, domain, blurb, onClose }) {
       {/* ── history ── */}
       {specPts.length > 1 && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-12)', flexWrap: 'wrap', marginBottom: 'var(--sp-10)' }}>
             <div style={label}>Net position as a share of open interest</div>
             <div className="mt-pillgroup">
               {['1Y', '3Y', 'Max'].map((t) => (
@@ -187,7 +187,7 @@ export default function PositioningDetail({ item, domain, blurb, onClose }) {
             yFormat={(v) => `${v.toFixed(0)}%`}
             overlays={hasComm ? [{ points: commPts, color: 'var(--mt-ink-3)', label: 'Hedgers', dash: '4 3' }] : []}
           />
-          <p style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)', margin: '8px 0 0', lineHeight: 1.55 }}>
+          <p style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)', margin: 'var(--sp-8) 0 0', lineHeight: 1.55 }}>
             Weekly, from the CFTC Commitments of Traders report. Above zero is net long, below zero net short.
             The percentiles above rank today's reading inside its own trailing 156-week range — so a high
             percentile means crowded relative to this market's own history, not relative to any other market.
@@ -195,7 +195,7 @@ export default function PositioningDetail({ item, domain, blurb, onClose }) {
         </>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--mt-line-1)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-12)', flexWrap: 'wrap', marginTop: 'var(--sp-20)', paddingTop: 'var(--sp-14)', borderTop: '1px solid var(--mt-line-1)' }}>
         <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>
           Source: <b style={{ color: 'var(--mt-ink-2)' }}>CFTC</b> · Commitments of Traders, published Fridays for the prior Tuesday
         </div>

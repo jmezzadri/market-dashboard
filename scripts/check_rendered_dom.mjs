@@ -34,13 +34,32 @@
 //   3. FILES a P0 into Supabase bug_reports on any violation (same pattern as
 //      scripts/check_producer_contracts.py), so triage sees it before Joe.
 //
+//   4. (2026-10-01, Joe: "mobile is a release requirement") RENDERS EVERY
+//      PUBLIC PAGE AT 390px WIDE and FAILS if the page scrolls horizontally
+//      or any element overflows the viewport. A table that scrolls inside
+//      its own wrapper is allowed (the wrapper is a deliberate scroller);
+//      text cut off by the screen edge or by an overflow:hidden box is not.
+//      The check must pass before any UI PR is opened, so BASE_URL can point
+//      it at a local build or a Vercel preview.
+//
 // Usage: node scripts/check_rendered_dom.mjs
 // Env:   EXPECT_MARKET_CLOSED=1  → assert no "live" stamps (pre-open runs)
 //        SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY → enable bug filing
+//        BASE_URL=http://localhost:4321 → check a build/preview instead of prod
+//        PW_CHROMIUM=/path/to/chrome → executable for playwright-core (local)
 
-import { chromium } from 'playwright';
+// CI installs `playwright`; the repo's own devDependency is `playwright-core`
+// (PW_CHROMIUM names the browser), so a local run works without an install.
+const { chromium } = await import('playwright').catch(() => import('playwright-core'));
 
-const LIVE_BASE = 'https://macrotilt.com';
+const LIVE_BASE = process.env.BASE_URL || 'https://macrotilt.com';
+const IS_PROD = LIVE_BASE === 'https://macrotilt.com';
+const LAUNCH = process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {};
+
+// Every public route (sign-in-gated pages render their gate, which is also a page).
+const MOBILE_PAGES = ['/', '/macro', '/paper', '/scorecard', '/portfolio-lab', '/methodology',
+  '/ticker/AAPL', '/admin/data', '/about', '/terms', '/privacy', '/disclaimer', '/signin'];
+const PHONE = 390;
 
 // Session state comes from the actual clock, never from the event type.
 // A "pre-open" cron delivered during market hours (GitHub delay, routinely
@@ -156,6 +175,71 @@ async function checkPaper(browser) {
   await page.close();
 }
 
+// ── 390px: no horizontal scroll, nothing cut off ───────────────────────
+async function checkMobile(browser) {
+  for (const theme of ['light', 'navy']) {
+    const ctx = await browser.newContext({ viewport: { width: PHONE, height: 844 }, deviceScaleFactor: 1 });
+    await ctx.addInitScript((t) => { try { localStorage.setItem('mt.overhaul.theme', t); } catch {} }, theme);
+    for (const path of MOBILE_PAGES) {
+      const page = await ctx.newPage();
+      try {
+        await page.goto(`${LIVE_BASE}${path}`, { waitUntil: 'networkidle', timeout: 90_000 });
+      } catch (e) {
+        violations.push(`[mobile ${theme} ${path}] did not load at ${PHONE}px: ${e.message.split('\n')[0]}`);
+        await page.close();
+        continue;
+      }
+      await page.waitForTimeout(4_000);
+      const r = await page.evaluate(() => {
+        const vw = document.documentElement.clientWidth;
+        window.scrollTo(10_000, 0);
+        const scrolled = window.scrollX;
+        window.scrollTo(0, 0);
+        const sw = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+        const scroller = (el) => {
+          for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+            const o = getComputedStyle(a).overflowX;
+            if (o === 'auto' || o === 'scroll') return 'scroller';
+            if (o === 'hidden' || o === 'clip') return 'hidden';
+          }
+          return null;
+        };
+        const over = [];
+        for (const el of document.querySelectorAll('body *')) {
+          const cs = getComputedStyle(el);
+          if (cs.display === 'none' || cs.visibility === 'hidden' || cs.position === 'fixed') continue;
+          const b = el.getBoundingClientRect();
+          if (!b.width || !b.height) continue;
+          // A box can sit inside the screen while its own text runs past it
+          // (white-space: nowrap) — judge the content edge, not the box edge.
+          // SVG children are judged by their <svg> box (viewBox scaling makes
+          // their own geometry meaningless here); HTML boxes by content edge.
+          if (!(el instanceof HTMLElement) && !(el instanceof SVGSVGElement)) continue;
+          const contentRight = el instanceof HTMLElement && cs.overflowX === 'visible' ? Math.max(b.right, b.left + (el.scrollWidth || 0)) : b.right;
+          if (contentRight <= vw + 1) continue;
+          const kind = scroller(el);
+          if (kind === 'scroller') continue;                 // inside a deliberate horizontal scroller
+          const hasText = (el.innerText ?? el.textContent ?? '').trim().length > 0;
+          if (kind === 'hidden' && !hasText) continue;       // decorative, clipped on purpose
+          over.push(`${el.tagName.toLowerCase()}${typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : ''} right=${Math.round(contentRight)}px${hasText ? ' "' + (el.innerText ?? el.textContent ?? '').trim().slice(0, 30).replace(/\s+/g, ' ') + '"' : ''} in ${el.parentElement ? el.parentElement.tagName.toLowerCase() + '.' + String(el.parentElement.getAttribute('class') || '').split(' ')[0] : '?'}`);
+          if (over.length >= 8) break;
+        }
+        return { vw, sw, scrolled, over };
+      });
+      const tag = `[mobile ${theme} ${path}]`;
+      if (r.scrolled > 0 || r.sw > r.vw + 1) {
+        violations.push(`${tag} page scrolls horizontally at ${PHONE}px (content ${r.sw}px wide, scrollX ${r.scrolled})`);
+      }
+      if (r.over.length) {
+        violations.push(`${tag} ${r.over.length}+ element(s) overflow the ${PHONE}px viewport: ${r.over.join('; ')}`);
+      }
+      console.log(`MOBILE ${theme} ${path}: width=${r.sw} scrollX=${r.scrolled} overflow=${r.over.length}`);
+      await page.close();
+    }
+    await ctx.close();
+  }
+}
+
 async function fileBug() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -194,10 +278,11 @@ async function fileBug() {
   }
 }
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(LAUNCH);
 try {
   await checkHome(browser);
   await checkPaper(browser);
+  await checkMobile(browser);
 } finally {
   await browser.close();
 }
@@ -205,7 +290,7 @@ try {
 if (violations.length > 0) {
   console.log('\nRENDERED-DOM SMOKE: FAIL');
   for (const v of violations) console.log(`  ✗ ${v}`);
-  await fileBug();
+  if (IS_PROD) await fileBug();   // a preview/local failure blocks the PR; it is not a live-site bug
   process.exit(1);
 }
 console.log('\nRENDERED-DOM SMOKE: PASS (expect_market_closed intent=' + EXPECT_CLOSED_INTENT + ' effective=' + EXPECT_CLOSED + ')');

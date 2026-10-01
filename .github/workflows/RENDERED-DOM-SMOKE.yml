@@ -32,10 +32,27 @@ name: RENDERED-DOM-SMOKE
 # On any violation the script files a P0 into Supabase bug_reports (same
 # pattern as check_producer_contracts.py) and the run goes red.
 
+# 2026-10-01 (Joe: "mobile is a release requirement"): the script now also
+# renders every public page at 390px wide and fails on horizontal scroll or
+# any element overflowing the viewport. It runs on every frontend PR against
+# the PR's own build, so a mobile failure blocks the PR, and can be pointed at
+# any URL by hand (a Vercel preview) via the base_url input.
+
 on:
   schedule:
     - cron: "10 11 * * 1-5"
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: "URL to check (default: live site)"
+        required: false
+        default: "https://macrotilt.com"
+  pull_request:
+    paths:
+      - "src/**"
+      - "index.html"
+      - "scripts/check_rendered_dom.mjs"
+      - ".github/workflows/RENDERED-DOM-SMOKE.yml"
 
 jobs:
   rendered-smoke:
@@ -51,14 +68,32 @@ jobs:
         with:
           node-version: "20"
 
+      # On a PR, check THIS branch's build, not production. This runs BEFORE the
+      # Playwright install: `npm ci` wipes node_modules, which is how the first
+      # PR run lost the browser it had just installed.
+      - name: Build and serve the PR
+        if: github.event_name == 'pull_request'
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          npm ci
+          npm run build
+          npx --yes serve -s dist -l 4321 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:4321/ >/dev/null && break
+            sleep 1
+          done
+
       - name: Install Playwright Chromium
         run: |
           npm install --no-save playwright
           npx playwright install --with-deps chromium
 
-      - name: Render the live site and check what it says
+      - name: Render the site and check what it says (and that it fits a phone)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           EXPECT_MARKET_CLOSED: ${{ github.event_name == 'schedule' && '1' || '0' }}
+          BASE_URL: ${{ github.event_name == 'pull_request' && 'http://localhost:4321' || (github.event.inputs.base_url || 'https://macrotilt.com') }}
         run: node scripts/check_rendered_dom.mjs

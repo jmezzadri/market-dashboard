@@ -25,17 +25,17 @@ export default class ErrorBoundary extends React.Component {
     if (!this.state.hasError) return this.props.children;
     return (
       <div className="v2-root" style={{ minHeight: '60vh' }}>
-        <div className="v2-shell" style={{ padding: '64px 0' }}>
-          <div className="t-eyebrow accent" style={{ marginBottom: 12 }}>This tab hit a snag</div>
+        <div className="v2-shell" style={{ padding: 'var(--sp-64) 0' }}>
+          <div className="t-eyebrow accent" style={{ marginBottom: 'var(--sp-12)' }}>This tab hit a snag</div>
           <h1 className="t-display" style={{ margin: 0 }}>Try another tab.</h1>
-          <p className="t-body" style={{ marginTop: 14, maxWidth: '52ch' }}>
+          <p className="t-body" style={{ marginTop: 'var(--sp-14)', maxWidth: '52ch' }}>
             One of the panels on this tab failed to render. The rest of the
             site is still working — pick another tab from the side nav.
             If you'd like to log this, the Report Bug button bottom-right
             captures the page state.
           </p>
-          <p className="t-body" style={{ marginTop: 18, fontSize: 'var(--v13-t2)', color: 'var(--ink-2)' }}>
-            <code style={{ background: 'var(--bg-2)', padding: '2px 6px', borderRadius: 4 }}>
+          <p className="t-body" style={{ marginTop: 'var(--sp-18)', fontSize: 'var(--v13-t2)', color: 'var(--ink-2)' }}>
+            <code style={{ background: 'var(--bg-2)', padding: 'var(--sp-2) var(--sp-6)', borderRadius: 'var(--r-4)' }}>
               {this.state.message.slice(0, 200)}
             </code>
           </p>
@@ -43,8 +43,8 @@ export default class ErrorBoundary extends React.Component {
             type="button"
             onClick={this.reset}
             style={{
-              marginTop: 18,
-              padding: '8px 14px',
+              marginTop: 'var(--sp-18)',
+              padding: 'var(--sp-8) var(--sp-14)',
               background: 'var(--bg-1)',
               border: '1px solid var(--line-1)',
               borderRadius: 'var(--r-pill)',

@@ -8,38 +8,38 @@
   background: var(--mt-surface);
   border: 1px solid var(--mt-line-0);
   border-radius: var(--mt-r-lg);
-  padding: 16px 18px;
+  padding: var(--sp-16) var(--sp-18);
   min-width: 280px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--sp-10);
 }
 .mt-overhaul .al-summarygrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  padding-top: 8px;
+  gap: var(--sp-14);
+  padding-top: var(--sp-8);
   border-top: 1px solid var(--mt-line-0);
 }
 .mt-overhaul .al-sumnum {
   font-family: var(--mt-type-sans);
   font-size: var(--v13-t6);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   letter-spacing: -0.02em;
   display: block;
-  margin-top: 2px;
+  margin-top: var(--sp-2);
   color: var(--mt-ink-0);
 }
 .mt-overhaul .al-toolbar {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: var(--sp-18);
   flex-wrap: wrap;
 }
 .mt-overhaul .al-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-8);
 }
 .mt-overhaul .al-table {
   width: 100%;
@@ -51,9 +51,9 @@
   border-bottom: 1px solid var(--mt-line-0);
 }
 .mt-overhaul .al-table th {
-  padding: 10px 14px;
+  padding: var(--sp-10) var(--sp-14);
   text-align: left;
-  font-weight: 600;
+  font-weight: var(--fw-600);
   font-size: var(--v13-t1);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -78,12 +78,12 @@
   background: var(--mt-accent-soft);
 }
 .mt-overhaul .al-table td {
-  padding: 12px 14px;
+  padding: var(--sp-12) var(--sp-14);
   vertical-align: middle;
   color: var(--mt-ink-0);
 }
 .mt-overhaul .al-tkname {
-  font-weight: 600;
+  font-weight: var(--fw-600);
   color: var(--mt-ink-0);
   font-size: var(--v13-t3);
 }
@@ -92,7 +92,7 @@
   color: var(--mt-ink-3);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  margin-top: 1px;
+  margin-top: var(--sp-1);
   font-family: var(--mt-type-mono);
 }
 .mt-overhaul .al-cat {
@@ -100,23 +100,23 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--mt-ink-2);
-  font-weight: 400;
+  font-weight: var(--fw-400);
 }
 .mt-overhaul .al-freq {
   font-size: var(--v13-t2);
-  font-weight: 600;
+  font-weight: var(--fw-600);
   letter-spacing: 0.06em;
   background: var(--mt-surface-3);
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: var(--sp-2) var(--sp-6);
+  border-radius: var(--r-4);
   color: var(--mt-ink-2);
 }
 .mt-overhaul .al-type {
   font-size: var(--v13-t1);
-  font-weight: 700;
+  font-weight: var(--fw-700);
   letter-spacing: 0.10em;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: var(--sp-2) var(--sp-6);
+  border-radius: var(--r-4);
   text-transform: uppercase;
 }
 .mt-overhaul .al-type--extreme {
@@ -133,7 +133,7 @@
 }
 .mt-overhaul .al-current {
   font-size: var(--v13-t3);
-  font-weight: 600;
+  font-weight: var(--fw-600);
 }
 .mt-overhaul .al-current--extreme { color: var(--mt-down); }
 .mt-overhaul .al-current--elevated { color: var(--mt-warn); }
@@ -141,20 +141,20 @@
 .mt-overhaul .al-unit {
   font-size: var(--v13-t1);
   color: var(--mt-ink-2);
-  margin-left: 4px;
-  font-weight: 400;
+  margin-left: var(--sp-4);
+  font-weight: var(--fw-400);
 }
 .mt-overhaul .al-historical {
   color: var(--mt-ink-2);
   font-size: var(--v13-t3);
 }
-.mt-overhaul .al-drill td { padding: 0 14px 14px; background: var(--mt-surface-2); }
+.mt-overhaul .al-drill td { padding: 0 var(--sp-14) var(--sp-14); background: var(--mt-surface-2); }
 .mt-overhaul .al-tablefoot {
-  margin-top: 12px;
+  margin-top: var(--sp-12);
   font-size: var(--v13-t2);
   color: var(--mt-ink-2);
   display: flex;
-  gap: 14px;
+  gap: var(--sp-14);
   align-items: center;
 }
 
@@ -163,16 +163,16 @@
   background: var(--mt-surface);
   border: 1px solid var(--mt-line-0);
   border-radius: var(--mt-r-lg);
-  padding: 18px 20px;
+  padding: var(--sp-18) var(--sp-20);
   min-width: 240px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--sp-6);
 }
 .mt-overhaul .mc-otpval {
   font-family: var(--mt-type-sans);
   font-size: var(--v13-t6);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--mt-ink-0);
@@ -183,22 +183,22 @@
   justify-content: space-between;
   font-size: var(--v13-t2);
   color: var(--mt-ink-1);
-  padding: 2px 0;
+  padding: var(--sp-2) 0;
 }
 .mt-overhaul .mc-domstrip {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
+  gap: var(--sp-12);
 }
 .mt-overhaul .mc-domcell {
   appearance: none;
   border: 1px solid var(--mt-line-0);
   background: var(--mt-surface);
   border-radius: var(--mt-r-lg);
-  padding: 12px 14px;
+  padding: var(--sp-12) var(--sp-14);
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--sp-5);
   text-align: left;
   cursor: pointer;
   transition: border-color var(--mt-dur-fast) var(--mt-ease), background var(--mt-dur-fast) var(--mt-ease);
@@ -217,31 +217,31 @@
   align-items: center;
 }
 .mt-overhaul .mc-domname {
-  font-weight: 600;
+  font-weight: var(--fw-600);
   font-size: var(--v13-t3);
   color: var(--mt-ink-0);
 }
 .mt-overhaul .mc-domnum {
   font-family: var(--mt-type-sans);
   font-size: var(--v13-t6);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   color: var(--mt-down);
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: var(--sp-4);
 }
 .mt-overhaul .mc-domof {
   font-size: var(--v13-t3);
   color: var(--mt-ink-2);
-  font-weight: 400;
+  font-weight: var(--fw-400);
 }
 .mt-overhaul .mc-domlabel {
   font-size: var(--v13-t2);
   color: var(--mt-ink-2);
-  margin-left: 8px;
+  margin-left: var(--sp-8);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-weight: 400;
+  font-weight: var(--fw-400);
   font-family: var(--mt-type-sans);
 }
 .mt-overhaul .mc-domsub {
@@ -250,13 +250,13 @@
 }
 .mt-overhaul .mc-domsumbar {
   display: flex;
-  gap: 3px;
-  margin-top: 4px;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
 }
 .mt-overhaul .mc-domsumdot {
   flex: 1;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--r-2);
   background: var(--mt-line-1);
 }
 .mt-overhaul .mc-domsumdot--extreme { background: var(--mt-down); }
@@ -266,22 +266,22 @@
 .mt-overhaul .mc-filterbar {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: var(--sp-18);
   flex-wrap: wrap;
   background: var(--mt-surface);
   border: 1px solid var(--mt-line-0);
   border-radius: var(--mt-r-lg);
-  padding: 14px 18px;
+  padding: var(--sp-14) var(--sp-18);
 }
 .mt-overhaul .mc-legend {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-8);
 }
 .mt-overhaul .mc-pillcount {
   font-size: var(--v13-t1);
   color: var(--mt-ink-2);
-  margin-left: 4px;
+  margin-left: var(--sp-4);
 }
 .mt-overhaul .mc-grid {
   display: grid;
@@ -290,12 +290,12 @@
 }
 .mt-overhaul .mc-domstate {
   display: flex;
-  gap: 6px;
+  gap: var(--sp-6);
   align-items: center;
 }
 .mt-overhaul .ind-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--sh-19);
 }
 
 /* ── Home Engine Call · sector allocation rows ─────────────────────── */
@@ -309,10 +309,10 @@
   background: transparent;
   display: grid;
   grid-template-columns: 150px 1fr 56px;
-  gap: 12px;
+  gap: var(--sp-12);
   align-items: center;
-  padding: 6px;
-  border-radius: 6px;
+  padding: var(--sp-6);
+  border-radius: var(--r-6);
   font: inherit;
   color: inherit;
   cursor: pointer;
@@ -324,7 +324,7 @@
 .mt-overhaul .hm-allocname {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-8);
   min-width: 0;
   overflow: hidden;
 }
@@ -338,39 +338,39 @@
   position: relative;
   height: 6px;
   background: var(--mt-surface-3);
-  border-radius: 999px;
+  border-radius: var(--r-999);
   overflow: hidden;
 }
 .mt-overhaul .hm-allocbar > span {
   display: block;
   height: 100%;
-  border-radius: 999px;
-  transition: width 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  border-radius: var(--r-999);
+  transition: width var(--dur-600) cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .mt-overhaul .hm-allocpct {
   text-align: right;
   font-family: var(--mt-type-sans);
   font-size: var(--v13-t4);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   color: var(--mt-ink-0);
 }
 .mt-overhaul .hm-allocpct i {
   font-style: normal;
   font-size: var(--v13-t2);
   color: var(--mt-ink-2);
-  margin-left: 1px;
+  margin-left: var(--sp-1);
   font-family: var(--mt-type-sans);
-  font-weight: 400;
+  font-weight: var(--fw-400);
 }
 .mt-overhaul .lm-flowcode {
   display: inline-grid;
   place-items: center;
-  padding: 3px 7px;
-  border-radius: 4px;
+  padding: var(--sp-3) var(--sp-7);
+  border-radius: var(--r-4);
   background: var(--mt-surface-3);
   font-family: var(--mt-type-sans);
   font-size: var(--v13-t2);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   color: var(--mt-ink-2);
   letter-spacing: 0.06em;
 }
@@ -394,7 +394,7 @@
 .mt-overhaul .me-layout {
   display: grid;
   grid-template-columns: 224px minmax(0, 1fr);
-  gap: 64px;
+  gap: var(--sp-64);
   align-items: start;
 }
 .mt-overhaul .me-content { min-width: 0; }
@@ -410,19 +410,19 @@
   margin: 0;
   max-height: calc(100vh - 108px);
   overflow-y: auto;
-  padding: 18px 20px;
+  padding: var(--sp-18) var(--sp-20);
 }
 /* Active section link (driven by scroll-spy IntersectionObserver). */
 .mt-overhaul .me-toc.me-rail a {
   border-left: 2px solid transparent;
-  padding-left: 10px;
-  margin-left: -12px;
+  padding-left: var(--sp-10);
+  margin-left: var(--sp-n12);
   transition: color var(--mt-dur-fast) var(--mt-ease),
               border-color var(--mt-dur-fast) var(--mt-ease);
 }
 .mt-overhaul .me-toc.me-rail a.is-active {
   color: var(--mt-accent);
-  font-weight: 600;
+  font-weight: var(--fw-600);
   border-left-color: var(--mt-accent);
 }
 .mt-overhaul .me-toc.me-rail a.is-active::before { color: var(--mt-accent); }
@@ -435,7 +435,7 @@
     position: static;
     max-height: none;
     overflow: visible;
-    margin-bottom: 28px;
+    margin-bottom: var(--sp-28);
   }
 }
 
@@ -443,7 +443,7 @@
   background: var(--mt-surface);
   border: 1px solid var(--mt-line-0);
   border-radius: var(--mt-r-lg);
-  padding: 18px 22px;
+  padding: var(--sp-18) var(--sp-22);
   min-width: 220px;
   position: sticky;
   top: 80px;
@@ -451,7 +451,7 @@
   overflow-y: auto;
 }
 .mt-overhaul .me-toc ol {
-  margin: 8px 0 0;
+  margin: var(--sp-8) 0 0;
   padding: 0;
   list-style: none;
   counter-reset: section;
@@ -460,8 +460,8 @@
 .mt-overhaul .me-toc a {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  padding: 5px 0;
+  gap: var(--sp-10);
+  padding: var(--sp-5) 0;
   text-decoration: none;
   color: var(--mt-ink-1);
   font-size: var(--v13-t3);
@@ -476,55 +476,55 @@
 }
 .mt-overhaul .me-toc a:hover { color: var(--mt-accent); }
 .mt-overhaul .me-section {
-  padding: 24px 0;
+  padding: var(--sp-24) 0;
   border-top: 1px solid var(--mt-line-0);
-  scroll-margin-top: 80px;
+  scroll-margin-top: var(--sp-80);
 }
 .mt-overhaul .me-section:first-of-type { border-top: none; }
 .mt-overhaul .me-section h2 {
   font-family: var(--mt-type-sans);
   font-size: var(--v13-t6);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   letter-spacing: -0.02em;
-  margin: 0 0 14px;
+  margin: 0 0 var(--sp-14);
   color: var(--mt-ink-0);
 }
 .mt-overhaul .me-section p {
   font-size: var(--v13-t4);
   line-height: 1.65;
   color: var(--mt-ink-1);
-  margin: 0 0 14px;
+  margin: 0 0 var(--sp-14);
   
 }
 .mt-overhaul .me-section h3 {
   font-family: var(--mt-type-sans);
   font-size: var(--v13-t5);
-  font-weight: 400;
+  font-weight: var(--fw-400);
   letter-spacing: -0.01em;
   color: var(--mt-ink-0);
-  margin: 22px 0 8px;
+  margin: var(--sp-22) 0 var(--sp-8);
 }
 .mt-overhaul .me-formula {
   background: var(--mt-surface-2);
   border: 1px solid var(--mt-line-0);
   border-radius: var(--mt-r-md);
-  padding: 14px 18px;
+  padding: var(--sp-14) var(--sp-18);
   font-family: var(--mt-type-mono);
   font-size: var(--v13-t3);
   color: var(--mt-ink-0);
-  margin: 12px 0 16px;
+  margin: var(--sp-12) 0 var(--sp-16);
   overflow-x: auto;
 }
 .mt-overhaul .me-vendortbl {
   width: 100%;
   border-collapse: collapse;
-  margin: 12px 0;
+  margin: var(--sp-12) 0;
   font-size: var(--v13-t3);
 }
 .mt-overhaul .me-vendortbl th,
 .mt-overhaul .me-vendortbl td {
   text-align: left;
-  padding: 8px 12px;
+  padding: var(--sp-8) var(--sp-12);
   border-bottom: 1px solid var(--mt-line-0);
 }
 .mt-overhaul .me-vendortbl th {
@@ -532,6 +532,6 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--mt-ink-2);
-  font-weight: 600;
+  font-weight: var(--fw-600);
   background: var(--mt-surface-2);
 }
