@@ -234,6 +234,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.21` A row that truncates hides in proportion to how much there is to see; a "see all" link lands on the thing it names
 - `9.22` Visual feedback is systemic: change the token, not the component, and list every page affected; never hard-code a style value in a component
 - `9.23` Every UI change is verified at 390, 820 and 1440 wide, in light and dark, before the PR is opened; a mobile failure blocks the PR
+- `9.24` A screenshot pass is not a UAT. Review every page at full size, in both themes, with every modal, drill, sheet and toggle exercised, and check settled frames — never thumbnails, never mid-animation
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2289,6 +2290,19 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 **Rule (Joe, verbatim):** *"Every UI change is verified at 390, 820 and 1440 wide, in light and dark, before the PR is opened. A mobile failure blocks the PR."* The check that enforces it is `scripts/check_rendered_dom.mjs` (RENDERED-DOM-SMOKE): it renders every public page at 390px in both themes and fails on horizontal scroll or any element overflowing the viewport; it runs on every frontend PR against the PR's own build and can be pointed at any URL (`BASE_URL`). At 390: no horizontal scroll, nothing cut off, tap targets at least 44px (`--mt-tap`), body text at least 14px, nav reachable, Home tiles in the order engine · brief · trade idea · upcoming data. The six screenshots per page (3 widths × 2 themes) are taken BEFORE and AFTER and diffed; a difference nobody intended is a bug.
 
 **Applies to:** Lead Developer on every PR touching `src/`; UX Designer signs off on the phone screenshots, not only the desktop ones.
+
+### 9.24 (2026-10-01) — A screenshot pass is not a UAT. Review every page at full size, both themes, every modal / drill / sheet / toggle, on settled frames.
+
+**What happened:** PR 2 (Liquid Glass) was "verified" from 14-page contact sheets scaled to thumbnails. At full size: Methodology sections had no inner padding (text flush to the glass edge) and a giant ghost number, the Data page's lineage lines were hidden behind columns that had been turned into cards and its tiles had gone pill-shaped, the contents rail and the Data detail panel had lost `position: sticky` to the card rule's `position: relative`, the modal veil had been remapped to an OPAQUE colour (the alpha-primitive remap collapsed every `--c-xxxxxx-aNN` onto a solid palette colour), an opened Home headline spilled out of its tile, and the Macro tiles painted square mid-animation because a transform on a backdrop-filtered card makes Chrome/Safari drop the rounded clip for the whole animation. Joe found three of these in a minute on the live site.
+
+**Rules:**
+1. UAT means: every page at 1440 / 820 / 390, light and dark, viewed at 1:1 (crop the full-page capture into viewport-sized frames and read each one), AND every interaction exercised in the browser — each modal, drill, nav sheet, theme toggle, tile selection, expand/collapse — with a screenshot of the settled state. Thumbnails only show that a page rendered.
+2. Capture after animations settle (or with animations frozen) AND once mid-animation; a glass card with `backdrop-filter` must never animate or hover with a `transform` — opacity and shadow only.
+3. Page-polish rules must be written at the page-root specificity (`.v13.home-v12.<page>`), because `pages-v13.css` declares its rules at that weight and anything lighter silently loses.
+4. Alpha primitives keep their alpha when remapped: a veil, scrim or shadow token becomes `rgba(ink, A)` / `rgba(white, A)`, never a solid palette colour.
+5. A sticky element (TOC rail, detail panel) that is also a glass card needs `position: sticky` restated after the card rule.
+
+**Applies to:** Lead Developer before every "done"; UX Designer's sign-off is on the full-size frames and the interaction shots, not the sheet.
 
 # 10 · THE PUBLISHED BOOK — trade ideas & notes
 
