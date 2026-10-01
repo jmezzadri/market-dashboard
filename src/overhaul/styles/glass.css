@@ -22,7 +22,10 @@ html, body, #root { background: var(--lg-ground); }
 @keyframes lg-drift1 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(140px, 90px) scale(1.18); } }
 @keyframes lg-drift2 { 0%, 100% { transform: translate(0, 0) scale(1.1); } 50% { transform: translate(-160px, -70px) scale(0.92); } }
 @keyframes lg-drift3 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(90px, -120px) scale(1.25); } }
-@keyframes lg-rise { from { opacity: 0; transform: translateY(22px) scale(0.985); } to { opacity: 1; transform: none; } }
+/* opacity only: a transform on a backdrop-filtered card makes Chrome/Safari
+   paint the blur layer square (ignoring the rounded clip) for the whole
+   animation — the "overlapping tiles" Joe saw on Macro, 2026-10-01. */
+@keyframes lg-rise { from { opacity: 0; } to { opacity: 1; } }
 @keyframes lg-slide { from { left: 0%; } }
 @keyframes lg-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes lg-draw { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }
@@ -85,7 +88,6 @@ html, body, #root { background: var(--lg-ground); }
 .home-v12.data-v12 .df-col:hover,
 .home-v12.ticker-v12 .mt-card:hover,
 .home-v12.ticker-v12 .tk-relcard:hover {
-  transform: translateY(-5px);
   border-color: var(--lg-glass-line-hover);
   box-shadow: var(--lg-card-shadow-hover);
 }
@@ -375,8 +377,8 @@ html, body, #root { background: var(--lg-ground); }
 .v13.home-v12.home-cockpit .idea-tile .tilenote { padding-top: var(--sp-4); margin: 0; }
 .v13.home-v12.home-cockpit .idea-tile .ic-meta { margin-top: var(--sp-2); }
 
-/* fit pass 4 — chrome + wrapper padding */
-.v13.home-v12 section.wrap, .v13.home-v12.home-cockpit section.wrap { padding-top: 0; padding-bottom: 0; margin-top: 0; }
+/* fit pass 4 — chrome + wrapper padding (Home only; every other page keeps its stage spacing) */
+.v13.home-v12.home-cockpit section.wrap { padding-top: 0; padding-bottom: 0; margin-top: 0; }
 .v13.home-v12.home-cockpit { padding-bottom: var(--sp-12); }
 .mt-overhaul .mt-topnav, .mt-overhaul .mt-header, .v13.home-v12 .tape { margin-top: var(--sp-8); }
 .v13.home-v12.home-cockpit .bgrid { margin-top: var(--sp-8); }
@@ -460,3 +462,73 @@ html, body, #root { background: var(--lg-ground); }
 .home-v12.methodology-v12 .me-num { font-size: var(--v13-t2); letter-spacing: 0.12em; }
 @media (max-width: 640px) { .paper-v12 .qtt-card .num { font-size: var(--v13-t5) !important; } }
 .v13.home-v12.home-cockpit .brief-card .ni .hl b { font-weight: var(--fw-600); }
+
+/* ── UAT pass 2026-10-01: full-size review of every page after PR 2 ───
+   Rules below are written at the page-root specificity (.v13.home-v12.<page>)
+   because pages-v13.css declares its page rules at that weight and the lighter
+   selectors above lost to it (Methodology sections had no inner padding, the
+   Data tiles went pill-shaped). LESSONS 9.24. */
+
+/* Macro — the engine dials */
+.v13.macro-v13 .gauge .track .pin { transform: none; top: calc(-1 * var(--sp-4)); height: var(--sp-18); }
+.v13.macro-v13 .gauge .gl { padding-right: var(--sp-8); }
+.v13.macro-v13 .gauge .gl b { white-space: nowrap; }
+.v13.macro-v13 .engine-card > *:nth-child(2) { gap: var(--sp-28); }
+
+/* Methodology — sections are padded glass cards, the number is a small
+   eyebrow, the contents rail is sticky again (the card rule's position:
+   relative had cancelled position: sticky). */
+.v13.home-v12.methodology-v12 .me-section { grid-template-columns: minmax(0, 1fr); gap: 0; padding: var(--sp-24) var(--sp-28) var(--sp-22); margin-bottom: var(--sp-12); border-top: 1px solid var(--lg-glass-line); }
+.v13.home-v12.methodology-v12 .me-section:first-of-type { padding-top: var(--sp-24); }
+.v13.home-v12.methodology-v12 .me-num { font-family: var(--mt-type-mono); font-size: var(--v13-t2); letter-spacing: 0.12em; color: var(--lg-fg3); margin: 0 0 var(--sp-8); line-height: 1; }
+.v13.home-v12.methodology-v12 .me-layout { gap: var(--sp-24); align-items: start; }
+.v13.home-v12.methodology-v12 .me-toc.me-rail { position: sticky; top: var(--sp-16); max-height: calc(100vh - var(--sp-32)); overflow-y: auto; padding: var(--sp-16) var(--sp-18); }
+.v13.home-v12.methodology-v12 .me-toc.me-rail a { padding: var(--sp-6) var(--sp-10); }
+.v13.home-v12.methodology-v12 .meth-hero { padding: var(--sp-22) var(--sp-26); margin: var(--sp-12) auto; }
+.v13.home-v12.methodology-v12 .me-formula { background: var(--lg-panel); border: 1px solid var(--lg-line); }
+
+/* Data — the flow board is open (columns are not cards, so the lineage lines
+   drawn between tiles show through again); tiles are low-radius mini-cards
+   with the 3px role edge; the detail panel is sticky again. */
+.v13.home-v12.data-v12 .df-stage { padding-top: var(--sp-12); }
+.v13.home-v12.data-v12 .df-col { background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 0; padding: 0; animation: none; }
+.v13.home-v12.data-v12 .df-col:hover { box-shadow: none; border-color: transparent; }
+.v13.home-v12.data-v12 .df-col-h { border-bottom: 1px solid var(--lg-line-2); color: var(--lg-fg2); }
+.v13.home-v12.data-v12 .df-tile { border-radius: var(--r-10); border: 1px solid var(--lg-line-2); border-left-width: 3px; background: var(--lg-panel); padding: var(--sp-7) var(--sp-30) var(--sp-7) var(--sp-12); min-height: 42px; }
+.v13.home-v12.data-v12 .df-tile:hover { transform: translateY(-1px); background: var(--lg-panel-on); }
+.v13.home-v12.data-v12 .df-tile, .v13.home-v12.data-v12 .df-tile--engine { border-left-color: var(--lg-accent); }
+.v13.home-v12.data-v12 .df-tile--derived { border-left-color: var(--lg-fg3); }
+.v13.home-v12.data-v12 .df-tile--surface { border-left-color: var(--lg-up); }
+.v13.home-v12.data-v12 .df-tile--workflow { border-left-color: var(--lg-cool); }
+.v13.home-v12.data-v12 .df-tile--selected, .v13.home-v12.data-v12 .df-tile--lit { background: var(--lg-panel-on); border-color: var(--lg-accent); border-left-color: var(--lg-accent); }
+.v13.home-v12.data-v12 .df-tile-name { font-size: var(--v13-t3); }
+.v13.home-v12.data-v12 .df-svg { z-index: 1; color: var(--lg-accent); }
+.v13.home-v12.data-v12 .df-svg path { opacity: 0.7; stroke-width: 1.5; }
+.v13.home-v12.data-v12 .df-detail { position: sticky; top: var(--sp-12); max-height: calc(100vh - var(--sp-24)); overflow: auto; padding: var(--sp-18) var(--sp-22); }
+.v13.home-v12.data-v12 .df-totals { margin-top: 0; }
+
+/* Scorecard — one card, not a card inside a card */
+.v13.home-v12.sc-wrap .sc-list .sc-tablewrap { background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 0; margin-top: 0; animation: none; }
+.v13.home-v12.sc-wrap .sc-table thead th { background: transparent; }
+.v13.home-v12.sc-wrap .sc-table th:first-child, .v13.home-v12.sc-wrap .sc-table td:first-child { padding-left: 0; }
+
+/* Footer — legal band sits on the same 1160px measure as the link columns */
+.mt-overhaul .mt-footer-legalband { max-width: 1160px; margin: var(--sp-20) auto 0; padding: 0; border-top: 1px solid var(--lg-line-2); }
+.mt-overhaul .mt-footer-legalband .inner { max-width: none; padding: var(--sp-14) 0 var(--sp-4); }
+.mt-overhaul .mt-footer-bottom { border-top: 0; padding-top: var(--sp-4); }
+.v13.home-v12.methodology-v12 .meth-hero.wrap { max-width: 1352px; width: auto; padding: var(--sp-22) var(--sp-26); }
+.v13.home-v12.methodology-v12 .me-toc.me-rail a { border-left: 0; margin-left: 0; }
+.v13.home-v12.methodology-v12 .me-toc.me-rail a.is-active { border-left: 0; }
+
+/* Modals read as a sheet: a frosted veil behind, a near-solid glass panel in front */
+.mt-overhaul .mt-glassmodal, .home-v12 .briefmodal, .ind-detail.mt-card { background: var(--lg-sheet); -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(140%); backdrop-filter: blur(var(--blur-glass)) saturate(140%); animation: none; }
+.home-v12.briefmodal-veil, .mt-overhaul .mt-modal-veil, .mt-overhaul .mt-glassmodal-veil, .mt-navsheet-veil { background: var(--lg-veil); }
+.v13.home-v12.data-v12 .df-stage { padding-top: 0; }
+/* Home brief: an opened headline takes the full width of the list and shows
+   its body inside the tile (it was spilling out under the next row). */
+.v13.home-v12.home-cockpit .brief-card .ni.open { grid-column: 1 / -1; }
+.v13.home-v12.home-cockpit .brief-card .ni.open > button { height: auto; min-height: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: var(--lg-panel-on); }
+.v13.home-v12.home-cockpit .brief-card .ni.open .body { max-height: none; overflow: visible; background: var(--lg-panel-on); border: 1px solid var(--lg-line); border-top: 0; border-radius: 0 0 var(--r-panel-sm) var(--r-panel-sm); font-size: var(--v13-t3); line-height: 1.5; color: var(--lg-fg2); }
+.v13.home-v12.home-cockpit .brief-card .ni.open .body > div { padding: 0 var(--sp-12) var(--sp-10); }
+.mt-overhaul .mt-navsheet { background: var(--lg-sheet); }
+.mt-overhaul .mt-navsheet-signin, .mt-overhaul .mt-navsheet-signout { font-size: var(--v13-t4); min-height: var(--mt-tap); display: inline-flex; align-items: center; }
