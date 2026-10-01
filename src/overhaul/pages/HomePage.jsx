@@ -440,7 +440,7 @@ export default function HomePage() {
 
                 {heroChart && (
                   <div className="idea-herochart">
-                    <IdeaChart spec={heroChart} series={chartSeries?.[heroChart.series]} width={560} height={104} compact />
+                    <IdeaChart spec={heroChart} series={chartSeries?.[heroChart.series]} width={720} height={76} compact />
                   </div>
                 )}
 
@@ -480,8 +480,10 @@ export default function HomePage() {
             <div className="es-verdict">
               <div className="eyebrow2"><span className="dot" />The Engine</div>
               <h2>{verdictParts[0]}{verdictParts[1] && <em><br />{verdictParts[1].toLowerCase()}</em>}</h2>
-              <p className="es-so">Bond volatility called S&amp;P 500 drawdowns better than fifteen other stress gauges since 2006.</p>
-              <a className="es-link" href="/macro" onClick={go('/macro')}>See the track record ↗</a>
+              <div className="es-foot">
+                <p className="es-so">Bond volatility called S&amp;P 500 drawdowns better than fifteen other stress gauges since 2006.</p>
+                <a className="es-link" href="/macro" onClick={go('/macro')}>See the track record ↗</a>
+              </div>
             </div>
             <div className="es-gauges">
               <button type="button" className="gauge" onClick={() => setDrillInd('move')} style={{ '--w': `${stress.mk ?? 0}%` }}>

@@ -146,7 +146,7 @@ for (const file of files) {
 /* ── 2b — SIZES AND WEIGHTS ARE ON THE SCALE ───────────────────────────────
    Six type steps, three weights, declared once in v13.css. A literal px size
    or a clamp() in a component stylesheet is how the scale came apart. */
-const SIZE_TOKENS = ['--v13-t1','--v13-t2','--v13-t3','--v13-t4','--v13-t5','--v13-t6'];
+const SIZE_TOKENS = ['--v13-t1','--v13-t2','--v13-t3','--v13-t4','--v13-t5','--v13-t6','--v13-t7','--v13-t8'];  /* t7/t8: display steps, PR 2 (2026-10-01) */
 const WEIGHTS = ['400', '600', '700'];
 
 for (const file of files) {
@@ -274,7 +274,7 @@ if (base) {
           prose.push({ sel: el.tagName + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : ''), text: text.slice(0, 70) });
         }
       }
-      const STEPS = [10, 11, 13, 15, 18, 26], WS = ['400', '600', '700'];
+      const STEPS = [10, 11, 13, 15, 18, 26, 34, 44], WS = ['400', '600', '700'];
       const offScale = []; const seen = new Set();
       for (const el of document.querySelectorAll('body *')) {
         if (!el.offsetParent) continue;

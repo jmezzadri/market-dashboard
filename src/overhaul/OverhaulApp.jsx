@@ -192,6 +192,15 @@ function Shell() {
   // Phase 2 brings them onto the same system.
   return (
     <div className="mt-overhaul">
+      {/* Liquid Glass ground: four drifting light blobs behind every page
+          (presentational only; styled in glass.css, frozen under
+          prefers-reduced-motion). */}
+      <div className="lg-ground" aria-hidden="true">
+        <span className="lg-blob lg-blob-1" />
+        <span className="lg-blob lg-blob-2" />
+        <span className="lg-blob lg-blob-3" />
+        <span className="lg-blob lg-blob-4" />
+      </div>
       <div className="mt-app">
         <main className="mt-main">
           <TopNav />
