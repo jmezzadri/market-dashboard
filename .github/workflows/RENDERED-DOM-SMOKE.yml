@@ -68,12 +68,9 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install Playwright Chromium
-        run: |
-          npm install --no-save playwright
-          npx playwright install --with-deps chromium
-
-      # On a PR, check THIS branch's build, not production.
+      # On a PR, check THIS branch's build, not production. This runs BEFORE the
+      # Playwright install: `npm ci` wipes node_modules, which is how the first
+      # PR run lost the browser it had just installed.
       - name: Build and serve the PR
         if: github.event_name == 'pull_request'
         env:
@@ -87,6 +84,11 @@ jobs:
             curl -sf http://localhost:4321/ >/dev/null && break
             sleep 1
           done
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
 
       - name: Render the site and check what it says (and that it fits a phone)
         env:
