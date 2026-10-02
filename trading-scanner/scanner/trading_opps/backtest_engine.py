@@ -1492,6 +1492,31 @@ def main():
         },
     }
 
+    # ---- preserve the LIVE scoring regime (LESSONS 4.38) --------------------
+    # This emitter was frozen at 2026-05-21 and the 2026-10-01 quarterly run
+    # regenerated a config that silently REVERTED the Joe-approved 2026-07-07
+    # conviction-insider rebuild (dark-pool/options un-shelved 0 -> live
+    # points, scoring_version rolled back). The backtest owns the CALIBRATED
+    # fields — insider points/cap/window, trend points, launch threshold,
+    # provenance. The REGIME — which layers are live and at what point values,
+    # scoring_version/mode/updated, and the notes recording who approved what
+    # — belongs to the config already on main and must survive regeneration
+    # verbatim. Read it from the file this run is about to overwrite.
+    _cfg_path = os.path.join(HERE, "calibrated_config.json")
+    if os.path.exists(_cfg_path):
+        with open(_cfg_path) as _f:
+            _live = json.load(_f)
+        for _k in ("_comment", "scoring_version", "scoring_updated",
+                   "scoring_mode", "shadow_layers", "_shadow_layers_note"):
+            if _k in _live:
+                calibrated[_k] = _live[_k]
+        for _k in ("dark_pool", "options", "_conviction_insider_note",
+                   "max_attainable_score"):
+            if _k in _live.get("long", {}):
+                calibrated["long"][_k] = _live["long"][_k]
+        print("  [regime] preserved live scoring regime from existing config "
+              f"(scoring_version={calibrated.get('scoring_version')})")
+
     results = {
         "run_meta": {
             "generated": str(datetime.now()),

@@ -133,6 +133,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `4.35` A feed can outlive both its input and its reader; a green "wrote 0 rows" run is a retirement notice, not health
 - `4.36` `as_of` is re-stamped from the points actually published, after every merge step; a clock computed before the union grades data the file no longer serves
 - `4.37` A one-session change measured across a futures contract roll is not a market move; cross-check the benchmark pair and drop the artifact leg
+- `4.38` A generator regenerates the WHOLE artifact; a hand-edit to generated output is a revert waiting for the next scheduled run
 
 **5 · PIPELINES, SCHEDULES & ALERTING**
 
@@ -1034,6 +1035,19 @@ They are not the same series and they are nowhere near each other:
 **Rule:** A futures-priced row is cross-checked against its benchmark pair before its one-session change is published. Brent and WTI are the same barrel with a slow freight-and-quality spread between them and cannot diverge by more than 5 percentage points in one session; when they do, the leg with the larger move is a roll gap or a bad tick, and that row is DROPPED — level and change — with the reason logged to the snapshot warning. Same doctrine the module already holds everywhere else: an absent row is correct, a wrong one lies. Measured over the full 4,771-session paired history this fires 47 times, 4 of them since 2024, every one at a contract roll or a 2020 price dislocation.
 
 **Applies to:** Lead Developer, Data Steward.
+
+
+### 4.38 (2026-10-02) — A generator regenerates the WHOLE artifact; a hand-edit to generated output is a revert waiting for the next scheduled run
+
+**What happened:** The Oct 1 quarterly TRADING-OPPS-BACKTEST run opened PR #1703 as designed — and the regenerated `calibrated_config.json` silently REVERTED the Joe-approved 2026-07-07 conviction-insider rebuild: dark-pool and options points went 0 -> 2/1/2 and 0/0/0 -> 4/3/4, `scoring_version` rolled back from `2026-07-07-conviction-insider` to `2026-05-21-darkpool-options`, and the shelving notes vanished. Root cause: the 7/07 rebuild hand-edited the config file (generated output) but never touched `backtest_engine.py`, whose emitter was a dict literal frozen on 2026-05-21. The first regeneration after the hand-edit faithfully reprinted the old regime. The PR checklist item "dark-pool / options blocks and scoring_version survived regeneration" caught it at review — the gate worked; the sweep closed the hole. A second, smaller bug in the same run: the re-fire's `git push --force-with-lease` failed with "stale info" because checkout@v4 fetches only main, so a same-day re-run has no remote-tracking ref to lease against; the branch is now fetched before the push.
+
+**Rule:**
+
+1. **A change to generated output changes the generator, in the same PR.** If a decision (shelving a layer, a version stamp, an approval note) must survive the next regeneration, it lives in — or is read by — the code that regenerates. A hand-edit to the artifact alone has a lifespan of exactly one scheduled run.
+2. **A generator that carries non-regenerated fields reads them from the live artifact it is replacing**, never from its own source literal. `backtest_engine.py` now overlays the scoring REGIME (layer points, scoring_version/mode/updated, approval notes) from the existing `calibrated_config.json`; the backtest owns only the CALIBRATED fields (insider points/cap/window, trend points, launch threshold, provenance).
+3. **`--force-with-lease` needs a fetched remote ref.** On a checkout that only fetched main, fetch the target branch first or the lease rejects every re-run with "stale info".
+
+**Applies to:** Lead Developer + Senior Quant — every generated-then-committed artifact (calibrations, manifests, seeded configs).
 
 
 # 5 · PIPELINES, SCHEDULES & ALERTING
