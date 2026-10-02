@@ -393,6 +393,19 @@ function rollupStatus(elementId, fallback, visited = new Set()) {
     return { elementId, status: "red", reason: "dependency cycle", cause: null, label: elementId };
   }
   visited.add(elementId);
+  // `visited` tracks the CURRENT PATH, not every node the walk has touched.
+  // It used to be one set shared across the whole walk, which made a DIAMOND
+  // look like a cycle: thesis_reviews depends on both trade_ideas and
+  // indicator_history, and trade_ideas depends on indicator_history too — so
+  // the second visit to indicator_history, reached by the other branch, came
+  // back "dependency cycle" = red, and reddened thesis_reviews with it.
+  //
+  // It went unnoticed for as long as trade_ideas was red for real: the parent
+  // was red either way. It surfaced the moment a deliberate skip stopped
+  // reddening trade_ideas and the phantom was the only red left on the site.
+  // Each branch now walks its own copy, so re-reaching a node by a different
+  // path is just a second lookup, and a genuine A->B->A still fails closed
+  // within one path. (Joe 2026-10-02.)
 
   const own = statusForElement(elementId, fallback);
   const deps = getDependencies(elementId);
@@ -402,7 +415,7 @@ function rollupStatus(elementId, fallback, visited = new Set()) {
   }
 
   // Walk every dependency. Collect any that are red.
-  const childResults = deps.map((depId) => rollupStatus(depId, null, visited));
+  const childResults = deps.map((depId) => rollupStatus(depId, null, new Set(visited)));
   const redChildren = childResults.filter((c) => c.status === "red");
 
   if (own.status === "red" && redChildren.length === 0) {
