@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-01T23:59:38Z",
+  "generated_at": "2026-10-02T15:55:08Z",
   "window": {
-    "from": "2026-09-24",
-    "to": "2026-12-10"
+    "from": "2026-09-25",
+    "to": "2026-12-11"
   },
   "counts": {
-    "total": 113,
-    "tier1": 36
+    "total": 106,
+    "tier1": 33
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -24,52 +24,10 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [],
+  "problems": [
+    "WASDE page fetch failed: HTTP Error 403: Forbidden"
+  ],
   "events": [
-    {
-      "date": "2026-09-24",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-24",
-      "time_et": "8:30 AM",
-      "name": "Building permits (final)",
-      "short": "Permits",
-      "tier": 3,
-      "category": "Housing",
-      "blurb": "Final building-permit counts for the prior month.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-24",
-      "time_et": "10:00 AM",
-      "name": "New home sales",
-      "short": "New homes",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "Contracts signed on newly built homes \u2014 the rate-sensitive edge of housing.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-24",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-25",
       "time_et": "8:30 AM",
@@ -299,17 +257,6 @@
       "category": "Surveys",
       "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
       "source": "UMich release schedule (computed: two Fridays before the final)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-09",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
@@ -797,17 +744,6 @@
       "time_source": "published release policy"
     },
     {
-      "date": "2026-11-10",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
-      "time_source": "published release policy"
-    },
-    {
       "date": "2026-11-12",
       "time_et": "8:30 AM",
       "name": "Jobless claims",
@@ -1245,17 +1181,6 @@
       "category": "Labor",
       "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
       "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-10",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
