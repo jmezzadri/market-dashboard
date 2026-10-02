@@ -103,6 +103,13 @@ jobs:
           Regenerated calibrated_config.json + backtest_results.json by
           .github/workflows/TRADING-OPPS-BACKTEST.yml. This does NOT ship
           automatically — it is opened as a PR for Senior Quant review."
+          # Fetch the remote branch (if any) BEFORE the lease push: checkout@v4
+          # fetches only main, so without this a same-day re-run has no
+          # remote-tracking ref and --force-with-lease rejects with "stale
+          # info" — exactly what killed the second 2026-10-01 fire. After a
+          # fresh fetch the lease matches the remote, the force-push replaces
+          # the earlier same-day commit, and the race protection still holds.
+          git fetch origin "+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}" 2>/dev/null || true
           git push -u --force-with-lease origin "$BRANCH"
           # Headline numbers for the reviewer (best-effort — never block on a parse miss).
           SUMMARY=$(python3 -c "import json; r=json.load(open('$RES')); p=r.get('final_long_performance',{}).get('21',{}); print('n=%s, win rate=%.0f%%, avg return=%.2f%%, profit factor=%.2f' % (p.get('n','?'), (p.get('win_rate') or 0)*100, (p.get('avg_return') or 0)*100, p.get('profit_factor') or 0))" 2>/dev/null || echo "see backtest_results.json")
