@@ -184,6 +184,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `6.19` A rule lifted from another book is untested on this one; the backtest lives in the repo or it did not happen; VIX gates lose, MOVE gates win
 - `6.19` A release's market impact is an event study; attribute the session, demand a z, cap thin samples, publish the numbers with the mark
 - `6.20` A stop is not a thesis check; the review re-measures the driver against conditions written at publication, the verdict must follow from the checks, and a probability shown to Joe is calibrated on the record first
+- `6.21` An edge measured on a short window with in-sample percentiles is a description of that window; positioning edges are tested on the full record, expanding ranks, independent episodes, split by trend
 
 **7 · CODE & RELEASE DISCIPLINE**
 
@@ -251,6 +252,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `10.9` Fixing "unclear" by writing an instruction produces a cold call; a research claim needs a horizon, and a tile is cramped when its shape is wrong, not when its type is too big
 - `10.10` Style guidance in a prompt does not hold a length; and prose is the worst container ever invented for a number
 - `10.11` A measured edge is necessary, not sufficient: 20% minimum over the horizon, at least 2x the loss at the stop, and never above 0.60 correlation with a live call — or it does not publish
+- `10.12` Outside research is there to challenge our own work, never to be published or compared: read it for method, test the question on our data, change something
 
 **A · Archive** — retired, not binding. Nothing new goes there.
 
@@ -1742,6 +1744,19 @@ Two things went wrong on the way to shipping it that are worth keeping. (1) The 
 
 **Applies to:** Senior Quant (verdicts, called-for and expected numbers, calibration), Lead Developer (the Monday session, the scorer close, the email workflow), Data Steward (`thesis_reviews` manifest row and health stamp), UX (the Last review column and the review block in the note).
 
+### 6.21 (2026-10-02) — An edge measured on a short window with in-sample percentiles is a description of that window; positioning edges are tested on the full record, expanding ranks, independent episodes, split by trend
+
+**What happened:** Reading a trend-following shop's research raised a question about our own book: most of our calls bet on something stretched coming back, and two of our three losers were entered against the 200-day trend. Re-testing our positioning fades honestly — each week ranked only against history available that week, independent episodes 13 weeks apart, full CFTC record — split them cleanly. Wheat held (11 episodes, +7.8% mean for the short, 73% won, and it worked with price above its 200-day every time). Corn did not (6 episodes, 50%; −10.1% across the five in an uptrend). The euro edge behind the open Aug 14 call was never there: its "+3.18% in three months, 77% positive" was 26 weekly reports inside one 156-week window; since 2004 the same signal is followed by −1.62% against +0.09%, and nine honest episodes won a third of the time. The reading we called "the most one-sided trade in the market" was the 30th percentile of its own history. The playbook already said "if a result only appears in a short window, the window is the finding" and "episode count, not week count" — in prose, the same week, and the note passed the contract anyway with n=26.
+
+**Rule:**
+
+1. A positioning edge is measured on at least 10 years, with percentiles on an expanding window, counted in independent episodes (at least 10), against the unconditional baseline, and split by price above and below its 200-day average. `scripts/build_trade_idea.py` refuses a positioning note that does not state all four (from 2026-10-03). The reference implementation is `scripts/research/outside_research_challenge/trend_vs_positioning.py`.
+2. The 3-year percentile shown on the site and quoted in the brief is a description of the recent range. It is never the tested signal, and the brief implies a reversal only where the fade has passed rule 1.
+3. A fade that works in one market is not a fact about its neighbours (6.11): wheat, corn and soybeans gave three different answers to one test.
+4. A rule written in a playbook and not in the contract will be broken by the next note (7.15). When a research standard is written down, the same change enforces it.
+
+**Applies to:** Senior Quant, the Trade Idea session, the Morning Brief session, the weekly thesis review.
+
 # 7 · CODE & RELEASE DISCIPLINE
 ### 7.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component
 
@@ -2535,6 +2550,20 @@ pages only. (c) When telling Joe about any schedule, state times in ET only.
 5. **Not the same bet twice.** The contract rejects a candidate whose position returns ran above 0.60 correlation with any live call over the last 126 sessions (long euro vs short dollar index: +0.89 — rejected in the test); no prose exemption. The weekly review prints the book's pairwise correlations and its sensitivity to equities, the 10-year yield and the dollar, and a driftless monthly range for the book as one position.
 
 **Applies to:** the Trade Idea run (every note), Senior Quant (the expected-return figure, its instrument, the loss at the stop), the weekly thesis review (grades against the stated figure; reports the book's correlation and factor exposure).
+
+### 10.12 (2026-10-02) — Outside research is there to challenge our own work, never to be published or compared: read it for method, test the question on our data, change something
+
+**What happened:** Joe asked for Macro Ops research to be read regularly and folded into MacroTilt's thinking. The first run built a digest of their views, a call-by-call comparison ("agree / disagree"), a governed feed with a source tile, and an attributed line for the daily brief. Joe: *"I don't want to publish this as COMPETING RESEARCH. I want it to improve our research and trade ideas! I want you to challenge yourself with their analysis. Not simply look at their calls vs ours and run a comparison!"* The comparison had also been wrong in the way comparisons are: it set "speculators at the 98th percentile" against their long-grains view as a rebuttal, and the test that followed showed that reading means little in corn. Asking what their METHOD implied about ours found, in one morning, a published call with no edge behind it (6.21) — which a scoreboard of who-was-right never would have.
+
+**Rule:**
+
+1. Outside research is read for method: what they measure, how they enter and exit, what evidence they treat as decisive. A view that agrees with us is the least useful thing in a post.
+2. Each read produces a question about OUR work, a test on our data committed to `scripts/research/outside_research_challenge/`, and a change — a corrected edge, a contract rule, a candidate with its backtest, a claim for the thesis review — or a written reason nothing changes. The record is `CHALLENGE_LOG.md`.
+3. Nothing is published. No digest on the site, no feed, no source tile, no attributed line. The brief contract refuses another research shop's name (`enforce_no_outside_research`). What we learn appears as our own better-tested claim.
+4. Public pages only, our words only, and their conviction is never a backtest (6.19).
+5. When Joe shares an article, it is an example of what to watch, not a feature request (0.12).
+
+**Applies to:** the outside research watch session (`scripts/research/outside_research_challenge/PLAYBOOK.md`), the Trade Idea and Morning Brief sessions, all four specialists.
 
 # A · ARCHIVE — closed 2026-09-01. Superseded and retired only. NOTHING NEW GOES BELOW THIS LINE.
 

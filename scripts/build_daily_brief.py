@@ -467,6 +467,35 @@ def validate(brief, today):
         # generator path goes through, so a register Joe has rejected cannot
         # reach the site or the email from any route.
         enforce_voice(brief)
+    # Outside research sharpens our own work; it is never published as someone
+    # else's view (Joe, 2026-10-02). Not a length rule, so not behind the switch.
+    enforce_no_outside_research(brief)
+    return brief
+
+# ---- outside research is an input to OUR analysis, never a line in the brief --
+# Joe, 2026-10-02: "I don't want to publish this as COMPETING RESEARCH. I want
+# it to improve our research and trade ideas." What we learn from reading other
+# shops shows up as a better-tested claim in our own voice, with our own
+# numbers. Their name, their link and their calls never appear.
+_OUTSIDE_NAMES = __import__("re").compile(r"macro[\s\-]?ops", __import__("re").I)
+
+def enforce_no_outside_research(brief):
+    hits = []
+    def walk(where, obj):
+        if isinstance(obj, str):
+            if _OUTSIDE_NAMES.search(obj) or "macro-ops.com" in obj.lower():
+                hits.append(where)
+        elif isinstance(obj, list):
+            for i, v in enumerate(obj):
+                walk(f"{where}[{i}]", v)
+        elif isinstance(obj, dict):
+            for k, v in obj.items():
+                walk(f"{where}.{k}", v)
+    walk("brief", brief)
+    if hits:
+        raise ValueError(
+            "OUTSIDE RESEARCH — the brief never names or cites another research shop (Joe, 2026-10-02). "
+            "State the point as MacroTilt's own, from our own numbers, or drop it. Found in: " + ", ".join(hits))
     return brief
 
 # ---- deterministic market snapshot (2026-08-19) ------------------------------

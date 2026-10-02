@@ -199,6 +199,16 @@ sweep was reduced to a veto. That ordering is now reversed:
    indicator series only, so a single-name note's charts show the macro
    context around the name, and the prose links the site's own ticker page.
 
+4. **Outside research is a challenge to our work, not a source of calls
+   (Joe, 2026-10-02).** `scripts/research/outside_research_challenge/CHALLENGE_LOG.md`
+   records what reading other shops made us test about ourselves. Read its
+   newest entry every run. Use it three ways and no others: (a) its corrected
+   edges override anything older in this file; (b) its "Not yet tested" list is
+   a queue of candidate methods — test one before reaching for a familiar
+   signal; (c) where it says an open call's evidence does not hold, that goes to
+   the weekly thesis review. Never publish another shop's view, never name one
+   in a note, and never treat their conviction as a backtest (LESSONS 6.19).
+
 It must still be a *trade*, not an observation — something with an instrument,
 a horizon and a level that proves it wrong — and the full bar below applies
 unchanged: measured edge with a baseline, real variant, book fit, no
@@ -530,11 +540,11 @@ return over the same sample. Medians below, conditional versus unconditional.
 
 | asset class | signal | 3-month result | verdict |
 |---|---|---|---|
-| **Currencies** | euro, specs ≤15th pctile | **+3.18% vs +0.18%** (77% vs 52% positive) | **works** |
+| ~~Currencies~~ | ~~euro, specs ≤15th pctile~~ | ~~+3.18% vs +0.18%~~ — a 156-week window; **-1.62% vs +0.09% since 2004** | **WITHDRAWN 2026-10-02 — see the re-test below** |
 | **Currencies** | dollar, specs ≥85th pctile | −1.25% vs +0.06% (73% vs 49% lower) | **works**, 1–3m only |
 | **Agriculture** | wheat, managed money ≥85th | **−5.98% vs +0.14%** (14 episodes, 12y) | **works — fade the long** |
-| **Agriculture** | corn, managed money ≥85th | −1.08% vs +0.73%, −6.49% vs −0.83% at 6m | works, slower |
-| **Agriculture** | soybeans, managed money ≥85th | −1.54% vs +0.90% (21 episodes) | works |
+| Agriculture | corn, managed money ≥85th | −1.08% vs +0.73% in-sample; **6 honest episodes, 50% won; −10% when price is above its 200-day** | **downgraded 2026-10-02 — do not fade corn in an uptrend** |
+| Agriculture | soybeans, managed money ≥85th | −1.54% vs +0.90% in-sample; 12 honest episodes, 67% won, worst −32% | weak — fat left tail (2026-10-02) |
 | **Agriculture** | corn/wheat/beans, managed money ≤15th | +4.11 / +4.04 / +2.38% vs +0.73 / +0.14 / +0.90% | **works — buy the short** |
 | Precious | silver, managed money ≥85th | −1.69% vs +1.75% (27 episodes) | works |
 | Precious | **gold, managed money ≥85th** | **+2.96% vs +2.68%** — and +9.68% vs +5.30% at 6m | **does NOT fade — gold TRENDS** |
@@ -542,6 +552,26 @@ return over the same sample. Medians below, conditional versus unconditional.
 | **Equity breadth** | 50-day breadth below 200-day | +3.83% vs +3.92% | **dead** |
 | Energy | WTI, managed money ≤15th | −8.98% vs −0.34%, but 3 episodes from 2019 | **too thin — do not use** |
 | Copper | managed money ≥85th | +4.85% vs +2.40%, 3 episodes from 2022 | **too thin — do not use** |
+
+**Re-tested 2026-10-02, the honest way** (`scripts/research/outside_research_challenge/`):
+percentiles ranked on an expanding window (each week against only the history
+available that week), independent episodes 13 clear weeks apart, next 63
+sessions, split by price above or below its 200-day average. The table above
+ranked every week against the WHOLE sample and counted weeks, not episodes.
+
+| market | honest result | what it means |
+|---|---|---|
+| **Wheat**, funds ≥85th → short | **11 episodes, +7.8% mean, +11.4% median, 73% won** | the one fade that survives; it worked with price above its 200-day every time |
+| Corn, funds ≥85th → short | 6 episodes, −1.9% mean; **−10.1% across the 5 in an uptrend** | not an edge; dangerous against the trend |
+| Soybeans, funds ≥85th → short | 12 episodes, +1.8% mean, worst −32% | too weak to carry a note |
+| **Euro**, specs ≤15th → long | **9 episodes, −1.2% mean, 33% won** | **no edge. The Aug 14 note rested on it.** |
+
+The contract now enforces the method for every positioning edge: at least 10
+independent episodes, at least 10 years, `percentile_basis: "expanding"`, and a
+`trend_split`. And remember which percentile is on the screen: the site quotes
+3 YEARS. On 2026-09-22 wheat funds were at the 92nd percentile of 3 years and
+the 57th of the full record; the euro, 13th and 31st. The 3-year figure is a
+description of the recent range, never the tested signal.
 
 Three things to take from this table, none of which are obvious:
 

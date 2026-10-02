@@ -1,0 +1,44 @@
+
+WHEAT — short when positioning >=85th pctile, 63 sessions
+  [full history] baseline (all weeks, same side): mean -1.31%  median +0.37%  win 51%  weeks=890
+    fade, all episodes           n= 11  mean  +7.83%  median +11.44%  win  73%  worst -7.1%
+    fade WITH the trend          n=0
+    fade AGAINST the trend       n= 11  mean  +7.83%  median +11.44%  win  73%  worst -7.1%
+  [3y history] baseline (all weeks, same side): mean -1.31%  median +0.37%  win 51%  weeks=890
+    fade, all episodes           n= 11  mean  +2.27%  median  -0.89%  win  45%  worst -17.2%
+    fade WITH the trend          n=  3  mean  -4.76%  median  -3.75%  win   0%  worst -9.2%
+    fade AGAINST the trend       n= 11  mean  +1.72%  median  -0.89%  win  45%  worst -17.2%
+  NOW (2026-09-22): net -2.5% of open interest — 57th pctile of full history, 92th of 3 years
+
+CORN — short when positioning >=85th pctile, 63 sessions
+  [full history] baseline (all weeks, same side): mean -1.38%  median -0.12%  win 49%  weeks=890
+    fade, all episodes           n=  6  mean  -1.93%  median  -0.68%  win  50%  worst -31.1%
+    fade WITH the trend          n=  3  mean  +7.46%  median  +3.59%  win  67%  worst -6.1%
+    fade AGAINST the trend       n=  5  mean -10.09%  median -13.98%  win  40%  worst -31.1%
+  [3y history] baseline (all weeks, same side): mean -1.38%  median -0.12%  win 49%  weeks=890
+    fade, all episodes           n= 11  mean  +3.37%  median  +7.72%  win  82%  worst -33.0%
+    fade WITH the trend          n=  3  mean  +9.32%  median  +3.59%  win  67%  worst -0.5%
+    fade AGAINST the trend       n= 11  mean  -0.72%  median  +4.72%  win  73%  worst -33.0%
+  NOW (2026-09-22): net +21.8% of open interest — 93th pctile of full history, 98th of 3 years
+
+SOYBEANS — short when positioning >=85th pctile, 63 sessions
+  [full history] baseline (all weeks, same side): mean -0.74%  median +0.04%  win 50%  weeks=890
+    fade, all episodes           n= 12  mean  +1.79%  median  +5.29%  win  67%  worst -32.2%
+    fade WITH the trend          n=  6  mean  +5.75%  median  +3.32%  win  83%  worst -0.9%
+    fade AGAINST the trend       n= 13  mean  +2.06%  median  +7.11%  win  62%  worst -32.2%
+  [3y history] baseline (all weeks, same side): mean -0.74%  median +0.04%  win 50%  weeks=890
+    fade, all episodes           n= 12  mean  +0.70%  median  -1.38%  win  42%  worst -22.1%
+    fade WITH the trend          n=  6  mean  -1.66%  median  -0.81%  win  50%  worst -21.6%
+    fade AGAINST the trend       n= 13  mean  +2.47%  median  +6.09%  win  54%  worst -22.1%
+  NOW (2026-09-22): net +23.8% of open interest — 93th pctile of full history, 99th of 3 years
+
+EURO — long when positioning <=15th pctile, 63 sessions
+  [full history] baseline (all weeks, same side): mean -0.02%  median +0.02%  win 50%  weeks=1142
+    fade, all episodes           n=  9  mean  -1.18%  median  -2.31%  win  33%  worst -5.8%
+    fade WITH the trend          n=  7  mean  -2.40%  median  -0.10%  win  43%  worst -15.9%
+    fade AGAINST the trend       n=  8  mean  -1.88%  median  -2.80%  win  38%  worst -12.3%
+  [3y history] baseline (all weeks, same side): mean -0.02%  median +0.02%  win 50%  weeks=1142
+    fade, all episodes           n= 10  mean  -1.43%  median  -1.70%  win  20%  worst -4.7%
+    fade WITH the trend          n=  6  mean  -4.58%  median  -4.34%  win  17%  worst -15.9%
+    fade AGAINST the trend       n= 10  mean  -2.49%  median  -2.24%  win  20%  worst -12.3%
+  NOW (2026-09-22): net -6.4% of open interest — 31th pctile of full history, 13th of 3 years

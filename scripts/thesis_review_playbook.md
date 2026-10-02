@@ -199,3 +199,15 @@ needs him. The email is the analysis; the reply is the receipt.
 - **Our expected finish now** is the review's own number — the thesis
   re-priced from the driver's current reading. The gap between it and "what
   the note called for" is the answer to "has our expected return changed".
+
+## Evidence challenges from outside research (2026-10-02)
+
+Before the verdicts, read the newest entry in
+`scripts/research/outside_research_challenge/CHALLENGE_LOG.md`. Where it finds
+that an open call's EDGE does not hold on an honest re-test, that is a
+re-measurement of the driver like any other: state it in the review, and if the
+edge the note rested on is gone, the verdict is broken whatever the price has
+done. First case: the Aug 14 long-euro call. Its edge (+3.18% in three months
+after speculators reached the 15th percentile) existed only inside a 156-week
+window; over the record since 2004 the same signal lost money (9 independent
+episodes, 33% won).
