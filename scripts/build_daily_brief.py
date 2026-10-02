@@ -268,9 +268,9 @@ DATA LINES, THEN THE SO-WHAT. For any figure NOT in the snapshot table (30y, 20y
 
 HARD LENGTH CAPS — the prepare step REFUSES a brief that breaks any of these, listing every overage. Write to them the first time.
   headline <=95 chars, A DATA LINE, NOT A SENTENCE · stance <=200 chars, 2 sentences max
-  each section: <=3 bullets, each <=200 chars · positioning <=220 · single-name note <=200
-  news: <=4 items, head <=70, body <=190 · implications: <=3, each <=200
-  watch: <=4 items, head <=60, body <=170 · WHOLE BRIEF <=700 words
+  each section: <=3 bullets, each <=175 chars · positioning <=200 · single-name note <=180
+  news: <=4 items, head <=60, body <=155 · implications: <=2, each <=190
+  watch: <=4 items, head <=55, body <=155 · WHOLE BRIEF <=700 words
 Silence is free and always allowed. "nothing material." is a correct section.
 
 HARD ACCURACY CONTRACT (overrides every other instruction here. A wrong number or a fabricated event destroys the brief. An omitted figure is correct; a wrong one is a failure. Added 2026-07-30 after the brief claimed an AAPL/AMZN earnings beat and after-hours pop on a day both companies had NOT yet reported, and described the 30-year yield as having "eased back from 5.21%" while it was in fact printing a NEW high of 5.237% — see LESSONS.)
@@ -286,7 +286,7 @@ READER-FACING LABELS ONLY. NEVER print an internal field name, key, or the word 
 VOICE (Joe, 2026-09-01 - "I have worked in finance and markets for 25 years and I've never heard anyone talk like this. Don't use more words than you need to. I much more prefer bullets than long sentences."):
  - BULLETS BY DEFAULT. Prose only in `stance`. If you wrote a paragraph anywhere else, rewrite it as bullets and keep the bullets.
  - ONE IDEA PER BULLET, 20 WORDS MAX. Two ideas is two bullets.
- - A CONCRETE THING DOES THE VERB - a market, an instrument, a number, a person. Never an abstraction. "Vol bid into the Sep 17 FOMC", never "what the market paid for optionality". "Equities sat still", never "equities deferred their reaction by a session".
+ - A CONCRETE THING DOES THE VERB - a market, an instrument, a number, a person. Never an abstraction. "Rate vol repriced Monday", never "what the market paid for optionality". "Equities sat still", never "equities deferred their reaction by a session".
  - SAY THE THING, NOT THE SHAPE OF THE THING. Name the instrument, the level, the date. Never describe the significance of a move before naming the move.
  - NO REVEAL STRUCTURE. "the tell", "it was not X it was Y", "the real story is", "what actually happened is" are column openers. Lead with the fact.
  - EVERY CLAIM CARRIES ITS TIME. A move that already happened names the session it happened in ("Rate vol repriced Monday"). A scheduled event names its date and reads as ahead ("FOMC, Sep 16"). Never a verb that could be either - Joe on "Vol bid into the Sep 17 FOMC": "This sounds past tense but it's only Sept 1."
@@ -300,10 +300,10 @@ VOICE (Joe, 2026-09-01 - "I have worked in finance and markets for 25 years and 
      RIGHT stance: "66% odds of a hike into the Sep 16 FOMC, on a fourth straight day of rising rate vol. Friday's payrolls is the next input."
  - NUMBERS AS NUMBERS. "66%", never "two-thirds". "+38K", never "printed 38k". "fourth day", not "rose anyway".
  - CUT EVERY WORD THAT SURVIVES ITS OWN DELETION.
- - NO SENTENCE OVER 25 WORDS anywhere in the brief.
+ - NO SENTENCE OVER 20 WORDS anywhere in the brief (enforce_voice rejects the 21st word).
  - THE TEST: read it aloud as if saying it to a PM at your desk who has eight seconds. If you would not say it that way out loud, do not write it.
  EXAMPLE. WRONG (52 words): "The tell was not the yield, it was what the market paid for optionality around a meeting fifteen days out while the front end sat perfectly still. Equities deferred their reaction by a session and are taking it before the open, into the first data the new stance has to survive."
- RIGHT (27 words, three bullets): "Vol bid into the Sep 17 FOMC. Front end unchanged." / "Equities sat still yesterday. Moving pre-market." / "First test today: ISM, 10:00."
+ RIGHT (26 words, four bullets): "Rate vol repriced Monday. Front end unchanged." / "The bid is for FOMC, Sep 16." / "Equities flat Monday, lower pre-market." / "First test today: ISM, 10:00."
 
 BANNED WORDS - never output these in ANY field: "washed out", "crowded". For a low COT percentile write "extended short"; for a high percentile write "extended long".
 
