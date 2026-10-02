@@ -375,7 +375,7 @@ function rollupStatus(elementId, fallback, visited = new Set()) {
   const deps = getDependencies(elementId);
 
   if (!deps.length) {
-    return { ...own, cause: null, redInputs: [] };
+    return { ...own, ownStatus: own.status, cause: null, redInputs: [] };
   }
 
   // Walk every dependency. Collect any that are red.
@@ -385,7 +385,7 @@ function rollupStatus(elementId, fallback, visited = new Set()) {
   if (own.status === "red" && redChildren.length === 0) {
     // The aggregate's own calc is stale or errored, but every input is fine.
     // The chip's tooltip should name the calc itself, not an input.
-    return { ...own, cause: { kind: "self", element: own }, redInputs: [] };
+    return { ...own, ownStatus: own.status, cause: { kind: "self", element: own }, redInputs: [] };
   }
   if (redChildren.length > 0) {
     // Sort red children by oldest last_good_at first — that's the most-stale
@@ -397,13 +397,14 @@ function rollupStatus(elementId, fallback, visited = new Set()) {
     });
     return {
       ...own,
+      ownStatus: own.status,
       status: "red",
       reason: own.status === "red" ? own.reason : "Upstream input is stale",
       cause: { kind: "input", element: redChildren[0] },
       redInputs: redChildren,
     };
   }
-  return { ...own, cause: null, redInputs: [] };
+  return { ...own, ownStatus: own.status, cause: null, redInputs: [] };
 }
 
 // ─── Public hook ────────────────────────────────────────────────────────────
@@ -567,7 +568,20 @@ export function useFreshnessRollup() {
     // reads in plain English.
     const phRow = cachedRows.get(phKey);
     const label = (phRow && phRow.label) || r.label || name || id;
-    if (r.status === "red") red.push({ id: phKey, label, reason: r.reason || r.lastError || null });
+    if (r.status === "red") {
+      // Is this element red on its own clock, or only because something it
+      // depends on is? Carry that through so the header can count ROOT CAUSES
+      // (see the cascade de-dup below). The element's own chip is untouched —
+      // it still reds, with "Upstream input is stale".
+      const inherited = r.ownStatus !== "red" && r.cause?.kind === "input";
+      red.push({
+        id: phKey,
+        label,
+        reason: r.reason || r.lastError || null,
+        inherited,
+        redInputs: r.redInputs || [],
+      });
+    }
     else if (r.status === "amber") amber.push({ id: phKey, label });
     else if (r.status === "green") greenCount += 1;
     // "unknown"/"loading" are not counted — untracked is not a breakage.
@@ -583,6 +597,29 @@ export function useFreshnessRollup() {
       amber.push({ id: c.elementId, label: c.label });
     }
   }
+  // ─── Cascade de-dup (Joe 2026-10-02) ──────────────────────────────────────
+  // The pill read "2 feeds stale" over ONE stale feed: the Trade Idea note had
+  // not published in 10 days, and the Weekly thesis review — which published on
+  // schedule Monday and lists trade_ideas as a dependency — inherited that red
+  // and was counted a second time. Two numbers for one problem makes the count
+  // useless for triage: it says how many chips are lit, not how many things are
+  // broken. So an element that is red ONLY by inheritance is dropped from the
+  // header count when the upstream that caused it is already in the list.
+  //
+  // This fakes nothing. Per-element chips are unchanged — the thesis-review chip
+  // still reads red with "Upstream input is stale" — and an inherited red whose
+  // root is NOT in the list (an untracked or page-local upstream) is KEPT, so a
+  // cascade can never hide the only evidence of its own cause.
+  const isRootListed = (entry) =>
+    (entry.redInputs || []).some((ri) =>
+      red.some((x) =>
+        x !== entry &&
+        (x.id === ri.elementId || x.id === ri.label ||
+         x.label === ri.label || x.label === ri.elementId)));
+  const rootRed = red.filter((r) => !(r.inherited && isRootListed(r)));
+  red.length = 0;
+  red.push(...rootRed);
+
   red.sort((a, b) => a.label.localeCompare(b.label));
   untracked.sort((a, b) => a.label.localeCompare(b.label));
   return { loading: false, red, amber, untracked, greenCount };
