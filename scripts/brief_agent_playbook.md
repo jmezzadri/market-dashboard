@@ -231,6 +231,8 @@ six angles on the day, not six chances to repeat one sentence.
 6. **Self-check before returning:** name to yourself which fetch produced every number and direction word; delete anything that fails; check the brief does not contradict itself; then check every cap above.
 - **Pre-market labeling:** every equity/yield/FX/commodity figure is labeled "Wednesday's close" / "overnight (~6am ET)" / "pre-market" — never a bare "up X% today" before the open.
 - **Reader-facing labels only:** never print an internal field name, the word DATA, a vendor/publication/feed name, or narration of your own research state.
+- **A 3-year positioning percentile is a description, not a signal (2026-10-02).** `brief-positioning` ranks against 3 years. "Corn specs at the 98th percentile" tells the reader where funds sit; it does not say corn falls. Imply a reversal only where the fade has passed the honest test in the Trade Idea playbook — today that is wheat. In corn the same reading in an uptrend was followed by higher prices more often than not.
+- **Never name or cite another research shop.** What we learn from outside research appears as our own tested claim, from our own numbers. The prepare step refuses the name.
 - **Banned words:** "washed out", "crowded" (write "extended short" / "extended long"). The prepare step also scrubs these deterministically.
 - **Novelty:** open "Macro & Rates" with the single most important thing that CHANGED since the prior brief. Single names only from `featurable[]`, never from `already_covered[]` or yesterday's brief; if nothing qualifies, run without one — absence is correct.
 

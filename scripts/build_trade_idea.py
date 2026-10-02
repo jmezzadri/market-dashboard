@@ -66,6 +66,14 @@ VALID_KINDS = {
 # Notes dated from here carry machine-checkable review_conditions (see 3f-bis)
 # and an expected_return block that clears the expected-return hurdle (3f-ter).
 REVIEW_CONDITIONS_FROM = "2026-10-01"
+# 2026-10-02 — positioning edges are measured on the full record, with no
+# look-ahead, and counted in independent episodes. The Aug 14 euro note passed
+# this contract with "n=26" — 26 WEEKS inside a 156-week window, about four
+# episodes. On the full record the same signal has the opposite sign. See
+# scripts/research/outside_research_challenge/ and LESSONS 6.21.
+POSITIONING_RIGOUR_FROM = "2026-10-03"
+MIN_POSITIONING_EPISODES = 10
+MIN_POSITIONING_WINDOW_YEARS = 10
 # Joe, 2026-09-30: "I want a minimum of 20% expected return... If I want 10%
 # I'll buy the SPY." Per cent of the position, over the note's own horizon.
 # Lowered to 15% by Joe, 2026-10-02, after the 20% bar at 2x the stop had
@@ -586,6 +594,33 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             raise ContractError(f"edge.backtest.n is {bt['n']} — too few observations to claim an edge")
     except (TypeError, ValueError):
         raise ContractError(f"edge.backtest.n must be a number, got {bt['n']!r}")
+    if edge["source"] == "positioning" and str(idea.get("date", "")) >= POSITIONING_RIGOUR_FROM:
+        try:
+            eps = int(bt.get("episodes"))
+            yrs = float(bt.get("window_years"))
+        except (TypeError, ValueError):
+            raise ContractError(
+                "a positioning edge must state edge.backtest.episodes (INDEPENDENT episodes, not weeks) and "
+                "edge.backtest.window_years — a run of consecutive weekly reports at an extreme is one observation")
+        if eps < MIN_POSITIONING_EPISODES:
+            raise ContractError(
+                f"edge.backtest.episodes is {eps} — a positioning edge needs at least {MIN_POSITIONING_EPISODES} "
+                "independent episodes (13 clear weeks apart). Fewer is an anecdote; do not publish it.")
+        if yrs < MIN_POSITIONING_WINDOW_YEARS:
+            raise ContractError(
+                f"edge.backtest.window_years is {yrs:g} — a positioning edge is measured on at least "
+                f"{MIN_POSITIONING_WINDOW_YEARS} years. The Aug 14 euro edge (+3.18% in three months) existed only "
+                "inside a 3-year window; over 22 years the same signal lost money.")
+        if str(bt.get("percentile_basis", "")).strip().lower() != "expanding":
+            raise ContractError(
+                'edge.backtest.percentile_basis must be "expanding": rank each week against the history available '
+                "THAT week. A percentile ranked against the whole sample, or a trailing 3-year window, knows the future "
+                "or forgets the past — the site's 3-year percentile is a description, never the tested signal.")
+        if not str(bt.get("trend_split", "")).strip():
+            raise ContractError(
+                "edge.backtest.trend_split is required for a positioning edge: the result with price ABOVE and BELOW "
+                "its 200-day average, separately. Fading corn longs in an uptrend lost 10% on average; in wheat the "
+                "fade worked anyway. The split is where that difference shows.")
 
     # the truism check — a famous ratio may support a note, never drive it
     driver_text = " ".join([pe, str(idea["title"]), str(edge.get("summary", "")), str(idea.get("dek", ""))]).lower()

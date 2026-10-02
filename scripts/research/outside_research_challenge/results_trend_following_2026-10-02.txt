@@ -1,0 +1,17 @@
+spx_index        n= 234  with-trend +1.73%  win 66%   just holding +2.47%
+ndx_index        n= 234  with-trend +2.26%  win 65%   just holding +3.52%
+dji_index        n= 234  with-trend +1.84%  win 66%   just holding +2.12%
+fx_eur           n= 268  with-trend -0.71%  win 44%   just holding -0.05%
+fx_jpy           n= 356  with-trend +0.86%  win 56%   just holding +0.29%
+fx_gbp           n= 269  with-trend -0.61%  win 43%   just holding -0.28%
+usd              n= 234  with-trend -0.70%  win 45%   just holding +0.29%
+cmdty_gold       n= 297  with-trend +2.44%  win 60%   just holding +3.11%
+cmdty_silver     n= 297  with-trend +2.09%  win 53%   just holding +3.96%
+cmdty_copper     n= 298  with-trend +1.35%  win 53%   just holding +3.45%
+cmdty_oil        n= 298  with-trend -3.13%  win 48%   just holding +3.85%
+cmdty_brent      n= 213  with-trend -2.58%  win 46%   just holding +2.07%
+cmdty_natgas     n= 298  with-trend -2.48%  win 45%   just holding +3.15%
+cmdty_corn       n= 298  with-trend -0.53%  win 45%   just holding +2.01%
+cmdty_soybeans   n= 297  with-trend -0.57%  win 49%   just holding +1.81%
+cmdty_wheat      n= 298  with-trend +0.68%  win 51%   just holding +1.83%
+pooled: with-trend +0.13%  win 52%  n=4423
