@@ -219,7 +219,7 @@ commodity / equity), `title`, `dek`, `position_type`, `call`,
 `charts[]` (2–5), `levels{trigger, invalidation, target}`, `sections[]` (each
 `{title, prose}` or `{title, bullets[]}`), `other_side`, `risks[]`, `so_what`,
 and — for every note dated 2026-10-01 or later — `expected_return{pct, basis,
-instrument}` (20% minimum, see "The bar") and `review_conditions[]` (below).
+instrument}` (15% minimum, see "The bar") and `review_conditions[]` (below).
 
 ### Review conditions — the claims the weekly review will re-measure (2026-09-30)
 
@@ -452,8 +452,10 @@ its horizon: *"Did we really make a call for a trade that would have been
 
 Four rules follow, and the contract enforces all four.
 
-**0. Twenty per cent, minimum, over the horizon — on the position the reader
-is told to hold.** Every note carries an `expected_return` block:
+**0. Fifteen per cent, minimum, over the horizon — on the position the reader
+is told to hold.** (Set at 20% on 2026-09-30; lowered to 15% by Joe on
+2026-10-02 after the 20% bar at 2x the stop killed every candidate for three
+straight daily runs.) Every note carries an `expected_return` block:
 
 ```json
 "expected_return": {
@@ -466,9 +468,9 @@ is told to hold.** Every note carries an `expected_return` block:
 
 `pct` is the return the note calls for over its own horizon, in the same
 per-cent-of-position terms the Scorecard marks, and it must be **at least
-20**. A real but small edge — a 12 basis point breakeven move, a 3% relative
+15**. A real but small edge — a 12 basis point breakeven move, a 3% relative
 move in banks — does not publish unless the note names the instrument
-(futures, options, a leveraged fund, stated sizing) that turns it into 20%+
+(futures, options, a leveraged fund, stated sizing) that turns it into 15%+
 and states the risk that comes with it; if there is no such instrument, there
 is no note. The scorecard block still marks the underlying series; the
 weekly review compares the mark against `expected_return.pct`, so the two
