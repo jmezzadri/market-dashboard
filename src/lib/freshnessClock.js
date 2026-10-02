@@ -507,3 +507,31 @@ export function gradeTwoClock(input, nowMs) {
   }
   return { status: "green", clock: null, reason: null, ageHours: pull.ageHours == null ? null : pull.ageHours };
 }
+
+// ─── Deliberate skip vs dead producer (Joe, 2026-10-02) ─────────────────────
+// Joe, on the Trade Idea note's chip reading "stale": "its not stale, the tool
+// is working and hasnt found an idea worth publishing."
+//
+// "Stale" is a claim about the PRODUCER — it died, or its vendor went dark. A
+// writer that ran on schedule, swept its candidates and declined to publish is
+// working as designed; the content is older for editorial reasons, not broken
+// ones. Grading both the same way makes the header cry wolf.
+//
+// This is the single rule every surface asks — the header pill, the per-element
+// chips, and the Data page tiles — so they can never disagree about it. It is
+// the frontend twin of `silenceIsDeliberate` in the pipeline-health-check edge
+// function, which has suppressed the ALERT EMAIL on the same signal since
+// 2026-08-26; this extends the same honesty to what the reader sees.
+//
+// Deliberate only while the producer is still turning up: once last_skip_at
+// falls outside its own cadence window (x1.5, same slack the backend uses) the
+// silence stops being explained and the element reds again on its own. An
+// errored run is never explained away, however recent.
+export function isDeliberateSkip(row, nowMs = Date.now()) {
+  if (!row || row.last_error) return false;
+  if (!row.last_skip_at) return false;
+  const skipAt = new Date(row.last_skip_at).getTime();
+  if (!Number.isFinite(skipAt)) return false;
+  const windowH = ((Number(row.expected_cadence_minutes) || 1440) / 60) * 1.5;
+  return (nowMs - skipAt) / 3_600_000 <= windowH;
+}

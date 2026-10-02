@@ -23,7 +23,7 @@ import { NYSE_HOLIDAYS } from '../../lib/freshnessClock';
 // plain-English label (Joe 2026-06-15: "make the header have a tooltip for
 // what's stale"). Mirrors the FreshnessChip tooltip look so it feels native.
 function AllFeedsPill() {
-  const { loading, red, amber, untracked = [] } = useFreshnessRollup();
+  const { loading, red, amber, untracked = [], skipped = [] } = useFreshnessRollup();
   const [hover, setHover] = React.useState(false);
   const [xy, setXY] = React.useState(null);
   const ref = React.useRef(null);
@@ -116,6 +116,25 @@ function AllFeedsPill() {
                 {amber.length} lagging (today's update is late)
               </div>
               {amber.map((item) => <AmberRow key={item.id} item={item} />)}
+            </>
+          )}
+          {/* Producers that ran and published nothing. Listed, never counted as
+              stale (Joe 2026-10-02) — the pill reports breakages, and these are
+              working writers with nothing to say. */}
+          {skipped.length > 0 && (
+            <>
+              <div style={{ fontWeight: 'var(--fw-600)', color: 'var(--mt-ink-0)', margin: 'var(--sp-8) 0 var(--sp-4)' }}>
+                {skipped.length} ran with nothing new to publish
+              </div>
+              {skipped.map((item) => (
+                <div key={item.id} style={{ display: 'flex', gap: 'var(--sp-6)', alignItems: 'flex-start', padding: 'var(--sp-3) 0' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 'var(--r-50pct)', background: 'var(--mt-ink-3)', flexShrink: 0, marginTop: 'var(--sp-5)' }} />
+                  <span style={{ color: 'var(--mt-ink-0)', lineHeight: 1.35 }}>
+                    {item.label}
+                    {item.skipCount > 1 ? ` · ${item.skipCount} runs in a row` : ''}
+                  </span>
+                </div>
+              ))}
             </>
           )}
           <div style={{ marginTop: 'var(--sp-8)', paddingTop: 'var(--sp-7)', borderTop: '1px solid var(--mt-line-1)', color: 'var(--mt-ink-2)', fontSize: 'var(--v13-t1)' }}>
