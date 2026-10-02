@@ -645,9 +645,18 @@ async function handle(req: Request): Promise<Response> {
     // Trade Idea note skipped ONE Wednesday (2026-08-19) and that alone
     // produced the 8/22 and 8/23 alerts for a pipeline with nothing wrong.
     //
-    // Only the EMAIL is suppressed. The status, the chip and last_good_at are
-    // untouched: the content really is older and every surface must keep
-    // saying so. A skip is never allowed to fake freshness.
+    // Only the EMAIL is suppressed HERE. The stored status and last_good_at are
+    // untouched — the content really is older and the row must keep saying so.
+    //
+    // 2026-10-02: the UI now draws the same distinction, via
+    // freshnessClock.isDeliberateSkip (the frontend twin of the rule below).
+    // Joe, on the Trade Idea chip: "its not stale, the tool is working and
+    // hasnt found an idea worth publishing." A deliberate skip renders as its
+    // own "no new publish" state carrying this reason and the run count, and is
+    // not counted among the header's stale feeds. That is still not fake
+    // freshness: the state is distinct, the content's real date renders beside
+    // it, and the moment last_skip_at falls outside the cadence window below,
+    // every surface reds again on its own.
     const expectedH = ((Number(row.expected_cadence_minutes) ||
       CADENCE_EXPECTED_MINUTES[row.cadence as CadenceCode] || 1440) / 60);
     const skipAgeH = row.last_skip_at

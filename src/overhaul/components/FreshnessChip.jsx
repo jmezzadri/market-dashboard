@@ -152,6 +152,9 @@ export default function FreshnessChip({
   const instanceId = useRef(null);
   if (instanceId.current == null) instanceId.current = `${elementId}#${Math.random().toString(36).slice(2, 8)}`; // synthetic-ok: per-mount registry key, never rendered as data
   useEffect(() => {
+    // 'skipped' is deliberately NOT registered: the registry exists so the
+    // header can never read "All feeds current" over a BROKEN chip, and a
+    // producer that ran and declined to publish is not broken.
     if (f && !f.loading && (f.status === 'red' || f.status === 'amber' || f.status === 'green')) {
       registerMountedChip(instanceId.current, {
         elementId,
@@ -167,9 +170,13 @@ export default function FreshnessChip({
   const [tipXY, setTipXY] = useState(null);
   const ref = useRef(null);
 
+  // 'holding' = the producer ran on schedule and published nothing (Joe
+  // 2026-10-02: "its not stale, the tool is working and hasnt found an idea
+  // worth publishing"). Distinct from stale, which claims the producer failed.
   const status = f?.status === 'loading' ? 'checking'
     : f?.status === 'red' ? 'stale'
     : f?.status === 'amber' ? 'lagging'
+    : f?.status === 'skipped' ? 'holding'
     : f?.status === 'green' ? 'fresh'
     : 'unknown';
 
@@ -178,7 +185,7 @@ export default function FreshnessChip({
       ? 'var(--mt-down)'
       : status === 'lagging'
         ? 'var(--mt-amber)'
-        : status === 'fresh'
+        : status === 'fresh' || status === 'holding'
           ? 'var(--mt-up)'
           : 'var(--mt-ink-3)';
 
@@ -186,7 +193,7 @@ export default function FreshnessChip({
   // The colored dot already carries the status; the relative time is what's
   // useful. The word was redundant clutter. Kept for screen-reader aria-label
   // and the tooltip header only.
-  const word = status === 'stale' ? 'Stale' : status === 'lagging' ? 'Lagging' : status === 'fresh' ? 'Fresh' : status === 'checking' ? 'Checking' : 'Not tracked';
+  const word = status === 'stale' ? 'Stale' : status === 'lagging' ? 'Lagging' : status === 'holding' ? 'No new publish' : status === 'fresh' ? 'Fresh' : status === 'checking' ? 'Checking' : 'Not tracked';
   // Session-frontier display (Joe 2026-06-12): a green daily can honestly sit
   // 2+ sessions back only when that IS the source's publication frontier
   // (e.g. credit spreads publish next-morning). "2d ago" beside a green dot
@@ -300,7 +307,7 @@ export default function FreshnessChip({
               ? 'color-mix(in oklab, var(--mt-down) 14%, transparent)'
               : status === 'lagging'
                 ? 'color-mix(in oklab, var(--mt-amber) 14%, transparent)'
-                : status === 'fresh'
+                : status === 'fresh' || status === 'holding'
                   ? 'color-mix(in oklab, var(--mt-up) 12%, transparent)'
                   : 'color-mix(in oklab, var(--mt-ink-3) 14%, transparent)',
           color,
@@ -363,6 +370,21 @@ export default function FreshnessChip({
             </ol>
             {/* When red, say why right under the five fields (spec: "shows the
                 reason if red"). Reason comes from the shared grade function. */}
+            {/* 'holding' says why in neutral ink: the producer ran and chose
+                not to publish, with its own reason and the run count. Rendered
+                before the red branch so the two never collide. */}
+            {status === 'holding' && f?.reason && (
+              <div style={{
+                marginTop: 'var(--sp-7)',
+                paddingTop: 'var(--sp-7)',
+                borderTop: '1px solid var(--mt-line-1)',
+                color: 'var(--mt-ink-1)',
+                fontSize: 'var(--v13-t2)',
+                lineHeight: 1.4,
+              }}>
+                {f.reason}
+              </div>
+            )}
             {status === 'stale' && f?.reason && (
               <div style={{
                 marginTop: 'var(--sp-7)',

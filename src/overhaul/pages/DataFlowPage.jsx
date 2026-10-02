@@ -64,7 +64,7 @@ import '../styles/v13.css';
 import '../styles/pages-v13.css';
 import Tip from '../components/Tip';
 import { useFreshness } from '../../hooks/useFreshness';
-import { gradeTwoClock } from '../../lib/freshnessClock';
+import { gradeTwoClock , isDeliberateSkip } from '../../lib/freshnessClock';
 
 // ─── Five-domain family rollup (matches useIndicators.FAMILY_LABEL) ──────────
 // The registry tags each indicator with a fine-grained family_id; the site
@@ -1296,13 +1296,20 @@ export default function DataFlowPage() {
           // tile dot never reds while the chips inside it are green. (Joe 2026-06-23.)
           marketHoursOnly: !!el.market_hours_only,
         });
-        s = graded.status === 'green' ? 'g' : graded.status === 'red' ? 'r' : 'u';
+        // A producer that ran on schedule and published nothing is not stale
+        // (Joe 2026-10-02) — same rule the header pill and the chips apply, so
+        // this page can never contradict them. 'k' = ran, nothing new.
+        s = graded.status === 'green' ? 'g'
+          : graded.status === 'red' ? (isDeliberateSkip(r) ? 'k' : 'r')
+            : 'u';
       }
       out[el.name] = s;
       detail[el.name] = {
         lastGoodAt: r?.last_good_at || null,
         lastError: r?.last_error || null,
         dataAsOf: r?.data_as_of || null,
+        skipCount: Number(r?.consecutive_skips) || 0,
+        skipReason: r?.last_skip_reason || null,
       };
     });
     return { statusByElement: out, detailByElement: detail };
@@ -1319,6 +1326,10 @@ export default function DataFlowPage() {
       if (d.lastError) return `failed (${String(d.lastError).slice(0, 60)})`;
       return `${ran}, past its window`;
     }
+    if (st === 'k') {
+      const n = Number(d.skipCount) || 0;
+      return `${ran}, published nothing${n > 1 ? ` (${n} runs in a row)` : ''}`;
+    }
     if (st === 'a') return `${ran}, lagging its schedule`;
     return ran;
   }, [statusByElement, detailByElement]);
@@ -1333,7 +1344,11 @@ export default function DataFlowPage() {
       (members || []).forEach((m) => {
         // The 28 COT signals share the single cftc-cot stamp.
         const key = m._cot ? (m.healthId || COT_HEALTH_ID) : m.name;
-        const s = statusByElement[key] || 'u';
+        // 'k' (ran, published nothing) is a healthy producer, so it rolls up
+        // as green for the tile dot. The member row itself still reads "ran,
+        // published nothing" via memberDetailText. Joe 2026-10-02.
+        const raw = statusByElement[key] || 'u';
+        const s = raw === 'k' ? 'g' : raw;
         if (s !== 'u') sawTracked = true;
         if (rank[s] > rank[best]) best = s;
       });

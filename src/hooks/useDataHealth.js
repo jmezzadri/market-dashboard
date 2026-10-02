@@ -184,7 +184,11 @@ async function fetchRows() {
     .select(
       "indicator_id, label, source, cadence, expected_cadence_minutes, " +
       "last_good_at, last_check_at, last_value, last_error, status, " +
-      "data_as_of, expected_next_run, coverage_pct, updated_at"
+      "data_as_of, expected_next_run, coverage_pct, updated_at, " +
+      // Deliberate-skip columns, so this page grades a producer that ran and
+      // published nothing the same way the header and the chips do
+      // (freshnessClock.isDeliberateSkip). Joe 2026-10-02.
+      "last_skip_at, last_skip_reason, consecutive_skips"
     );
   if (error) {
     // eslint-disable-next-line no-console

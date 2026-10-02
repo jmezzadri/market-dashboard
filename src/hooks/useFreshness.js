@@ -39,7 +39,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import { formatRelativeAge, ageHoursAgainstCalendar, calendarDaysSince, gradeTwoClock } from "../lib/freshnessClock";
+import { formatRelativeAge, ageHoursAgainstCalendar, calendarDaysSince, gradeTwoClock, isDeliberateSkip } from "../lib/freshnessClock";
 import {
   getElement,
   getAllElements,
@@ -92,7 +92,12 @@ async function fetchRows() {
       // last_good_at (the cron run time). coverage_pct is exposed so
       // consumers can surface "16% of expected" alongside red status.
       // expected_next_run lets us render "next refresh at <time>".
-      "data_as_of, expected_next_run, coverage_pct"
+      "data_as_of, expected_next_run, coverage_pct, " +
+      // Deliberate-skip columns (Joe 2026-10-02). A producer that ran, looked,
+      // and published nothing is NOT a stale feed — see the "skipped" grade in
+      // statusForElement. pipeline-health-check has written these since
+      // 2026-08-26; the chips just never read them.
+      "last_skip_at, last_skip_reason, consecutive_skips"
     );
   if (error) {
     // eslint-disable-next-line no-console
@@ -304,6 +309,20 @@ function statusForElement(elementId, fallback) {
     reason = graded.reason;
   }
 
+  // ─── Deliberate skip is not staleness (Joe, 2026-10-02) ───────────────────
+  // A red that is EXPLAINED by a recent run becomes its own grade. This is not
+  // fake green: `skipped` is a distinct state, it carries the producer's own
+  // reason and run count, and the content's real date still renders beside it.
+  // The rule itself lives in freshnessClock.isDeliberateSkip so the header, the
+  // chips and the Data page tiles can never disagree about it.
+  const skipCount = Number(phRow?.consecutive_skips) || 0;
+  if (status === "red" && isDeliberateSkip(phRow)) {
+    status = "skipped";
+    reason = phRow?.last_skip_reason
+      ? `Ran as scheduled and published nothing${skipCount > 1 ? ` — ${skipCount} runs in a row` : ""}. ${phRow.last_skip_reason}`
+      : `Ran as scheduled and published nothing${skipCount > 1 ? ` — ${skipCount} runs in a row` : ""}.`;
+  }
+
   return {
     elementId,
     status,
@@ -357,6 +376,10 @@ function statusForElement(elementId, fallback) {
     expectedNextRun: phRow?.expected_next_run || null,
     missingFromManifest: !manifestEl,
     missingFromPipelineHealth: !phRow,
+    // Deliberate-skip detail, for the "skipped" grade's chip + tooltip.
+    skipCount,
+    lastSkipAt: phRow?.last_skip_at || null,
+    skipReason: phRow?.last_skip_reason || null,
   };
 }
 
@@ -464,6 +487,9 @@ export function useFreshness(elementId, fallback) {
     coveragePct: rolled.coveragePct,
     expectedNextRun: rolled.expectedNextRun,
     reason: rolled.reason,
+    skipCount: rolled.skipCount,
+    lastSkipAt: rolled.lastSkipAt,
+    skipReason: rolled.skipReason,
     cause: rolled.cause,
     redInputs: rolled.redInputs || [],
     formatRelativeAge: () => formatRelativeAge(rolled.lastGoodAt),
@@ -518,7 +544,7 @@ export function useFreshnessRollup() {
   }, []);
 
   if (!cachedRows || !isManifestLoaded()) {
-    return { loading: true, red: [], amber: [], untracked: [], greenCount: 0 };
+    return { loading: true, red: [], amber: [], untracked: [], skipped: [], greenCount: 0 };
   }
 
   const els = getAllElements() || [];
@@ -526,6 +552,9 @@ export function useFreshnessRollup() {
   const red = [];
   const amber = [];
   const untracked = [];
+  // Producers that ran and chose not to publish. Healthy — counted apart from
+  // both the breakages and the greens so the pill can stay honest either way.
+  const skipped = [];
   let greenCount = 0;
   for (const el of els) {
     const name = el?.name;
@@ -583,7 +612,15 @@ export function useFreshnessRollup() {
       });
     }
     else if (r.status === "amber") amber.push({ id: phKey, label });
-    else if (r.status === "green") greenCount += 1;
+    else if (r.status === "skipped") {
+      skipped.push({
+        id: phKey,
+        label,
+        reason: r.reason || null,
+        skipCount: r.skipCount || 0,
+        dataAsOf: r.dataAsOf || null,
+      });
+    } else if (r.status === "green") greenCount += 1;
     // "unknown"/"loading" are not counted — untracked is not a breakage.
   }
   // Merge in on-screen chips whose page-local grade is stricter than the
@@ -622,7 +659,8 @@ export function useFreshnessRollup() {
 
   red.sort((a, b) => a.label.localeCompare(b.label));
   untracked.sort((a, b) => a.label.localeCompare(b.label));
-  return { loading: false, red, amber, untracked, greenCount };
+  skipped.sort((a, b) => a.label.localeCompare(b.label));
+  return { loading: false, red, amber, untracked, skipped, greenCount };
 }
 
 // ─── useFetchLog (from PR #15, kept) ───────────────────────────────────────
