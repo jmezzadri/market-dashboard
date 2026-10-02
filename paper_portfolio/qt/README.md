@@ -1,18 +1,9 @@
-# Quality Trend v3 — production pipeline (RETIRED 2026-08-26)
+# Quality Trend — production pipeline (LIVE)
 
-> **This book is retired.** Joe retired Quality Trend on 2026-08-26; it is
-> superseded by `paper_portfolio/TACTICAL_BOOK_SPEC.md`, which is a design and
-> has not been built. On 2026-08-28 its four workflows (`QT-EOD-DAILY`,
-> `QT-REBALANCE`, `QT-FUNDAMENTALS-REFRESH`, `QT-PLACE-ORDERS`), its two
-> `data_manifest.json` feed entries, its two `pipeline_health` rows and the
-> `qt-live-sync-10min` pg_cron job were all deleted. Nothing in this directory
-> is scheduled and nothing can reach the broker.
->
-> The code and the closed book's data are kept on purpose: `/paper` renders the
-> finished Aug 17 – Aug 25 2026 record from `qt_nav_daily` / `qt_target_book`,
-> and the replacement spec argues against this design by referring to it. Do not
-> re-schedule any of it — read `TACTICAL_BOOK_SPEC.md` first. Everything below
-> describes how the book worked while it ran.
+> **Status 2026-10-02: live.** The 2026-08-26 retirement note that stood here was
+> stale — the rebuilt 20-name book has traded on the paper account since
+> 2026-09-01 (books in `qt_target_book`, closes in `qt_nav_daily`, crash brake
+> v2 since 2026-09-10). Its workflows are scheduled and can reach the broker.
 
 
 The strategy itself is specified in `paper_portfolio/QUALITY_TREND_V3.md` and its
@@ -21,18 +12,24 @@ that runs it for real.
 
 ## The rule that shapes everything here
 
-**Scoring never places orders. Only one job can move the account.**
+**The book rebalances itself every month, with no human in the loop** (LESSONS
+0.14, 2026-10-02). `QT-REBALANCE` scores the month's book and places its orders
+in the same unattended run. It fires four times a day on the 1st–5th, plus a
+pg_cron backup (`qt-rebalance-backup`), and is idempotent: it scores once per
+calendar month, trades once per book, trades only on a trading day while the
+market is open, and never trades while the crash brake is ON.
 
 | Job | Fires | Can it trade? |
 |---|---|---|
 | `QT-FUNDAMENTALS-REFRESH` | monthly, 26th | no |
-| `QT-REBALANCE` | monthly, first trading day | no |
-| `QT-PLACE-ORDERS` | manual dispatch only | **yes — and only when `confirm` is literally `GO`** |
+| `QT-REBALANCE` | 1st–5th of the month, until the month's book is scored and traded | **yes — the month's rebalance** |
+| `QT-BRAKE-DAILY` | daily after the close | yes — all to cash / back to the book on a brake flip |
+| `QT-PLACE-ORDERS` | manual dispatch only | re-run / repair tool; only when `confirm` is literally `GO` |
 
-`execute.py` repeats the check in Python (`--live` *and* `--confirm GO`), so a
-mis-edited workflow file cannot submit on its own. It also refuses any plan over
-120 orders or 110% of equity in gross turnover — a rebalance that large is a bug,
-not a rebalance.
+`execute.py` keeps its guards: `--live` *and* `--confirm GO` are both required,
+deterministic client order ids make a repeat submit a no-op at the broker, and it
+refuses any plan over 120 orders or 110% of equity in gross turnover — a
+rebalance that large is a bug, not a rebalance.
 
 ## Files
 

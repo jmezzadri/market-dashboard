@@ -47,6 +47,12 @@ const ALLOWED_WORKFLOWS = new Set<string>([
   // EDGAR is the ONLY insider source. pg_cron backup at 11:30 UTC dispatches
   // through here; the 90-min dedupe skips it when GitHub's own cron did run.
   "scanner-insider_edgar-daily.yml",
+  // 2026-10-02 — the Quality Trend monthly rebalance now scores AND trades
+  // unattended (LESSONS 0.14). GitHub has delivered its fires hours late on
+  // every month so far; pg_cron backup `qt-rebalance-backup` dispatches it
+  // through here on the 1st-5th. The workflow is idempotent (scores once per
+  // month, trades once per book, never while the crash brake is on).
+  "QT-REBALANCE.yml",
 ]);
 
 // If the workflow has a run completed with conclusion=success in the last

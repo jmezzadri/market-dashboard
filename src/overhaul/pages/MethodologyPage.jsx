@@ -695,9 +695,9 @@ export default function MethodologyPage() {
                   <td>Scans the universe on last night's close, writes the signal table.</td>
                 </tr>
                 <tr>
-                  <td>9:00 AM · 1st trading day</td>
+                  <td>9:40 AM · 1st trading day</td>
                   <td>Quality Trend scoring</td>
-                  <td>Monthly: scores the full universe and writes the 20-name target book. Scoring cannot place orders — order placement is a separate, manually confirmed step.</td>
+                  <td>Monthly: scores the full universe, writes the 20-name target book and places the orders to move the account onto it. Fully automatic, with repeat runs through the 5th of the month in case a run is missed.</td>
                 </tr>
                 <tr>
                   <td>5:10 PM · daily</td>

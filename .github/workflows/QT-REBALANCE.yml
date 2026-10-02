@@ -1,29 +1,52 @@
 name: QT-REBALANCE
 
-# Quality Trend v3 — monthly scoring run. Writes qt_target_book. PLACES NO ORDERS.
+# Quality Trend v3 — monthly rebalance, fully automatic: score the book AND
+# place the orders. Joe, 2026-10-02: "THIS IS SUPPOSED TO AUTO REBALANCE
+# MONTHLY ... NEVER ASK ME AGAIN." The October book was scored on 10/1 but no
+# orders went out, because execution had been left as a manual-only step that
+# nobody ran (LESSONS 0.14). Execution now runs here, unattended.
 #
-# Scoring and execution are separate on purpose: this job can fire unattended
-# because the worst it can do is write a table. Orders require QT-PLACE-ORDERS,
-# which is manual-dispatch only and demands a typed confirmation.
+# Idempotent by design, so it can fire many times:
+#   * scores only if no book exists yet for this calendar month;
+#   * trades only if no engine order (client id qt-<date>-...) for this
+#     month's book has reached the broker yet;
+#   * trades only on an exchange trading day, during the regular session
+#     window of the fires below, and never while the crash brake is ON
+#     (the brake buys the latest book back itself when it switches off).
+# Execution repeats are safe a second way too: client order ids are
+# deterministic per book date + symbol, so Alpaca rejects duplicates.
+#
+# Redundancy (LESSONS 5.2/5.21): GitHub routinely delivers these fires hours
+# late or not at all — so four fires a day on the 1st-5th here, plus a pg_cron
+# backup (qt-rebalance-backup) that dispatches this workflow through
+# trigger-workflow on a different scheduler.
 
 on:
   schedule:
-    # 13:00 UTC on the 1st-4th — the first weekday run wins, later ones just
-    # overwrite the same row. Cron has no "first trading day" so the job guards
-    # itself on the Alpaca calendar below.
-    - cron: '0 13 1-4 * *'
+    - cron: '40 13 1-5 * *'
+    - cron: '10 15 1-5 * *'
+    - cron: '10 17 1-5 * *'
+    - cron: '10 19 1-5 * *'
   workflow_dispatch:
     inputs:
       as_of:
         description: "YYYY-MM-DD score date (default: today)"
         required: false
       force:
-        description: "Run even if today is not the first trading day"
+        description: "Re-score even if this month already has a book (does NOT force a second trade)"
         required: false
         default: "false"
+      trade:
+        description: "false = score only, place no orders"
+        required: false
+        default: "true"
+
+concurrency:
+  group: qt-rebalance
+  cancel-in-progress: false
 
 jobs:
-  score:
+  rebalance:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -45,39 +68,70 @@ jobs:
           python-version: '3.11'
       - run: pip install pandas numpy requests pyarrow
 
-      - name: Skip unless this is the first trading day of the month
+      - name: Decide what this fire does
         id: gate
-        run: |
-          python - <<'PY' >> "$GITHUB_OUTPUT"
-          import os, requests, datetime as dt
-          if "${{ github.event.inputs.force }}" == "true":
-              print("run=true"); raise SystemExit
-          h = {"APCA-API-KEY-ID": os.environ["ALPACA_PAPER_KEY_ID"],
-               "APCA-API-SECRET-KEY": os.environ["ALPACA_PAPER_SECRET"]}
-          today = dt.date.today()
-          first = today.replace(day=1)
-          cal = requests.get("https://paper-api.alpaca.markets/v2/calendar",
-                             headers=h, params={"start": first.isoformat(),
-                                                "end": today.isoformat()}, timeout=60).json()
-          days = [c["date"] for c in cal]
-          print("run=" + ("true" if days and days[0] == today.isoformat() else "false"))
-          PY
-
-      - name: Score and write qt_target_book
-        if: steps.gate.outputs.run == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          IN_FORCE: ${{ github.event.inputs.force || 'false' }}
+          IN_TRADE: ${{ github.event.inputs.trade || 'true' }}
+          IN_AS_OF: ${{ github.event.inputs.as_of || '' }}
         run: |
-          ARGS=""
-          if [ -n "${{ github.event.inputs.as_of }}" ]; then ARGS="--as-of ${{ github.event.inputs.as_of }}"; fi
-          python -m paper_portfolio.qt.rebalance $ARGS
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import os, sys, requests, datetime as dt
+          A = {"APCA-API-KEY-ID": os.environ["ALPACA_PAPER_KEY_ID"],
+               "APCA-API-SECRET-KEY": os.environ["ALPACA_PAPER_SECRET"]}
+          K = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+          S = {"apikey": K, "Authorization": f"Bearer {K}"}
+          U = os.environ["SUPABASE_URL"] + "/rest/v1/"
+          def sb(q):
+              r = requests.get(U + q, headers=S, timeout=60); r.raise_for_status(); return r.json()
+          def say(*a): print(*a, file=sys.stderr)
+
+          today = dt.date.today()
+          first = today.replace(day=1)
+          cal = requests.get("https://paper-api.alpaca.markets/v2/calendar", headers=A,
+                             params={"start": first.isoformat(), "end": today.isoformat()},
+                             timeout=60).json()
+          days = [c["date"] for c in cal]
+          trading_today = bool(days) and days[-1] == today.isoformat()
+          clock = requests.get("https://paper-api.alpaca.markets/v2/clock", headers=A, timeout=60).json()
+          market_open = bool(clock.get("is_open"))
+
+          books = sb(f"qt_target_book?select=rebalance_date&rebalance_date=gte.{first}"
+                     f"&order=rebalance_date.desc&limit=1")
+          force = os.environ["IN_FORCE"] == "true"
+          score = trading_today and (not books or force)
+          book_date = (os.environ["IN_AS_OF"] or today.isoformat()) if score else (
+              books[0]["rebalance_date"] if books else "")
+
+          traded = sb(f"qt_orders?select=client_order_id&rebalance_date=gte.{first}"
+                      f"&client_order_id=like.qt-*&status=not.in.(dry_run,rejected)&limit=1")
+          brake = sb("qt_brake_state?select=d,stress_on&order=d.desc&limit=1")
+          brake_on = bool(brake and brake[0]["stress_on"])
+
+          trade = (os.environ["IN_TRADE"] == "true" and trading_today and market_open
+                   and bool(book_date) and not traded and not brake_on)
+          say(f"today={today} trading_day={trading_today} market_open={market_open} "
+              f"book_this_month={books[0]['rebalance_date'] if books else None} "
+              f"already_traded={bool(traded)} brake_on={brake_on} -> score={score} trade={trade}")
+          print(f"score={'true' if score else 'false'}")
+          print(f"trade={'true' if trade else 'false'}")
+          print(f"book_date={book_date}")
+          PY
+
+      - name: Score and write qt_target_book
+        if: steps.gate.outputs.score == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python -m paper_portfolio.qt.rebalance --as-of "${{ steps.gate.outputs.book_date }}"
 
       # Honest-stamp (LESSONS, 2026-06-03/06-11): stamp our own pipeline_health
       # row after rows are verifiably in the table; data_as_of read back from
       # qt_target_book itself, never the runner clock.
       - name: Stamp pipeline health green
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.score == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -92,13 +146,21 @@ jobs:
           print(rows[0]['rebalance_date'] if rows else '-')
           ")
           python3 scripts/upsert_pipeline_health.py qt-target-book "$AS_OF" green
+
+      # The only step in this workflow that can move the account (LESSONS 3.6:
+      # the trading grant lives on the one step that trades).
+      - name: Place the month's orders
+        if: steps.gate.outputs.trade == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python -m paper_portfolio.qt.execute --rebalance-date "${{ steps.gate.outputs.book_date }}" \
+            --tif day --live --confirm GO
+
       - name: Stamp pipeline health red on failure
-        if: failure() && steps.gate.outputs.run == 'true'
+        if: failure()
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python3 scripts/upsert_pipeline_health.py qt-target-book - red "QT-REBALANCE failed — see workflow run logs"
-
-      - name: Report
-        if: steps.gate.outputs.run != 'true'
-        run: echo "Not the first trading day of the month — nothing scored."
