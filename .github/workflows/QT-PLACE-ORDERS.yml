@@ -1,6 +1,8 @@
 name: QT-PLACE-ORDERS
 
-# The ONLY job in this repo that can move the paper account.
+# Repair / re-run tool. The monthly rebalance places its own orders unattended
+# in QT-REBALANCE (LESSONS 0.14, 2026-10-02); the crash brake trades in
+# QT-BRAKE-DAILY. Use this only to re-submit a specific book by hand.
 #
 # No schedule. Manual dispatch only, and the `confirm` input must literally be
 # GO — anything else runs as a dry run and prints the plan. The Python layer

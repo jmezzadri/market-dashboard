@@ -70,6 +70,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `0.11` NEVER use 2006 as a lower bound for regime / macro data; the default is 1996
 - `0.12` Ship only what was asked; no unsolicited "helper" UX
 - `0.13` The bug queue is part of every sweep. A monitoring surface nobody is instructed to read does not exist
+- `0.14` THE PAPER BOOK REBALANCES ITSELF EVERY MONTH. Never ask Joe to approve, confirm or trigger a paper trade.
 
 **1 · TALKING TO JOE**
 
@@ -453,6 +454,18 @@ All four closed the same day. Three of them were auto-filed by the freshness ala
 
 **Applies to:** Lead Developer — every weekday sweep, and any future automated filer.
 
+
+### 0.14 (2026-10-02, Joe, emphatic) — THE PAPER BOOK REBALANCES ITSELF EVERY MONTH. Never ask Joe to approve, confirm or trigger a paper trade.
+
+**What happened:** the Quality Trend book was scored on schedule on 2026-10-01 (out: Twilio, CF Industries; in: Qualys, Hinge Health), but no orders went out. Placing the orders had been built as a separate manual-only job with a typed confirmation, and nothing ever ran it — the September trades had been placed by hand in a session, so the gap never showed. On 10/2 the agent found the miss and then asked Joe "yes or no" to place the trades and to automate the step. Joe: *"NEVER ASK ME AGAIN!!! THIS IS SUPPOSED TO AUTO REBALANCE MONTHLY. THIS IS A MAJOR FUCKING FAILURE!!!"*
+
+**Rule:**
+1. **A strategy that is described as rebalancing monthly rebalances monthly with no human in the loop.** Scoring and order placement run in the same unattended job (QT-REBALANCE). A "manual safety step" that the spec does not ask for is not a safety step; it is a scheduled outage.
+2. **Never ask Joe to approve, confirm, or trigger a paper-book trade** — scheduled rebalance, catch-up of a missed rebalance, or brake action. If a rebalance was missed, place it and report it.
+3. **Every scheduled trading job is idempotent and over-fired**, never single-shot: several fires per day across the rebalance window plus a pg_cron backup on a different scheduler (5.2), with a gate that scores once per month and trades once per book.
+4. **"Did it rebalance?" is answered at the broker:** month's book exists AND engine orders for that book reached Alpaca AND positions match. A score row alone is not a rebalance.
+
+**Applies to:** all four specialists — every paper-book job, and every message to Joe about the paper book.
 
 # 1 · TALKING TO JOE
 ### 1.1 (2026-08-26) — Never tell Joe to approve or tap something unless the prompt is CONFIRMED visible to him
