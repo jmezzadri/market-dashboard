@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-02T23:54:11Z",
+  "generated_at": "2026-10-03T14:22:43Z",
   "window": {
-    "from": "2026-09-25",
-    "to": "2026-12-11"
+    "from": "2026-09-26",
+    "to": "2026-12-12"
   },
   "counts": {
-    "total": 109,
+    "total": 107,
     "tier1": 36
   },
   "sources": [
@@ -26,28 +26,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-09-25",
-      "time_et": "8:30 AM",
-      "name": "Durable goods orders",
-      "short": "Durables",
-      "tier": 2,
-      "category": "Growth",
-      "blurb": "Advance report on orders for long-lived manufactured goods \u2014 a proxy for capex intent.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-25",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan, final)",
-      "short": "UMich final",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-28",
       "time_et": "8:30 AM",
