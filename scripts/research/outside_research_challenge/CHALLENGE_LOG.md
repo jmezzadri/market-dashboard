@@ -19,6 +19,25 @@ Procedure: `PLAYBOOK.md`. Posts already read: `processed_posts.json`.
 
 ---
 
+## 2026-10-03 — kill-tests from the daily session's second sweep
+
+Not an outside-research read: the 10-02 method applied to the three loudest
+things on our own board, on Joe's instruction to dig deeper. Full numbers,
+episode tables and data in `results_2026-10-03.md` / `cot_extra_2026-10-03.json`
+/ `sterling_tbond_tests.py`. The short version:
+
+- **Sterling spec-short fade: empty** (12 episodes since 2004, mean -0.02% vs
+  -0.22% unconditional). With the euro, the FX fade class is now dead in both
+  markets we quote.
+- **The Treasury bond "most opposed ever" standoff is a window artifact** of
+  the TFF feed's 2010-06 ranking start (bug #1263) — full-record percentiles
+  are mid-range — and the honest test finds no edge (7 episodes, +0bp vs +1bp).
+- **Weak payrolls do not predict yields** (26 episodes since 2006, flat vs
+  baseline).
+- **Banks/S&P at the 1st percentile of 20y is the one real edge found**
+  (+3.0% vs -1.3% over 126 sessions, 20 episodes, only at <=2nd pctile) — too
+  small for the 15% bar unlevered; a watch item, not a note.
+
 ## 2026-10-02 — first read (six posts, Sep 19–28)
 
 ### What their work does that ours does not
