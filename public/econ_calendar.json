@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-04T14:54:14Z",
+  "generated_at": "2026-10-04T23:22:09Z",
   "window": {
     "from": "2026-09-27",
     "to": "2026-12-13"
   },
   "counts": {
-    "total": 107,
-    "tier1": 36
+    "total": 106,
+    "tier1": 35
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -24,7 +24,13 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [],
+  "problems": [
+    "NASS calendar fetch failed (2026-09): HTTP Error 403: Forbidden",
+    "NASS calendar fetch failed (2026-10): HTTP Error 403: Forbidden",
+    "NASS calendar fetch failed (2026-11): HTTP Error 403: Forbidden",
+    "NASS calendar fetch failed (2026-12): HTTP Error 403: Forbidden",
+    "NASS calendar parsed to zero rows across the window"
+  ],
   "events": [
     {
       "date": "2026-09-28",
@@ -79,17 +85,6 @@
       "category": "Trade",
       "blurb": "Early estimate of the goods trade gap and retail/wholesale inventories.",
       "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-30",
-      "time_et": "12:00 PM",
-      "name": "USDA Grain Stocks",
-      "short": "Grain Stk",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's quarterly count of corn, soybean and wheat inventories \u2014 a recurring source of limit moves in grain futures, released at noon ET.",
-      "source": "USDA NASS release calendar (nass.usda.gov)",
       "time_source": "published release policy"
     },
     {
