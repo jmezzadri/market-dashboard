@@ -1,7 +1,13 @@
 # Outside research watch — scheduled-session playbook
 
-**Who runs this:** the "Macro Ops research watch" scheduled task, weekday
-mornings at 5:23 AM ET.
+**Who runs this:** the "MacroTilt Trade Idea" scheduled task, as part of its
+Tuesday morning run — the same session that uses what this finds. There is no
+separate outside-research task (Joe, 2026-10-04: *"can't you just put this as
+part of the trade idea scheduled task? I have too many scheduled tasks that
+chew up tokens."*). The old "Macro Ops research watch" task is switched off.
+Tuesday, because their posts land Saturday to Monday; one read a week covers
+all three. On any other day the Trade Idea run only reads the newest entry in
+`CHALLENGE_LOG.md`, which costs nothing extra.
 
 **What it is for (Joe, 2026-10-02):** *"I don't want to publish this as
 COMPETING RESEARCH. I want it to improve our research and trade ideas. I want
@@ -9,12 +15,6 @@ you to challenge yourself with their analysis. Not simply look at their calls
 vs ours and run a comparison."* And the day before: one article he shares is an
 example of the intelligence he wants watched, not a request to build a feature
 from it.
-
-**The stored task prompt predates that correction.** It asks for a digest of
-their views, an attributed line in the brief, a governed feed and a
-call-by-call comparison. Those parts are superseded by this file: nothing is
-published, nothing is attributed on the site, and a comparison is not the
-output. Do not re-flag the mismatch to Joe.
 
 ## Hard limits
 
@@ -28,9 +28,12 @@ output. Do not re-flag the mismatch to Joe.
 
 ## Each run
 
-1. **Read the index.** Compare with `processed_posts.json`. Nothing new:
-   update `last_checked` only if a commit is being made anyway; otherwise stop
-   and send nothing.
+1. **Read the index (Tuesdays only).** Compare with `processed_posts.json`.
+   Nothing new and nothing in "Not yet tested": carry on with the Trade Idea
+   run and write nothing. One test per week is enough — pick the question that
+   bears on an open call or on today's candidates, and leave the rest queued.
+   This work never delays the 7:00 AM ET publish deadline: if time is short,
+   the Trade Idea comes first and the read waits a week.
 2. **Read each new post for METHOD, not for calls.** What are they measuring
    that we are not? What do they do at entry, at exit, in sizing? What evidence
    do they treat as decisive that we ignore — and the reverse?
@@ -50,5 +53,5 @@ output. Do not re-flag the mismatch to Joe.
    call, and Joe's restricted-ticker list checked.
 6. **Write the entry** at the top of `CHALLENGE_LOG.md` in the five-part form,
    add the posts to `processed_posts.json`, ship through `ops-code-commit`.
-7. **Tell Joe only what changed in our work** — three sentences, plain
-   English. Not what they said.
+7. **Tell Joe only what changed in our work**, inside the Trade Idea run's own
+   report — no separate message. Not what they said.
