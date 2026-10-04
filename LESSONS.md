@@ -2577,7 +2577,9 @@ pages only. (c) When telling Joe about any schedule, state times in ET only.
 4. Public pages only, our words only, and their conviction is never a backtest (6.19).
 5. When Joe shares an article, it is an example of what to watch, not a feature request (0.12).
 
-**Applies to:** the outside research watch session (`scripts/research/outside_research_challenge/PLAYBOOK.md`), the Trade Idea and Morning Brief sessions, all four specialists.
+**2026-10-04 addendum:** Joe — *"can't you just put this as part of the trade idea scheduled task? I have too many scheduled tasks that chew up tokens."* The separate watch task is switched off; the Trade Idea run does the read on Tuesdays. A new standing job goes inside the session that uses its output before it gets a schedule of its own.
+
+**Applies to:** the Trade Idea session (which now runs the read, per `scripts/research/outside_research_challenge/PLAYBOOK.md`), the Morning Brief session, all four specialists.
 
 # A · ARCHIVE — closed 2026-09-01. Superseded and retired only. NOTHING NEW GOES BELOW THIS LINE.
 

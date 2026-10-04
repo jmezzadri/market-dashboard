@@ -208,6 +208,12 @@ sweep was reduced to a veto. That ordering is now reversed:
    signal; (c) where it says an open call's evidence does not hold, that goes to
    the weekly thesis review. Never publish another shop's view, never name one
    in a note, and never treat their conviction as a backtest (LESSONS 6.19).
+   **On Tuesdays this run also does the outside-research read itself**
+   (2026-10-04 — Joe folded it in here to stop a separate task spending
+   tokens): follow `scripts/research/outside_research_challenge/PLAYBOOK.md` —
+   new public posts since `processed_posts.json`, read for method, one test on
+   our data, one entry in the log. It never delays the publish deadline; if
+   time is short the Trade Idea comes first and the read waits a week.
 
 It must still be a *trade*, not an observation — something with an instrument,
 a horizon and a level that proves it wrong — and the full bar below applies
