@@ -134,6 +134,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `4.36` `as_of` is re-stamped from the points actually published, after every merge step; a clock computed before the union grades data the file no longer serves
 - `4.37` A one-session change measured across a futures contract roll is not a market move; cross-check the benchmark pair and drop the artifact leg
 - `4.38` A generator regenerates the WHOLE artifact; a hand-edit to generated output is a revert waiting for the next scheduled run
+- `4.39` A vendor's display name is a rename trap; fetch history by the stable series code
 
 **5 · PIPELINES, SCHEDULES & ALERTING**
 
@@ -1048,6 +1049,15 @@ They are not the same series and they are nowhere near each other:
 3. **`--force-with-lease` needs a fetched remote ref.** On a checkout that only fetched main, fetch the target branch first or the lease rejects every re-run with "stale info".
 
 **Applies to:** Lead Developer + Senior Quant — every generated-then-committed artifact (calibrations, manifests, seeded configs).
+
+### 4.39 (2026-10-05) — A vendor's display name is a rename trap; fetch history by the stable series code
+
+**What happened:** Bug #1263: positioning_tff.json printed the Treasury bond at the 99.6th/1.7th percentile — "the most opposed ever" — where the full record says 54th/44th. Two compounding truncations, both silent and both green: the builder bounded its fetch at 2010 while the futures-only TFF record starts 2006-06-13, and — found only by reading the live file's `pctile_basis` during the fix's verification — the bond's history began 2022-02-08 anyway, because the CFTC renamed the contract and `market_and_exchange_names = 'UST BOND - …'` matches nothing older. The same code (020601) carries one unbroken weekly series 2006→today. Every percentile the page, the opposed-markets block and the brief takeaways printed was ranked against whatever slice of history the current display name happened to cover.
+
+**Rule:** Never key a history fetch on a vendor's display name. Resolve the vendor's stable identifier (CFTC: `cftc_contract_market_code`) from the current name once, then fetch the record by that identifier, and state the resulting basis per series in the artifact (`pctile_basis` already does). A fetch keyed on a mutable label inherits the label's lifetime, not the series'; the result is 4.27's missing-history defect produced by the vendor instead of by us. Shipped in PRs #1722 (window) + #1724 (code-keyed fetch).
+
+**Applies to:** Data Steward + Lead Developer — every external series fetch filtered by a human-readable name.
+
 
 
 # 5 · PIPELINES, SCHEDULES & ALERTING
