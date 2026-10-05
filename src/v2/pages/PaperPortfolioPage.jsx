@@ -1206,7 +1206,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               <span>
                 {nothingHeld
                   ? `the ${book?.length ?? 0} names below are scored, not owned · scored ${fmtDate(rebalDate)}`
-                  : `final holdings · scored ${fmtDate(rebalDate)} · no further rebalance`}
+                  : bookIsLive
+                    ? `scored ${fmtDate(rebalDate)} · rebalances monthly`
+                    : `final holdings · scored ${fmtDate(rebalDate)} · no further rebalance`}
               </span>
               <input
                 className="qtt-search" type="search" placeholder="Filter ticker or name…"
