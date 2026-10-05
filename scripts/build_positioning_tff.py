@@ -36,9 +36,11 @@ what every previous MacroTilt note was reading.
 WHAT THIS PRODUCES
 ------------------
 For each market, per trader class: net position as a share of open interest, its
-percentile against the FULL available history (TFF starts 2010, so this is a
-far longer base rate than the three-year window the legacy COT feed uses), the
-week-over-week change, and a trimmed history for charting.
+percentile against the FULL available history — ranked from each series' OWN
+first report date (the futures-only TFF record starts 2006-06-13; ranking every
+market from a later common date manufactured fake extremes: bug #1263 printed
+the Treasury bond at the 99.6th/1.7th pctile where the full record says
+54th/44th) — the week-over-week change, and a trimmed history for charting.
 
 It also flags the thing worth looking at: markets where hedge funds and asset
 managers are positioned on OPPOSITE sides, both at an extreme. That is the tell.
@@ -61,7 +63,11 @@ import urllib.request
 
 API = "https://publicreporting.cftc.gov/resource/gpe5-46if.json"
 OUT_PATH = "public/positioning_tff.json"
-HISTORY_START = "2010-01-01"     # TFF begins mid-2010
+HISTORY_START = "1996-01-01"     # before the TFF record begins (futures-only
+                                 # TFF starts 2006-06-13, NOT 2010 — bug #1263),
+                                 # so every market ranks from its own first
+                                 # report; pctile_basis states that basis. 1996
+                                 # per LESSONS 0.11: never bound at 2006.
 HISTORY_KEEP_YEARS = 5           # trimmed for the file; percentiles use everything
 EXTREME_HI, EXTREME_LO = 85, 15  # percentile bands that count as "at an extreme"
 
