@@ -115,22 +115,48 @@ CLASSES = {
 }
 
 
+def _get(params: dict):
+    q = urllib.parse.urlencode(params)
+    req = urllib.request.Request(f"{API}?{q}", headers={"User-Agent": "MacroTilt/positioning-tff"})
+    with urllib.request.urlopen(req, timeout=90) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
 def fetch(name: str):
-    """Every weekly row for one market, oldest first."""
+    """Every weekly row for one market, oldest first.
+
+    Fetched by the stable cftc_contract_market_code, NOT the display name: the
+    CFTC renames contracts, so a name-bound fetch silently truncates history at
+    the last rename and manufactures fake percentile extremes (bug #1263 —
+    "UST BOND" exists under that name only from 2022-02-08, while its code
+    020601 carries the record back to the start of TFF publication,
+    2006-06-13). The current name resolves the code; the code pulls the full
+    record.
+    """
+    rows = _get({
+        "$where": f"market_and_exchange_names = '{name}'",
+        "$order": "report_date_as_yyyy_mm_dd DESC",
+        "$select": "cftc_contract_market_code",
+        "$limit": 1,
+    })
+    if not rows:
+        return []
+    code = rows[0]["cftc_contract_market_code"]
     out, offset = [], 0
     while True:
-        q = urllib.parse.urlencode({
-            "$where": f"market_and_exchange_names = '{name}' and report_date_as_yyyy_mm_dd >= '{HISTORY_START}'",
+        page = _get({
+            "$where": f"cftc_contract_market_code = '{code}' and report_date_as_yyyy_mm_dd >= '{HISTORY_START}'",
             "$order": "report_date_as_yyyy_mm_dd ASC",
             "$limit": 1000, "$offset": offset,
         })
-        req = urllib.request.Request(f"{API}?{q}", headers={"User-Agent": "MacroTilt/positioning-tff"})
-        with urllib.request.urlopen(req, timeout=90) as r:
-            page = json.loads(r.read().decode("utf-8"))
         out += page
         if len(page) < 1000:
-            return out
+            break
         offset += 1000
+    # Defensive: one row per report week (a rename week could in principle
+    # publish under both names); keep the later row, preserve date order.
+    by_date = {r["report_date_as_yyyy_mm_dd"]: r for r in out}
+    return [by_date[d] for d in sorted(by_date)]
 
 
 def pct_rank(sorted_vals, x):
