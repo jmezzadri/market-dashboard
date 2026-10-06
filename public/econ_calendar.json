@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-05T18:40:56Z",
+  "generated_at": "2026-10-06T01:21:33Z",
   "window": {
-    "from": "2026-09-28",
-    "to": "2026-12-14"
+    "from": "2026-09-29",
+    "to": "2026-12-15"
   },
   "counts": {
-    "total": 107,
+    "total": 109,
     "tier1": 36
   },
   "sources": [
@@ -26,17 +26,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-09-28",
-      "time_et": "8:30 AM",
-      "name": "Retail sales",
-      "short": "Retail",
-      "tier": 1,
-      "category": "Consumer",
-      "blurb": "Advance monthly retail and food-service sales \u2014 the timeliest read on the consumer.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-29",
       "time_et": "10:00 AM",
@@ -1200,6 +1189,39 @@
       "tier": 3,
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-15",
+      "time_et": "8:30 AM",
+      "name": "Producer prices (PPI)",
+      "short": "PPI",
+      "tier": 1,
+      "category": "Inflation",
+      "blurb": "Prices received by producers \u2014 the pipeline into consumer inflation.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-15",
+      "time_et": "8:30 AM",
+      "name": "Empire State survey",
+      "short": "Empire",
+      "tier": 2,
+      "category": "Surveys",
+      "blurb": "New York Fed manufacturing survey \u2014 the first regional read each month.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-15",
+      "time_et": "4:00 PM",
+      "name": "Foreign Treasury flows (TIC)",
+      "short": "TIC",
+      "tier": 3,
+      "category": "Flows",
+      "blurb": "Cross-border purchases of US securities \u2014 who is funding the deficit.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
