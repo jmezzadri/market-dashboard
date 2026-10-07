@@ -71,12 +71,20 @@ def snapshot() -> dict | None:
     acct = requests.get(f"{D.ALPACA_TRADE}/v2/account", headers=H, timeout=60).json()
     pos = requests.get(f"{D.ALPACA_TRADE}/v2/positions", headers=H, timeout=60).json()
 
-    spy = None
+    # Benchmark marks — S&P 500 (SPY), Nasdaq 100 (QQQ), Dow (DIA) — in one
+    # call so the three index rows on /paper share a clock (2026-10-07). A mark
+    # that fails to load is left out of the upsert, never written as null:
+    # merge-duplicates would wipe the value the intraday sync already stored.
+    bench: dict[str, float] = {}
     try:
         r = requests.get(f"{D.ALPACA_DATA}/v2/stocks/trades/latest", headers=H,
-                         params={"symbols": "SPY", "feed": "delayed_sip"}, timeout=30)
+                         params={"symbols": "SPY,QQQ,DIA", "feed": "delayed_sip"}, timeout=30)
         if r.status_code == 200:
-            spy = float(r.json()["trades"]["SPY"]["p"])
+            trades = r.json().get("trades") or {}
+            for sym, col in (("SPY", "spy_close"), ("QQQ", "qqq_close"), ("DIA", "dia_close")):
+                px = float((trades.get(sym) or {}).get("p") or 0)
+                if px > 0:
+                    bench[col] = px
     except Exception:
         pass
 
@@ -90,7 +98,7 @@ def snapshot() -> dict | None:
         "cash": float(acct["cash"]),
         "long_mv": float(acct.get("long_market_value") or 0),
         "n_positions": len(pos),
-        "spy_close": spy,
+        **bench,
         "positions": [
             {
                 "symbol": p["symbol"],

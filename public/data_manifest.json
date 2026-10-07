@@ -4517,7 +4517,7 @@
    "description": "Quality Trend daily close snapshot (equity, cash, positions) for the live paper account, written by QT-EOD-DAILY; intraday marks every 10 minutes in market hours via qt-live-sync.",
    "sourcing_mode": "STP",
    "source_vendor": "Alpaca (paper)",
-   "source_endpoint": "Alpaca /v2/account + /v2/positions \u2192 qt_nav_daily; /v2/orders \u2192 qt_orders fill sync",
+   "source_endpoint": "Alpaca /v2/account + /v2/positions + /v2/stocks/trades/latest (SPY, QQQ, DIA benchmark marks \u2192 spy_close, qqq_close, dia_close) \u2192 qt_nav_daily; /v2/orders \u2192 qt_orders fill sync",
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
