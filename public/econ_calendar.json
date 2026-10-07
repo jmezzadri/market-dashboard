@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-06T23:55:45Z",
+  "generated_at": "2026-10-07T16:44:34Z",
   "window": {
-    "from": "2026-09-29",
-    "to": "2026-12-15"
+    "from": "2026-09-30",
+    "to": "2026-12-16"
   },
   "counts": {
-    "total": 108,
-    "tier1": 35
+    "total": 111,
+    "tier1": 36
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -24,25 +24,8 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [
-    "NASS calendar fetch failed (2026-09): HTTP Error 403: Forbidden",
-    "NASS calendar fetch failed (2026-10): HTTP Error 403: Forbidden",
-    "NASS calendar fetch failed (2026-11): HTTP Error 403: Forbidden",
-    "NASS calendar fetch failed (2026-12): HTTP Error 403: Forbidden",
-    "NASS calendar parsed to zero rows across the window"
-  ],
+  "problems": [],
   "events": [
-    {
-      "date": "2026-09-29",
-      "time_et": "10:00 AM",
-      "name": "Job openings (JOLTS)",
-      "short": "JOLTS",
-      "tier": 1,
-      "category": "Labor",
-      "blurb": "Job openings, hires, quits and layoffs \u2014 labor demand rather than headcount.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-09-30",
       "time_et": "8:30 AM",
@@ -74,6 +57,17 @@
       "category": "Trade",
       "blurb": "Early estimate of the goods trade gap and retail/wholesale inventories.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-09-30",
+      "time_et": "12:00 PM",
+      "name": "USDA Grain Stocks",
+      "short": "Grain Stk",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's quarterly count of corn, soybean and wheat inventories \u2014 a recurring source of limit moves in grain futures, released at noon ET.",
+      "source": "USDA NASS release calendar (nass.usda.gov)",
       "time_source": "published release policy"
     },
     {
@@ -1217,6 +1211,39 @@
       "tier": 3,
       "category": "Flows",
       "blurb": "Cross-border purchases of US securities \u2014 who is funding the deficit.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-16",
+      "time_et": "8:30 AM",
+      "name": "Retail sales",
+      "short": "Retail",
+      "tier": 1,
+      "category": "Consumer",
+      "blurb": "Advance monthly retail and food-service sales \u2014 the timeliest read on the consumer.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-16",
+      "time_et": "9:15 AM",
+      "name": "Industrial production",
+      "short": "Ind Prod",
+      "tier": 2,
+      "category": "Growth",
+      "blurb": "Factory, mining and utility output plus capacity utilisation.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-16",
+      "time_et": "10:00 AM",
+      "name": "Business inventories",
+      "short": "Invent.",
+      "tier": 3,
+      "category": "Growth",
+      "blurb": "Manufacturing and trade inventories and sales.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
