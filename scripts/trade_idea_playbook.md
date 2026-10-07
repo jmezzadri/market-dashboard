@@ -235,7 +235,7 @@ commodity / equity), `title`, `dek`, `position_type`, `call`,
 `charts[]` (2–5), `levels{trigger, invalidation, target}`, `sections[]` (each
 `{title, prose}` or `{title, bullets[]}`), `other_side`, `risks[]`, `so_what`,
 and — for every note dated 2026-10-01 or later — `expected_return{pct, basis,
-instrument}` (15% minimum, see "The bar") and `review_conditions[]` (below).
+instrument}` (a pace of 20% a year, see "The bar") and `review_conditions[]` (below).
 
 ### Review conditions — the claims the weekly review will re-measure (2026-09-30)
 
@@ -468,43 +468,70 @@ its horizon: *"Did we really make a call for a trade that would have been
 
 Four rules follow, and the contract enforces all four.
 
-**0. Fifteen per cent, minimum, over the horizon — on the position the reader
-is told to hold.** (Set at 20% on 2026-09-30; lowered to 15% by Joe on
-2026-10-02 after the 20% bar at 2x the stop killed every candidate for three
-straight daily runs.) Every note carries an `expected_return` block:
+**0. The hurdle is a PACE: 20% a year, pro-rated to the horizon (2026-10-07).**
+Joe: *"So a trade that's going to make 14% in a week doesn't get published, a
+trade that's going to make 15% over 18 months does?"* and *"I am looking to
+beat the market by a healthy margin with lower overall portfolio vol than the
+market."* The flat 15% (Sep 30: 20%, Oct 2: 15%) ignored time — it refused a
+fast trade and passed one that earned about 10% a year, the "I'll buy the SPY"
+return. From 2026-10-07 the bar is the S&P's long-run 10% a year plus a
+10-point margin — 20% a year (Joe: "make it 20% a year") — scaled to the
+note's own horizon:
+
+| horizon | `pct` must be at least |
+|---|---|
+| 1 week | 0.38% |
+| 1 month | 1.67% |
+| 3 months | 5% |
+| 6 months | 10% |
+| 12 months | 20% |
+| 18 months | 30% |
+
+A sub-quarter trade states `scorecard.horizon_weeks` (1–8) instead of
+`horizon_months`; the scorer closes it that many weeks after entry. Every note
+carries an `expected_return` block:
 
 ```json
 "expected_return": {
   "pct": 24.0,
   "loss_at_stop_pct": 8.0,
-  "basis": "the base-rate median move (+7.6% in front-month gas over three months) expressed through the March futures contract at 3x notional, which is how the note tells the reader to hold it",
-  "instrument": "March 2027 Henry Hub futures, sized at three times the cash exposure"
+  "basis": "the base-rate median move (+7.6% in front-month gas over three months) expressed through UNG call options, which is how the note tells the reader to hold it",
+  "instrument": "UNG, or 1-3 month at-the-money UNG calls"
 }
 ```
 
 `pct` is the return the note calls for over its own horizon, in the same
-per-cent-of-position terms the Scorecard marks, and it must be **at least
-15**. A real but small edge — a 12 basis point breakeven move, a 3% relative
-move in banks — does not publish unless the note names the instrument
-(futures, options, a leveraged fund, stated sizing) that turns it into 15%+
-and states the risk that comes with it; if there is no such instrument, there
-is no note. The scorecard block still marks the underlying series; the
-weekly review compares the mark against `expected_return.pct`, so the two
-must be stated on the same basis (say so in `basis`).
+per-cent-of-position terms the Scorecard marks. The scorecard block marks the
+underlying series; the weekly review compares the mark against
+`expected_return.pct`, so the two must be stated on the same basis (say so in
+`basis`).
 
 **0b. Downside stated, and the call pays at least twice it.**
 `expected_return.loss_at_stop_pct` is what the position loses if the stop
 prints, on the same basis as `pct`; the contract requires `pct` to be at least
 2x that number. A 20% call with a 15% stop is a coin flip with a story.
 
-**0c. Not the same bet twice.** The contract computes the candidate
-position's daily returns over the last 126 sessions and rejects it if the
-correlation with any live call exceeds 0.60 (warns above 0.40 — say in
-`book.stance` how the two sit together). Long euro and short dollar index are
-one trade; so are two commodity longs in the same energy shock. The weekly
-review prints the book's pairwise correlations and its sensitivity to
-equities, the 10-year yield and the dollar, so the PM sees the book as one
-position.
+**0c. Not the same bet twice — against the OPEN book.** The contract computes
+the candidate position's daily returns over the last 126 sessions and rejects
+it if the correlation with any open call exceeds 0.60 (warns above 0.40 — say
+in `book.stance` how the two sit together). "Open" is what the scorer marks
+open in `trade_idea_scores.json`: a stopped or thesis-broken call is not a
+position, whatever its original horizon said (until 2026-10-07 the stopped
+Aug 24 ten-year call was still blocking every duration idea).
+
+**0d. Incremental to the book, and the book calmer than the market
+(2026-10-07).** Taking the open calls equal-weight over the same 126 sessions,
+adding the candidate must (1) RAISE the book's expected return over the S&P
+per unit of volatility, and (2) leave the book's volatility at or below the
+S&P's. Each open call counts at the annual pace it called for (an older note
+that stated none counts at the 20% bar, and the output says so). The prepare
+step prints the before-and-after line — quote it in `book.stance`. Listed
+funds are measured on the series they track (`TICKER_PROXIES` in the
+contract: WEAT on wheat, FXY on the yen inverted, TLT on the 20-year, …). A
+single stock needs its closes: pull them from `prices_eod` with the Supabase
+MCP (last ~300 sessions) into a JSON file `{"SYM": [["2026-01-02", 12.34],
+…]}` and run the prepare step with `PRICES_EOD_PATH=<that file>`. A position
+that cannot be measured cannot publish — the book test is not optional.
 
 **1. Next several quarters. Maximum 18 months.** A ten-year valuation view is an
 asset-allocation opinion, not a trade. `horizon` is rejected above 18 months.

@@ -601,6 +601,7 @@ def build_calls(reviews: list[dict], ideas: list, scores: dict, hist: dict, unit
             "id": rv["id"], "date": row.get("date"), "kind": row.get("kind"),
             "trade_label": row.get("trade_label"), "title": row.get("title"),
             "horizon_months": row.get("horizon_months"),
+            "horizon_label": row.get("horizon_label"),
             **{k: rv[k] for k in ("verdict", "action", "called_for_pct", "called_for_basis",
                                   "expected_return_now_pct", "expected_basis", "view_now",
                                   "action_reason", "weakened_reason", "driver_checks")},
@@ -767,7 +768,7 @@ def render_email_html(doc: dict) -> str:
         vol = q.get("vol") or {}
         rows = [
             ("Return so far", f'{_pct(q.get("mark_pct"))} <span style="color:{MUTE}">(vs S&amp;P {_pct(q.get("vs_spx_pp"))}; best {_pct(q.get("max_favourable_pct"))}, worst {_pct(q.get("max_adverse_pct"))})</span>'),
-            ("What the note called for", f'{_pct(call.get("called_for_pct"))} over {call.get("horizon_months")} months <span style="color:{MUTE}">— {e(call.get("called_for_basis") or "")}</span>'),
+            ("What the note called for", f'{_pct(call.get("called_for_pct"))} over {call.get("horizon_label") or str(call.get("horizon_months")) + " months"} <span style="color:{MUTE}">— {e(call.get("called_for_basis") or "")}</span>'),
             ("Still needed to get there", _pct(q.get("remaining_to_called_for_pct"))),
         ]
         if rng:
@@ -858,7 +859,7 @@ def main(argv=None) -> int:
         for row in scores.get("scores", []):
             if row.get("status") != "open":
                 continue
-            out.append({"id": row["id"], "trade_label": row.get("trade_label"), "horizon_months": row.get("horizon_months"),
+            out.append({"id": row["id"], "trade_label": row.get("trade_label"), "horizon_months": row.get("horizon_months"), "horizon_label": row.get("horizon_label"),
                         "quant": quant_one(row, by_id.get(row["id"], {}), hist, None, units)})
         print(json.dumps(out, indent=2))
         return 0
