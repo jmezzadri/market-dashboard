@@ -81,6 +81,31 @@ MIN_POSITIONING_WINDOW_YEARS = 10
 # edge could clear 20% while also paying twice its stop in a retail vehicle.
 MIN_EXPECTED_RETURN_PCT = 15.0
 
+# 2026-10-07 — THE HURDLE IS A PACE, AND THE BOOK IS ONE PORTFOLIO. Joe: "So a
+# trade that's going to make 14% in a week doesn't get published, a trade
+# that's going to make 15% over 18 months does?" and "I am looking to beat the
+# market by a healthy margin with lower overall portfolio vol than the market
+# ... take into account the current calls that are on the books and see if
+# this is incremental alpha." The flat 15% ignored time: it refused a fast
+# trade and passed one earning less a year than the index. From
+# BOOK_RULES_FROM a note must
+#   (a) call for a return whose ANNUAL PACE beats the S&P's long-run return
+#       (MARKET_ANNUAL_PCT) by MARGIN_ANNUAL_PCT — i.e. HURDLE_ANNUAL_PCT a
+#       year, pro-rated to the horizon (1 month 1.67%, 6 months 10%,
+#       12 months 20%, 18 months 30%);
+#   (b) still pay at least twice its loss at the stop;
+#   (c) be INCREMENTAL to the open book: adding it must raise the book's
+#       expected return over the S&P per unit of risk, and leave the book's
+#       volatility at or below the S&P's over the same sessions.
+# The open book is the calls the scorer marks open — a stopped or broken call
+# is not a position, whatever its original horizon said.
+BOOK_RULES_FROM = "2026-10-07"
+MARKET_ANNUAL_PCT = 10.0      # S&P 500 long-run total return, the bar to beat
+MARGIN_ANNUAL_PCT = 10.0      # the "healthy margin" over it (Joe, 2026-10-07: "make it 20% a year")
+HURDLE_ANNUAL_PCT = MARKET_ANNUAL_PCT + MARGIN_ANNUAL_PCT
+MAX_HORIZON_WEEKS = 8         # a sub-quarter trade may state its horizon in weeks
+DAYS_PER_MONTH = 30.44
+
 REQUIRED = ["date", "kind", "title", "dek", "instrument", "horizon",
             "position_type", "call", "the_trade", "edge", "variant",
             "thesis", "evidence", "levels", "other_side", "risks", "so_what",
@@ -253,10 +278,10 @@ IMPERATIVE_OPENERS = {
 
 # A horizon has to be a period a reader can hold in their head. "Medium term"
 # is not one.
-_PERIOD = (r"(?:\d+\s*(?:-|–|\s+to\s+)?\s*\d*\s*(?:month|quarter|year)s?"
+_PERIOD = (r"(?:\d+\s*(?:-|–|\s+to\s+)?\s*\d*\s*(?:week|month|quarter|year)s?"
            r"|(?:one|two|three|four|five|six|seven|eight|nine|ten|twelve|eighteen)"
            r"(?:[- ]to[- ](?:one|two|three|four|five|six|seven|eight|nine|ten|twelve|eighteen))?"
-           r"[- ](?:month|quarter|year)s?)")
+           r"[- ](?:week|month|quarter|year)s?)")
 
 # The `horizon` FIELD is labelled, so a bare period is unambiguous there.
 HORIZON_PERIOD_RE = re.compile(rf"\b{_PERIOD}\b|\bthrough\s+\w*\s*\d{{4}}\b|\binto\s+\w+\s+\d{{4}}\b", re.I)
@@ -304,14 +329,14 @@ def _max_months(text: str):
     words = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
              "eight": 8, "nine": 9, "ten": 10, "twelve": 12, "eighteen": 18}
     best = 0
-    for m in re.finditer(r"([\w.-]+)[\s-]+(month|quarter|year)s?", str(text), re.I):
+    for m in re.finditer(r"([\w.-]+)[\s-]+(week|month|quarter|year)s?", str(text), re.I):
         raw, unit = m.group(1), m.group(2).lower()
         nums = [int(x) for x in re.findall(r"\d+", raw)]
         nums += [words[w] for w in re.findall(r"[a-z]+", raw.lower()) if w in words]
         if not nums:
             continue
-        mult = {"month": 1, "quarter": 3, "year": 12}[unit]
-        best = max(best, max(nums) * mult)
+        mult = {"week": 7 / 30.44, "month": 1, "quarter": 3, "year": 12}[unit]
+        best = max(best, round(max(nums) * mult, 2))
     return best or None
 
 
@@ -446,16 +471,14 @@ def _position_daily_returns(sc: dict, hist: dict, sessions: int = CORRELATION_SE
     if not isinstance(hist, dict) or not isinstance(sc, dict):
         return None
     legs = sc.get("legs") or []
-    maps = {}
-    for leg in legs:
-        key = leg.get("series")
-        if _is_ticker_key(key) or key not in hist:
+    maps, specs = {}, []
+    for j, leg in enumerate(legs):
+        resolved = _leg_closes(leg, hist)
+        if resolved is None:
             return None
-        pts = hist[key].get("points") if isinstance(hist[key], dict) else hist[key]
-        try:
-            maps[key] = {str(p[0])[:10]: float(p[1]) for p in pts}
-        except (TypeError, ValueError, IndexError):
-            return None
+        closes, measure, maturity, sign = resolved
+        maps[j] = closes
+        specs.append((j, measure, maturity, sign, leg))
     if not maps:
         return None
     dates = sorted(set.intersection(*[set(m) for m in maps.values()]))[-(sessions + 1):]
@@ -465,15 +488,106 @@ def _position_daily_returns(sc: dict, hist: dict, sessions: int = CORRELATION_SE
     out = {}
     for i in range(1, len(dates)):
         d0, d1, tot = dates[i - 1], dates[i], 0.0
-        for leg in legs:
-            v0, v1 = maps[leg["series"]][d0], maps[leg["series"]][d1]
-            if leg.get("measure") == "bond_return":
-                r = -modified_duration(v0, float(leg.get("maturity_years") or 10)) * (v1 - v0)
+        for j, measure, maturity, sign, leg in specs:
+            v0, v1 = maps[j][d0], maps[j][d1]
+            if measure == "bond_return":
+                r = -modified_duration(v0, maturity) * (v1 - v0)
             else:
                 r = 100.0 * (v1 / v0 - 1.0) if v0 else 0.0
-            tot += SIDES.get(leg.get("side"), 0.0) * float(leg.get("weight", 1.0)) * r
+            tot += sign * SIDES.get(leg.get("side"), 0.0) * float(leg.get("weight", 1.0)) * r
         out[d1] = tot
     return out
+
+
+# A listed fund that tracks a series we carry is measured on that series for
+# the book check — the same mapping the playbook tells notes to state ("levels
+# are on front-month wheat; WEAT is the vehicle"). sign -1: the fund moves
+# against the quoted series (FXY rises when yen-per-dollar falls).
+TICKER_PROXIES = {
+    "WEAT": ("cmdty_wheat", "pct_change", None, 1), "CORN": ("cmdty_corn", "pct_change", None, 1),
+    "SOYB": ("cmdty_soybeans", "pct_change", None, 1), "UNG": ("cmdty_natgas", "pct_change", None, 1),
+    "USO": ("cmdty_oil", "pct_change", None, 1), "BNO": ("cmdty_brent", "pct_change", None, 1),
+    "GLD": ("cmdty_gold", "pct_change", None, 1), "IAU": ("cmdty_gold", "pct_change", None, 1),
+    "SLV": ("cmdty_silver", "pct_change", None, 1), "CPER": ("cmdty_copper", "pct_change", None, 1),
+    "FXE": ("fx_eur", "pct_change", None, 1), "FXB": ("fx_gbp", "pct_change", None, 1),
+    "FXY": ("fx_jpy", "pct_change", None, -1),
+    "SPY": ("spx_index", "pct_change", None, 1), "VOO": ("spx_index", "pct_change", None, 1),
+    "IVV": ("spx_index", "pct_change", None, 1), "QQQ": ("ndx_index", "pct_change", None, 1),
+    "DIA": ("dji_index", "pct_change", None, 1),
+    "TLT": ("ust_20y", "bond_return", 20.0, 1), "IEF": ("ust_10y", "bond_return", 8.0, 1),
+}
+_PRICE_CACHE: dict = {}
+
+
+def _points_map(pts):
+    try:
+        return {str(p[0])[:10]: float(p[1]) for p in pts if p[1] is not None}
+    except (TypeError, ValueError, IndexError, KeyError):
+        try:
+            return {str(p["d"])[:10]: float(p["v"]) for p in pts if p.get("v") is not None}
+        except Exception:  # noqa: BLE001
+            return None
+
+
+def _ticker_closes(sym: str):
+    """Closes for a stock from (1) PRICES_EOD_PATH — a JSON file
+    {"SYM": [["2026-01-02", 12.3], ...]} the session writes from prices_eod —
+    or (2) the price table directly when database credentials are present.
+    None if neither is available."""
+    if sym in _PRICE_CACHE:
+        return _PRICE_CACHE[sym]
+    out = None
+    path = os.environ.get("PRICES_EOD_PATH")
+    if path and os.path.exists(path):
+        try:
+            with open(path, encoding="utf-8") as f:
+                doc = json.load(f)
+            if sym in doc:
+                out = _points_map(doc[sym])
+        except Exception:  # noqa: BLE001
+            out = None
+    if out is None:
+        base = os.environ.get("SUPABASE_URL", "").rstrip("/")
+        key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+        if base and key:
+            try:
+                import urllib.parse
+                import urllib.request
+                since = (dt.date.today() - dt.timedelta(days=400)).isoformat()
+                q = urllib.parse.urlencode({"select": "trade_date,close", "ticker": f"eq.{sym}",
+                                            "trade_date": f"gte.{since}", "order": "trade_date"})
+                req = urllib.request.Request(f"{base}/rest/v1/prices_eod?{q}",
+                                             headers={"apikey": key, "Authorization": f"Bearer {key}"})
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    rows = json.loads(r.read().decode("utf-8"))
+                out = {str(x["trade_date"])[:10]: float(x["close"]) for x in rows if x.get("close")} or None
+            except Exception:  # noqa: BLE001
+                out = None
+    _PRICE_CACHE[sym] = out
+    return out
+
+
+def _leg_closes(leg: dict, hist: dict):
+    """(closes {date: value}, measure, maturity_years, sign) for one leg, or None."""
+    key = leg.get("series")
+    measure = leg.get("measure", "pct_change")
+    maturity = float(leg.get("maturity_years") or 10)
+    if _is_ticker_key(key):
+        sym = key.split(":", 1)[1]
+        if sym in TICKER_PROXIES:
+            series, measure, mat, sign = TICKER_PROXIES[sym]
+            if series not in hist:
+                return None
+            pts = hist[series].get("points") if isinstance(hist[series], dict) else hist[series]
+            m = _points_map(pts or [])
+            return (m, measure, mat or maturity, sign) if m else None
+        m = _ticker_closes(sym)
+        return (m, "pct_change", maturity, 1) if m else None
+    if key not in hist:
+        return None
+    pts = hist[key].get("points") if isinstance(hist[key], dict) else hist[key]
+    m = _points_map(pts or [])
+    return (m, measure, maturity, 1) if m else None
 
 
 def _correlation(a: dict, b: dict):
@@ -488,6 +602,81 @@ def _correlation(a: dict, b: dict):
     if va <= 0 or vb <= 0:
         return None
     return cov / (va * vb) ** 0.5
+
+
+def _scored_months(sc: dict):
+    """The scored horizon in months (float). A note may state horizon_weeks
+    (1 to MAX_HORIZON_WEEKS) instead of horizon_months for a sub-quarter trade."""
+    if not isinstance(sc, dict):
+        return None
+    if sc.get("horizon_weeks") not in (None, ""):
+        try:
+            return round(int(sc["horizon_weeks"]) * 7 / DAYS_PER_MONTH, 4)
+        except (TypeError, ValueError):
+            return None
+    try:
+        return float(int(sc.get("horizon_months")))
+    except (TypeError, ValueError):
+        return None
+
+
+def _scores_doc():
+    """The scorer's output — the only record of which calls are still OPEN."""
+    for path in (os.environ.get("TRADE_IDEA_SCORES_PATH"), "public/trade_idea_scores.json"):
+        if path and os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:  # noqa: BLE001
+                pass
+    try:
+        import urllib.request
+        with urllib.request.urlopen("https://macrotilt.com/trade_idea_scores.json", timeout=60) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _open_book(published: list, idea: dict, warnings: list):
+    """The calls a reader holds today: marked open (or pending entry) by the
+    scorer. A stopped or thesis-broken call is not in the book even if its
+    original horizon has time left. Falls back to the horizon rule only if the
+    scores file cannot be read, and says so."""
+    me = derive_id(idea)
+    doc = _scores_doc()
+    if isinstance(doc, dict) and isinstance(doc.get("scores"), list):
+        live = {r.get("id") for r in doc["scores"] if r.get("status") in ("open", "pending_entry")}
+        return [p for p in published if p.get("id") in live and p.get("id") != me]
+    warnings.append("trade_idea_scores.json unreadable — open book taken from note horizons instead")
+    idea_date = dt.date.fromisoformat(str(idea["date"]))
+    out = []
+    for prev in published:
+        m = _scored_months(prev.get("scorecard") or {})
+        try:
+            pd_ = dt.date.fromisoformat(str(prev.get("date", "")))
+        except ValueError:
+            continue
+        if prev.get("id") != me and m and pd_ < idea_date <= pd_ + dt.timedelta(days=int(m * DAYS_PER_MONTH)):
+            out.append(prev)
+    return out
+
+
+def _annual_pace(note: dict):
+    """The annual pace of the return a note called for, or None if it stated none."""
+    er = note.get("expected_return") or {}
+    m = _scored_months(note.get("scorecard") or {})
+    try:
+        pct = float(er.get("pct"))
+    except (TypeError, ValueError):
+        return None
+    return pct * 12.0 / m if m else None
+
+
+def _ann_vol(xs):
+    if len(xs) < 40:
+        return None
+    m = sum(xs) / len(xs)
+    return (sum((x - m) ** 2 for x in xs) / (len(xs) - 1)) ** 0.5 * (252 ** 0.5)
 
 
 # ── the contract ───────────────────────────────────────────────────────────
@@ -787,17 +976,31 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                 raise ContractError(
                     f"scorecard.legs[{i}] names series {leg.get('series')!r}, which is not in "
                     "indicator_history.json — a position we do not carry data for cannot be marked")
-    try:
-        months = int(sc.get("horizon_months"))
-    except (TypeError, ValueError):
-        raise ContractError("scorecard.horizon_months must be a whole number of months")
-    if not (1 <= months <= MAX_HORIZON_MONTHS):
-        raise ContractError(f"scorecard.horizon_months is {months} — must be 1 to {MAX_HORIZON_MONTHS}")
+    if sc.get("horizon_weeks") not in (None, ""):
+        if str(idea.get("date", "")) < BOOK_RULES_FROM:
+            raise ContractError("scorecard.horizon_weeks is only accepted on notes dated from " + BOOK_RULES_FROM)
+        if sc.get("horizon_months") not in (None, ""):
+            raise ContractError("scorecard states both horizon_weeks and horizon_months — state one")
+        try:
+            wk = int(sc.get("horizon_weeks"))
+        except (TypeError, ValueError):
+            raise ContractError("scorecard.horizon_weeks must be a whole number of weeks")
+        if not (1 <= wk <= MAX_HORIZON_WEEKS):
+            raise ContractError(f"scorecard.horizon_weeks is {wk} — must be 1 to {MAX_HORIZON_WEEKS}")
+        months = _scored_months(sc)
+    else:
+        try:
+            months = int(sc.get("horizon_months"))
+        except (TypeError, ValueError):
+            raise ContractError("scorecard.horizon_months must be a whole number of months "
+                                "(or state horizon_weeks for a sub-quarter trade)")
+        if not (1 <= months <= MAX_HORIZON_MONTHS):
+            raise ContractError(f"scorecard.horizon_months is {months} — must be 1 to {MAX_HORIZON_MONTHS}")
     # The prose `horizon` and the scored horizon must not disagree. They are the
     # same promise written twice, and if they drift the note says one thing and
     # is graded on another.
     stated = _max_months(hz)
-    if stated and months > stated:
+    if stated and months > stated + 0.01:
         raise ContractError(
             f"scorecard.horizon_months ({months}) is longer than the horizon the note states ({stated}) — "
             "a call cannot be graded over a period it did not claim")
@@ -877,14 +1080,24 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             er_pct = float(er.get("pct"))
         except (TypeError, ValueError):
             raise ContractError("expected_return.pct must be a number (per cent of the position over the horizon)")
-        if er_pct < MIN_EXPECTED_RETURN_PCT:
+        if str(idea.get("date", "")) >= BOOK_RULES_FROM:
+            hm = _scored_months(idea.get("scorecard") or {})
+            if not hm:
+                raise ContractError("the hurdle is a pace — scorecard must state horizon_months or horizon_weeks")
+            need = HURDLE_ANNUAL_PCT * hm / 12.0
+            if er_pct < need:
+                raise ContractError(
+                    f"expected_return.pct is {er_pct:g}% over {hm:.2f} months — a pace of {er_pct * 12 / hm:.1f}% a year. "
+                    f"The bar is {HURDLE_ANNUAL_PCT:g}% a year (the S&P's {MARKET_ANNUAL_PCT:g}% plus a "
+                    f"{MARGIN_ANNUAL_PCT:g}-point margin), which over this horizon is {need:.2f}%")
+        elif er_pct < MIN_EXPECTED_RETURN_PCT:
             raise ContractError(
                 f"expected_return.pct is {er_pct:g}% — below the {MIN_EXPECTED_RETURN_PCT:g}% minimum. A real but small "
                 f"edge does not publish unless the note names the instrument that turns it into {MIN_EXPECTED_RETURN_PCT:g}%+ "
                 "(and its risk); if there is none, there is no note")
         for k in ("basis", "instrument"):
             if len(str(er.get(k) or "").strip()) < 20:
-                raise ContractError(f"expected_return.{k} must say, in a sentence, how the {MIN_EXPECTED_RETURN_PCT:g}%+ is earned")
+                raise ContractError(f"expected_return.{k} must say, in a sentence, how the called-for return is earned")
         # Downside protection: what the position loses if the stop prints, on
         # the same basis, and the call must pay at least twice that.
         try:
@@ -903,38 +1116,108 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     # position returns have run at |correlation| above MAX_BOOK_CORRELATION
     # with any live call over the last CORRELATION_SESSIONS sessions is the
     # same bet twice and is rejected — no prose exemption (6.15 rule 1).
+    # From BOOK_RULES_FROM "live" means OPEN on the scorecard, not "inside its
+    # original horizon": a stopped call is not a position (2026-10-07 — the
+    # stopped Aug 24 ten-year call was still blocking duration ideas).
     if str(idea.get("date", "")) >= REVIEW_CONDITIONS_FROM:
         hist_c = _history()
         mine = _position_daily_returns(idea.get("scorecard"), hist_c)
-        if mine is None:
-            warnings.append("book correlation not checked — a leg is a ticker or a series not carried here; "
-                            "the weekly review will report it from the price store")
+        if str(idea.get("date", "")) >= BOOK_RULES_FROM:
+            book = _open_book(published, idea, warnings)
         else:
+            book = []
             for prev in published:
-                if prev.get("id") == derive_id(idea):
-                    continue
                 psc = prev.get("scorecard") or {}
                 try:
                     prev_date = dt.date.fromisoformat(str(prev.get("date", "")))
                     prev_h = int(psc.get("horizon_months") or 0)
                 except (ValueError, TypeError):
                     continue
-                if prev_date >= idea_date or prev_h <= 0 or idea_date > prev_date + dt.timedelta(days=int(prev_h * 30.44)):
-                    continue  # not live alongside this note
-                theirs = _position_daily_returns(psc, hist_c)
-                if theirs is None:
+                if prev.get("id") == derive_id(idea) or prev_date >= idea_date or prev_h <= 0 \
+                        or idea_date > prev_date + dt.timedelta(days=int(prev_h * 30.44)):
                     continue
+                book.append(prev)
+        if mine is None:
+            if str(idea.get("date", "")) >= BOOK_RULES_FROM:
+                raise ContractError(
+                    "the position's daily returns cannot be measured, so the book test cannot run — every leg must be "
+                    "a carried series, a fund in TICKER_PROXIES, or a stock whose closes are supplied through "
+                    "PRICES_EOD_PATH (a JSON file {\"SYM\": [[date, close], ...]} pulled from prices_eod)")
+            warnings.append("book correlation not checked — a leg is a ticker or a series not carried here; "
+                            "the weekly review will report it from the price store")
+        else:
+            book_rets = []
+            for prev in book:
+                psc = prev.get("scorecard") or {}
+                theirs = _position_daily_returns(psc, hist_c)
+                label = prev.get("instrument") or prev.get("id")
+                if theirs is None:
+                    warnings.append(f"open call {prev.get('date')} ({label}) cannot be measured here — left out of the book test")
+                    continue
+                book_rets.append((prev, theirs))
                 c = _correlation(mine, theirs)
                 if c is None:
                     continue
-                label = prev.get("instrument") or prev.get("id")
                 if abs(c) > MAX_BOOK_CORRELATION:
                     raise ContractError(
-                        f"this position's returns have run at {c:+.2f} correlation with the live {prev.get('date')} call "
+                        f"this position's returns have run at {c:+.2f} correlation with the open {prev.get('date')} call "
                         f"({label}) over the last {CORRELATION_SESSIONS} sessions — the book already holds this bet; "
                         f"limit is {MAX_BOOK_CORRELATION:.2f}")
                 if abs(c) > WARN_BOOK_CORRELATION:
-                    warnings.append(f"correlation {c:+.2f} with the live {prev.get('date')} call ({label}) — say in book.stance how the two sit together")
+                    warnings.append(f"correlation {c:+.2f} with the open {prev.get('date')} call ({label}) — say in book.stance how the two sit together")
+
+            # 3i — incremental to the book, and the book calmer than the market
+            # (2026-10-07, Joe: "beat the market by a healthy margin with lower
+            # overall portfolio vol than the market ... see if this is
+            # incremental alpha"). Equal weight per call, last
+            # CORRELATION_SESSIONS sessions common to every position.
+            if str(idea.get("date", "")) >= BOOK_RULES_FROM:
+                spx = _leg_closes({"series": "spx_index"}, hist_c or {})
+                series_all = [mine] + [r for _, r in book_rets]
+                common = sorted(set.intersection(*[set(r) for r in series_all]))
+                if spx:
+                    spx_d = sorted(spx[0])
+                    spx_ret = {spx_d[i]: 100.0 * (spx[0][spx_d[i]] / spx[0][spx_d[i - 1]] - 1.0)
+                               for i in range(1, len(spx_d))}
+                    common = [d for d in common if d in spx_ret]
+                if len(common) < 40 or not spx:
+                    raise ContractError("book test: fewer than 40 sessions common to the candidate, the open calls "
+                                        "and the S&P — cannot show the book stays calmer than the market")
+                paces = []
+                for prev, _ in book_rets:
+                    pace = _annual_pace(prev)
+                    if pace is None:
+                        pace = HURDLE_ANNUAL_PCT
+                        warnings.append(f"open call {prev.get('date')} stated no expected return — counted at the "
+                                        f"{HURDLE_ANNUAL_PCT:g}%-a-year bar in the book test")
+                    paces.append(pace)
+                my_pace = _annual_pace(idea)
+                n = len(book_rets)
+                new_book = [(mine[d] + sum(r[d] for _, r in book_rets)) / (n + 1) for d in common]
+                vol_new = _ann_vol(new_book)
+                vol_spx = _ann_vol([spx_ret[d] for d in common])
+                exp_new = (sum(paces) + my_pace) / (n + 1)
+                if vol_new is None or vol_spx is None:
+                    raise ContractError("book test: volatility could not be computed")
+                if vol_new > vol_spx:
+                    raise ContractError(
+                        f"with this call the book's volatility would be {vol_new:.1f}% a year against the S&P's "
+                        f"{vol_spx:.1f}% over the same {len(common)} sessions — the book must stay calmer than the market")
+                ratio_new = (exp_new - MARKET_ANNUAL_PCT) / vol_new
+                line = (f"book test: {n} open call(s) + this one — expected {exp_new:.1f}% a year vs the S&P's "
+                        f"{MARKET_ANNUAL_PCT:g}%, volatility {vol_new:.1f}% vs the S&P's {vol_spx:.1f}%")
+                if n:
+                    old_book = [sum(r[d] for _, r in book_rets) / n for d in common]
+                    vol_old = _ann_vol(old_book)
+                    exp_old = sum(paces) / n
+                    ratio_old = (exp_old - MARKET_ANNUAL_PCT) / vol_old if vol_old else None
+                    if ratio_old is not None and ratio_new <= ratio_old:
+                        raise ContractError(
+                            f"not incremental: adding this call takes the book's excess return per unit of risk from "
+                            f"{ratio_old:.2f} to {ratio_new:.2f} (expected {exp_old:.1f}% → {exp_new:.1f}% a year, "
+                            f"volatility {vol_old:.1f}% → {vol_new:.1f}%) — it must raise it")
+                    line += f"; excess return per unit of risk {ratio_old:.2f} → {ratio_new:.2f}"
+                warnings.append(line)
 
     # 3g — the live book is ONE book (2026-08-24). Joe: "You realize we already
     # have a call to buy tips and short treasuries?" The Aug 16 breakeven note

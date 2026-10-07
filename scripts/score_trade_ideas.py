@@ -474,11 +474,23 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
         return {**base, "status": "unscoreable",
                 "reason": "no scorecard block — the note did not state a markable position"}
 
-    horizon_months = sc.get("horizon_months")
-    try:
-        horizon_months = int(horizon_months)
-    except (TypeError, ValueError):
-        return {**base, "status": "unscoreable", "reason": "scorecard.horizon_months missing or not a number"}
+    # A sub-quarter trade states horizon_weeks (2026-10-07); everything else
+    # states whole months.
+    horizon_weeks = sc.get("horizon_weeks")
+    if horizon_weeks not in (None, ""):
+        try:
+            horizon_weeks = int(horizon_weeks)
+        except (TypeError, ValueError):
+            return {**base, "status": "unscoreable", "reason": "scorecard.horizon_weeks is not a whole number"}
+        horizon_months = round(horizon_weeks * 7 / 30.44, 2)
+        horizon_label = f"{horizon_weeks} week{'s' if horizon_weeks != 1 else ''}"
+    else:
+        horizon_weeks = None
+        try:
+            horizon_months = int(sc.get("horizon_months"))
+        except (TypeError, ValueError):
+            return {**base, "status": "unscoreable", "reason": "scorecard.horizon_months missing or not a number"}
+        horizon_label = f"{horizon_months} month{'s' if horizon_months != 1 else ''}"
 
     legs_out, entry_dates = [], []
     for i, leg in enumerate(sc["legs"]):
@@ -550,7 +562,10 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
                 leg["entry_date"], leg["entry_value"] = d, v
                 break
 
-    target_date = add_months(dt.date.fromisoformat(entry_date), horizon_months).isoformat()
+    if horizon_weeks:
+        target_date = (dt.date.fromisoformat(entry_date) + dt.timedelta(days=7 * horizon_weeks)).isoformat()
+    else:
+        target_date = add_months(dt.date.fromisoformat(entry_date), horizon_months).isoformat()
 
     # Risk-parity size, from the year BEFORE entry, frozen here for good.
     #
@@ -661,6 +676,8 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
         "entry_date": entry_date,
         "target_date": target_date,
         "horizon_months": horizon_months,
+        "horizon_weeks": horizon_weeks,
+        "horizon_label": horizon_label,
         "unit": unit,
         "legs": legs_report,
         "buy_pct": round(sum(l["return_pct"] for l in buy) / len(buy), 4) if buy and all(l["return_pct"] is not None for l in buy) else None,

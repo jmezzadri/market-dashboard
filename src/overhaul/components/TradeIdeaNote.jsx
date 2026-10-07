@@ -88,7 +88,7 @@ export function ThesisReview({ review }) {
       <div className="idea-modal-facts">
         {[
           ['Return so far', `${pct1(q.mark_pct)} to ${q.mark_date || '—'}`],
-          ['What the note called for', review.called_for_pct != null ? `${pct1(review.called_for_pct)} over ${review.horizon_months} months — ${review.called_for_basis || ''}` : null],
+          ['What the note called for', review.called_for_pct != null ? `${pct1(review.called_for_pct)} over ${review.horizon_label || `${review.horizon_months} months`} — ${review.called_for_basis || ''}` : null],
           ['Where it can finish, no view', rng ? `10th ${pct1(rng.p10)} · median ${pct1(rng.p50)} · 90th ${pct1(rng.p90)} (from the position's own volatility)` : null],
           ['Chance of finishing positive', rng ? prob(q.p_finish_positive) : null],
           ['Chance of reaching the call', rng ? prob(q.p_finish_at_or_above_called_for) : null],
