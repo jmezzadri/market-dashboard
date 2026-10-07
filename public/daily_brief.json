@@ -1,53 +1,53 @@
 {
   "eyebrow": "Morning Brief",
-  "headline": "Monday: 10y 5.31%, MOVE 113.6, Nasdaq +1.1%, S&P 7,774, HY-IG 310bp Friday",
-  "stance": "Real yields rose Monday and tech carried equities. Credit gave back Thursday's widening on Friday.",
+  "headline": "10y 5.307% pre-auction, Brent $101.54, Oct hike odds 19%, S&P record close Tuesday",
+  "stance": "Rates rallied Tuesday, then oil pushed the 10y back to 5.31% overnight. Fed minutes and a 10y auction test that today.",
   "news": [
     {
-      "head": "Rate vol rose Monday, equity vol did not",
-      "body": "MOVE 113.6, up 6.3 points. VIX 15.52, up 0.2. Bonds priced more risk than stocks."
+      "head": "10y 5.307%, +3.8bp (~4:30am ET)",
+      "body": "Brent back above $100 drove it. Long-end yields hit a 24-year high Monday."
     },
     {
-      "head": "Nasdaq led again Monday",
-      "body": "Nasdaq +1.1%, Dow +0.2%. Second Nasdaq-led session in a row."
+      "head": "Brent $101.54, +1% (~5:40am ET)",
+      "body": "Iran stepped up Hormuz tanker strikes. Chevron is evacuating non-essential Gulf of Mexico staff ahead of a storm."
     },
     {
-      "head": "HY-IG tightened 14bp Friday",
-      "body": "310bp from 324bp Thursday. IG OAS 85bp from 86bp."
+      "head": "October hike odds 19%, from ~50% a week ago",
+      "body": "Williams and Jefferson signaled no urgency. PCE and jobs both undershot last week."
     },
     {
-      "head": "Brent $100.57, WTI $89.56 (~6am ET)",
-      "body": "Brent sits at the 93rd percentile of 3 years, a 26-session run."
+      "head": "S&P 500 and Nasdaq record closes Tuesday",
+      "body": "AI names led. US futures little changed (~6:30am ET)."
     }
   ],
   "implications": [
-    "Real yields rose while equity vol held. Tech is carrying the index, not breadth.",
-    "Dealer credit inventory is full and spreads sit 30bp wide of Sep 24. A selloff finds thin balance sheets."
+    "Tuesday's 4bp rally in the 10y is gone overnight. Oil, not the Fed, is setting the long end.",
+    "Fewer hike odds with Brent above $100 is a stagflation mix. Equities are pricing only the dovish half."
   ],
   "watch": [
     {
-      "head": "Trade balance, 8:30 today",
-      "body": "Tier-two. No tier-one US release today."
+      "head": "Fed minutes, today 2:00pm",
+      "body": "September meeting. 16 of 18 officials penciled in one more hike this year."
     },
     {
-      "head": "Claims, Thursday Oct 8, 8:30",
-      "body": "Last print 197K, 4-week average 200K, week of Sep 26."
+      "head": "10y auction today, 30y Thursday",
+      "body": "Demand test with the 10y back at 5.31% and Brent above $100."
     },
     {
-      "head": "WASDE, Friday Oct 9, 12:00",
-      "body": "Corn 496.25c and wheat 690.75c both sit above the 95th percentile of 3 years."
+      "head": "EIA crude stocks, today",
+      "body": "Industry data showed a 2.09mn bbl draw last week."
     },
     {
-      "head": "CPI, Wednesday Oct 14, 8:30",
-      "body": "FOMC follows two weeks later, Oct 28."
+      "head": "Tropical Depression Nine, Gulf of Mexico",
+      "body": "Could become the first Atlantic hurricane of 2026. Offshore output normal so far."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "Real yields drove Monday: 10y real +3bp, breakeven unchanged.",
-        "2s10s steepened to 47bp Monday. Long end led: 20y +3bp, 2y +1bp."
+        "October hike odds fell to 19% from ~50% in a week. Brent at $101 now tests that repricing.",
+        "MOVE gave back more than Monday's 6.3-point jump on Tuesday."
       ],
       "positioning": null,
       "single_name": null
@@ -55,92 +55,93 @@
     {
       "title": "Equity Markets",
       "bullets": [
-        "S&P 500 +0.7% Monday. Only 32.1% of members sit above their 50-day.",
-        "Nasdaq-100: 50.5% above its 50-day. S&P 500: 32.1%. The breadth gap is a tech story."
+        "Records on narrow breadth: 35% of S&P members above their 50-day Tuesday, from 32.1% Monday.",
+        "Equity vol is not paying for oil risk. VIX 15.01 sits under VIX3M 17.64 at Tuesday's close."
       ],
-      "positioning": null,
+      "positioning": "COT, Sep 29: Russell 2000 specs at the 100th percentile long, new this week, up 18 points. A description, not a sell signal.",
       "single_name": {
-        "ticker": "MPB",
-        "note": "Insider buy filed Oct 2. Above its 200-day, 7.6 days to cover."
+        "ticker": "GLP",
+        "note": "Global Partners: insider buy filed Sep 21. New to the screen, above its 200-day, 3.7 days to cover."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "Friday gave back Thursday's widening. HY-IG is still 30bp above Sep 24's 280bp."
+        "Credit split Monday: HY-IG widened 2bp while IG OAS tightened 1bp.",
+        "Funding shows no strain from the long-end selloff. SOFR-OIS sat at 1bp Monday."
       ],
-      "positioning": "COT, Sep 29: dealer IG and HY inventory both at the 92nd percentile of 3 years. Up 45 and 41 points.",
+      "positioning": null,
       "single_name": null
     }
   ],
   "movers": [
     {
-      "ticker": "DFDV",
-      "pct": 4.2,
-      "link": true
-    },
-    {
-      "ticker": "FTK",
-      "pct": -4.1,
-      "link": true
-    },
-    {
-      "ticker": "INBX",
-      "pct": -2.5,
-      "link": true
-    },
-    {
       "ticker": "HELP",
-      "pct": -2.4,
+      "pct": -5.8,
+      "link": true
+    },
+    {
+      "ticker": "SBLK",
+      "pct": -3.2,
+      "link": true
+    },
+    {
+      "ticker": "GLP",
+      "pct": 2.5,
       "link": true
     },
     {
       "ticker": "GME",
-      "pct": 2.2,
+      "pct": -1.9,
+      "link": true
+    },
+    {
+      "ticker": "BCBP",
+      "pct": -1.8,
       "link": true
     }
   ],
-  "date": "2026-10-06",
-  "recap_session": "Mon Oct 5",
+  "date": "2026-10-07",
+  "recap_session": "Tue Oct 6",
   "metrics": [
     {
       "group": "Rates",
       "rows": [
         {
           "label": "2y",
-          "level": "4.84%",
+          "level": "4.79%",
+          "chg": "-5bp",
+          "dir": "down"
+        },
+        {
+          "label": "10y",
+          "level": "5.27%",
+          "chg": "-4bp",
+          "dir": "down"
+        },
+        {
+          "label": "20y",
+          "level": "5.68%",
+          "chg": "-2bp",
+          "dir": "down"
+        },
+        {
+          "label": "30y",
+          "level": "5.64%",
+          "chg": "-2bp",
+          "dir": "down"
+        },
+        {
+          "label": "2s10s",
+          "level": "48bp",
           "chg": "+1bp",
           "dir": "up"
         },
         {
-          "label": "10y",
-          "level": "5.31%",
-          "chg": "+3bp",
-          "dir": "up"
-        },
-        {
-          "label": "20y",
-          "level": "5.70%",
-          "chg": "+3bp",
-          "dir": "up"
-        },
-        {
-          "label": "30y",
-          "level": "5.66%",
-          "chg": "+3bp",
-          "dir": "up"
-        },
-        {
-          "label": "2s10s",
-          "level": "47bp",
-          "chg": "+2bp",
-          "dir": "up"
-        },
-        {
           "label": "10y real",
-          "level": "2.95%",
-          "chg": "+3bp",
-          "dir": "up"
+          "level": "2.91%",
+          "chg": "-4bp",
+          "dir": "down"
         },
         {
           "label": "10y B/E",
@@ -150,16 +151,16 @@
         },
         {
           "label": "Term prem",
-          "level": "102bp",
-          "chg": "-0bp",
-          "dir": "down",
-          "as_of": "Sep 25"
+          "level": "108bp",
+          "chg": "+2bp",
+          "dir": "up",
+          "as_of": "Oct 2"
         },
         {
           "label": "MOVE",
-          "level": "113.60",
-          "chg": "+6.30",
-          "dir": "up"
+          "level": "105.20",
+          "chg": "-8.40",
+          "dir": "down"
         }
       ]
     },
@@ -168,43 +169,43 @@
       "rows": [
         {
           "label": "S&P 500",
-          "level": "7,773.95",
-          "chg": "+0.66%",
+          "level": "7,818.93",
+          "chg": "+0.58%",
           "dir": "up"
         },
         {
           "label": "Nasdaq",
-          "level": "27,477.31",
-          "chg": "+1.05%",
+          "level": "27,599.89",
+          "chg": "+0.45%",
           "dir": "up"
         },
         {
           "label": "Dow",
-          "level": "51,267.90",
-          "chg": "+0.18%",
+          "level": "51,521.28",
+          "chg": "+0.49%",
           "dir": "up"
         },
         {
           "label": "VIX",
-          "level": "15.52",
-          "chg": "+0.21",
-          "dir": "up"
+          "level": "15.01",
+          "chg": "-0.51",
+          "dir": "down"
         },
         {
           "label": "VIX 1m/3m",
-          "level": "0.862",
-          "chg": "+0.012",
-          "dir": "up"
+          "level": "0.851",
+          "chg": "-0.011",
+          "dir": "down"
         },
         {
           "label": "SKEW",
-          "level": "143.00",
-          "chg": "-1.90",
+          "level": "141.20",
+          "chg": "-1.80",
           "dir": "down"
         },
         {
           "label": "CAPE",
-          "level": "41.67",
+          "level": "41.90",
           "chg": null,
           "dir": "flat"
         }
@@ -215,30 +216,30 @@
       "rows": [
         {
           "label": "IG OAS",
-          "level": "85bp",
+          "level": "84bp",
           "chg": "-1bp",
           "dir": "down",
-          "as_of": "Oct 2"
+          "as_of": "Oct 5"
         },
         {
           "label": "HY-IG",
-          "level": "310bp",
-          "chg": "-14bp",
-          "dir": "down",
-          "as_of": "Oct 2"
+          "level": "312bp",
+          "chg": "+2bp",
+          "dir": "up",
+          "as_of": "Oct 5"
         },
         {
           "label": "HYG/LQD",
-          "level": "1.323",
+          "level": "1.322",
           "chg": "-0.001",
           "dir": "down"
         },
         {
           "label": "SOFR-OIS",
-          "level": "0bp",
+          "level": "1bp",
           "chg": "+1bp",
           "dir": "up",
-          "as_of": "Oct 2"
+          "as_of": "Oct 5"
         },
         {
           "label": "CP spread",
@@ -249,8 +250,8 @@
         },
         {
           "label": "RRP",
-          "level": "$1.0bn",
-          "chg": "-0bn",
+          "level": "$0.4bn",
+          "chg": "-1bn",
           "dir": "down"
         },
         {
@@ -267,45 +268,45 @@
       "rows": [
         {
           "label": "WTI",
-          "level": "$89.56",
-          "chg": "-1.70%",
-          "dir": "down"
+          "level": "$89.97",
+          "chg": "+0.60%",
+          "dir": "up"
         },
         {
           "label": "Brent",
-          "level": "$100.57",
-          "chg": "-1.64%",
-          "dir": "down"
+          "level": "$101.20",
+          "chg": "+0.88%",
+          "dir": "up"
         },
         {
           "label": "Gold",
-          "level": "$4,171.10",
-          "chg": "+0.21%",
+          "level": "$4,193.90",
+          "chg": "+0.89%",
           "dir": "up"
         },
         {
           "label": "Copper",
-          "level": "$6.67",
-          "chg": "+2.73%",
+          "level": "$6.66",
+          "chg": "+1.06%",
           "dir": "up"
         },
         {
           "label": "DXY",
-          "level": "102.11",
-          "chg": "+0.18%",
-          "dir": "up"
+          "level": "101.96",
+          "chg": "-0.21%",
+          "dir": "down"
         },
         {
           "label": "USD/JPY",
-          "level": "157.83",
-          "chg": "+0.06%",
+          "level": "158.41",
+          "chg": "+0.37%",
           "dir": "up"
         },
         {
           "label": "EUR/USD",
-          "level": "1.1232",
-          "chg": "-0.20%",
-          "dir": "down"
+          "level": "1.1254",
+          "chg": "+0.20%",
+          "dir": "up"
         }
       ]
     }
@@ -316,9 +317,9 @@
         "trade": "Long Japanese yen via FXY",
         "date": "2026-09-22",
         "kind": "fx",
-        "held": 10,
-        "pnl": "-0.22%",
-        "vs": "+0.32pp",
+        "held": 11,
+        "pnl": "-0.31%",
+        "vs": "-0.43pp",
         "bench": "S&P 500",
         "horizon": 4
       },
@@ -326,19 +327,19 @@
         "trade": "Long Natgas",
         "date": "2026-09-12",
         "kind": "commodity",
-        "held": 17,
-        "pnl": "+8.65%",
-        "vs": null,
-        "bench": null,
+        "held": 18,
+        "pnl": "+10.21%",
+        "vs": "+8.09pp",
+        "bench": "S&P 500",
         "horizon": 3
       },
       {
         "trade": "Short WEAT (Teucrium wheat fund)",
         "date": "2026-09-06",
         "kind": "commodity",
-        "held": 20,
-        "pnl": "+6.57%",
-        "vs": "+6.52pp",
+        "held": 21,
+        "pnl": "+5.29%",
+        "vs": "+4.57pp",
         "bench": "S&P 500",
         "horizon": 2
       },
@@ -346,8 +347,8 @@
         "trade": "Long EUR/USD",
         "date": "2026-08-14",
         "kind": "fx",
-        "held": 44,
-        "pnl": "-2.63%",
+        "held": 46,
+        "pnl": "-2.44%",
         "vs": null,
         "bench": null,
         "horizon": 3
@@ -388,7 +389,7 @@
         "result": 0.2309
       }
     ],
-    "as_of": "2026-10-06",
+    "as_of": "2026-10-07",
     "line": "4 open · 3 closed — no hit rate until 10 (too few to mean anything)"
   }
 }
