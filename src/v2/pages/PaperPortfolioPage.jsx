@@ -94,7 +94,6 @@ const GOLD   = 'var(--gold-deep)';   // strategy series — gold in both themes
 const BLUE   = 'var(--ink-soft)';    // benchmark series — slate/warm-gray
 const GOOD   = 'var(--up)';
 const GOODBR = 'var(--up)';
-const BAD    = 'var(--down)';
 const BADBR  = 'var(--down)';
 const WARN   = 'var(--gold-deep)';
 const INKCARD = 'var(--card-ink)';   // the ONE ink card (command band)
@@ -183,20 +182,20 @@ const CSS = `
 .paper-v12 .qtt-search { background: var(--bg2); border: 1px solid var(--hair); border-radius: var(--r-10); color: var(--ink); padding: var(--sp-6) var(--sp-12); font-size:var(--v13-t3); width: 190px; outline: none; font-family: var(--mt-type-sans); }
 .paper-v12 .qtt-search:focus { border-color: var(--gold-deep); }
 .paper-v12 .qtt-search::placeholder { color: var(--mut); }
-.paper-v12 .perf-top { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--sp-18) var(--sp-40); padding-bottom: var(--sp-22); margin-bottom: var(--sp-8); border-bottom: 1px solid var(--c-f7f3e8-a16); }
+.paper-v12 .perf-top { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--sp-18) var(--sp-40); padding-bottom: var(--sp-22); margin-bottom: var(--sp-8); border-bottom: 1px solid var(--hair); }
 .paper-v12 .perf-top-r { text-align: right; }
-.paper-v12 .perf-eyebrow { font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: var(--c-9ba6ac); margin-bottom: var(--sp-8); }
+.paper-v12 .perf-eyebrow { font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: var(--sp-8); }
 .paper-v12 .perf-hero { font-size: var(--v13-t6); font-weight: var(--fw-600); letter-spacing: -.01em; color: var(--cream-text); }
 .paper-v12 .perf-sub { font-size: var(--v13-t3); color: var(--cream-text); opacity: .72; margin-top: var(--sp-6); }
 .paper-v12 .perf-wide { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .paper-v12 .perf-wide th, .paper-v12 .perf-wide td { text-align: right; white-space: nowrap; padding: var(--sp-10) var(--sp-10); }
-.paper-v12 .perf-wide td, .paper-v12 .perf-cell { font-size: var(--v13-t4); font-weight: var(--fw-600); border-top: 1px solid var(--c-f7f3e8-a16); }
+.paper-v12 .perf-wide td, .paper-v12 .perf-cell { font-size: var(--v13-t4); font-weight: var(--fw-600); border-top: 1px solid var(--hair); }
 .paper-v12 .perf-wide .perf-name, .paper-v12 .perf-cell.perf-name { text-align: left; padding-left: 0; color: var(--cream-text); font-weight: var(--fw-400); }
 .paper-v12 .perf-wide .perf-paper td { font-size: var(--v13-t5); }
 .paper-v12 .perf-wide .perf-paper .perf-name, .paper-v12 .perf-cell.perf-name.perf-paper { font-weight: var(--fw-700); }
 .paper-v12 .perf-group { font-size: var(--v13-t2); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: var(--cream-text); padding-bottom: var(--sp-2); }
 .paper-v12 .perf-group-sub { font-weight: var(--fw-400); letter-spacing: .04em; text-transform: none; opacity: .72; }
-.paper-v12 .perf-unit { font-size: var(--v13-t2); font-weight: var(--fw-600); color: var(--c-9ba6ac); padding-top: var(--sp-2); }
+.paper-v12 .perf-unit { font-size: var(--v13-t2); font-weight: var(--fw-600); color: var(--ink-soft); padding-top: var(--sp-2); }
 .paper-v12 .perf-wide .perf-first { padding-left: var(--sp-34); }
 .paper-v12 .perf-wide td:last-child, .paper-v12 .perf-wide th:last-child { padding-right: 0; }
 .paper-v12 .perf-narrow { display: none; font-variant-numeric: tabular-nums; }
@@ -206,7 +205,7 @@ const CSS = `
 .paper-v12 .perf-ngrid > .perf-group { text-align: left; white-space: normal; padding-bottom: var(--sp-8); }
 .paper-v12 .perf-ngrid > .perf-unit { padding-bottom: var(--sp-8); }
 .paper-v12 .perf-cell { padding: var(--sp-10) 0; }
-.paper-v12 .perf-ngrid > .perf-cell { border-top: 0; box-shadow: 0 -1px 0 var(--c-f7f3e8-a16), calc(-1 * var(--sp-16)) -1px 0 var(--c-f7f3e8-a16); }
+.paper-v12 .perf-ngrid > .perf-cell { border-top: 0; box-shadow: 0 -1px 0 var(--hair), calc(-1 * var(--sp-16)) -1px 0 var(--hair); }
 .paper-v12 .perf-name, .paper-v12 .perf-group { font-family: var(--mt-type-sans); }
 .paper-v12 .perf-note { font-size: var(--v13-t3); color: var(--cream-text); opacity: .72; margin-top: var(--sp-16); line-height: 1.55; }
 @media (max-width: 780px) {
