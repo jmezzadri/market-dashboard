@@ -1,0 +1,105 @@
+{
+ "as_of": "2026-10-06",
+ "basket_median": 0.8554,
+ "bdcs": [
+  {
+   "ticker": "ARCC",
+   "date": "2026-10-06",
+   "close": 18.64,
+   "nav": 19.35,
+   "nav_period_end": "2026-06-30",
+   "nav_filed": "2026-07-29",
+   "price_to_nav": 0.9633
+  },
+  {
+   "ticker": "OBDC",
+   "date": "2026-10-06",
+   "close": 10.03,
+   "nav": 14.26,
+   "nav_period_end": "2026-06-30",
+   "nav_filed": "2026-08-05",
+   "price_to_nav": 0.7034
+  },
+  {
+   "ticker": "FSK",
+   "date": "2026-10-06",
+   "close": 10.81,
+   "nav": 18.3,
+   "nav_period_end": "2026-06-30",
+   "nav_filed": "2026-08-06",
+   "price_to_nav": 0.5907
+  },
+  {
+   "ticker": "BXSL",
+   "date": "2026-10-06",
+   "close": 23.52,
+   "nav": 25.53,
+   "nav_period_end": "2026-06-30",
+   "nav_filed": "2026-08-06",
+   "price_to_nav": 0.9213
+  },
+  {
+   "ticker": "GBDC",
+   "date": "2026-10-06",
+   "close": 12.19,
+   "nav": 14.25,
+   "nav_period_end": "2026-06-30",
+   "nav_filed": "2026-08-03",
+   "price_to_nav": 0.8554
+  },
+  {
+   "ticker": "TSLX",
+   "date": "2026-10-06",
+   "close": 17.27,
+   "nav": 16.24,
+   "nav_period_end": "2026-06-30",
+   "nav_filed": "2026-08-04",
+   "price_to_nav": 1.0634
+  },
+  {
+   "ticker": "OCSL",
+   "date": "2026-10-06",
+   "close": 11.7,
+   "nav": 15.7,
+   "nav_period_end": "2026-06-30",
+   "nav_filed": "2026-08-05",
+   "price_to_nav": 0.7452
+  },
+  {
+   "ticker": "MAIN",
+   "date": "2026-10-06",
+   "close": 54.77,
+   "nav": 33.92,
+   "nav_period_end": "2026-06-30",
+   "nav_filed": "2026-08-07",
+   "price_to_nav": 1.6147
+  },
+  {
+   "ticker": "HTGC",
+   "date": "2026-10-06",
+   "close": 16.57,
+   "nav": 12.15,
+   "nav_period_end": "2026-06-30",
+   "nav_filed": "2026-07-30",
+   "price_to_nav": 1.3638
+  },
+  {
+   "ticker": "PSEC",
+   "date": "2026-10-06",
+   "close": 1.83,
+   "nav": 5.71,
+   "nav_period_end": "2026-06-30",
+   "nav_filed": "2026-08-20",
+   "price_to_nav": 0.3205
+  },
+  {
+   "ticker": "BBDC",
+   "date": "2026-10-06",
+   "close": 8.51,
+   "nav": 10.94,
+   "nav_period_end": "2026-06-30",
+   "nav_filed": "2026-08-05",
+   "price_to_nav": 0.7779
+  }
+ ]
+}
