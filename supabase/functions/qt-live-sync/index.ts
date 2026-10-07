@@ -1,14 +1,8 @@
 // qt-live-sync — intraday mark + fill sync for the Quality Trend paper book.
 //
-// RETIRED 2026-08-28. Quality Trend was retired by Joe on 2026-08-26 and its
-// pg_cron caller, `qt-live-sync-10min`, was unscheduled in
-// supabase/migrations/20260828_retire_quality_trend.sql. Nothing calls this any
-// more and nothing should: for two days after the retirement it kept writing
-// $1,000,000 / zero-position snapshots for a replacement account that was
-// funded and then cancelled, and /paper turned those into a published "0.00%
-// since inception, +0.76% vs the S&P" for a book whose real record was -6.45%.
-// The source is kept because the deployed function is kept (LESSONS: deployed
-// source and committed source are one artifact) — do not re-schedule it.
+// LIVE. Retired 2026-08-28 with the 40-name book and restored 2026-09-01 for
+// the 20-name relaunch (supabase/migrations/20260901_unretire_quality_trend.sql
+// re-scheduled its pg_cron caller, `qt-live-sync-10min`).
 //
 // Why: the /paper page promised "updates every 60s" but its DATA only moved
 // when someone manually dispatched the EOD workflow — Joe caught the page
@@ -96,10 +90,21 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "alpaca returned no account_number — refusing to write an untagged snapshot" }, 502);
     }
 
-    let spy: number | null = null;
+    // Benchmark marks — S&P 500 (SPY), Nasdaq 100 (QQQ), Dow (DIA) — in ONE
+    // call, so the three index rows on /paper share a clock with each other
+    // and with the equity read above (2026-10-07). A mark that fails to load
+    // is left OUT of the upsert rather than written as null: a null would wipe
+    // the value an earlier sync already stored for today.
+    const bench: Record<string, number> = {};
     try {
-      const r = await fetch(`${DATA}/v2/stocks/trades/latest?symbols=SPY&feed=delayed_sip`, { headers: H });
-      if (r.ok) spy = Number((await r.json()).trades?.SPY?.p) || null;
+      const r = await fetch(`${DATA}/v2/stocks/trades/latest?symbols=SPY,QQQ,DIA&feed=delayed_sip`, { headers: H });
+      if (r.ok) {
+        const t = (await r.json()).trades || {};
+        for (const [sym, col] of [["SPY", "spy_close"], ["QQQ", "qqq_close"], ["DIA", "dia_close"]]) {
+          const px = Number(t?.[sym]?.p);
+          if (Number.isFinite(px) && px > 0) bench[col] = px;
+        }
+      }
     } catch (_) { /* fine */ }
 
     const today = new Date(clock.timestamp).toISOString().slice(0, 10);
@@ -110,7 +115,7 @@ Deno.serve(async (req: Request) => {
       cash: Number(acct.cash),
       long_mv: Number(acct.long_market_value || 0),
       n_positions: Array.isArray(pos) ? pos.length : 0,
-      spy_close: spy,
+      ...bench,
       positions: (Array.isArray(pos) ? pos : []).map((p: any) => ({
         symbol: p.symbol, qty: Number(p.qty), avg_entry: Number(p.avg_entry_price),
         price: Number(p.current_price || 0), mv: Number(p.market_value),

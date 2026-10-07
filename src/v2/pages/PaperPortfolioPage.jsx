@@ -101,7 +101,7 @@ const INKCARD = 'var(--card-ink)';   // the ONE ink card (command band)
 const CREAM  = 'var(--cream-text)';
 
 const fmtUsd = (v, dp = 0) =>
-  v == null ? '—' : `$${Number(v).toLocaleString('en-US', { maximumFractionDigits: dp, minimumFractionDigits: dp })}`;
+  v == null ? '—' : `${Number(v) < 0 ? '−' : ''}$${Math.abs(Number(v)).toLocaleString('en-US', { maximumFractionDigits: dp, minimumFractionDigits: dp })}`;
 const fmtSignedUsd = (v) =>
   v == null ? '—' : `${v >= 0 ? '+' : '−'}$${Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 const fmtPct = (v, dp = 1) =>
@@ -183,6 +183,37 @@ const CSS = `
 .paper-v12 .qtt-search { background: var(--bg2); border: 1px solid var(--hair); border-radius: var(--r-10); color: var(--ink); padding: var(--sp-6) var(--sp-12); font-size:var(--v13-t3); width: 190px; outline: none; font-family: var(--mt-type-sans); }
 .paper-v12 .qtt-search:focus { border-color: var(--gold-deep); }
 .paper-v12 .qtt-search::placeholder { color: var(--mut); }
+.paper-v12 .perf-top { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--sp-18) var(--sp-40); padding-bottom: var(--sp-22); margin-bottom: var(--sp-8); border-bottom: 1px solid var(--c-f7f3e8-a16); }
+.paper-v12 .perf-top-r { text-align: right; }
+.paper-v12 .perf-eyebrow { font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: var(--c-9ba6ac); margin-bottom: var(--sp-8); }
+.paper-v12 .perf-hero { font-size: var(--v13-t6); font-weight: var(--fw-600); letter-spacing: -.01em; color: var(--cream-text); }
+.paper-v12 .perf-sub { font-size: var(--v13-t3); color: var(--cream-text); opacity: .72; margin-top: var(--sp-6); }
+.paper-v12 .perf-wide { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.paper-v12 .perf-wide th, .paper-v12 .perf-wide td { text-align: right; white-space: nowrap; padding: var(--sp-10) var(--sp-10); }
+.paper-v12 .perf-wide td, .paper-v12 .perf-cell { font-size: var(--v13-t4); font-weight: var(--fw-600); border-top: 1px solid var(--c-f7f3e8-a16); }
+.paper-v12 .perf-wide .perf-name, .paper-v12 .perf-cell.perf-name { text-align: left; padding-left: 0; color: var(--cream-text); font-weight: var(--fw-400); }
+.paper-v12 .perf-wide .perf-paper td { font-size: var(--v13-t5); }
+.paper-v12 .perf-wide .perf-paper .perf-name, .paper-v12 .perf-cell.perf-name.perf-paper { font-weight: var(--fw-700); }
+.paper-v12 .perf-group { font-size: var(--v13-t2); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: var(--cream-text); padding-bottom: var(--sp-2); }
+.paper-v12 .perf-group-sub { font-weight: var(--fw-400); letter-spacing: .04em; text-transform: none; opacity: .72; }
+.paper-v12 .perf-unit { font-size: var(--v13-t2); font-weight: var(--fw-600); color: var(--c-9ba6ac); padding-top: var(--sp-2); }
+.paper-v12 .perf-wide .perf-first { padding-left: var(--sp-34); }
+.paper-v12 .perf-wide td:last-child, .paper-v12 .perf-wide th:last-child { padding-right: 0; }
+.paper-v12 .perf-narrow { display: none; font-variant-numeric: tabular-nums; }
+.paper-v12 .perf-ngrid { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; column-gap: var(--sp-16); align-items: baseline; }
+.paper-v12 .perf-ngrid + .perf-ngrid { margin-top: var(--sp-22); }
+.paper-v12 .perf-ngrid > div { text-align: right; white-space: nowrap; }
+.paper-v12 .perf-ngrid > .perf-group { text-align: left; white-space: normal; padding-bottom: var(--sp-8); }
+.paper-v12 .perf-ngrid > .perf-unit { padding-bottom: var(--sp-8); }
+.paper-v12 .perf-cell { padding: var(--sp-10) 0; }
+.paper-v12 .perf-ngrid > .perf-cell { border-top: 0; box-shadow: 0 -1px 0 var(--c-f7f3e8-a16), calc(-1 * var(--sp-16)) -1px 0 var(--c-f7f3e8-a16); }
+.paper-v12 .perf-name, .paper-v12 .perf-group { font-family: var(--mt-type-sans); }
+.paper-v12 .perf-note { font-size: var(--v13-t3); color: var(--cream-text); opacity: .72; margin-top: var(--sp-16); line-height: 1.55; }
+@media (max-width: 780px) {
+  .paper-v12 .perf-wide { display: none; }
+  .paper-v12 .perf-narrow { display: block; }
+  .paper-v12 .perf-top-r { text-align: left; }
+}
 .paper-v12 .qtt-secgrid { columns: 250px; column-gap: var(--sp-18); }
 .paper-v12 .qtt-sectile { break-inside: avoid; -webkit-column-break-inside: avoid; background: var(--bg2); border-radius: var(--r-14); padding: var(--sp-13) var(--sp-15); margin: 0 0 var(--sp-16); }
 `;
@@ -359,27 +390,16 @@ function liveStats(nav, spyBase = null) {
   const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
   const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / Math.max(a.length - 1, 1)); };
   const last = eq[eq.length - 1];
-  const prev = eq.length >= 2 ? eq[eq.length - 2] : 1_000_000;   // day 1: vs inception
-  // True intraday day-P&L when the broker marks carry it (upl_day per position)
-  const lastPos = nav[nav.length - 1]?.positions || [];
-  const dayFromMarks = lastPos.length && lastPos.some((p) => p.upl_day != null)
-    ? lastPos.reduce((t, p) => t + Number(p.upl_day || 0), 0) : null;
-  // S&P mirror figures. Baseline priority: the pre-launch close handed in as
+  // S&P since inception. Baseline priority: the pre-launch close handed in as
   // `spyBase`; failing that, the first close inside the window (needs >= 2
   // points so a single row cannot benchmark against itself).
   const spxNz = spx.filter((v) => v != null);
   const lastSpy = spxNz.length ? spxNz[spxNz.length - 1] : null;
   const spx0 = spyBase ?? (spxNz.length >= 2 ? spxNz[0] : null);
-  const prevSpy = spxNz.length >= 2 ? spxNz[spxNz.length - 2] : spyBase;
-  const spxDay = lastSpy != null && prevSpy != null ? lastSpy / prevSpy - 1 : null;
   const out = {
     n,
     since: last / 1_000_000 - 1,
-    sinceUsd: last - 1_000_000,
     spxSince: lastSpy != null && spx0 != null ? lastSpy / spx0 - 1 : null,
-    spxDay,
-    day: dayFromMarks ?? (last - prev),
-    dayPct: (dayFromMarks ?? (last - prev)) / (prev || 1_000_000),
     bestDay: n >= 2 ? Math.max(...ret) : null,
     worstDay: n >= 2 ? Math.min(...ret) : null,
     pctUp: n >= 2 ? ret.filter((r) => r > 0).length / n : null,
@@ -387,11 +407,6 @@ function liveStats(nav, spyBase = null) {
     maxdd: mdd,
     vol: null, beta: null, te: null, sharpe: null,
   };
-  // The same two spreads in dollars: what the book made minus what the same
-  // capital in the S&P made over the same interval (start-of-day equity for
-  // the day figure, the $1,000,000 start for inception).
-  out.dayVsSpxUsd = spxDay != null ? out.day - spxDay * (prev || 1_000_000) : null;
-  out.sinceVsSpxUsd = out.spxSince != null ? out.sinceUsd - out.spxSince * 1_000_000 : null;
   if (n >= 20) {
     out.vol = sd(ret) * Math.sqrt(252);
     const pairs = ret.map((r, i) => [r, sret[i]]).filter(([, s]) => s != null);
@@ -409,6 +424,72 @@ function liveStats(nav, spyBase = null) {
     out.sharpe = (mean(ret) - rf) / sd(ret) * Math.sqrt(252);
   }
   return out;
+}
+
+/* ── headline performance table (Joe, 2026-10-07) ─────────────────────────
+   Four rows — the book and three indices — across Day / YTD / Inception, each
+   in dollars and percent. Every row is the SAME object: what $1,000,000 is
+   worth now. For the book that is the account's equity; for an index it is
+   $1,000,000 put into that index's fund at the close before the book's first
+   day (the same starting bell liveStats uses for the S&P). One series per row
+   means every dollar and percent in a row comes off one base (LESSONS 4.24)
+   and the six cells of a row cannot disagree with each other:
+
+     Day        worth now − worth at the prior close
+     YTD        worth now − worth at the last close of the prior year; in the
+                book's first calendar year there is no such close, so YTD runs
+                from the book's start for EVERY row — never the index's full
+                calendar year against five weeks of the book
+     Inception  worth now − $1,000,000
+
+   A row whose latest mark is missing renders dashes, never a stale figure. */
+const START_CAPITAL = 1_000_000;
+const PERF_ROWS = [
+  { id: 'paper', label: 'Paper' },
+  { id: 'spx', label: 'S&P 500', col: 'spy_close' },
+  { id: 'ndx', label: 'Nasdaq 100', col: 'qqq_close' },
+  { id: 'dji', label: 'Dow', col: 'dia_close' },
+];
+function perfTable(nav, heldIdx) {
+  if (!nav || !nav.length) return null;
+  const i0 = heldIdx > 0 ? heldIdx : 0;
+  const held = nav.slice(i0);
+  const n = held.length;
+  const year = String(held[n - 1].d).slice(0, 4);
+  const y0 = held.findIndex((r) => String(r.d).slice(0, 4) === year);
+  const ytdFromStart = y0 <= 0;
+  const num = (v) => (v == null || !Number.isFinite(Number(v)) || Number(v) <= 0 ? null : Number(v));
+  const rows = PERF_ROWS.map((def) => {
+    let worth;
+    if (!def.col) {
+      worth = held.map((r) => num(r.equity));
+    } else {
+      // Baseline: the last mark BEFORE the first held day; with no pre-launch
+      // row, the first mark inside the window (a lone row then reads dashes
+      // rather than benchmarking against itself).
+      let base = null;
+      for (let i = i0 - 1; i >= 0 && base == null; i--) base = num(nav[i][def.col]);
+      if (base == null && n >= 2) base = num(held[0][def.col]);
+      worth = held.map((r) => (base != null && num(r[def.col]) != null
+        ? START_CAPITAL * (num(r[def.col]) / base) : null));
+    }
+    const cur = worth[n - 1];
+    // Most recent known worth strictly before index i; the start before that.
+    const before = (i) => {
+      for (let j = i - 1; j >= 0; j--) if (worth[j] != null) return worth[j];
+      return START_CAPITAL;
+    };
+    const cell = (from) => (cur == null || from == null
+      ? { usd: null, pct: null }
+      : { usd: cur - from, pct: cur / from - 1 });
+    return {
+      ...def,
+      day: cell(before(n - 1)),
+      ytd: cell(ytdFromStart ? START_CAPITAL : before(y0)),
+      since: cell(START_CAPITAL),
+    };
+  });
+  return { rows, ytdFromStart, year };
 }
 
 const th = { textAlign: 'right', padding: 'var(--sp-9) var(--sp-10)', fontSize: 'var(--v13-t1)', fontWeight: 'var(--fw-600)', letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' };
@@ -439,7 +520,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         rd ? supabase.from('qt_target_book').select('*').eq('rebalance_date', rd).order('rank') : { data: [] },
         rd ? supabase.from('qt_orders').select('symbol,side,qty,status,filled_qty,filled_avg_price,time_in_force')
           .eq('rebalance_date', rd).neq('status', 'dry_run') : { data: [] },
-        supabase.from('qt_nav_daily').select('d,equity,cash,long_mv,n_positions,spy_close,positions,created_at,account_number').order('d'),
+        supabase.from('qt_nav_daily').select('d,equity,cash,long_mv,n_positions,spy_close,qqq_close,dia_close,positions,created_at,account_number').order('d'),
         supabase.from('qt_brake_state').select('d,composite,stress_on,action').order('d', { ascending: false }).limit(1),
       ]);
       if (bk.error) throw bk.error;
@@ -517,6 +598,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     ? fmtDate(inceptionD).replace(/, \d{4}$/, '')
     : null;
   const ls = useMemo(() => liveStats(heldNav, spyBase), [heldNav, spyBase]);
+  const perf = useMemo(() => perfTable(nav, heldIdx), [nav, heldIdx]);
   const marks = useMemo(() => {
     const m = {}; (latestNav?.positions || []).forEach((p) => { m[p.symbol] = p; }); return m;
   }, [latestNav]);
@@ -719,12 +801,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     return <span style={{ color: INK3 }}>—</span>;
   };
 
-  // Inside the ink command card: cream-family text tones matched to Home's
-  // Engine card (its eyebrow color is the same literal #9BA6AC in v12 CSS).
-  const inkSub = 'var(--c-9ba6ac)';
-  const inkHair = '1px solid var(--c-f7f3e8-a16)';
-  const inkUpDown = (v) => (v == null ? CREAM : v >= 0 ? 'var(--gold-bar)' : BAD);
-
   return (
     <div className="home-v12 v13 paper-v12">
       <style>{CSS}</style>
@@ -811,61 +887,99 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           background: INKCARD, color: CREAM, borderRadius: 'var(--card-r)',
           boxShadow: 'var(--sh)', padding: 'var(--sp-34) var(--sp-44)', marginBottom: 'var(--mt-gap-card, var(--sp-22))',
         }}>
-          <div style={{ ...grid(158, 22, 6) }}>
-            {[
-              // The band answers exactly four questions, in order (Joe,
-              // 2026-09-01): what is it worth · what did it make today · what
-              // since inception · vs the S&P for both — dollars AND percent
-              // as EQUALS, two full-size lines per tile. The percent lived in
-              // the grey sub-line for two hours and Joe could not read it;
-              // the sub-line now carries only short context (the session, the
-              // S&P's own figure) at 13px, and nothing a reader needs is grey.
-              { k: 'Portfolio value', hero: fmtUsd(equity),
-                sub: markedAt ? (bookIsLive ? markedAt : `final ${markedAt.replace(/^marked /, 'mark ')}`) : 'at inception',
-                color: CREAM },
-              { k: 'Day P&L', hero: ls ? fmtSignedUsd(ls.day) : '—',
-                hero2: ls ? fmtPct(ls.dayPct, 2) : null,
-                sub: ls ? daySession : 'from broker marks',
-                color: inkUpDown(ls?.day) },
-              { k: 'Day vs S&P 500', hero: (ls && ls.spxDay != null) ? fmtSignedUsd(ls.dayVsSpxUsd) : '—',
-                hero2: (ls && ls.spxDay != null) ? fmtPct(ls.dayPct - ls.spxDay, 2) : null,
-                sub: (ls && ls.spxDay != null) ? `S&P ${fmtPct(ls.spxDay, 2)} ${daySession}` : 'benchmark spread',
-                color: inkUpDown(ls && ls.spxDay != null ? ls.dayPct - ls.spxDay : null) },
-              // On the book's FIRST day, "today" and "since inception" are the
-              // same interval, so the day and inception pairs match to the
-              // dollar. Correct, but it reads as a rendering bug (Joe caught
-              // it on launch day) — until a second mark exists the inception
-              // tiles say why. Data-keyed off the held window (ls.n === 0).
-              { k: 'P&L since inception', hero: ls ? fmtSignedUsd(ls.sinceUsd) : '—',
-                hero2: ls ? fmtPct(ls.since, 2) : null,
-                sub: ls
-                  ? (ls.n === 0 ? 'day one, same as today' : (inceptionShort ? `since ${inceptionShort}` : 'whole book'))
-                  : 'vs $1,000,000 start',
-                color: inkUpDown(ls?.since) },
-              { k: 'vs S&P 500 inception', hero: (ls && ls.spxSince != null) ? fmtSignedUsd(ls.sinceVsSpxUsd) : '—',
-                hero2: (ls && ls.spxSince != null) ? fmtPct(ls.since - ls.spxSince, 2) : null,
-                sub: (ls && ls.spxSince != null)
-                  ? `S&P ${fmtPct(ls.spxSince, 2)} ${ls.n === 0 ? '· day one' : (inceptionShort ? `since ${inceptionShort}` : '')}`
-                  : 'benchmark spread',
-                color: inkUpDown(ls && ls.spxSince != null ? ls.since - ls.spxSince : null) },
-              { k: 'Exposure', hero: latestNav ? fmtPctPlain(invested, 1) : '—',
-                sub: `gross · net long · cash ${fmtUsd(cash)}`, color: CREAM, meter: invested },
-            ].map((t) => (
-              <div key={t.k}>
-                <div style={{ fontSize: 'var(--v13-t1)', fontWeight: 'var(--fw-700)', letterSpacing: '0.14em', textTransform: 'uppercase', color: inkSub, marginBottom: 'var(--sp-8)' }}>{t.k}</div>
-                <div className="num" style={{ fontSize: 'var(--v13-t6)', fontWeight: 'var(--fw-600)', letterSpacing: '-0.01em', color: t.color }}>{t.hero}</div>
-                {t.hero2 != null && (
-                  <div className="num" style={{ fontSize: 'var(--v13-t5)', fontWeight: 'var(--fw-600)', letterSpacing: '-0.01em', color: t.color, marginTop: 'var(--sp-3)' }}>{t.hero2}</div>
-                )}
-                {t.meter != null && (
-                  <div style={{ height: 4, borderRadius: 'var(--r-999)', background: 'var(--c-f7f3e8-a18)', overflow: 'hidden', margin: 'var(--sp-8) 0 var(--sp-2)', maxWidth: 140 }}>
-                    <div style={{ width: `${Math.min(t.meter * 100, 100)}%`, height: '100%', background: 'var(--gold-bar)' }} />
-                  </div>
-                )}
-                <div style={{ fontSize: 'var(--v13-t3)', color: CREAM, opacity: 0.72, marginTop: 'var(--sp-6)' }}>{t.sub}</div>
-              </div>
-            ))}
+          {/* Value and exposure — the two facts that are not performance. */}
+          <div className="perf-top">
+            <div>
+              <div className="perf-eyebrow">Portfolio value</div>
+              <div className="num perf-hero">{fmtUsd(equity)}</div>
+              <div className="perf-sub">{markedAt ? (bookIsLive ? markedAt : `final ${markedAt.replace(/^marked /, 'mark ')}`) : 'at inception'}</div>
+            </div>
+            <div className="perf-top-r">
+              <div className="perf-eyebrow">Exposure</div>
+              <div className="num perf-hero">{latestNav ? fmtPctPlain(invested, 1) : '—'}</div>
+              <div className="perf-sub">gross · net long · cash {fmtUsd(cash)}</div>
+            </div>
           </div>
+
+          {/* Performance: one row per portfolio, one column pair per period
+              (Joe, 2026-10-07 — the six-tile band it replaces mixed levels and
+              spreads and he could not read it). Wide screens get the single
+              table; at 780px and under (the site's phone-table breakpoint) the same cells stack as three short grids so
+              nothing scrolls sideways (LESSONS 9.7, 9.23). */}
+          {(() => {
+            const periods = [
+              { id: 'day', label: 'Day', sub: daySession },
+              { id: 'ytd', label: 'YTD',
+                sub: perf ? (perf.ytdFromStart ? (inceptionShort ? `from ${inceptionShort} start` : 'from start') : perf.year) : '' },
+              { id: 'since', label: 'Inception', sub: inceptionShort ? `since ${inceptionShort}` : '' },
+            ];
+            const rows = perf ? perf.rows : PERF_ROWS.map((r) => ({ ...r, day: {}, ytd: {}, since: {} }));
+            const usd = (c) => (c?.usd == null ? '—' : fmtSignedUsd(c.usd));
+            const pct = (c) => (c?.pct == null ? '—' : fmtPct(c.pct, 2));
+            const tone = (c) => ({ color: c?.usd == null ? CREAM : upDown(c.usd) });
+            return (
+              <>
+                <table className="perf-wide num">
+                  <thead>
+                    <tr>
+                      <th rowSpan={2} />
+                      {periods.map((p) => (
+                        <th key={p.id} colSpan={2} className="perf-group">
+                          {p.label}{p.sub ? <span className="perf-group-sub"> · {p.sub}</span> : null}
+                        </th>
+                      ))}
+                    </tr>
+                    <tr>
+                      {periods.map((p) => (
+                        <React.Fragment key={p.id}>
+                          <th className="perf-unit perf-first">$</th>
+                          <th className="perf-unit">%</th>
+                        </React.Fragment>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.id} className={r.id === 'paper' ? 'perf-paper' : ''}>
+                        <td className="perf-name">{r.label}</td>
+                        {periods.map((p) => (
+                          <React.Fragment key={p.id}>
+                            <td className="perf-first" style={tone(r[p.id])}>{usd(r[p.id])}</td>
+                            <td style={tone(r[p.id])}>{pct(r[p.id])}</td>
+                          </React.Fragment>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Phone: divs on a grid, not a table — the site's phone rule turns
+                    every table's head and body into separate scrolling boxes,
+                    which would break the column alignment here. */}
+                <div className="perf-narrow num">
+                  {periods.map((p) => (
+                    <div key={p.id} className="perf-ngrid">
+                      <div className="perf-group">{p.label}{p.sub ? <span className="perf-group-sub"> · {p.sub}</span> : null}</div>
+                      <div className="perf-unit">$</div>
+                      <div className="perf-unit">%</div>
+                      {rows.map((r) => (
+                        <React.Fragment key={r.id}>
+                          <div className={`perf-cell perf-name${r.id === 'paper' ? ' perf-paper' : ''}`}>{r.label}</div>
+                          <div className="perf-cell" style={tone(r[p.id])}>{usd(r[p.id])}</div>
+                          <div className="perf-cell" style={tone(r[p.id])}>{pct(r[p.id])}</div>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="perf-note">
+                  Index rows show $1,000,000 put into each index’s fund (SPY, QQQ, DIA) at the close before the book’s first day.
+                  {perf && perf.ytdFromStart ? ' The book started this year, so YTD and Inception cover the same stretch until January.' : ''}
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* ── attribution + size — two short, height-matched cards ── */}
