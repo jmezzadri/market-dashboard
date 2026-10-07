@@ -35,6 +35,11 @@ TARGETS = [
     ("cmdty_oil",      "CL=F",       "Crude oil",         "Commodities", "$/bbl"),
     ("cmdty_brent",    "BZ=F",       "Brent crude",       "Commodities", "$/bbl"),
     ("cmdty_natgas",   "NG=F",       "Natural gas",       "Commodities", "$/MMBtu"),
+    # 2026-10-07 (Joe): the diesel shock was the macro story of the week and we
+    # had no diesel series at all. NY Harbor ULSD (the heating-oil contract IS
+    # ultra-low-sulfur diesel since 2013) and RBOB gasoline, in $/gal.
+    ("cmdty_heatoil",  "HO=F",       "Diesel (NY Harbor ULSD)", "Commodities", "$/gal"),
+    ("cmdty_gasoline", "RB=F",       "Gasoline (RBOB)",   "Commodities", "$/gal"),
     ("cmdty_corn",     "ZC=F",       "Corn",              "Commodities", "c/bu"),
     ("cmdty_soybeans", "ZS=F",       "Soybeans",          "Commodities", "c/bu"),
     ("cmdty_wheat",    "ZW=F",       "Wheat",             "Commodities", "c/bu"),
@@ -208,6 +213,30 @@ def _sync_pipeline_health(updates):
     print(f"  pipeline_health: {n} commodity/FX rows upserted")
 
 
+GAL_PER_BBL = 42.0
+
+# Refining margins, $/bbl: product price x 42 minus Brent, on the dates both
+# settled. Derived from the two series already pulled this run (or the stored
+# copies if a pull failed), so a crack can never mix a fresh leg with a stale one
+# on the same date — it only exists where BOTH legs have that date.
+CRACKS = [
+    ("cmdty_diesel_crack",   "cmdty_heatoil",  "Diesel crack (ULSD − Brent)"),
+    ("cmdty_gasoline_crack", "cmdty_gasoline", "Gasoline crack (RBOB − Brent)"),
+]
+
+
+def crack_points(product_pts, brent_pts):
+    """[[date, product*42 - brent], ...] on shared dates, ascending."""
+    b = {str(d): v for d, v in (brent_pts or []) if v is not None}
+    out = []
+    for d, v in (product_pts or []):
+        d = str(d)
+        if v is None or d not in b:
+            continue
+        out.append([d, round(float(v) * GAL_PER_BBL - float(b[d]), 2)])
+    return sorted(out)
+
+
 def _load_hist():
     if os.path.exists(HISTORY_PATH):
         with open(HISTORY_PATH) as f:
@@ -321,6 +350,24 @@ def run():
         except Exception as e:
             print(f"  WARNING {name} ({ticker}): {e}")
 
+    for key, leg, name in CRACKS:
+        try:
+            src = lambda k: (updates.get(k) or hist0.get(k) or {}).get("points") or []
+            cpts = crack_points(src(leg), src("cmdty_brent"))
+            if len(cpts) < 60:
+                raise RuntimeError(f"only {len(cpts)} shared dates")
+            cpct, cz = pctrank_points(cpts), zscore_points(cpts)
+            updates[key] = {
+                "freq": "D", "unit": "$/bbl", "as_of": cpts[-1][0], "points": cpts,
+                "stats": {"direction": "bw", "pctile_3yr": cpct, "z_3yr": cz,
+                          "state": state_for(cpct), "bucket": "Commodities",
+                          "label": name, "source": "Yahoo Finance futures (derived)",
+                          "ranked": True},
+            }
+            print(f"  Commodities {name:30s} pts={len(cpts):>5} last={cpts[-1][1]:>8}  {cpct:5.1f}%ile")
+        except Exception as e:
+            print(f"  WARNING {name}: {e}")
+
     # Spot uranium (U3O8) — Numerco via Yellow Cake plc. Daily live value appended
     # onto accumulating history. Fail-loud: on any error we DON'T write, so the
     # chip honestly goes stale (red) rather than fake-green on a frozen value.
@@ -409,6 +456,12 @@ def selftest():
     print(f"  {'OK' if all(v != 10.0 for v in w2) else 'FAIL'} 2015 points excluded by the 3y cut")
     ok &= state_for(95) == "extreme" and state_for(50) == "calm" and state_for(8) == "extreme"
     print(f"  states: 95->{state_for(95)} 50->{state_for(50)} 8->{state_for(8)}")
+    # crack: product $/gal x 42 - Brent, only on dates both legs have
+    cp = crack_points([["2026-10-01", 3.0], ["2026-10-02", 3.1], ["2026-10-03", 3.2]],
+                      [["2026-10-01", 90.0], ["2026-10-03", 100.0]])
+    good = cp == [["2026-10-01", 36.0], ["2026-10-03", 34.4]]
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} crack = 3.00*42-90 = 36.0 on shared dates only: {cp}")
     # merge guard
     import tempfile
     global HISTORY_PATH
