@@ -100,6 +100,9 @@ MIN_EXPECTED_RETURN_PCT = 15.0
 # The open book is the calls the scorer marks open — a stopped or broken call
 # is not a position, whatever its original horizon said.
 BOOK_RULES_FROM = "2026-10-07"
+REGIME_MATCH_FROM = "2026-10-08"      # LESSONS 6.23 — the sample has to contain today
+MIN_REGIME_MATCH_EPISODES = 5
+MIN_REGIME_MATCH_CHARS = 80
 MARKET_ANNUAL_PCT = 10.0      # S&P 500 long-run total return, the bar to beat
 MARGIN_ANNUAL_PCT = 10.0      # the "healthy margin" over it (Joe, 2026-10-07: "make it 20% a year")
 HURDLE_ANNUAL_PCT = MARKET_ANNUAL_PCT + MARGIN_ANNUAL_PCT
@@ -810,6 +813,30 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                 "edge.backtest.trend_split is required for a positioning edge: the result with price ABOVE and BELOW "
                 "its 200-day average, separately. Fading corn longs in an uptrend lost 10% on average; in wheat the "
                 "fade worked anyway. The split is where that difference shows.")
+
+    # 3d-bis — the sample has to contain today (2026-10-07, LESSONS 6.23). A
+    # long-banks note published on 19 clean episodes and came down within the
+    # hour: its own prose named the 10-year at a 20-year high as the cause of
+    # the selloff, and 18 of the 19 episodes had entered with yields flat or
+    # falling. The edge was measured in a world that did not contain today.
+    # So every note names the factor it says caused the move, counts the
+    # episodes that share today's state on it, and reports the result in
+    # those alone — as a field, so the question cannot be skipped.
+    if str(idea.get("date", "")) >= REGIME_MATCH_FROM:
+        rm = str(bt.get("regime_match") or "").strip()
+        if len(rm) < MIN_REGIME_MATCH_CHARS or not re.search(r"\d", rm):
+            raise ContractError(
+                "edge.backtest.regime_match is required: name the factor the note says caused the move, how many "
+                "backtest episodes share today's state on that factor, and the result in those episodes alone "
+                f"(min {MIN_REGIME_MATCH_CHARS} chars, with the count). Fewer than {MIN_REGIME_MATCH_EPISODES} "
+                "such episodes, or no edge inside them, is no note — an 'other side' paragraph that concedes "
+                "it is the rejection written down.")
+        m_eps = re.search(r"(\d+)\s+(?:of\s+\d+\s+)?(?:such\s+|matching\s+|backtest\s+)?episodes?", rm, re.I)
+        if m_eps and int(m_eps.group(1)) < MIN_REGIME_MATCH_EPISODES:
+            raise ContractError(
+                f"edge.backtest.regime_match counts {m_eps.group(1)} episode(s) sharing today's state on the named "
+                f"factor — fewer than {MIN_REGIME_MATCH_EPISODES}. The edge is out of sample for the one thing the "
+                "note says matters; do not publish it.")
 
     # the truism check — a famous ratio may support a note, never drive it
     driver_text = " ".join([pe, str(idea["title"]), str(edge.get("summary", "")), str(idea.get("dek", ""))]).lower()

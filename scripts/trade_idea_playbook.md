@@ -586,6 +586,27 @@ return over the same sample. Medians below, conditional versus unconditional.
 | Energy | WTI, managed money ≤15th | −8.98% vs −0.34%, but 3 episodes from 2019 | **too thin — do not use** |
 | Copper | managed money ≥85th | +4.85% vs +2.40%, 3 episodes from 2022 | **too thin — do not use** |
 
+**The sample has to contain today (2026-10-07, binding — LESSONS 6.23).** A
+long-banks note went out on a clean test — banks/S&P at the 0.5th percentile
+of twenty years, 19 episodes, KBE higher six months later 17 times, median
++17.6% against +3.4% — and was withdrawn within the hour. Its own prose said
+the 10-year at a 20-year high caused the selloff; 18 of the 19 episodes had
+entered with the 10-year flat or falling, and banks after a +50bp quarter in
+the 10-year are a coin flip (21 episodes, median +1.3%). The edge was real and
+measured in a world that does not contain today. So, for every note:
+
+1. Name the factor the note says caused the move. Count the backtest episodes
+   that share today's state on it. Report the result in those alone, in
+   `edge.backtest.regime_match` (contract-enforced from 2026-10-08). Fewer
+   than five, or no edge inside them, is no note — not an "other side"
+   paragraph.
+2. Check which way the sample's returns ran against that factor. If banks rose
+   WITH yields in the sample and the note fears yields rising, the sample is a
+   different mechanism; say so, and do not publish on it.
+3. Same direction as a call closed for a broken thesis in the last 30 days is
+   the same bet to the reader. It needs a `reconciles` paragraph on what is
+   different about the entry, or it waits.
+
 **Re-tested 2026-10-02, the honest way** (`scripts/research/outside_research_challenge/`):
 percentiles ranked on an expanding window (each week against only the history
 available that week), independent episodes 13 clear weeks apart, next 63

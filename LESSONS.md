@@ -188,6 +188,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `6.20` A stop is not a thesis check; the review re-measures the driver against conditions written at publication, the verdict must follow from the checks, and a probability shown to Joe is calibrated on the record first
 - `6.21` An edge measured on a short window with in-sample percentiles is a description of that window; positioning edges are tested on the full record, expanding ranks, independent episodes, split by trend
 - `6.22` A return hurdle that ignores time is wrong at both ends; the bar is a pace, and a call must add to the BOOK, not just clear a number
+- `6.23` A backtest must cover the regime of the factor the note itself names as the cause; same direction as a call just closed for a broken thesis is the same bet re-expressed
 
 **7 · CODE & RELEASE DISCIPLINE**
 
@@ -1796,6 +1797,19 @@ Two things went wrong on the way to shipping it that are worth keeping. (1) The 
 4. When a rule kills every candidate for days, test the rule against the objective it serves before testing more candidates.
 
 **Applies to:** the Trade Idea session, Senior Quant, the weekly thesis review.
+
+### 6.23 (2026-10-07) — A backtest must cover the regime of the factor the note itself names as the cause of the move; and a call in the same direction as one just closed for a broken thesis is the same bet re-expressed
+
+**What happened:** The Trade Idea session published a long-banks note (KBE) on the banks-to-S&P ratio sitting at the 0.5th percentile of twenty years: 19 prior episodes, KBE higher six months later 17 times, median +17.6% against +3.4% unconditional. The note's own prose said the selloff was driven by the 10-year at 5.27%, a 20-year high, and the "other side" admitted no episode in the sample had yields there — and it published anyway. Joe, within the hour: *"Are you taking into account where interest rates are or other macro factors? or simply just looking at KBW relative to S&P? This is terrible analysis."* The conditioning test he asked for took five minutes: 18 of the 19 episodes entered with the 10-year flat or falling over the prior quarter; today's followed a 71bp rise. Unconditionally, banks six months after a +50bp quarter in the 10-year are a coin flip (21 episodes, median +1.3%, 13 up). Inside the sample, bank returns ran at +0.73 correlation with the forward yield change — the episodes were reflation recoveries, the opposite mechanism to a long-end selloff on supply and inflation. The edge was real and irrelevant: measured in a regime that does not contain today. The note was withdrawn the same morning. A week earlier the Aug 17 long-banks call had been closed as thesis-broken at −12%; the new note was a different signal but the same direction, and a reader cannot tell the difference.
+
+**Rule:**
+
+1. **Name the cause, then count the episodes that share it.** Every note states, in `edge.backtest.regime_match`, what factor it says caused the move it is fading or riding, how many backtest episodes share today's state on that factor, and the result in those episodes alone. Fewer than five such episodes, or a result that does not clear the baseline on its own, means the edge is out of sample for the one thing that matters, and there is no note. An "other side" paragraph that concedes this is not a mitigation; it is the rejection, written down and ignored.
+2. **The sample's mechanism must match today's.** If the forward return in the sample correlates with the very factor the note calls the risk (banks rose WITH yields in the sample; the note fears yields rising), the backtest is measuring a different world. Say which world the sample is from.
+3. **Direction counts as the same bet.** A call in the same direction as one closed for a broken thesis inside the last 30 days needs an explicit `reconciles` paragraph saying what is different about the entry and why the broken thesis does not break this one. A different signal is not a defence.
+4. **Withdraw the same session.** A published call its author no longer stands behind comes down that morning with the reason logged here and in the skip record; it does not wait for Monday's review.
+
+**Applies to:** the Trade Idea session, Senior Quant, the weekly thesis review. Contract: `scripts/build_trade_idea.py` (regime_match required from 2026-10-08).
 
 # 7 · CODE & RELEASE DISCIPLINE
 ### 7.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component
