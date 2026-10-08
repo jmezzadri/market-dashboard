@@ -54,7 +54,7 @@ CURRENT_SD = {
 # For indicators assembled from multiple FRED series, the fetch function takes a list.
 FRED_MAP = {
     "vix":          {"series": ["VIXCLS"],                      "transform": "identity"},
-    "hy_ig":        {"series": ["BAMLH0A0HYM2", "BAMLC0A0CM"],  "transform": "hy_ig_bps"},
+    "hy_ig":        {"series": ["BAMLH0A0HYM2"],                "transform": "pct_to_bps"},  # HY OAS over Treasuries, not HY minus IG (renamed 2026-05-28)
     "yield_curve":  {"series": ["T10Y2Y"],                      "transform": "pct_to_bps"},
     "anfci":        {"series": ["ANFCI"],                       "transform": "identity"},
     "stlfsi":       {"series": ["STLFSI4"],                     "transform": "identity"},

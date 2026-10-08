@@ -140,7 +140,7 @@ prepare step — don't sweat them, and do NOT emit `metrics` or `ideas` yourself
 **The levels and the changes are already done.** The prepare step attaches a
 market-snapshot table built from the feed — 2y, 10y, **20y, 30y**, 2s10s, 10y
 real, 10y breakeven, term premium, MOVE, S&P, Nasdaq, Dow, VIX, VIX term
-structure, SKEW, CAPE, IG OAS, HY-IG, HYG/LQD, SOFR-OIS, CP spread, RRP, TGA,
+structure, SKEW, CAPE, IG OAS, HY OAS, HYG/LQD, SOFR-OIS, CP spread, RRP, TGA,
 WTI, Brent, gold, copper, DXY, USD/JPY, EUR/USD — with each level, its
 one-session change and its as-of date. (The 30y and 20y got a feed on
 2026-08-21; before that you had to source them by hand every morning. Stop

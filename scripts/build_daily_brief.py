@@ -248,7 +248,7 @@ PROMPT = """You are MacroTilt's daily market-brief analyst. Today is {today} (ET
 
 WHO READS THIS. Active traders, portfolio managers and allocators — Joe first. They know what MOVE, 2s10s, OAS, DXY, bid-to-cover, dealer takedown and term premium are. They are busy. They will not read a thousand words to find the picture.
 
-THE ONE RULE THAT DECIDES EVERYTHING (Joe, 2026-08-19). The LEVELS AND CHANGES ARE ALREADY DONE. A market-snapshot table is attached to this brief automatically, from the feed, after you write: 2y, 10y, 20y, 30y, 2s10s, 10y real, 10y breakeven, term premium, MOVE, S&P, Nasdaq, Dow, VIX, VIX term structure, SKEW, CAPE, IG OAS, HY-IG, HYG/LQD, SOFR-OIS, CP spread, RRP, TGA, WTI, Brent, gold, copper, DXY, USD/JPY, EUR/USD. NEVER restate a row of that table in prose. Your entire job is the sentence AFTER the numbers — the so-what. If a move has no so-what, the table already said it and you say nothing.
+THE ONE RULE THAT DECIDES EVERYTHING (Joe, 2026-08-19). The LEVELS AND CHANGES ARE ALREADY DONE. A market-snapshot table is attached to this brief automatically, from the feed, after you write: 2y, 10y, 20y, 30y, 2s10s, 10y real, 10y breakeven, term premium, MOVE, S&P, Nasdaq, Dow, VIX, VIX term structure, SKEW, CAPE, IG OAS, HY OAS, HYG/LQD, SOFR-OIS, CP spread, RRP, TGA, WTI, Brent, gold, copper, DXY, USD/JPY, EUR/USD. NEVER restate a row of that table in prose. Your entire job is the sentence AFTER the numbers — the so-what. If a move has no so-what, the table already said it and you say nothing.
 
   WRONG (62 words, and every number is already in the table):
     "The most important change since yesterday morning is that the long end
@@ -547,7 +547,7 @@ METRIC_GROUPS = [
     ]),
     ("Credit & liquidity", [
         ("ig_oas",        "IG OAS",   "bp"),
-        ("hy_ig",         "HY-IG",    "bp"),
+        ("hy_ig",         "HY OAS",   "bp"),
         ("hy_ig_etf",     "HYG/LQD",  "rat"),
         ("sofr_ois",      "SOFR-OIS", "bp"),
         ("cpff",          "CP spread","bp"),
