@@ -15,8 +15,7 @@
 //   (security definer, service-role-only) using this function's service key.
 // - Secrets read lazily in-handler; Deno.serve; no boot-time fetch (2026-07-13).
 // - All vendor reads go through the shared cache tables so N viewers cost the
-//   same as one. TTLs: quotes 45s open / 30min closed; IV term 30min open / 6h
-//   closed. Uncovered symbols negative-cache for 24h (em-dash on the site —
+//   same as one. TTLs: quotes 45s open / 30min closed. Uncovered symbols negative-cache for 24h (em-dash on the site —
 //   never a fabricated value, LESSONS 4.4).
 // - Two providers, one contract (2026-08-18, Joe: "consistent and accurate
 //   pricing EVERYWHERE"). LSE is primary (paid 1m bars). Yahoo's chart meta is
@@ -51,8 +50,6 @@ const YAHOO_UA = "Mozilla/5.0 (compatible; MacroTiltBot/1.0)";
 
 const QUOTE_TTL_OPEN_S = 45;
 const QUOTE_TTL_CLOSED_S = 30 * 60;
-const IV_TTL_OPEN_S = 30 * 60;
-const IV_TTL_CLOSED_S = 6 * 60 * 60;
 const UNCOVERED_TTL_S = 24 * 60 * 60;
 const MAX_SYMBOLS = 45;
 
