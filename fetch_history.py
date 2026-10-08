@@ -321,6 +321,87 @@ def attach_stats_and_as_of(result):
     return result
 
 
+# Series whose source was deliberately replaced: the monotonic as-of guard
+# lets the new source's series replace the old one once, even if it ends
+# earlier. Remove an entry after the migration has landed in the live file.
+SOURCE_MIGRATIONS = {
+    "cmdi": "Federal Reserve Bank of New York",   # 2026-10-08, bug #1262
+}
+
+NYFED_CMDI_URL = ("https://www.newyorkfed.org/medialibrary/research/interactives/"
+                  "cmdi/downloads/Market%20CMDI.xlsx")
+
+
+def fetch_nyfed_cmdi(url: str = NYFED_CMDI_URL) -> list:
+    """NY Fed Market CMDI as [[iso_date, value], ...], weekly (Friday).
+
+    Standard library only (zipfile + XML), so the workflow needs no extra
+    package. Finds the sheet whose header row reads eow_friday / Market CMDI
+    rather than trusting a sheet position. Raises on anything unexpected —
+    the caller carries the prior series forward and says so.
+    """
+    import io, re, zipfile, urllib.request
+    import xml.etree.ElementTree as ET
+    from datetime import date as _date, timedelta as _td
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 MacroTilt data pipeline"})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        raw = resp.read()
+    z = zipfile.ZipFile(io.BytesIO(raw))
+    ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    shared = []
+    if "xl/sharedStrings.xml" in z.namelist():
+        for si in ET.fromstring(z.read("xl/sharedStrings.xml")).findall("m:si", ns):
+            shared.append("".join(t.text or "" for t in si.iter("{%s}t" % ns["m"])))
+
+    def col_idx(ref):
+        letters = re.match(r"[A-Z]+", ref).group(0)
+        n = 0
+        for ch in letters:
+            n = n * 26 + (ord(ch) - 64)
+        return n - 1
+
+    def cell_val(c):
+        v = c.find("m:v", ns)
+        if c.get("t") == "s" and v is not None:
+            return shared[int(v.text)]
+        if c.get("t") == "inlineStr":
+            return "".join(t.text or "" for t in c.iter("{%s}t" % ns["m"]))
+        return v.text if v is not None else None
+
+    sheets = sorted(n for n in z.namelist() if re.match(r"xl/worksheets/sheet\d+\.xml$", n))
+    for name in sheets:
+        rows = []
+        for r in ET.fromstring(z.read(name)).iter("{%s}row" % ns["m"]):
+            row = {}
+            for c in r.findall("m:c", ns):
+                row[col_idx(c.get("r"))] = cell_val(c)
+            rows.append(row)
+        hdr_i = next((i for i, r in enumerate(rows)
+                      if any(str(v).strip().lower() == "eow_friday" for v in r.values() if v is not None)), None)
+        if hdr_i is None:
+            continue
+        hdr = {str(v).strip(): k for k, v in rows[hdr_i].items() if v is not None}
+        dcol = next(k for h, k in hdr.items() if h.lower() == "eow_friday")
+        vcol = hdr.get("Market CMDI")
+        if vcol is None:
+            raise ValueError(f"'Market CMDI' column missing; header was {sorted(hdr)}")
+        pts = []
+        for r in rows[hdr_i + 1:]:
+            d, v = r.get(dcol), r.get(vcol)
+            if d in (None, "") or v in (None, ""):
+                continue
+            iso = (_date(1899, 12, 30) + _td(days=int(float(d)))).isoformat()
+            val = float(v)
+            if not 0.0 <= val <= 1.0:
+                raise ValueError(f"CMDI value {val} on {iso} outside the index's 0-1 scale")
+            pts.append([iso, round(val, 2)])
+        pts.sort()
+        if len(pts) < 500 or pts[0][0] > "2005-12-31":
+            raise ValueError(f"CMDI history too short: {len(pts)} points from {pts[0][0] if pts else None}")
+        return pts
+    raise ValueError("no sheet with an eow_friday / Market CMDI header in the NY Fed workbook")
+
+
 def series_to_points(s, *, round_dp=4):
     """pandas Series of floats indexed by date → list of [iso_date, float]."""
     out = []
@@ -1141,13 +1222,21 @@ def fetch_all():
         result["payrolls"] = {"freq": "M", "unit": "K",
                               "points": series_to_points(s, round_dp=0)}
 
-    print("CMDI (NFCI proxy) ...")
-    s = safe_fred("NFCI")
-    if s is not None:
-        # CMDI is Fed composite 0+. Scanner proxies with NFCI + 0.5 floored at 0.
-        proxy = (s + 0.5).clip(lower=0)
-        result["cmdi"] = {"freq": "W", "unit": "index",
-                          "points": series_to_points(proxy, round_dp=2)}
+    print("CMDI (NY Fed Corporate Bond Market Distress Index) ...")
+    # 2026-10-08 (bug #1262): this was an NFCI proxy (NFCI + 0.5 clipped at 0)
+    # that printed a hard 0.0 for 535 of 1,082 weeks, which made every
+    # percentile on it meaningless. The real index is public: the NY Fed's own
+    # workbook, weekly (Friday) Market CMDI since 2005 on its native 0-1 scale —
+    # the scale indicatorRegistry's thresholds were always written for. No
+    # proxy fallback: if the fetch fails the series is carried forward from
+    # the prior file and flagged, never re-proxied (one provider per source).
+    try:
+        pts = fetch_nyfed_cmdi()
+        result["cmdi"] = {"freq": "W", "unit": "index", "points": pts,
+                          "source": "Federal Reserve Bank of New York — Corporate Bond Market Distress Index (Market CMDI, weekly)"}
+        print(f"  {len(pts)} weekly points, {pts[0][0]} -> {pts[-1][0]}, latest {pts[-1][1]}")
+    except Exception as e:
+        print(f"  CMDI fetch FAILED ({type(e).__name__}: {e}) — carried forward from prior file")
 
     print("Term Premium (Kim-Wright 10Y) ...")
     s = safe_fred("THREEFYTP10")
@@ -1822,6 +1911,17 @@ def main():
                     if not isinstance(pf, dict):
                         continue
                     nd, od = _last_dt(fresh), _last_dt(pf)
+                    # A deliberate source migration replaces the series outright,
+                    # even when the new source's newest point is older than the
+                    # retired one's (cmdi 2026-10-08: the NY Fed index publishes
+                    # monthly, the retired NFCI proxy weekly). Only for ids named
+                    # here, and only once the fresh series carries the new source.
+                    mig = SOURCE_MIGRATIONS.get(ind_id)
+                    if (mig and str(fresh.get("source") or "").startswith(mig)
+                            and not str(pf.get("source") or "").startswith(mig)):
+                        print(f"  Source migration for {ind_id}: replacing prior series "
+                              f"(held to {od}) with {mig} (to {nd})")
+                        continue
                     if nd and od and nd < od:
                         data[ind_id] = pf            # keep the fresher prior series
                         regressed.append(f"{ind_id} (fetch {nd} < held {od})")

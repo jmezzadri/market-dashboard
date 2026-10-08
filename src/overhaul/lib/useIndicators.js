@@ -157,7 +157,7 @@ function stateFor(pct, direction) {
 const DEF = {
   vix: 'Equity Volatility', skew: 'Options-Implied Tail Risk', eq_cr_corr: 'SPY-HYG correlation', cape: 'CAPE Shiller',
   hy_ig: 'High-Yield Credit Spread', ig_oas: 'Investment-Grade Credit Spread', loan_syn: 'High-yield effective yield',
-  cmdi: 'Corp-bond distress (NFCI proxy)', cpff: '3m commercial paper - Fed funds',
+  cmdi: 'Corp-bond distress (NY Fed CMDI)', cpff: '3m commercial paper - Fed funds',
   sloos_ci: 'SLOOS, C&I net tightening', sloos_cre: 'SLOOS, CRE net tightening',
   bank_credit: 'Bank credit, YoY (H.8)', credit_3y: 'Bank credit, 3-yr growth',
   bank_unreal: 'Unrealized losses / Tier-1', bkx_spx: 'KBW banks / S&P 500',
