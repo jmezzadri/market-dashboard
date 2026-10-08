@@ -393,7 +393,7 @@ html, body, #root { background: var(--lg-ground); }
 
 /* ── page polish: scorecard / methodology / data / ticker / static ── */
 .v13.home-v12.sc-wrap { max-width: 1400px; margin: 0 auto; padding: 0 var(--sp-24); width: 100%; box-sizing: border-box; }
-.v13.home-v12.sc-wrap .sc-book, .v13.home-v12.sc-wrap .sc-list, .v13.home-v12.sc-wrap .sc-err {
+.v13.home-v12.sc-wrap .sc-list, .v13.home-v12.sc-wrap .sc-err {
   background: linear-gradient(145deg, var(--lg-glass-a), var(--lg-glass-b)); border: 1px solid var(--lg-glass-line); box-shadow: var(--lg-card-shadow);
   -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(170%); backdrop-filter: blur(var(--blur-glass)) saturate(170%);
   border-radius: var(--r-card); padding: var(--sp-18) var(--sp-24); margin-top: var(--sp-12); animation: lg-rise var(--dur-900) var(--lg-ease) both;
@@ -548,7 +548,7 @@ html, body, #root { background: var(--lg-ground); }
 .v13.macro-v13 .engine-card { margin-bottom: 0; }
 .v13.home-v12.sc-wrap .sc-head { padding-top: var(--lg-gap); }
 .v13.home-v12.sc-wrap .sc-tiles { gap: var(--lg-gap); margin-top: var(--lg-gap); }
-.v13.home-v12.sc-wrap .sc-book, .v13.home-v12.sc-wrap .sc-list, .v13.home-v12.sc-wrap .sc-err { margin-top: var(--lg-gap); margin-bottom: 0; }
+.v13.home-v12.sc-wrap .sc-list, .v13.home-v12.sc-wrap .sc-err { margin-top: var(--lg-gap); margin-bottom: 0; }
 .v13.home-v12.data-v12 .df-totals, .v13.home-v12.data-v12 .df-legend-top, .v13.home-v12.data-v12 .df-banner { margin: var(--lg-gap) 0 0; }
 .v13.home-v12.data-v12 .df-layout { gap: var(--lg-gap); margin-top: var(--lg-gap); }
 .v13.home-v12.data-v12 .df-cols { gap: var(--lg-gap); }
@@ -570,7 +570,7 @@ html, body, #root { background: var(--lg-ground); }
   .mt-overhaul .mt-topnav, .mt-overhaul .mt-header, .v13.home-v12 .tape, .mt-overhaul .mt-static-page { width: calc(100% - 2 * var(--lg-edge)); }
 }
 .v13.macro-v13 section.wrap + section.wrap { margin-top: var(--lg-gap); }
-.v13.home-v12.sc-wrap .sc-book, .v13.home-v12.sc-wrap .sc-list { margin: var(--lg-gap) 0 0 !important; }
+.v13.home-v12.sc-wrap .sc-list { margin: var(--lg-gap) 0 0 !important; }
 .v13.home-v12.sc-wrap .sc-tiles { margin: var(--lg-gap) 0 0; }
 .mt-overhaul .wrap.qtt > div[style*="grid"] { gap: var(--lg-gap) !important; margin-bottom: var(--lg-gap) !important; }
 .mt-overhaul .wrap.qtt > div:first-child { margin-bottom: var(--lg-gap) !important; }

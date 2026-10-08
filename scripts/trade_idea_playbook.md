@@ -409,9 +409,9 @@ So, from 2026-08-26, every note carries a `book` block, contract-enforced:
 - **`book.stance`** — what the WHOLE live book is positioned for once this call
   is in it, written as one portfolio: what is owned, what is tilted, what the
   book as a whole is betting on and not betting on, and which call carries the
-  most and least conviction. The newest note's stance renders on the Scorecard
-  as "The book right now", so the table of calls always states what its rows
-  add up to.
+  most and least conviction. The stance is part of the note and the
+  weekly email; it is NOT shown on the Scorecard page, which is tiles and the
+  table only (Joe, 2026-10-08).
 - **`book.rebalance`** — what a reader holding the earlier calls actually DOES:
   add, trim, replace, or leave alone — named per call, including which existing
   position is the first to come off and when.

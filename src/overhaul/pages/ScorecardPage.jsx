@@ -225,12 +225,12 @@ export default function ScorecardPage() {
             )}
           </div>
 
-          {/* How we're doing — Joe, 2026-09-10: "Can we somehow sum up the
-              scorecard, like how we're doing overall. Its tough to tell just
-              by looking at the Scorecard page." The whole block — numbers AND
-              the sentence — is authored by the marker (summary.overall in
-              trade_idea_scores.json); this page renders it verbatim and
-              computes nothing, same rule as every other figure here. */}
+          {/* Overall numbers only. Joe, 2026-10-08: "Its supposed to be a
+              scorecard not writing on how we're doing" — the two prose blocks
+              (the summary sentence and the book paragraph) are gone and do not
+              come back; this page is tiles and the table. The figures are
+              authored by the marker (summary.overall in trade_idea_scores.json)
+              and rendered verbatim. */}
           {s.overall && (
             <>
               <div className="sc-tiles">
@@ -251,15 +251,6 @@ export default function ScorecardPage() {
                   </div>
                 )}
               </div>
-              {s.overall.line && (
-                <section className="sc-book" style={{ margin: 'var(--sp-14) 0 var(--sp-6)' }}>
-                  <p className="sc-tile-l" style={{ marginBottom: 'var(--sp-6)' }}>How we&rsquo;re doing</p>
-                  <p style={{ lineHeight: 1.55 }}>{s.overall.line}</p>
-                  {s.overall.basis && (
-                    <p className="sc-dim" style={{ marginTop: 'var(--sp-6)', fontSize: 'var(--v13-t2)' }}>{s.overall.basis}</p>
-                  )}
-                </section>
-              )}
             </>
           )}
 
@@ -279,33 +270,6 @@ export default function ScorecardPage() {
           )}
         </>
       )}
-
-      {/* The book, stated as one position — Joe, 2026-08-25: "We need to be
-          giving ideas on how to structure portfolios, rebalance, etc." The
-          paragraph is authored in the newest note (book.stance) so the table
-          below always has a reading of what its rows add up to. */}
-      {(() => {
-        const withBook = (notes || []).filter((n) => n?.book?.stance)
-          .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-        const bk = withBook[0];
-        // The Monday review restates the book after its verdicts; when it is
-        // newer than the newest note, it is the current reading (2026-09-30).
-        const L = reviews?.latest;
-        const useReview = L?.book_now && (!bk || String(L.review_date) > String(bk.date));
-        if (!bk && !useReview) return null;
-        const asOf = useReview ? L.review_date : bk.date;
-        const stance = useReview ? L.book_now : bk.book.stance;
-        return (
-          <section className="sc-book" style={{ margin: 'var(--sp-18) 0 var(--sp-6)' }}>
-            <p className="sc-tile-l" style={{ marginBottom: 'var(--sp-6)' }}>The book right now · as of {asOf}{useReview ? ' · weekly thesis review' : ''}</p>
-            {/* No max-width. Joe, 2026-09-09: "Why do you always jam fucking
-                text to the left!!!" — third time (LESSONS 9.14, 7.15). Prose
-                inside a card uses the card. If a measure is wanted, the CARD
-                gets narrower; the text never stops short of its own edge. */}
-            <p style={{ lineHeight: 1.55 }}>{stance}</p>
-          </section>
-        );
-      })()}
 
       <section className="sc-list">
         {rows.length > 0 && (
