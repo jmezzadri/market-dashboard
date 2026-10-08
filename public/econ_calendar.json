@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-07T16:44:34Z",
+  "generated_at": "2026-10-08T00:17:21Z",
   "window": {
-    "from": "2026-09-30",
-    "to": "2026-12-16"
+    "from": "2026-10-01",
+    "to": "2026-12-17"
   },
   "counts": {
-    "total": 111,
-    "tier1": 36
+    "total": 114,
+    "tier1": 35
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -26,50 +26,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-09-30",
-      "time_et": "8:30 AM",
-      "name": "Personal income & PCE prices",
-      "short": "PCE",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Household income and spending with the PCE price index, the Fed's preferred inflation gauge.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-30",
-      "time_et": "8:30 AM",
-      "name": "GDP",
-      "short": "GDP",
-      "tier": 1,
-      "category": "Growth",
-      "blurb": "Quarterly economic growth, in three successive estimates.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-30",
-      "time_et": "8:30 AM",
-      "name": "Advance goods trade & inventories",
-      "short": "Adv Econ",
-      "tier": 3,
-      "category": "Trade",
-      "blurb": "Early estimate of the goods trade gap and retail/wholesale inventories.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-09-30",
-      "time_et": "12:00 PM",
-      "name": "USDA Grain Stocks",
-      "short": "Grain Stk",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's quarterly count of corn, soybean and wheat inventories \u2014 a recurring source of limit moves in grain futures, released at noon ET.",
-      "source": "USDA NASS release calendar (nass.usda.gov)",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-01",
       "time_et": "8:30 AM",
@@ -1244,6 +1200,83 @@
       "tier": 3,
       "category": "Growth",
       "blurb": "Manufacturing and trade inventories and sales.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-17",
+      "time_et": "7:00 AM",
+      "name": "Bank of England decision (MPC)",
+      "short": "BoE",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "Bank of England rate decision with the MPC vote split, published at noon London time.",
+      "source": "Bank of England MPC dates (bankofengland.co.uk)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-17",
+      "time_et": "8:15 AM",
+      "name": "ECB decision (Governing Council)",
+      "short": "ECB",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "European Central Bank rate decision and statement, with a 8:45 AM ET press conference.",
+      "source": "ECB Governing Council calendar (ecb.europa.eu)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-17",
+      "time_et": "8:30 AM",
+      "name": "Jobless claims",
+      "short": "Claims",
+      "tier": 2,
+      "category": "Labor",
+      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-17",
+      "time_et": "8:30 AM",
+      "name": "Import & export prices",
+      "short": "Imp/Exp",
+      "tier": 2,
+      "category": "Inflation",
+      "blurb": "Traded-goods prices \u2014 where a weaker dollar or a tariff shows up first.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-17",
+      "time_et": "8:30 AM",
+      "name": "Philadelphia Fed survey",
+      "short": "Philly",
+      "tier": 2,
+      "category": "Surveys",
+      "blurb": "Philadelphia Fed manufacturing outlook survey.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-17",
+      "time_et": "8:30 AM",
+      "name": "Housing starts & permits",
+      "short": "Starts",
+      "tier": 2,
+      "category": "Housing",
+      "blurb": "New residential construction \u2014 starts, permits and completions.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-17",
+      "time_et": "4:30 PM",
+      "name": "Fed balance sheet (H.4.1)",
+      "short": "H.4.1",
+      "tier": 3,
+      "category": "Liquidity",
+      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
