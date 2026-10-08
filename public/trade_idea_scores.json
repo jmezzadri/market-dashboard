@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-08T11:15:09Z",
+  "generated_at": "2026-10-08T18:53:29Z",
   "as_of": "2026-10-08",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
@@ -28,10 +28,10 @@
         "mark": -12.23
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": -1.41,
-      "ahead_of_spx": 2,
-      "behind_spx": 3,
-      "line": "7 calls marked (3 open, 4 closed). Taken as one book they average +0.5% a call and sit 1.4 points behind the S&P 500 over the same days — 2 ahead of the index, 3 behind. Best: Long Natgas, +15.4%. Worst: Long KBW / Short NASDAQ, -12.2%."
+      "avg_vs_spx_pp": 0.5,
+      "ahead_of_spx": 3,
+      "behind_spx": 4,
+      "line": "7 calls marked (3 open, 4 closed). Taken as one book they average +0.5% a call and sit 0.5 points ahead of the S&P 500 over the same days — 3 ahead of the index, 4 behind. Best: Long Natgas, +15.4%. Worst: Long KBW / Short NASDAQ, -12.2%."
     },
     "stats_withheld": true,
     "stats_withheld_reason": "4 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless."
@@ -83,6 +83,7 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7764.7,
+        "as_of": "2026-10-07",
         "move": 0.4774,
         "difference": -0.8382,
         "note": "What the obvious alternative did over exactly the same days."
@@ -148,7 +149,16 @@
         "clamp_reason": "uncapped size 0.11x fell outside the 0.25-5.0x band; a 30x notional on a 0.3%-vol spread is a modelling artefact, not a position"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
-      "benchmark": null,
+      "benchmark": {
+        "series": "spx_index",
+        "label": "S&P 500",
+        "measure": "pct_change",
+        "entry_value": 7656.98,
+        "as_of": "2026-10-07",
+        "move": 1.891,
+        "difference": 13.4746,
+        "note": "What the obvious alternative did over exactly the same days."
+      },
       "mark": 15.3656,
       "mark_date": "2026-10-08",
       "sessions_held": 19,
@@ -213,6 +223,7 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7718.6,
+        "as_of": "2026-10-07",
         "move": 1.0775,
         "difference": 4.9248,
         "note": "What the obvious alternative did over exactly the same days."
@@ -282,6 +293,7 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7677.28,
+        "as_of": "2026-09-18",
         "move": -0.3488,
         "difference": -2.5848,
         "note": "What the obvious alternative did over exactly the same days."
@@ -363,6 +375,7 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
+        "as_of": "2026-09-30",
         "move": -1.7239,
         "difference": -10.5021,
         "note": "What the obvious alternative did over exactly the same days."
@@ -447,6 +460,7 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7785.76,
+        "as_of": "2026-09-30",
         "move": -1.7239,
         "difference": 1.9548,
         "note": "What the obvious alternative did over exactly the same days."
@@ -513,7 +527,16 @@
         "basis": "trailing 365d daily vol of the unlevered spread to 2026-08-13, annualised x sqrt(252), frozen at entry"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
-      "benchmark": null,
+      "benchmark": {
+        "series": "spx_index",
+        "label": "S&P 500",
+        "measure": "pct_change",
+        "entry_value": 7798.99,
+        "as_of": "2026-10-07",
+        "move": 0.0356,
+        "difference": -2.9311,
+        "note": "What the obvious alternative did over exactly the same days."
+      },
       "mark": -2.8955,
       "mark_date": "2026-10-08",
       "sessions_held": 47,
