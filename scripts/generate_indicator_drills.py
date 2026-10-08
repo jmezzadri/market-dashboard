@@ -51,7 +51,7 @@ COVERED_BY_HAND = {
 
 # Plain-English indicator labels + axis units for the indicator drilldowns.
 INDICATOR_META = {
-    "cmdi":          {"name": "Moody's distress index", "axis": "index", "freq": "Daily"},
+    "cmdi":          {"name": "NY Fed corporate bond distress index", "axis": "index", "freq": "Weekly"},
     "loan_syn":      {"name": "Senior loan officer survey", "axis": "% banks tightening", "freq": "Quarterly"},
     "yield_curve":   {"name": "Yield curve (10y - 2y)", "axis": "pp", "freq": "Daily"},
     "breakeven_10y": {"name": "10y breakeven inflation", "axis": "%", "freq": "Daily"},

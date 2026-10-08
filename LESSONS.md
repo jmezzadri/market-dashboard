@@ -1064,6 +1064,19 @@ They are not the same series and they are nowhere near each other:
 
 
 
+### 4.40 (2026-10-08) — "No free feed" is a claim to re-check, and a source swap must be let past the monotonic guard on purpose
+
+**What happened:** Bug #1262: `cmdi` read exactly 0.0 for 535 of 1,082 weeks. It was never the NY Fed index — it was NFCI + 0.5 clipped at zero, adopted because the registry said the real series "has no free feed". The NY Fed publishes it free, weekly since 2005, as a workbook linked from its own interactive (`Market CMDI.xlsx`, sheet `Index Data`). The fix had a second trap: the real index publishes monthly, so its newest point (Sep 25) was older than the retired proxy's (Oct 2) — and `fetch_history.py`'s monotonic as-of guard would have kept the proxy and silently thrown the real series away on every run until late October.
+
+**Rule:**
+
+1. **A proxy's justification is a dated claim, not a fact.** Before keeping a derived stand-in, look again for the real series — the vendor's own interactive page usually links its data file. A floored or clipped proxy also breaks every percentile and extreme flag computed on it; that alone is a reason to replace it.
+2. **A deliberate source migration is named in code.** `SOURCE_MIGRATIONS` in `fetch_history.py` lets the new source replace the old series once, even when it ends earlier; the point-union already refuses to splice across a changed `source`. Remove the entry once the migration is live.
+3. **No silent fallback to the retired proxy.** If the new fetch fails, the series carries forward and says so; it is never re-proxied.
+
+**Applies to:** Data Steward + Lead Developer — every derived or proxied series, and every source swap.
+
+
 # 5 · PIPELINES, SCHEDULES & ALERTING
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 

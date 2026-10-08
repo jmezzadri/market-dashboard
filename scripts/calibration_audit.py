@@ -79,7 +79,7 @@ UNCOVERED = {
     "copper_gold": "Ratio computed locally from copper + gold futures (Yahoo).",
     "bkx_spx":     "Ratio computed locally from KBE and SPY (Yahoo).",
     "bank_unreal": "FDIC Quarterly Banking Profile — short history (2022+), regime-specific.",
-    "cmdi":        "NY Fed CMDI — public API different from FRED, skip for this pass.",
+    "cmdi":        "NY Fed CMDI workbook (not FRED) — sourced in fetch_history.py since 2026-10-08; not re-calibrated in this FRED-only pass.",
     "cpff":        "CP-FF spread — requires both CP rates and FEDFUNDS; CPFLN etc series discontinued 2022.",
     "skew":        "CBOE SKEW index — CBOE direct download, not FRED.",
 }
