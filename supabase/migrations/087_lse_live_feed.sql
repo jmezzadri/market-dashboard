@@ -10,8 +10,8 @@
 --
 -- Feeds:
 --   lse_intraday  — 1-minute-bar live quotes (on-demand, market hours)
---   lse_atm_iv    — ATM implied-vol term structure (RETIRED 2026-10-08, dropped by
---                   20261008_retire_lab_and_iv_term.sql)
+--   lse_atm_iv    — ATM implied-vol term structure (RETIRED 2026-10-08; see
+--                   killed_elements.json)
 --   lse_iv_scan   — daily ATM IV + cross-sectional vol rank for scanner names
 --                   (pg_cron 21:50 UTC weekdays -> lse-live mode=scan_iv)
 -- Data Steward sign-off: grants per template pattern below; RLS enabled.
