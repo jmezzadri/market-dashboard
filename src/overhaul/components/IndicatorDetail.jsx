@@ -65,7 +65,9 @@ function linkifyFred(text) {
 }
 
 export default function IndicatorDetail({ ind, onClose, catalog = [], indexSeries = [] }) {
-  const [tf, setTf] = useState('5Y');
+  // A full-history pill (lib/pctWindow.js) opens on Max, so the drawer's
+  // "where today sits" read uses the same history as the pill it came from.
+  const [tf, setTf] = useState(() => (Number.isFinite(pctWindowDays(ind?.id)) ? '5Y' : 'Max'));
   const [overlayKey, setOverlayKey] = useState('');
   const [idxOn, setIdxOn] = useState({});
   const navigate = useNavigate();
