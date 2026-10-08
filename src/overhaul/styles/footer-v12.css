@@ -15,7 +15,7 @@
 
 .mt-overhaul .mt-footer-grid {
   display: grid;
-  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  grid-template-columns: 1.6fr repeat(4, 1fr);
   gap: var(--sp-32);
   max-width: 1160px;
   margin: 0 auto;
@@ -23,6 +23,7 @@
 }
 @media (max-width: 760px) {
   .mt-overhaul .mt-footer-grid { grid-template-columns: 1fr 1fr; }
+  .mt-overhaul .mt-footer-grid > div:first-child { grid-column: 1 / -1; }
 }
 
 .mt-overhaul .mt-footer-wordmark {

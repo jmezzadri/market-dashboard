@@ -84,7 +84,7 @@
 [data-mt-theme='navy'] .mt-overhaul {
   /* 2026-09-01: the first dark palette put a #16191D card on a #0F1114 ground
      — a 3% lift, which across a full-width panel reads as no card at all. Joe,
-     on /portfolio-lab in dark: "what is this?!" Grounds go darker and surfaces
+     on a full-width page in dark: "what is this?!" Grounds go darker and surfaces
      lift, so a card is unmistakably a card. */
   color-scheme: dark;
 }

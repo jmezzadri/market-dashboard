@@ -40,8 +40,6 @@ const ERROR_SIGNATURES = [
 //
 // RULE: when a page is added to, renamed in, or retired from the top
 // navigation, this list changes in the SAME pull request (LESSONS 0.10).
-// Portfolio Lab is not listed: signed out it shows the sign-in screen, and
-// this check has no login.
 const PRICE = /\$\d[\d,.]*/;
 const SURFACES = [
   {

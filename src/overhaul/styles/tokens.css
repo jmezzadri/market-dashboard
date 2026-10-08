@@ -1341,18 +1341,6 @@
   --track: var(--v13-rule);
 }
 
-/* from src/overhaul/styles/lab-v12.css */
-.home-v12.lab-v12 {
-  --mt-ink-0: var(--ink);
-  --mt-ink-1: var(--ink-soft);
-  --mt-ink-2: var(--mut);
-  --mt-ink-3: var(--mut);
-  --mt-up: var(--up);
-  --mt-down: var(--down);
-  --mt-warn: var(--amber);
-  --mt-amber: var(--amber);
-}
-
 /* from src/overhaul/styles/methodology-v12.css */
 .home-v12.methodology-v12 {
   --amber: var(--gold-deep);
@@ -1491,6 +1479,8 @@
   --lg-fg2: #445069;
   --lg-link: #1D4ED8;
   --lg-accent: #A85A00;
+  --lg-nav-on-bg: #A85A00;   /* the selected top-bar item: accent fill */
+  --lg-nav-on-fg: #FFFFFF;
   --lg-up: #08755E;
   --lg-down: #B4471A;
   --lg-warn: #A87400;
@@ -1543,6 +1533,8 @@
   --lg-fg2: rgba(255,255,255,0.76);
   --lg-link: #BFD4FF;
   --lg-accent: #FFB23E;
+  --lg-nav-on-bg: #FFB23E;
+  --lg-nav-on-fg: #0B1220;
   --lg-up: #6FE3C4;
   --lg-down: #FFA06B;
   --lg-warn: #F4C866;

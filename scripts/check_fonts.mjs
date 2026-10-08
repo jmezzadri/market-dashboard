@@ -292,8 +292,8 @@ if (base) {
       }
       /* SVG TEXT RENDERS AT viewBox SCALE, not at its declared size.
          Joe, 2026-09-09: "all the different sized fonts we're using?! It looks
-         like a fucking kindergardener designed the page." Portfolio Lab's two
-         charts declared an identical, blameless `font-size: 11px` and rendered
+         like a fucking kindergardener designed the page." Two charts on one
+         page declared an identical, blameless `font-size: 11px` and rendered
          their axis labels at 20.6px and 14.3px — because a 640-unit canvas and
          a 940-unit canvas were both stretched to ~1200px, scaling everything
          inside them by 1.87x and 1.30x. Neither loop above could see it: SVG

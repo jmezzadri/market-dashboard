@@ -1,8 +1,7 @@
 // lse-live — London Strategic Edge production feed (built 2026-07-27, Joe-approved scope).
 //
-// One function, three modes (POST JSON body):
+// One function, two modes (POST JSON body):
 //   { mode: "quotes", symbols: ["SPY", ...] }  -> live 1m-bar last prices (shared cache)
-//   { mode: "iv", symbol: "AAPL" }             -> ATM implied-vol term structure (per expiry)
 //   { mode: "scan_iv" }                        -> daily batch: ATM IV + vol rank for scanner names
 //
 // verify_jwt is OFF (site convention — the prod client ships the new
@@ -43,15 +42,6 @@
 //   "YYYY-MM-DD HH:MM:SS" (space, no T/Z, UTC) — normalize; always order=desc;
 //   options chain includes long-expired contracts and per-row underlying_price
 //   stamped at ITS OWN last update — anchor ATM to the freshest contract.
-// - v8 (2026-07-28, Joe-approved): archive EOD IV rows (source='archive',
-//   nightly LSE-ARCHIVE-IV job, migration 088) for names the live chain
-//   doesn't cover. Live rows always win; archive rows are preserved when the
-//   live chain is empty and served with their data date.
-//   (Comment restored to the repo 2026-08-18: the deployed v10 carried it and
-//   this file did not, so the version-controlled copy was not quite the source
-//   of record. LESSONS 4.29's open item, in miniature — diff the deployed
-//   function against the repo BEFORE redeploying, or a redeploy silently
-//   reverts whatever only production knew.)
 
 const VAULT = "https://api.londonstrategicedge.com/vault";
 const UA = "macrotilt-live";
@@ -340,7 +330,7 @@ async function modeQuotes(symbols: string[]) {
   };
 }
 
-/* ── ATM IV helpers (shared by iv + scan_iv) ──────────────────────────── */
+/* ── ATM IV helpers (scan_iv) ─────────────────────────────────────────── */
 
 type ChainRow = Record<string, unknown>;
 
@@ -384,112 +374,6 @@ function atmPerExpiry(rows: ChainRow[], und: number) {
   }
   out.sort((a, b) => a.dte - b.dte);
   return out;
-}
-
-/* ── mode: iv (term structure for one underlying — Portfolio Lab) ─────── */
-
-async function modeIv(symbol: string) {
-  const sym = String(symbol || "").trim().toUpperCase();
-  if (!sym) throw new Error("symbol required");
-  const open = marketOpen();
-  const ttlS = open ? IV_TTL_OPEN_S : IV_TTL_CLOSED_S;
-
-  const cached = await sbJson(`lse_iv_term?select=*&symbol=eq.${encodeURIComponent(sym)}&order=dte.asc`);
-  // Archive rows (nightly EOD derivation for live-feed-uncovered names, 088)
-  // run on their own clock: fresh until ~30h old (next nightly run + grace).
-  const isArchive = cached.length > 0 && String(cached[0].source ?? "live") === "archive";
-  const archivePayload = () => ({
-    symbol: sym, cached: true, source: "archive",
-    asOf: cached.reduce((m, r) => (String(r.as_of ?? "") > m ? String(r.as_of) : m), ""),
-    underlyingPrice: cached[0].underlying_price == null ? null : Number(cached[0].underlying_price),
-    term: cached.filter((r) => Number(r.dte) >= 0).map((r) => ({ expiry: r.expiry, dte: Number(r.dte), iv: Number(r.iv), strike: Number(r.strike) })),
-    fetchedAt: cached[0].fetched_at,
-  });
-  if (cached.length) {
-    const age = (Date.now() - (Date.parse(String(cached[0].fetched_at)) || 0)) / 1000;
-    if (isArchive && age <= 30 * 3600) return archivePayload();
-    if (!isArchive && age <= ttlS) {
-      return {
-        symbol: sym, cached: true, source: "live",
-        underlyingPrice: cached[0].underlying_price == null ? null : Number(cached[0].underlying_price),
-        term: cached.filter((r) => Number(r.dte) >= 0).map((r) => ({ expiry: r.expiry, dte: Number(r.dte), iv: Number(r.iv), strike: Number(r.strike) })),
-        fetchedAt: cached[0].fetched_at,
-      };
-    }
-  }
-
-  const key = await lseKey();
-  const todayIso = new Date().toISOString().slice(0, 10);
-  try {
-    // One wide pull: every listed call expiry out to ~1.5 years. 5,000-row cap
-    // per request (plan limit); order=desc so the most recently updated rows
-    // survive any truncation. A 404 means the underlying isn't in LSE's
-    // options universe — treated as an empty (uncovered) term structure.
-    let chain: ChainRow[] = [];
-    try {
-      chain = await lse("/options/chain", {
-        underlying: sym, type: "call", min_dte: "3", max_dte: "550", limit: "5000", order: "desc",
-      }, key) as ChainRow[];
-    } catch (e) {
-      if (!String(e).includes("HTTP 404")) throw e;
-    }
-    const live = liveRows(chain, todayIso);
-    const nowIso = new Date().toISOString();
-    if (!live.length) {
-      // No live contracts. If the nightly archive job (088) has rows for this
-      // name, they stay authoritative — serve them and DO NOT overwrite (the
-      // pre-088 behavior deleted them here on every cache expiry, silently
-      // reverting the name to the CAPM fallback until the next night).
-      // Tolerate up to 6 days of archive age (long weekend + one missed run);
-      // beyond that the honest answer is uncovered.
-      if (isArchive && cached.some((r) => String(r.as_of ?? "") >= new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10))) {
-        return archivePayload();
-      }
-      // Truly uncovered: cache an empty marker row so repeat views don't
-      // hammer the vendor. (dte -1 marker, filtered on read.)
-      await sb(`lse_iv_term?symbol=eq.${encodeURIComponent(sym)}`, { method: "DELETE" });
-      await sb("lse_iv_term", {
-        method: "POST",
-        body: JSON.stringify([{ symbol: sym, expiry: todayIso, dte: -1, iv: null, strike: null, underlying_price: null, fetched_at: nowIso }]),
-      });
-      return { symbol: sym, cached: false, underlyingPrice: null, term: [], fetchedAt: nowIso };
-    }
-    const und = anchorPrice(live);
-    const term = atmPerExpiry(live, und).filter((t) => t.dte >= 3);
-    await sb(`lse_iv_term?symbol=eq.${encodeURIComponent(sym)}`, { method: "DELETE" });
-    const r = await sb("lse_iv_term", {
-      method: "POST",
-      body: JSON.stringify(term.map((t) => ({
-        symbol: sym, expiry: t.expiry, dte: t.dte, iv: t.iv, strike: t.strike,
-        underlying_price: und, contract_updated_at: t.updated ? new Date(tsParse(t.updated)).toISOString() : null,
-        fetched_at: nowIso,
-      }))),
-    });
-    if (!r.ok) throw new Error(`iv cache write HTTP ${r.status}`);
-    const newest = term.reduce((m, t) => {
-      const x = t.updated ? tsParse(t.updated) : 0;
-      return x > m ? x : m;
-    }, 0);
-    await stamp("lse_atm_iv", true, newest ? new Date(newest).toISOString() : nowIso);
-    return {
-      symbol: sym, cached: false, source: "live", underlyingPrice: und,
-      term: term.map(({ expiry, dte, iv, strike }) => ({ expiry, dte, iv, strike })),
-      fetchedAt: nowIso,
-    };
-  } catch (e) {
-    await stamp("lse_atm_iv", false, null, String(e));
-    // Serve stale cache rather than nothing (age is visible in fetchedAt).
-    if (isArchive) return archivePayload();
-    if (cached.length) {
-      return {
-        symbol: sym, cached: true, stale: true, source: "live",
-        underlyingPrice: cached[0].underlying_price == null ? null : Number(cached[0].underlying_price),
-        term: cached.filter((r) => Number(r.dte) >= 0).map((r) => ({ expiry: r.expiry, dte: Number(r.dte), iv: Number(r.iv), strike: Number(r.strike) })),
-        fetchedAt: cached[0].fetched_at,
-      };
-    }
-    throw e;
-  }
 }
 
 /* ── mode: scan_iv (daily batch for scanner names) ────────────────────── */
@@ -573,16 +457,8 @@ async function modeScanIv() {
     throw new Error(msg);
   }
   await stamp("lse_iv_scan", true, scanDate, undefined, (covered.length / tickers.length) * 100);
-  // The scan just exercised the SAME vendor endpoint + ATM extraction the
-  // on-demand Portfolio Lab feed uses, green — an honest daily heartbeat for
-  // lse_atm_iv too, so a quiet week without a Lab visit never false-reds its
-  // chip (Joe 0.9: red is reserved for actual breakage). Lab views still
-  // stamp it on their own real pulls.
-  await stamp("lse_atm_iv", true, nowIso);
-
-  // 2026-08-18 — the same heartbeat for lse_intraday, which is the OTHER
-  // on-demand feed this function serves and was the one site left without one.
-  // It is stamped only when somebody loads a page that asks for quotes, so
+  // 2026-08-18 — a daily heartbeat for lse_intraday, the on-demand feed this
+  // function serves. It is stamped only when somebody loads a page that asks for quotes, so
   // `last_good_at` recorded when a HUMAN last looked, not when a producer last
   // ran — and it was graded against a 3-hour SLA. Any quiet stretch of three
   // hours therefore put "1 feed stale · Live intraday price (1-minute bars)" in
@@ -601,8 +477,7 @@ async function modeScanIv() {
   //
   // Caught, never thrown: a quotes outage is real breakage and modeQuotes has
   // already stamped it red by the time we get here. It must not also discard a
-  // completed IV scan. LESSONS 4.33 — the pattern for lse_atm_iv existed four
-  // lines up and had simply never been applied to the second site.
+  // completed IV scan (LESSONS 4.33).
   try {
     await modeQuotes(["SPY"]);
   } catch (e) {
@@ -620,12 +495,11 @@ Deno.serve(async (req: Request) => {
     "Content-Type": "application/json",
   };
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  let body: { mode?: string; symbols?: string[]; symbol?: string } = {};
+  let body: { mode?: string; symbols?: string[] } = {};
   try { body = await req.json(); } catch { /* fall through */ }
   try {
     let out: unknown;
-    if (body.mode === "iv") out = await modeIv(body.symbol ?? "");
-    else if (body.mode === "scan_iv") out = await modeScanIv();
+    if (body.mode === "scan_iv") out = await modeScanIv();
     else out = await modeQuotes(body.symbols ?? []);
     return new Response(JSON.stringify(out), { headers: cors });
   } catch (e) {

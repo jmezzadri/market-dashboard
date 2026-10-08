@@ -136,5 +136,5 @@ empty-grid-track and short-row rules. Run it the same way as the type check:
 
 ```
 npm run build && npx serve -s dist -l 4321 &
-node scripts/check_layout.mjs http://localhost:4321 / /macro /paper /scorecard /portfolio-lab /methodology
+node scripts/check_layout.mjs http://localhost:4321 / /macro /paper /scorecard /methodology
 ```

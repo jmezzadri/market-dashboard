@@ -10,15 +10,15 @@
 
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import useScrollLock from '../lib/useScrollLock';
 
 export default function DetailModal({ onClose, children }) {
   useEffect(() => {
     const k = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', k);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = prev; };
+    return () => { window.removeEventListener('keydown', k); };
   }, [onClose]);
+  useScrollLock(true);
   const target = (typeof document !== 'undefined' && (document.querySelector('.mt-overhaul') || document.body)) || null;
   if (!target) return null;
   return createPortal(

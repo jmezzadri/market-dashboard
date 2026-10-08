@@ -4114,41 +4114,6 @@
    "cadence_display": "Nightly filings \u00b7 pulled 6:00 AM"
   },
   {
-   "id": "lab-price_history-ondemand",
-   "category": "lab",
-   "name": "lab_price_history",
-   "description": "Portfolio Lab price history - split/dividend-adjusted daily closes for holdings, benchmarks and sector ETFs, fetched live per ticker (trailing 5 years).",
-   "sourcing_mode": "STP",
-   "source_vendor": "Yahoo Finance",
-   "source_endpoint": "/api/price-history (Yahoo v8 chart API)",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "cadence": "on-demand",
-   "scheduled_fetch_time_et": null,
-   "refresh_trigger": "Fetched on Portfolio Lab page load / ticker add; edge-cached",
-   "freshness_sla_hours": null,
-   "data_max_age_hours": null,
-   "data_calendar": "nyse-trading-day",
-   "output_destination": "None - in-session only, never persisted",
-   "producer_script": "api/price-history.js",
-   "consumer_surfaces": [
-    {
-     "tab": "lab",
-     "tile": "Holdings table / frontier / statistics / growth chart"
-    },
-    {
-     "tab": "readme",
-     "tile": "Methodology - Portfolio Lab section"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Failed ticker flagged on-page and excluded from every computation; no synthetic fallback.",
-   "owner": "Senior Quant (methods), Lead Dev (endpoint), Data Steward (governance)",
-   "notes": "On-demand element (no pipeline_health row - no scheduled producer); page states 'Prices through {date}, fetched live'. Registered 2026-07-27 with the Portfolio Lab page.",
-   "display_name": "Portfolio Lab price history",
-   "cadence_display": "On view"
-  },
-  {
    "id": "market-lse_intraday-live",
    "category": "market",
    "name": "lse_intraday",
@@ -4180,10 +4145,6 @@
      "tile": "Hero price block \u2014 live price and day move"
     },
     {
-     "tab": "portfolio-lab",
-     "tile": "Holdings table \u2014 Last and Today columns"
-    },
-    {
      "tab": "paper",
      "tile": "Positions tables \u2014 Live price column"
     }
@@ -4193,39 +4154,6 @@
    "sla_basis": "2026-08-18: was a 3-hour PULL SLA on a feed with no producer. lse_intraday is stamped only when a visitor loads a page that asks for quotes, so last_good_at recorded when a HUMAN last looked, not when a job last ran \u2014 and market_hours_only means it is graded between 11:30 and 16:00 ET, where three quiet hours are ordinary. Observed live on 2026-08-18: a 10:42Z pull, nothing until 13:41Z, and the header read '1 feed stale \u00b7 Live intraday price' at 13:41Z, cleared by the very page load that observed it. Reproduced by serving the page a row aged four hours. Nothing was broken; the deadline was measuring quiet.\nFixed by giving it a real producer: lse-live's weekday scan_iv batch (pg_cron 21:50 UTC) now makes a one-symbol quotes pull, which stamps green only on an actual vendor refresh and red on a vendor error. 30h is measured against that heartbeat, not guessed: 21:50 UTC is 17:50 ET, so on a day with NO visitors the pull is ~17.7h old at 11:30 ET when grading resumes and ~22.2h at the 16:00 ET close \u2014 30h clears that worst gradeable moment with margin for a late heartbeat and for DST. One MISSED heartbeat puts age past 41h by the next 11:30 ET, so a genuine stall still reds inside the next session. Data clock off (0): data_as_of is the newest bar and only advances when someone asks, so grading it would re-create the same false red. LESSONS 4.28 rule 1 \u2014 the deadline goes after the producer's observed arrival spread.\n2026-08-18: this health row grades the LSE PRIMARY only. A round served entirely by the fallback does not stamp it green \u2014 that says nothing about LSE's health (LESSONS 4.28 rule 4). LSE coverage misses (HTTP 404 \u201cno candle data\u201d, HTTP 400 \u201cbad symbol\u201d for index tickers) are coverage, not outages, and never red-stamp it.",
    "display_name": "Live prices (1-minute)",
    "cadence_display": "On view \u00b7 live during market hours"
-  },
-  {
-   "id": "options-lse_atm_iv-ondemand",
-   "category": "options",
-   "name": "lse_atm_iv",
-   "description": "At-the-money implied-volatility term structure per underlying (calls, per expiry), from London Strategic Edge's own pricing models. Feeds the Portfolio Lab's Implied vol method.",
-   "sourcing_mode": "STP",
-   "source_vendor": "London Strategic Edge",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "owner": "Data Steward",
-   "source_endpoint": "api.londonstrategicedge.com/vault/options/chain",
-   "cadence": "daily",
-   "cadence_label": "On view (cached 30 min) \u00b7 daily heartbeat 17:50 ET",
-   "scheduled_fetch_time_et": "17:50",
-   "refresh_trigger": "Edge function lse-live (iv) on Portfolio Lab view; daily heartbeat via the scanner IV batch",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 0,
-   "data_calendar": "nyse-trading-day",
-   "release_calendar": "nyse-trading-day",
-   "output_destination": "Supabase lse_iv_term",
-   "producer_script": "supabase/functions/lse-live/index.ts",
-   "consumer_surfaces": [
-    {
-     "tab": "portfolio-lab",
-     "tile": "Implied vol expected-return method (range + optimizer volatility)"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Implied vol rows show em-dash; method falls back to CAPM + historical volatility.",
-   "sla_basis": "49h daily budget; the scan batch is the guaranteed daily pull.",
-   "display_name": "Implied vol \u2014 live",
-   "cadence_display": "On view \u00b7 daily check 5:50 PM"
   },
   {
    "id": "equity-lse_iv_scan-daily",
@@ -4258,39 +4186,6 @@
    "sla_basis": "Joe 2026-06-11 doctrine: daily + 24h grace = 49h; data window 78h covers the scan-date lag over weekends.",
    "display_name": "Scanner vol rank",
    "cadence_display": "Daily \u00b7 5:50 PM"
-  },
-  {
-   "id": "options-lse_archive_iv-daily",
-   "category": "options",
-   "name": "lse_archive_iv",
-   "description": "Previous-close ATM implied-vol term structure for names the LIVE options feed does not cover (derived nightly from London Strategic Edge\u2019s options-prints research archive; strikes within \u00b110% of the close, days-to-expiry computed from the expiry date, discounted Black-76). Rows are dated and the Portfolio Lab labels them \u201cas of <date> close\u201d. Names with live coverage are untouched \u2014 live wins.",
-   "sourcing_mode": "STP",
-   "source_vendor": "London Strategic Edge",
-   "license_tier": "free",
-   "monthly_cost_usd": 0,
-   "owner": "Data Steward",
-   "source_endpoint": "api.londonstrategicedge.com/vault/export (dataset=options, 1d)",
-   "cadence": "daily",
-   "cadence_label": "Nightly \u00b7 22:30 ET \u00b7 Mon\u2013Fri",
-   "scheduled_fetch_time_et": "22:30",
-   "refresh_trigger": "GitHub Actions LSE-ARCHIVE-IV \u2192 scripts/lse_archive_iv.py",
-   "freshness_sla_hours": 49,
-   "data_max_age_hours": 0,
-   "data_calendar": "nyse-trading-day",
-   "release_calendar": "nyse-trading-day",
-   "output_destination": "Supabase lse_iv_term (source=archive)",
-   "producer_script": "scripts/lse_archive_iv.py",
-   "consumer_surfaces": [
-    {
-     "tab": "portfolio-lab",
-     "tile": "Implied vol expected-return method (range + optimizer volatility)"
-    }
-   ],
-   "current_status": "live",
-   "failure_mode": "Archive rows absent/stale \u2192 the name reverts to the honest CAPM fallback note.",
-   "sla_basis": "49h daily budget, calendar-aware (weekend hours don\u2019t count).",
-   "display_name": "Implied vol \u2014 nightly backup",
-   "cadence_display": "Nightly \u00b7 10:30 PM"
   },
   {
    "id": "site-econ_calendar-daily",

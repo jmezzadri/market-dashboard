@@ -87,7 +87,7 @@ Assert, at **1440 light, 1440 dark and 390 phone**:
 - computed page ground, row height and font family are the v13 values
 - spot-check that a real value still reads correctly (not `—`, not truncated)
 
-Signed-in pages: only `/portfolio-lab` is gated. Use the UAT account in
+Signed-in pages: only `/admin/bugs` is gated. Use the UAT account in
 `ops_secrets` (`uat_account_email` / `uat_account_password`) — sign in through
 the app's own form, or `POST /auth/v1/token?grant_type=password` with the anon
 key and write the session to `localStorage` under
@@ -106,5 +106,5 @@ with `ops_secrets.gh_push_token` as the bearer token:
 ## Order
 
 Macro and the shell are done. Remaining: Home, Paper, Scanner, Scorecard,
-Ticker, Portfolio Lab, Methodology, Data. One PR per page so any regression is
+Ticker, Methodology, Data. One PR per page so any regression is
 one revert.

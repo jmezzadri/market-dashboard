@@ -146,7 +146,7 @@
 
 /* ─────────────────────────────────────────────────────────────────────────
    LAYOUT — collapse every multi-column grid. The Home cockpit is the worst
-   offender but the same rule fixes Macro, Paper, Lab and Ticker.
+   offender but the same rule fixes Macro, Paper and Ticker.
    ───────────────────────────────────────────────────────────────────────── */
 @media (max-width: 780px) {
   .mt-overhaul .grid,
@@ -390,7 +390,7 @@
    ───────────────────────────────────────────────────────────────────────── */
 @media (max-width: 780px) {
   /* Desktop hero padding left ~120px of empty cream between the header and the
-     first card on Macro, Paper and Lab. On a 852px-tall screen that is an
+     first card on Macro and Paper. On a 852px-tall screen that is an
      eighth of the viewport spent on nothing before the reader sees anything. */
   .mt-overhaul .mt-main-wrap > section:first-child,
   .mt-overhaul .home-v12 > section:first-child,
@@ -421,8 +421,6 @@
   .mt-overhaul [role='button'],
   .mt-overhaul .mt-btn,
   .mt-overhaul .mt-pill,
-  .mt-overhaul .lab-btn,
-  .mt-overhaul .lab-seg button,
   .mt-overhaul input:not([type='checkbox']):not([type='radio']),
   .mt-overhaul select,
   .mt-overhaul .mt-iconbtn,

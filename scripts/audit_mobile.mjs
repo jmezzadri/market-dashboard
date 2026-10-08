@@ -1,6 +1,6 @@
 import { chromium, devices } from 'playwright';
 
-const ROUTES = ['/', '/macro', '/paper', '/portfolio-lab', '/methodology',
+const ROUTES = ['/', '/macro', '/paper', '/methodology',
                 '/scorecard', '/admin/data', '/ticker/AAPL', '/about'];
 const VW = 393, VH = 852;   // iPhone 14/15 Pro logical viewport
 
