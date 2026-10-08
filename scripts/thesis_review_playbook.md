@@ -124,8 +124,9 @@ been contradicted, with the dated source.
 
 **5. The book.** `book_now`: one paragraph — what the whole book is
 positioned for after these verdicts, what carries the most and least
-conviction, what a reader holding the calls does today. This renders on the
-Scorecard as "The book right now" when it is newer than the newest note.
+conviction, what a reader holding the calls does today. This goes in the Monday
+email; it is NOT shown on the Scorecard page, which is tiles and the table
+only (Joe, 2026-10-08).
 
 **6. Compose the submission** as one JSON object:
 
