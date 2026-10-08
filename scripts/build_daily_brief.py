@@ -71,12 +71,6 @@ EMAIL_UNTIL_HOUR_ET = 10  # never email a "morning" brief after 10:00 ET
 # still worth one loud email. LESSONS 4.28.
 BRIEF_EXPECTED_BY_HOUR_ET = int(os.environ.get("BRIEF_EXPECTED_BY_HOUR_ET", "9"))
 
-def _metered_generation_enabled():
-    """The in-workflow Anthropic API generator is OFF by default (Joe directive
-    2026-08-06: no metered API spend on top of the subscription). Set
-    BRIEF_ALLOW_METERED_API=1 to re-arm it -- e.g. a deliberate backfill."""
-    return os.environ.get("BRIEF_ALLOW_METERED_API", "").lower() in ("1", "true", "yes")
-
 def is_trading_day(d):
     return d.weekday() < 5 and d.isoformat() not in NYSE_HOLIDAYS
 
@@ -334,34 +328,6 @@ OUTPUT: return ONLY a single JSON object (no prose, no markdown fence) with EXAC
 Do NOT emit "metrics" or "ideas" — the prepare step builds both from the feeds and will overwrite anything you put there.
 Rules: a "single_name" only when a setups[] name fits that section's theme. You may wrap tickers as <a class="tklink" href="/ticker/SYM" data-route="/ticker/SYM">Name</a> and indicators as href="/indicators?ind=KEY". Return ONLY the JSON object — compact, strictly valid JSON: escape any double quotes inside string values, never put a raw newline inside a string, no trailing commas, no markdown fences, no text before or after."""
 
-def call_model(feeds, movers, today):
-    key = os.environ["ANTHROPIC_API_KEY"]
-    data_str = json.dumps({k: v for k, v in feeds.items()}, ensure_ascii=False)[:14000]
-    prompt = PROMPT.format(today=today, data=data_str, movers=json.dumps(movers))
-    body = {
-        "model": MODEL,
-        "max_tokens": 4000,
-        "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 6}],
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=json.dumps(body).encode(),
-        headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-        method="POST")
-    with urllib.request.urlopen(req, timeout=180) as r:
-        resp = json.loads(r.read().decode())
-    text = "".join(b.get("text", "") for b in resp.get("content", []) if b.get("type") == "text")
-    obj = _extract_json(text)
-    if obj is not None:
-        return obj
-    # one-shot repair: ask the model to return corrected, strictly-valid JSON only
-    repaired = _repair_json(key, text)
-    if repaired is not None:
-        return repaired
-    raise ValueError(f"Could not parse JSON from model output: {text[:400]}")
-
-
 def _balanced_slice(text):
     """Return the first balanced {...} block, respecting strings/escapes."""
     start = text.find("{")
@@ -397,28 +363,6 @@ def _extract_json(text):
             continue
     return None
 
-
-def _repair_json(key, broken):
-    body = {
-        "model": MODEL,
-        "max_tokens": 4000,
-        "messages": [{"role": "user", "content":
-            "The following should be a single valid JSON object but is malformed. "
-            "Return ONLY the corrected, strictly-valid JSON object (no prose, no fences):\n\n" + broken[:16000]}],
-    }
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=json.dumps(body).encode(),
-        headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-        method="POST")
-    try:
-        with urllib.request.urlopen(req, timeout=120) as r:
-            resp = json.loads(r.read().decode())
-        text = "".join(b.get("text", "") for b in resp.get("content", []) if b.get("type") == "text")
-        return _extract_json(text)
-    except Exception as e:
-        print(f"WARN: repair pass failed: {e}", file=sys.stderr)
-        return None
 
 def validate(brief, today):
     # HARD keys: the home page genuinely cannot render a brief without these.
@@ -1418,68 +1362,27 @@ def main():
                 return _status("already_current")
         except Exception:
             pass
-    # Generation belongs to the morning scheduled session, not to this workflow.
-    # Placed AFTER the idempotency block but BEFORE any feed/model work so it also
-    # covers the self-heal's BRIEF_FORCE_REBUILD=1 path (which skips that block).
-    if not _metered_generation_enabled():
-        try:
-            committed = json.load(open(out, encoding="utf-8"))
-        except Exception:
-            committed = {}
-        if committed.get("date") == today:
-            # Force-rebuild path: the file is already today's, so there is nothing
-            # to regenerate without the metered API. Email (send-once claim applies)
-            # and finish green rather than burning a red on a healthy brief.
-            print(f"brief already current ({today}); metered generator disabled — emailing only")
-            send_email(committed, today)
-            return _status("already_current")
-        if now.hour < BRIEF_EXPECTED_BY_HOUR_ET:
-            print(f"today's brief is not committed yet ({now:%H:%M} ET); the morning "
-                  f"session owns generation until {BRIEF_EXPECTED_BY_HOUR_ET:02d}:00 ET — nothing to do")
-            return _status("skipped_awaiting_agent_brief")
-        print(f"FATAL: no brief for {today} committed by {BRIEF_EXPECTED_BY_HOUR_ET:02d}:00 ET and the "
-              f"metered generator is disabled — the morning session did not deliver", file=sys.stderr)
-        sys.exit(1)
-    feeds = fetch_feeds()
-    if not any(feeds.values()):
-        print("FATAL: both feeds unreachable; refusing to publish", file=sys.stderr); sys.exit(1)
-    movers = fetch_movers()
-    brief = None
-    for attempt in (1, 2):  # one retry guards against a transient malformed model response
-        try:
-            brief = validate(call_model(feeds, movers, today), today)
-            break
-        except Exception as e:
-            # Diagnosability (2026-08-06): urllib's HTTPError repr is just
-            # "HTTP Error 400: Bad Request" — the API's actual error body
-            # (credits exhausted / bad model id / bad tool spec) was being
-            # swallowed, which hid a 3-day outage. Always print the body.
-            detail = ""
-            if isinstance(e, urllib.error.HTTPError):
-                try:
-                    detail = " — body: " + e.read().decode(errors="replace")[:500]
-                except Exception:
-                    pass
-            print(f"WARN: brief build attempt {attempt} failed: {e}{detail}", file=sys.stderr)
-    if brief is None:
-        print("FATAL: brief failed to build/validate after retry; refusing to publish", file=sys.stderr)
-        sys.exit(1)
-    brief = scrub_banned(brief)  # enforce banned-copy guard before write + email
-    # Movers are DATA, not prose: always take the scan-table list (real
-    # change_pct), never the model's echo of the prompt (which carries no
-    # percentages -- that null-pct echo is why the homepage movers tile sat
-    # permanently empty; the page correctly refuses pct-less movers).
-    brief["movers"] = movers
-    brief = attach_data_blocks(brief, today)
-    with open(out, "w", encoding="utf-8") as f:
-        json.dump(brief, f, ensure_ascii=False, indent=2)
-    print(f"wrote public/daily_brief.json — {today}: {brief['headline']}")
-    _status("generated")
-    send_email(brief, today)
-    # Return the outcome so callers can tell "I regenerated the brief" from
-    # "I decided there was nothing to do". brief_selfheal.py only claims it
-    # healed the homepage when this says "generated" (LESSONS 4.28).
-    return "generated"
+    # Generation belongs to the morning scheduled session (Joe's subscription),
+    # never to this workflow. The metered Anthropic API path was removed on
+    # 2026-10-08 at Joe's direction (the pay-per-use org had been at zero
+    # credits since August; the only thing it produced was a failing request
+    # and an "out of credits" banner). This workflow is the emailer and the
+    # late-brief alarm, nothing else.
+    try:
+        committed = json.load(open(out, encoding="utf-8"))
+    except Exception:
+        committed = {}
+    if committed.get("date") == today:
+        print(f"brief already current ({today}) — emailing only")
+        send_email(committed, today)
+        return _status("already_current")
+    if now.hour < BRIEF_EXPECTED_BY_HOUR_ET:
+        print(f"today's brief is not committed yet ({now:%H:%M} ET); the morning "
+              f"session owns generation until {BRIEF_EXPECTED_BY_HOUR_ET:02d}:00 ET — nothing to do")
+        return _status("skipped_awaiting_agent_brief")
+    print(f"FATAL: no brief for {today} committed by {BRIEF_EXPECTED_BY_HOUR_ET:02d}:00 ET — "
+          f"the morning session did not deliver", file=sys.stderr)
+    sys.exit(1)
 
 def prepare_file(path):
     """Normalize + validate an externally-generated brief, in place.
