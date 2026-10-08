@@ -17,6 +17,7 @@
 
 import { useMemo } from 'react';
 import useIndicators from './useIndicators';
+import { pctWindowShort } from './pctWindow';
 
 const SHORT_FAMILY = {
   equity: 'Equities', credit: 'Credit', bank: 'Credit', rates: 'Rates',
@@ -56,8 +57,8 @@ export default function useNotableIndicators() {
         lastChg,
         pct: ind.pct,
         // why-label: extremes win the label; big moves label as such
-        why: atMax ? '3-yr high' : atMin ? '3-yr low'
-          : atExtreme ? `${Math.round(ind.pct)}th %ile · 3-yr`
+        why: atMax ? `${pctWindowShort(ind.id)} high` : atMin ? `${pctWindowShort(ind.id)} low`
+          : atExtreme ? `${Math.round(ind.pct)}th %ile · ${pctWindowShort(ind.id)}`
           : 'Outsized move',
         severity: Math.max(Math.abs(ind.pct - 50) / 50, Math.abs(z) / 3),
       });

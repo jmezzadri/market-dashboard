@@ -12,6 +12,7 @@ import FreshnessChip from './FreshnessChip';
 import IndexOverlayToggles from './IndexOverlayToggles';
 import { TAILS } from '../../data/indicatorRegistry';
 import useEngineLevels, { engineZone } from '../lib/useEngineLevels';
+import { pctWindowDays, pctWindowLabel } from '../lib/pctWindow';
 
 function sliceByTimeframe(points, tf) {
   if (!points?.length) return [];
@@ -103,7 +104,8 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
     if (!pts.length) return [];
     const lastT = Date.parse(String(pts[pts.length - 1][0]).slice(0, 10) + 'T00:00:00Z');
     if (!Number.isFinite(lastT)) return [];
-    const cutT = lastT - 3 * 365 * 86400000;
+    const winD = pctWindowDays(ind.id);
+    const cutT = Number.isFinite(winD) ? lastT - winD * 86400000 : -Infinity;
     const vals = pts
       .filter((p) => {
         const t = Date.parse(String(p[0]).slice(0, 10) + 'T00:00:00Z');
@@ -293,7 +295,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
         <div style={{ marginTop: 'var(--sp-6)', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>
           {isEngineInd
             ? `Shaded bands are the Engine's own lines, the same ones behind the Risk On / Watch / Risk Off call on Home and Macro: Watch from ${fmtNum(engineLv.watch, 0)}, Risk Off from ${fmtNum(engineLv.riskOff, 0)} (the 75th and 85th percentile of the last five years of Friday closes). Today reads ${zone || '—'}.`
-            : 'Shaded bands mark where this pill turns amber and red — fixed to the same 3-year basis that colors the pill, whatever timeframe you select.'}
+            : `Shaded bands mark where this pill turns amber and red — fixed to the same ${pctWindowLabel(ind.id)} basis that colors the pill, whatever timeframe you select.`}
         </div>
       )}
 

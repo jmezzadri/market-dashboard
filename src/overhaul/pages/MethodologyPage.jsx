@@ -245,7 +245,9 @@ export default function MethodologyPage() {
               high-warns indicators turn Elevated at the 75th percentile and Extreme at the 85th;
               low-warns indicators turn Elevated at the 25th and Extreme at the 15th; two-sided
               indicators warn at both ends. The detail chart shades these same amber/red zones, so
-              the pill and the chart always agree.
+              the pill and the chart always agree. One exception: corporate bond distress (the New York
+              Fed's index) is ranked against its full history since 2005, because the last three years were
+              unusually calm for corporate bonds and a 3-year rank labelled an ordinary reading distressed.
             </p>
             <p className="me-body-p">
               The <b>macro regime map</b> plots every indicator on two axes. Left-to-right is the

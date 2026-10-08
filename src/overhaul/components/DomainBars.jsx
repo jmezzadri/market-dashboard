@@ -156,7 +156,7 @@ export default function DomainBars({ inds = [], markets = [], shortLabel, posDim
             tipText={
               (i.pct == null
                 ? `${i.name} — not enough history to rank yet`
-                : `${i.name} — ${fmtVal(i.value, i.decimals)}${i.unit ? ' ' + i.unit : ''} · ${Math.round(i.pct)}${ordSfx(i.pct)} percentile of its 3-year range`
+                : `${i.name} — ${fmtVal(i.value, i.decimals)}${i.unit ? ' ' + i.unit : ''} · ${Math.round(i.pct)}${ordSfx(i.pct)} percentile of its ${i.pctWindow || '3-year'} range`
                   + (delta != null && delta !== 0 ? ` · ${delta > 0 ? '+' : '−'}${fmtVal(Math.abs(delta), i.decimals)}${chgUnit} latest move` : ''))
               + (i.description ? `\n\n${i.description}` : '')
             }
