@@ -460,6 +460,8 @@ All four closed the same day. Three of them were auto-filed by the freshness ala
 
 **2026-09-29 — recurred, one producer-state further along:** the freshness alarm filed #1259 ("diagnose the producer") against `trade_ideas` during a normal quiet week — the producer had run that very morning and recorded its skip reason on the row. The alarm's bug-filer had no deliberate-skip gate, though `pipeline-health-check` had suppressed its own email for exactly this case since 2026-08-30. Rule 6 generalises to escalation paths, not just readers: every path that grades a feed's silence needs the same deliberate-skip gate, added to the alarm the same day (`fetch_monitor_reds` now passes over a red row whose `last_skip_at` is within 1.5× cadence — a dead producer's skip stamp ages out and escalates as before).
 
+**2026-10-08 addendum (Joe: "Bug queue is waiting for who, what, when? Who is going to fix those?"):** two reports (#1261, #1262) sat at `triaged` for three days with the note "queued for a dev session". No such session was scheduled, so nobody owned them. Both turned out to be fixable from the sweep in the same run. **The sweep is the owner.** A report only leaves the sweep unfixed if the fix truly needs Joe (money, an account he alone holds, a product decision). Then the closing table names that decision in bold. "Waiting for a dev session" is not a status.
+
 **Applies to:** Lead Developer — every weekday sweep, and any future automated filer.
 
 
