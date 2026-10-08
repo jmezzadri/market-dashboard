@@ -208,6 +208,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `7.14` A component that is rendered but never defined is a white screen, and it takes every other modal down with it
 - `7.15` A design rule that lives only in a prompt is a rule you will be told about again
 - `7.19` An indicator that drives a published call is charted with that call's lines, never a second yardstick; every zone has a visible, labelled boundary
+- `7.20` A scroll lock is a count, not a saved value; five components each restoring "what it was" froze the page
 
 **8 · PLATFORM FACTS & CREDENTIALS**
 
@@ -394,7 +395,7 @@ He was right on every count. The weekday sweep closed by telling him the rendere
 
 ### 0.8 (2026-09-01) — You have the keys. Never tell Joe you cannot see something before you have actually tried
 
-**What happened:** asked what was still needed to finish the redesign, I told Joe that `/paper`, `/portfolio-lab`, `/scorecard` and `/scanner` were "behind sign-in, so a cloud session cannot see them rendered", and offered him a choice between building a preview route or eyeballing the pages himself. Joe: *"What are you talking about behind a login? You built the fucking website!!! Why are you all of a sudden incapable of shit?!"* — and, on being told it had happened before, *"Why do you keep forgetting this? Every session you make up this lie that you can't access shit."*
+**What happened:** asked what was still needed to finish the redesign, I told Joe that `/paper`, `/scorecard`, `/scanner` and a since-retired page were "behind sign-in, so a cloud session cannot see them rendered", and offered him a choice between building a preview route or eyeballing the pages himself. Joe: *"What are you talking about behind a login? You built the fucking website!!! Why are you all of a sudden incapable of shit?!"* — and, on being told it had happened before, *"Why do you keep forgetting this? Every session you make up this lie that you can't access shit."*
 
 *Full write-up in LESSONS_EVIDENCE.md.*
 
@@ -419,6 +420,8 @@ He was right on every count. The weekday sweep closed by telling him the rendere
 ### 0.10 (2026-06-11, Joe, after the THIRD zombie feed in one night) — RETIRED MEANS DELETED. EVERYWHERE. SAME CHANGE.
 
 **Joe, verbatim:** "FUCKING DELETE SHIT THATS RETIRED!!!! THIS IS THE 3rd TIME YOUVE FUCKING DONE THIS. YOU KEEP READDING STALE OLD CODE AND CREATING THIS SAME FUCKING PROBLEM!!!!!"
+
+*Dated 2026-10-08 — pages too.* Joe: "completely kill and remove all evidence of the portfolio lab ... so later sessions [don't] regress and start referring to them and get confused." That page, its three feeds, its nightly job, its tables, its spec and every mention were deleted in one change. **`killed_elements.json` is the list of the dead: read it before building, documenting or "fixing" anything, and never recreate a name on it.** The site is Home plus three areas — Macro Landscape, Paper Portfolio, Macro Scorecard — with Methodology, Data and Bugs in the footer.
 
 **Rule:** Killing an indicator or feed deletes ALL of it in the SAME change: producer block, both registry files, the tracking row, every UI reference (live app AND legacy app AND admin maps), drills lists, schedule entries. No dormant remains "for reference," no "queued for cleanup," no review notes on corpses. Before touching ANY element, check whether it was killed (`git log --oneline -S '<element>'`); never register, fix, paginate, or otherwise resuscitate one. The nightly reconciler now exits red on any tracking row without a registry entry — an orphan row is a defect, not a backlog item. Tonight's zombies: put_call/buffett/bank_unreal (killed 06-10, resurrected 06-11), adv_dec (retired from use, producer+registry+row survived, froze and tripped the banner), naaim (killed 05-11, its scraper ran nightly for a MONTH).
 
@@ -1955,6 +1958,14 @@ Two things went wrong on the way to shipping it that are worth keeping. (1) The 
 **Applies to:** Lead Developer — every PR that adds or moves a component into a page's render tree; UX Designer on sign-off, since "the modal opens" is a design acceptance criterion.
 
 
+### 7.20 (2026-10-08) — A scroll lock is a count, not a saved value
+
+**What happened:** Joe: *"why does the page scroll break sometimes. I'm not able to scroll down unless I close and reopen the page."* Five components (the three pop-up shells, the Home tile pop-ups, the mobile menu) each saved `document.body.style.overflow`, set `hidden`, and restored the saved value on close. That is only correct when locks never overlap. Open the release calendar, pick a release — the detail sheet opens while the calendar is still up and saves `hidden` as "what it was" — the calendar closes and unlocks the page, then the detail sheet closes and puts `hidden` back. The page stays frozen until reload. Reproduced headless before the fix; no error is logged anywhere.
+
+**Rule:** page scrolling is locked ONLY through `src/overhaul/lib/useScrollLock.js`, which counts holders and releases when the last one lets go, in any order. No component writes `document.body.style.overflow` itself. Any shared, global piece of state touched by more than one component (body scroll, document title, a global key handler) gets one owner with a count, never save-and-restore. When testing a pop-up, test it opened FROM another pop-up, and check the page still scrolls after both are closed.
+
+**Applies to:** Lead Developer, UX Designer — every modal, sheet, drawer and overlay.
+
 # 8 · PLATFORM FACTS & CREDENTIALS
 
 ### 7.15 (2026-09-01) — A design rule that lives only in a prompt is a rule you will be told about again
@@ -2193,6 +2204,8 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 
 **Update (2026-07-28, Joe):** The Methodology TOC is ONE entry per nav page, named EXACTLY as the nav names it — no concept-level entries ("The Engine", "Data freshness contract"). Concepts fold inside their page's section with in-page anchors kept for deep links.
 
+**Update (2026-10-08, Joe):** page names now live in ONE file, `src/overhaul/chrome/siteNav.js`; the top bar, mobile menu, footer, Methodology contents rail and both page-name maps read it. Rename there and nowhere else. The top bar is Home, Macro Landscape, Paper Portfolio, Macro Scorecard — nothing is added to it without Joe saying so; reference pages go in the footer.
+
 **Applies to:** UX Designer, Lead Developer — any nav, page-name, or manifest-surface change.
 
 ### 9.12 (2026-07-29, same day as 8.16) — Every visible part must add to its visible whole, rounding included; a reader checking your arithmetic is the last line of QA
@@ -2231,7 +2244,7 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 
 ### 9.15 (2026-07-30) — One holding's history is a fact about that holding, never about the book; a shared window is only for the numbers that genuinely need one
 
-**What happened:** Joe built a ten-name portfolio in the Lab and reported "everything is blank." Beta was an em-dash on every row, expected return read "insufficient history" on every row, and the volatility column printed noise dressed as fact — MSFT at 59% against a true 28%, CIEN at 78% against 50%, SNDK at 164% against 107%. Nothing was down: the price API returned 1,254 clean adjusted closes for eight of the ten names.
+**What happened:** Joe built a ten-name portfolio on a since-retired page and reported "everything is blank." Beta was an em-dash on every row, expected return read "insufficient history" on every row, and the volatility column printed noise dressed as fact — MSFT at 59% against a true 28%, CIEN at 78% against 50%, SNDK at 164% against 107%. Nothing was down: the price API returned 1,254 clean adjusted closes for eight of the ten names.
 
 *Full write-up in LESSONS_EVIDENCE.md.*
 
@@ -2243,7 +2256,7 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 4. An exclusion is a fact the user is owed, and it names the holding, its actual value and the threshold — "SPCX · 33d of history · needs 252", plus a line naming what was dropped and confirming the rest is unaffected. A blanket status string repeated down a column is indistinguishable from an outage (4.4 governs the em-dash; this governs what sits next to it).
 5. Truncation must never pass silently into a statistic. Annualizing 33 days is arithmetically valid and financially meaningless; if a window shrank because of an input, that is a reportable event, not a smaller number.
 
-**Applies to:** Senior Quant and Lead Developer — the Portfolio Lab today, and every surface that aligns multiple time series before computing: the Paper sleeve statistics, backtest harnesses, the scanner's cross-sectional ranks, and any future multi-asset comparison.
+**Applies to:** Senior Quant and Lead Developer — every surface that aligns multiple time series before computing: the Paper sleeve statistics, backtest harnesses, the scanner's cross-sectional ranks, and any future multi-asset comparison.
 
 ### 9.16 (2026-08-18) — A drill-down is not a destination; opening a detail view is no reason to move the user to another page
 
@@ -2327,11 +2340,11 @@ The brief's bullets were rendering LARGER than the brief's own lead paragraph �
 
 ### 9.19 (2026-09-09) — A card header is a fixed 28px band; put a control cluster in it and the cluster lands on the row below
 
-**What happened:** Joe, on Portfolio Lab: *"What in the fuck is going on on the Portfolio Lab page?"* — with a screenshot of the Holdings card in which the "Set all methods" segment, the "Add a stock or ETF" box and the table's own header row (`EXPECTED RETURN · 1 YEAR`) were all drawn on top of one another.
+**What happened:** Joe, on a since-retired page: *"What in the fuck is going on on [this] page?"* — with a screenshot of the Holdings card in which the "Set all methods" segment, the "Add a stock or ETF" box and the table's own header row (`EXPECTED RETURN · 1 YEAR`) were all drawn on top of one another.
 
-**Cause:** the v13 pass locked every card header on every page to `height: var(--v13-bar)` — 28px — which is right, because a title bar is a band. Portfolio Lab then put a ~40px control cluster inside that band on the Holdings card, a four-button segment plus benchmark chips on Growth of $10,000, and a three-line methodology sentence on Efficient frontier and Portfolio statistics. **A fixed-height flex box does not grow.** Its children overflow and paint over whatever follows, which here was the table header row.
+**Cause:** the v13 pass locked every card header on every page to `height: var(--v13-bar)` — 28px — which is right, because a title bar is a band. That page then put a ~40px control cluster inside that band on the Holdings card, a four-button segment plus benchmark chips on Growth of $10,000, and a three-line methodology sentence on Efficient frontier and Portfolio statistics. **A fixed-height flex box does not grow.** Its children overflow and paint over whatever follows, which here was the table header row.
 
-**The rule: the header bar carries the title and nothing taller.** Controls get their own `.lab-toolbar` row directly under the bar; a long explanatory sentence is a caption (`.lab-cap`), not a header item. And every card header is now `min-height`, not `height` — a band that grows is a spacing bug a reviewer can see, where a band that spills is a collision that reads as a broken page.
+**The rule: the header bar carries the title and nothing taller.** Controls get their own a toolbar row directly under the bar; a long explanatory sentence is a caption (a caption class), not a header item. And every card header is now `min-height`, not `height` — a band that grows is a spacing bug a reviewer can see, where a band that spills is a collision that reads as a broken page.
 
 **The checker could not see it, because all three of its rules judge WIDTH.** Empty grid track, narrow text, short row — every one measures how far content reaches to the right, so a purely vertical collision was structurally invisible. `check_layout.mjs` gains **SPILLED BAR**: an in-flow child whose bottom clears its container's bottom by more than 4px, where the container draws a visible band. Per 9.19's own predecessor, it was proved by re-introducing the exact defect and watching it go red before the fix was screenshotted.
 
@@ -2352,13 +2365,13 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 | Trade Idea (Home, Data) | 620 units | 738px | 10px | **11.9px** |
 | Paper performance | 1000 units | 1300px | 12.5px | **16.3px** |
 
-**A `viewBox` scales everything inside it, text included.** Every chart on the site drew onto a fixed user-unit canvas and was then stretched with `width: 100%`. So one CSS class, `.lab-tick`, rendered at 20.6px on one chart and 14.3px on the next — two sizes that exist on no step — *on the same page*. Stroke weights and dot radii were inflated by the same factors, which is the other half of why it read as crude: 4.5px markers drawn at 8.4px, a 2.4px curve at 4.5px.
+**A `viewBox` scales everything inside it, text included.** Every chart on the site drew onto a fixed user-unit canvas and was then stretched with `width: 100%`. So one CSS class, one tick-label class, rendered at 20.6px on one chart and 14.3px on the next — two sizes that exist on no step — *on the same page*. Stroke weights and dot radii were inflated by the same factors, which is the other half of why it read as crude: 4.5px markers drawn at 8.4px, a 2.4px curve at 4.5px.
 
 **Rule: one SVG user unit = one CSS pixel.** A chart measures its container (`useChartWidth`, a ResizeObserver hook in `src/overhaul/lib/`) and uses that width as its viewBox width, with explicit `width`/`height` attributes and no stretching in CSS. Sizes inside a chart are then real, and `var(--v13-t*)` means what it says. `BigHistoryChart` had been doing this correctly since long before, with a comment saying so — the pattern existed and the other four charts ignored it.
 
 **Why 9.18's checker passed all four.** `check_fonts.mjs` skipped `svg` entirely (SVG elements have no `offsetParent`, which its scan used as the visibility test), and the DECLARED size was a blameless 11px anyway. It now measures the **rendered** size — declared × (rendered width ÷ viewBox width) — and fails anything off the six steps. Proved by re-introducing a stretched canvas and watching it go red before the fix was screenshotted. The one opt-out is `data-type="mark"`, declared in the markup, for a logo whose letterforms are artwork.
 
-**Two more, found by the same sweep and fixed:** Portfolio Lab's page lede was 15px where every other page's is 13px (`lab-v12.css` lands after `pages-v13.css` in the bundle at equal specificity), and the holdings remove-× was the page's only 18px. Same role, one size.
+**Two more, found by the same sweep and fixed:** That page's lede was 15px where every other page's is 13px (its own stylesheet landed after `pages-v13.css` in the bundle at equal specificity), and the holdings remove-× was the page's only 18px. Same role, one size.
 
 **And the process rule, which is the real lesson: 9.19 was a fix to the top of one card, and I reported it as if the page were done.** Do not answer a screenshot with a patch to the thing inside the crop. Read the WHOLE surface — scroll it, measure it, screenshot it — and fix what is wrong on it before replying.
 

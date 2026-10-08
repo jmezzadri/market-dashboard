@@ -237,7 +237,7 @@ export default function LoginScreen() {
   };
   const intro = {
     signin:
-      "Portfolio Lab saves your portfolios to your account. Sign in with your email and password — your browser can save it so next time is one click.",
+      "Sign in with your email and password — your browser can save it so next time is one click.",
     signup:
       "Your email and a password is all it takes. You'll stay signed in on this device after signup.",
     code:
@@ -478,14 +478,10 @@ export default function LoginScreen() {
         {/* Kept in step with RequireAuth in OverhaulApp.jsx — this sentence has
             been wrong twice already because the gate moved and the copy did
             not. If you change what is behind sign-in, change this line in the
-            same commit. As of 2026-09-30 (Joe: "Labs is sign on. People can save
-            portfolios"): Portfolio Lab and the Bugs board. The 08-17 wording
-            ("the Bugs board, and nothing else") listed Portfolio Lab as public
-            while the page itself sent signed-out visitors here. */}
+            same commit. As of 2026-10-08: the Bugs board, and nothing else. */}
         <p className="lg-note">
-          Portfolio Lab and the Bugs board require sign-in. The morning brief, trade ideas
-          and their scorecard, the macro dashboard, paper portfolio and methodology are
-          all public.
+          Only the Bugs board requires sign-in. The morning brief, trade ideas and their
+          scorecard, the macro dashboard, paper portfolio and methodology are all public.
         </p>
       </div>
     </main>

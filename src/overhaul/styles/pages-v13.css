@@ -39,7 +39,6 @@
 .v13.home-v12 .putty-card,
 .v13.home-v12 .mt-card,
 .v13.home-v12 .tile,
-.v13.home-v12 .lab-card,
 .v13.home-v12 .paper-panel,
 .v13.home-v12 .paper-tile-summary,
 .v13.home-v12 .sc-tablecard,
@@ -53,7 +52,6 @@
 }
 .v13.home-v12 .putty-card:hover,
 .v13.home-v12 .tile:hover,
-.v13.home-v12 .lab-card:hover,
 .v13.home-v12 .idea-tile:hover,
 .v13.home-v12 .brief-card:hover,
 .v13.home-v12 .cal-tile:hover {
@@ -99,19 +97,15 @@
 
 /* Pills and buttons. */
 .v13.home-v12 .mt-pill,
-.v13.home-v12 .lab-seg button,
 .v13.home-v12 .t {
   font-size: var(--v13-t2); font-weight: var(--fw-600); padding: var(--sp-5) var(--sp-10);
   border-radius: var(--v13-r); color: var(--v13-ink-2);
 }
 .v13.home-v12 .mt-pill.on,
-.v13.home-v12 .lab-seg button.on,
 .v13.home-v12 .t.on { background: var(--v13-accent); color: var(--c-ffffff); border-color: var(--v13-accent); }
 [data-mt-theme='dark'] .v13.home-v12 .mt-pill.on,
-[data-mt-theme='dark'] .v13.home-v12 .lab-seg button.on,
 [data-mt-theme='dark'] .v13.home-v12 .t.on { color: var(--c-0f1114); }
-.v13.home-v12 .mt-btn,
-.v13.home-v12 .lab-btn {
+.v13.home-v12 .mt-btn{
   font-size: var(--v13-t2); font-weight: var(--fw-600); padding: var(--sp-5) var(--sp-10);
   border-radius: var(--v13-r); border: 1px solid var(--v13-rule-2);
 }
@@ -139,7 +133,6 @@
 .v13.home-v12 .sc-ed,
 .v13.home-v12 .pp-ed,
 .v13.home-v12 .df-hero,
-.v13.home-v12 .lab-head,
 .v13.home-v12 section.sc-hero,
 .v13.home-v12 section.pp-hero,
 .v13.home-v12 section.df-hero {
@@ -152,8 +145,7 @@
 .v13.home-v12 .meth-h1,
 .v13.home-v12 .df-h1,
 .v13.home-v12 .sc-ed h1,
-.v13.home-v12 .pp-ed h1,
-.v13.home-v12 .lab-head h1 {
+.v13.home-v12 .pp-ed h1{
   font-family: var(--mt-type-sans);
   font-size: var(--v13-t6) !important;   /* beats five different clamp() rules */
   font-weight: var(--fw-600);
@@ -171,8 +163,7 @@
 .v13.home-v12 .mac-hero .sub,
 .v13.home-v12 .meth-hero .sub,
 .v13.home-v12 .df-hero .sub,
-.v13.home-v12 .sc-sub,
-.v13.home-v12 .lab-sub {
+.v13.home-v12 .sc-sub{
   font-size: var(--v13-t3); line-height: 1.55; color: var(--v13-ink-2);
    margin: 0 0 var(--v13-s2);
 }
@@ -404,98 +395,6 @@
 .v13.home-v12.paper-v12 .pp-ed .impl li { font-size: var(--v13-t3); padding-bottom: var(--v13-s2); }
 .v13.home-v12.paper-v12 .qtt-card:hover,
 .v13.home-v12.paper-v12 .qtt-tile:hover { transform: none; }
-
-/* Portfolio Lab — the page that showed how far a variable remap does NOT go.
-   In dark it read as text floating at the far left of a black frame with the
-   right two-thirds empty, an oversized HOLDINGS heading, and two buttons in
-   two different styles. Everything below is layout, not palette. */
-.v13.home-v12.lab-v12 .lab-head { padding: var(--v13-s5) 0 var(--v13-s3); }
-/* The page lede is 13px on Macro, Methodology, Scanner and Scorecard, and was
-   15px here only because lab-v12.css lands later in the bundle at equal
-   specificity. Same role, one size. (This stub rule was already sitting here
-   empty, waiting for exactly this.) */
-.v13.home-v12.lab-v12 .lab-sub { font-size: var(--v13-t3); }
-
-/* Controls sat in a two-column grid that left the right half of a 1440px page
-   empty. They are a toolbar now: groups flow left to right and wrap. */
-.v13.home-v12.lab-v12 .lab-controls {
-  display: flex; flex-wrap: wrap; align-items: flex-start;
-  gap: var(--v13-s3) var(--v13-s5);
-  padding: var(--v13-s3); margin-bottom: var(--v13-s3);
-  background: var(--v13-surface); border: 1px solid var(--v13-rule); border-radius: var(--v13-r);
-}
-.v13.home-v12.lab-v12 .lab-ctl { gap: var(--v13-s2); }
-.v13.home-v12.lab-v12 .lab-ctl > .label,
-.v13.home-v12.lab-v12 .lab-controls .label { margin: 0 0 var(--v13-s1); }
-.v13.home-v12.lab-v12 .lab-seg {
-  border: 1px solid var(--v13-rule-2); border-radius: var(--v13-r);
-  background: var(--v13-surface-2); overflow: hidden;
-}
-.v13.home-v12.lab-v12 .lab-seg button { border-radius: 0; padding: var(--sp-5) var(--sp-12); font-size: var(--v13-t2); }
-.v13.home-v12.lab-v12 .lab-seg button.on,
-[data-mt-theme='dark'] .v13.home-v12.lab-v12 .lab-seg button.on,
-[data-mt-theme='navy'] .v13.home-v12.lab-v12 .lab-seg button.on {
-  background: var(--v13-accent); color: var(--c-ffffff); font-weight: var(--fw-600);
-}
-[data-mt-theme='dark'] .v13.home-v12.lab-v12 .lab-seg button.on { color: var(--c-0a0c0f); }
-.v13.home-v12.lab-v12 .lab-btn {
-  border-radius: var(--v13-r); padding: var(--sp-5) var(--sp-12);
-  font-size: var(--v13-t2); font-weight: var(--fw-600);
-  background: var(--v13-accent); border: 1px solid var(--v13-accent); color: var(--c-ffffff);
-}
-[data-mt-theme='dark'] .v13.home-v12.lab-v12 .lab-btn,
-[data-mt-theme='navy'] .v13.home-v12.lab-v12 .lab-btn {
-  background: var(--v13-accent); border-color: var(--v13-accent); color: var(--c-0a0c0f);
-}
-/* Secondary action. It was the same weight as the primary in a different
-   colour, which reads as two primaries. */
-.v13.home-v12.lab-v12 .lab-btn.ghost,
-[data-mt-theme='dark'] .v13.home-v12.lab-v12 .lab-btn.ghost {
-  background: var(--v13-surface); border-color: var(--v13-rule-2); color: var(--v13-ink-2);
-}
-.v13.home-v12.lab-v12 .lab-btn.ghost:hover { color: var(--v13-ink); border-color: var(--v13-ink-3); }
-.v13.home-v12.lab-v12 .lab-savedrow { gap: var(--v13-s2); }
-
-.v13.home-v12.lab-v12 .lab-card { padding: 0; margin: var(--v13-s3) 0; min-height: 220px; }
-/* min-height, not height: a fixed-height flex box silently spills its children
-   over whatever follows. The bar still measures 28px with a title in it. */
-.v13.home-v12.lab-v12 .lab-cardhead { min-height: var(--v13-bar); align-items: center; margin: 0; padding: 0 var(--v13-s3);
-  background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule); }
-.v13.home-v12.lab-v12 .lab-toolbar {
-  padding-top: var(--v13-s2); padding-bottom: var(--v13-s2);
-  border-bottom: 1px solid var(--v13-rule); gap: var(--v13-s3);
-}
-.v13.home-v12.lab-v12 .lab-cap {
-  margin: var(--v13-s2) 0 0; font-size: var(--v13-t2); color: var(--v13-ink-3); line-height: 1.55;
-}
-.v13.home-v12.lab-v12 .lab-cardhead h2 {
-  font-family: var(--mt-type-sans); font-size: var(--v13-t1); font-weight: var(--fw-700);
-  letter-spacing: 0.1em; text-transform: uppercase; color: var(--v13-ink-2);
-}
-.v13.home-v12.lab-v12 .lab-card > *:not(.lab-cardhead) { padding-left: var(--v13-s3); padding-right: var(--v13-s3); }
-.v13.home-v12.lab-v12 .lab-dim,
-.v13.home-v12.lab-v12 .lab-warn { font-size: var(--v13-t2); }
-
-/* Empty state: was one grey line pinned to the top-left of a wide box, with
-   the rest of the page void beneath it. Centre it and give it room, so an
-   empty Lab reads as "nothing added yet" rather than "this page is broken". */
-.v13.home-v12.lab-v12 .lab-empty {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 148px; padding: var(--v13-s5);
-  font-size: var(--v13-t3); color: var(--v13-ink-3); text-align: center;
-}
-
-/* The methodology footnote was loose body text on the page ground. */
-.v13.home-v12.lab-v12 .lab-method-foot,
-.v13.home-v12.lab-v12 .lab-foot,
-.v13.home-v12.lab-v12 .lab-note {
- padding: var(--v13-s3); margin-top: var(--v13-s3);
-  background: var(--v13-surface-2); border: 1px solid var(--v13-rule);
-  border-radius: var(--v13-r); font-size: var(--v13-t2); color: var(--v13-ink-3); line-height: 1.55;
-}
-.v13.home-v12.lab-v12 .lab-saverow input { font-size: var(--v13-t3); border-radius: var(--v13-r); }
-.v13.home-v12.lab-v12 .lab-savedchip { border-radius: var(--v13-r); }
-.v13.home-v12.lab-v12 .lab-savedchip button { font-size: var(--v13-t2); }
 
 /* Methodology — the one page that stays genuinely editorial. */
 .v13.home-v12.methodology-v12 .me-toc.me-rail { border-radius: var(--v13-r); padding: var(--v13-s3); }

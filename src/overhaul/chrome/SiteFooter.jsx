@@ -1,15 +1,20 @@
-/* SiteFooter — site-wide footer (2026-07-29). Cream (v12) chrome, theme-aware
-   via the --ch-* vars defined on .mt-overhaul in chrome-v12.css. Approved by
-   Joe from the footer mockup (light + dark) on 2026-07-29.
-   Styling lives in styles/footer-v12.css. */
+/* SiteFooter — site-wide footer. Styling lives in styles/footer-v12.css.
+
+   The footer is where the reference pages live (Joe, 2026-10-08): the top
+   bar carries only Home and the three main areas, so Methodology, Data and
+   Bugs are listed here. Page names come from chrome/siteNav.js. */
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useSession } from '../../auth/useSession';
+import { PRIMARY_NAV, REFERENCE_NAV } from './siteNav';
 
 const CONTACT_EMAIL = 'admin@macrotilt.com';
 
 export default function SiteFooter() {
   const year = new Date().getFullYear();
+  const { user } = useSession();
+  const reference = REFERENCE_NAV.filter((p) => !p.signedInOnly || !!user);
   return (
     <footer className="mt-footer">
       <div className="mt-footer-grid">
@@ -30,9 +35,18 @@ export default function SiteFooter() {
         <div className="mt-footer-col">
           <h4>Platform</h4>
           <ul>
-            <li><Link to="/macro">Macro Overview</Link></li>
-            <li><Link to="/paper">Paper Portfolio</Link></li>
-            <li><Link to="/portfolio-lab">Portfolio Lab</Link></li>
+            {PRIMARY_NAV.filter((p) => p.to !== '/').map((p) => (
+              <li key={p.to}><Link to={p.to}>{p.label}</Link></li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-footer-col">
+          <h4>Reference</h4>
+          <ul>
+            {reference.map((p) => (
+              <li key={p.to}><Link to={p.to}>{p.label}</Link></li>
+            ))}
           </ul>
         </div>
 
@@ -40,7 +54,6 @@ export default function SiteFooter() {
           <h4>Company</h4>
           <ul>
             <li><Link to="/about">About Us</Link></li>
-            <li><Link to="/methodology">Methodology</Link></li>
             <li><a href={`mailto:${CONTACT_EMAIL}`}>Contact</a></li>
           </ul>
         </div>

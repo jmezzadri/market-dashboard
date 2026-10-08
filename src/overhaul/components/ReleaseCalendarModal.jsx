@@ -10,6 +10,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import ImpactMark from './ImpactMark';
+import useScrollLock from '../lib/useScrollLock';
 
 function weekdayLong(iso) {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -21,10 +22,9 @@ export default function ReleaseCalendarModal({ open, events, todayISO, meta, onC
     if (!open) return undefined;
     const k = (e) => { if (e.key === 'Escape') onClose?.(); };
     window.addEventListener('keydown', k);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = prev; };
+    return () => { window.removeEventListener('keydown', k); };
   }, [open, onClose]);
+  useScrollLock(open);
 
   const days = useMemo(() => {
     const byDate = new Map();

@@ -61,7 +61,7 @@ jobs:
       # Rendered half: no prose in the mono face, no fourth family on screen,
       # no empty grid track, no short row.
       - name: Typography standard (rendered)
-        run: node scripts/check_fonts.mjs http://localhost:4321 / /macro /paper /scorecard /portfolio-lab /methodology
+        run: node scripts/check_fonts.mjs http://localhost:4321 / /macro /paper /scorecard /methodology
 
       - name: Layout standard (rendered)
-        run: node scripts/check_layout.mjs http://localhost:4321 / /macro /paper /scorecard /portfolio-lab /methodology
+        run: node scripts/check_layout.mjs http://localhost:4321 / /macro /paper /scorecard /methodology

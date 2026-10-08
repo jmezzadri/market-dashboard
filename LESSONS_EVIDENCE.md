@@ -113,9 +113,9 @@ The cause was a one-line mistake dressed up as a platform limitation. Chromium c
 
 ### 8.21 (2026-07-30) — One holding's history is a fact about that holding, never about the book; a shared window is only for the numbers that genuinely need one
 
-**What happened:** Joe built a ten-name portfolio in the Lab and reported "everything is blank." Beta was an em-dash on every row, expected return read "insufficient history" on every row, and the volatility column printed noise dressed as fact — MSFT at 59% against a true 28%, CIEN at 78% against 50%, SNDK at 164% against 107%. Nothing was down: the price API returned 1,254 clean adjusted closes for eight of the ten names.
+**What happened:** Joe built a ten-name portfolio on a since-retired page and reported "everything is blank." Beta was an em-dash on every row, expected return read "insufficient history" on every row, and the volatility column printed noise dressed as fact — MSFT at 59% against a true 28%, CIEN at 78% against 50%, SNDK at 164% against 107%. Nothing was down: the price API returned 1,254 clean adjusted closes for eight of the ten names.
 
-The Lab aligned every holding onto ONE book-wide intersection of trading dates, then gated history off that single length. Joe had added SPCX, which listed on 2026-06-12 and had 33 bars. The intersection of ten names including a 33-bar name is 33 days. Every other series was silently truncated to those 33 days, all ten rows failed the 252-day gate, `valid` came back empty, and the frontier, portfolio statistics and risk contribution all had nothing to compute. One young ticker took down a page full of thirty-year names.
+A since-retired portfolio page aligned every holding onto ONE book-wide intersection of trading dates, then gated history off that single length. Joe had added SPCX, which listed on 2026-06-12 and had 33 bars. The intersection of ten names including a 33-bar name is 33 days. Every other series was silently truncated to those 33 days, all ten rows failed the 252-day gate, `valid` came back empty, and the frontier, portfolio statistics and risk contribution all had nothing to compute. One young ticker took down a page full of thirty-year names.
 
 The message made it worse. Ten rows of "insufficient history" against household tickers reads as an outage, not as an input problem, and it named neither the holding at fault nor the threshold — so the one fact that would have explained the whole screen (SPCX has 33 days, the gate is 252) was the one fact not on it.
 
@@ -127,7 +127,7 @@ The message made it worse. Ten rows of "insufficient history" against household 
 4. An exclusion is a fact the user is owed, and it names the holding, its actual value and the threshold — "SPCX · 33d of history · needs 252", plus a line naming what was dropped and confirming the rest is unaffected. A blanket status string repeated down a column is indistinguishable from an outage (4.4 governs the em-dash; this governs what sits next to it).
 5. Truncation must never pass silently into a statistic. Annualizing 33 days is arithmetically valid and financially meaningless; if a window shrank because of an input, that is a reportable event, not a smaller number.
 
-**Applies to:** Senior Quant and Lead Developer — the Portfolio Lab today, and every surface that aligns multiple time series before computing: the Paper sleeve statistics, backtest harnesses, the scanner's cross-sectional ranks, and any future multi-asset comparison.
+**Applies to:** Senior Quant and Lead Developer — every surface that aligns multiple time series before computing: the Paper sleeve statistics, backtest harnesses, the scanner's cross-sectional ranks, and any future multi-asset comparison.
 
 ---
 
@@ -399,7 +399,7 @@ The part that made it nearly invisible: **the observation clears the condition.*
 
 The fix is a real producer, not a looser number. `lse-live`'s weekday `scan_iv` batch (pg_cron, 21:50 UTC) now makes a one-symbol quotes pull, so `lse_intraday` gets a daily heartbeat. **It routes through `modeQuotes()` rather than calling `stamp()` directly** — that function stamps green only when it actually refreshed from the vendor and red with the vendor's error when it could not, so the daily stamp is a record of something that happened. Stamping it off the IV scan would have claimed a quotes pull the batch never made (4.28 rule 4). The heartbeat is caught, never thrown: a quotes outage is real breakage, it has already stamped itself red, and it must not also discard a completed IV scan.
 
-Note where the pattern came from. Four lines above the change, the same function already did this for `lse_atm_iv` — *"an honest daily heartbeat ... so a quiet week without a Lab visit never false-reds its chip"*. The second on-demand feed served by the same function never got it. That is 4.33 again: the defensive pattern existed, in the same file, and had been applied to one site.
+Note where the pattern came from. Four lines above the change, the same function already did this for `lse_atm_iv` — *"an honest daily heartbeat ... so a quiet week without a visit never false-reds its chip"*. The second on-demand feed served by the same function never got it. That is 4.33 again: the defensive pattern existed, in the same file, and had been applied to one site.
 
 **Rule:**
 
@@ -426,7 +426,7 @@ Note where the pattern came from. Four lines above the change, the same function
 
 Three smaller fabrications were sitting in the same file, all of the same species: the chart header printed `$0.00` for a symbol with no stored close (the hero guarded this; the header didn't), a related-name card with a null change rendered a green `+0.00%`, and `chgPct` multiplied a snapshot change by 100 whenever `|x| < 1` — a heuristic that turns a real +0.4% into +40%, on a column that is NULL on every row anyway.
 
-**The fix is one resolver, not one patch.** `lse-live` mode `quotes` now tries LSE first and falls back to Yahoo's chart meta, which returns the live print **and** `chartPreviousClose` in the same response. `covered:false` now means *neither* provider knows the symbol — i.e. it is not a real ticker (APPL, MFST, NVDIA, ZZZZQ re-negative-cached within a second; every real name came back). A name that has ever been covered is never downgraded by a single bad response. The prior close now travels **with** the price, so the base and the number it is compared against come from one observation of one instrument at one moment and cannot disagree — a table lookup can be a session behind, and for KLIC it was. Every price surface was then put on that one resolver: the ticker hero, the home tape (S&P, NASDAQ, Dow), and the Portfolio Lab, which had been showing yesterday's close in a column called "Last" with no change column at all.
+**The fix is one resolver, not one patch.** `lse-live` mode `quotes` now tries LSE first and falls back to Yahoo's chart meta, which returns the live print **and** `chartPreviousClose` in the same response. `covered:false` now means *neither* provider knows the symbol — i.e. it is not a real ticker (APPL, MFST, NVDIA, ZZZZQ re-negative-cached within a second; every real name came back). A name that has ever been covered is never downgraded by a single bad response. The prior close now travels **with** the price, so the base and the number it is compared against come from one observation of one instrument at one moment and cannot disagree — a table lookup can be a session behind, and for KLIC it was. Every price surface was then put on that one resolver: the ticker hero, the home tape (S&P, NASDAQ, Dow), and a since-retired page, which had been showing yesterday's close in a column called "Last" with no change column at all.
 
 **Rule:**
 
@@ -857,11 +857,11 @@ The second email was a different bug with the same root — a value trusted with
 
 ### 4.63 (2026-09-01) — You have the keys. Never tell Joe you cannot see something before you have actually tried
 
-**What happened:** asked what was still needed to finish the redesign, I told Joe that `/paper`, `/portfolio-lab`, `/scorecard` and `/scanner` were "behind sign-in, so a cloud session cannot see them rendered", and offered him a choice between building a preview route or eyeballing the pages himself. Joe: *"What are you talking about behind a login? You built the fucking website!!! Why are you all of a sudden incapable of shit?!"* — and, on being told it had happened before, *"Why do you keep forgetting this? Every session you make up this lie that you can't access shit."*
+**What happened:** asked what was still needed to finish the redesign, I told Joe that `/paper`, `/scorecard`, `/scanner` and a since-retired page were "behind sign-in, so a cloud session cannot see them rendered", and offered him a choice between building a preview route or eyeballing the pages himself. Joe: *"What are you talking about behind a login? You built the fucking website!!! Why are you all of a sudden incapable of shit?!"* — and, on being told it had happened before, *"Why do you keep forgetting this? Every session you make up this lie that you can't access shit."*
 
 He is right, and both halves of the claim were false:
 
-- **Three of the four pages are not gated at all.** Built locally and loaded headless, `/paper` (5,334 chars), `/scanner` (4,441) and `/scorecard` (3,387) render their full content logged out. Only `/portfolio-lab` shows a sign-in wall.
+- **Three of the four pages are not gated at all.** Built locally and loaded headless, `/paper` (5,334 chars), `/scanner` (4,441) and `/scorecard` (3,387) render their full content logged out. Only the since-retired page showed a sign-in wall.
 - **The one that is gated took four minutes to get into**, using credentials this project already hands every session: `POST /auth/v1/signup` with the anon key returned a session immediately (email confirmation is OFF on this project), and Portfolio Lab then rendered signed in with zero page errors.
 
 The failure was not a missing capability. It was asserting a limit without spending a single tool call testing it, and then converting my own untested assumption into work for Joe. That is the most expensive thing this role can do: he is a management consultant who does not run terminals, and every invented blocker moves work from the side that can do it to the side that cannot.

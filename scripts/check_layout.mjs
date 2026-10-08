@@ -23,7 +23,7 @@
  *      2026-09-09: checks 1 and 2 both judge rows of two or more children, so
  *      a lone jammed paragraph passed them every time Joe reported it.
  *   4. SPILLED BAR — content taller than the fixed-height band it sits in,
- *      painting over the next block. Added 2026-09-09 (Portfolio Lab holdings
+ *      painting over the next block. Added 2026-09-09 (a card
  *      header): rules 1-3 all judge WIDTH, so a vertical collision was
  *      invisible to every one of them.
  *   2. SHORT ROW — within one grid/flex row, the rightmost content stops before
@@ -131,8 +131,8 @@ for (const route of routes) {
       }
 
       // 4. SPILLED BAR — content taller than the band it was put in, painting
-      //    over whatever comes next. Joe, 2026-09-09, on Portfolio Lab: "What
-      //    in the fuck is going on on the Portfolio Lab page?" — the Holdings
+      //    over whatever comes next. Joe, 2026-09-09: "What in the fuck is going
+      //    on on [this] page?" — a
       //    card header is the site-wide 28px title bar, and a 40px control
       //    cluster had been placed inside it. A FIXED-height flex box does not
       //    grow; its children simply overflow and land on the table header row

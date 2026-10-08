@@ -1,35 +1,23 @@
-/* TopNav — the shared cream (v12) top navigation.
+/* TopNav — the shared top bar.
 
-   Wordmark links Home; the primary routes are text links; auth sits on the
-   right. Cream styling lives in chrome-v12.css (theme-aware light / dark).
+   Wordmark links Home; then Home and the three main areas of the site, set
+   large so a first-time visitor can see at a glance what the site is (Joe,
+   2026-10-08). Reference pages — Methodology, Data, Bugs — are in the footer.
+   Page names come from chrome/siteNav.js. Styling lives in glass.css
+   (theme-aware light / dark).
 
-   MOBILE (2026-08-25, Joe: "The entire website looks absolutely atrocious on
-   my mobile phone... The site is not usable whatsoever if not on computer"):
-   the row of seven text links measured 634px wide inside a 393px viewport and
-   the bar clipped it, so on a phone Methodology, Data, Scorecard, Bugs and the
-   auth control were not merely cramped — they were unreachable. The site could
-   not be navigated at all. Below MOBILE_NAV_PX the links collapse into a
-   drawer behind a 44px hamburger, which is the one control that has to be
-   reachable before anything else on the page matters.
-
-   The drawer is deliberately plain: full-width rows, 52px tall, closed by
-   navigating, by the backdrop, or by Escape, and it locks body scroll while
-   open so the page behind cannot slide around under the sheet. */
+   MOBILE: below MOBILE_NAV_PX the links collapse into a drawer behind a 44px
+   hamburger — at 393px a row of text links does not fit and the bar clips it,
+   which left pages unreachable (Joe, 2026-08-25). The drawer is deliberately
+   plain: full-width rows, 52px tall, closed by navigating, by the backdrop,
+   or by Escape, and it locks page scroll while open. */
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { supabase } from '../../lib/supabase';
-
-const ITEMS = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/macro', label: 'Macro' },
-  { to: '/paper', label: 'Paper' },
-  { to: '/portfolio-lab', label: 'Portfolio Lab' },
-  { to: '/methodology', label: 'Methodology' },
-  { to: '/admin/data', label: 'Data' },
-  { to: '/scorecard', label: 'Scorecard' },
-];
+import useScrollLock from '../lib/useScrollLock';
+import { PRIMARY_NAV } from './siteNav';
 
 // Kept in step with the breakpoint in chrome-v12.css. Above this the inline
 // links fit; below it they do not, at any gap.
@@ -51,32 +39,24 @@ export default function TopNav() {
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-    // Lock the page behind the sheet. iOS Safari will happily scroll the
-    // document under a fixed overlay otherwise.
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     window.addEventListener('keydown', onKey);
     // Close on resize back to desktop, so rotating the phone or reopening on a
     // laptop never leaves an orphaned sheet over the page.
     const onResize = () => { if (window.innerWidth > MOBILE_NAV_PX) setOpen(false); };
     window.addEventListener('resize', onResize);
     return () => {
-      document.body.style.overflow = prev;
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('resize', onResize);
     };
   }, [open]);
+  // Lock the page behind the sheet. iOS Safari will happily scroll the
+  // document under a fixed overlay otherwise.
+  useScrollLock(open);
 
   async function handleSignOut() {
     try { await supabase.auth.signOut(); } catch (e) { /* best effort */ }
     if (typeof window !== 'undefined') window.location.assign('/');
   }
-
-  // 2026-08-17 (Joe): Paper and the Trade Idea Scorecard are both public. Bugs
-  // is the only signed-in-only link and is appended only when there is a
-  // session, so a signed-out visitor is never shown a link that would bounce
-  // them to a login card.
-  const items = signedIn ? [...ITEMS, { to: '/admin/bugs', label: 'Bugs' }] : ITEMS;
 
   return (
     <>
@@ -86,7 +66,7 @@ export default function TopNav() {
         </NavLink>
 
         <nav className="mt-topnav-links" aria-label="Primary">
-          {ITEMS.map((item) => (
+          {PRIMARY_NAV.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -96,14 +76,6 @@ export default function TopNav() {
               {item.label}
             </NavLink>
           ))}
-          {signedIn && (
-            <NavLink
-              to="/admin/bugs"
-              className={({ isActive }) => `mt-navlink mt-navlink--admin ${isActive ? 'on' : ''}`}
-            >
-              Bugs
-            </NavLink>
-          )}
         </nav>
 
         <div className="mt-topnav-auth">
@@ -141,7 +113,7 @@ export default function TopNav() {
             aria-label="Primary"
             onClick={(e) => e.stopPropagation()}
           >
-            {items.map((item) => (
+            {PRIMARY_NAV.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

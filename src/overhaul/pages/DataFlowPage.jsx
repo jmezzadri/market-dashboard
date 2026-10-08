@@ -63,6 +63,7 @@ import '../styles/data-v12.css';
 import '../styles/v13.css';
 import '../styles/pages-v13.css';
 import Tip from '../components/Tip';
+import { PAGE_NAME } from '../chrome/siteNav';
 import { useFreshness } from '../../hooks/useFreshness';
 import { gradeTwoClock , isDeliberateSkip } from '../../lib/freshnessClock';
 
@@ -287,6 +288,7 @@ const SCANNER_SURFACE_TABS = new Set(['scanner']); // canonTab('portopps') === '
 // both labelled "Methodology".
 const SURFACE_ALIAS = {
   macro: 'overview',
+  indicators: 'overview', // the standalone indicators page was folded into Macro 2026-07-07
   portopps: 'scanner',
   methodology: 'readme',
 };
@@ -398,7 +400,7 @@ function displayName(el) {
   if (ENGINE_DISPLAY[n]) return ENGINE_DISPLAY[n];
   if (REG_DISPLAY[n]) return REG_DISPLAY[n];
   // Manifest-supplied plain-English name (added 2026-07-28 — Joe: internal
-  // ids like "Lse Archive Iv" are useless on a human surface; every
+  // ids like "Lse Iv Scan" are useless on a human surface; every
   // non-registry element now carries display_name in the manifest).
   if (el.display_name) return el.display_name;
   // Last resort for anything unregistered — title-cased id, better than raw.
@@ -444,12 +446,13 @@ function prettySla(hours) {
 function tabLabel(tab) {
   const MAP = {
     home: 'Home',
-    overview: 'Macro Overview',
-    macro: 'Macro Overview',
-    indicators: 'All Indicators',
+    overview: PAGE_NAME.macro,
+    macro: PAGE_NAME.macro,
+    indicators: PAGE_NAME.macro,
     scanner: 'Trading Scanner',
     portopps: 'Trading Scanner',
-    paper: 'Paper Portfolio',
+    paper: PAGE_NAME.paper,
+    scorecard: PAGE_NAME.scorecard,
     ticker: 'Ticker Detail',
     readme: 'Methodology',
     methodology: 'Methodology',
@@ -1612,7 +1615,7 @@ export default function DataFlowPage() {
                         Weekly Commitments-of-Traders futures positioning from the CFTC. Each market’s net
                         speculator and commercial-hedger position is ranked in its own trailing 3-year range
                         (0 = most short on record, 100 = most long). One weekly job publishes all of these, so
-                        every signal shares the same freshness. Feeds the Macro Overview cross-asset positioning rollup.
+                        every signal shares the same freshness. Feeds the Macro Landscape cross-asset positioning rollup.
                       </p>
                     )}
                     {selectedTile.isCredit && (
@@ -1622,7 +1625,7 @@ export default function DataFlowPage() {
                         data. Each bond class’s dealer net position is ranked in its own trailing 3-year range
                         (0 = lightest inventory on record, 100 = heaviest). Heavy dealer inventory leaves less
                         balance-sheet room to absorb client selling. One weekly job publishes both signals, so
-                        they share the same freshness. Feeds the Macro Overview cross-asset positioning rollup.
+                        they share the same freshness. Feeds the Macro Landscape cross-asset positioning rollup.
                       </p>
                     )}
                   </div>

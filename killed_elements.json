@@ -81,7 +81,7 @@
       "id": "put_call",
       "name": "Put/Call ratio (indicator)",
       "killed": "2026-06-10",
-      "reason": "Phantom feed killed by Joe. NOTE: 'put_call' also appears as an options-flow column in trading-scanner/scanner/scorer.py \u2014 that is a DIFFERENT, live use (option side), not this indicator.",
+      "reason": "Phantom feed killed by Joe. NOTE: 'put_call' also appears as an options-flow column in trading-scanner/scanner/scorer.py — that is a DIFFERENT, live use (option side), not this indicator.",
       "status": "removed_from_framework",
       "residue": [
         "scripts/generate_indicator_drills.py"
@@ -141,7 +141,7 @@
       "id": "cycle_board_horizon_aware_v2",
       "name": "Cycle board (horizon-aware) / cycle-v2",
       "killed": "2026-06-15",
-      "reason": "Dead-end engine \u2014 not read by any user-facing page. Producers, workflows, output files, and UI references removed.",
+      "reason": "Dead-end engine — not read by any user-facing page. Producers, workflows, output files, and UI references removed.",
       "status": "removed",
       "residue": []
     },
@@ -162,14 +162,14 @@
       "reason": "Purged 6 keys read by zero live surfaces: fx_dollar (dup of usd/DXY), hy_ig_ratio (dup of the deep hy_ig_etf the modal shows), and killed residue adv_dec/bank_unreal/buffett/naaim. Removed from the store, their producers, and the manifest together so they cannot regenerate.",
       "status": "removed",
       "residue": [
-        "ism tile still wired to the sparse 38-pt ism key instead of the deep ism_mfg (56y)/ism_svc (29y) \u2014 REWIRE, do not delete the deep series. Flagged by the new daily reconciler."
+        "ism tile still wired to the sparse 38-pt ism key instead of the deep ism_mfg (56y)/ism_svc (29y) — REWIRE, do not delete the deep series. Flagged by the new daily reconciler."
       ]
     },
     {
       "id": "cmdty_uranium",
       "name": "Uranium (spot)",
       "killed": "2026-06-16",
-      "reason": "Unsourceable cleanly \u2014 yfinance UX=F returned ONE point ever (frozen 2026-05-27). The 504h SLA (21d) on a weekly feed masked it as green. Removed producer fetch + manifest element + store key rather than keep a feed that cannot stay fresh.",
+      "reason": "Unsourceable cleanly — yfinance UX=F returned ONE point ever (frozen 2026-05-27). The 504h SLA (21d) on a weekly feed masked it as green. Removed producer fetch + manifest element + store key rather than keep a feed that cannot stay fresh.",
       "status": "removed",
       "residue": []
     },
@@ -192,6 +192,38 @@
       "residue": [
         "supabase/migrations/020_spy_sector_weights.sql kept as migration history"
       ]
+    },
+    {
+      "id": "portfolio-lab",
+      "name": "Portfolio Lab (page, optimizer, saved portfolios)",
+      "killed": "2026-10-08",
+      "reason": "Joe, 2026-10-08: 'completely kill and remove all evidence of the portfolio lab.' The site is Home plus three areas: Macro Landscape, Paper Portfolio, Macro Scorecard. Page, route, math library, styles, spec, methodology section, sign-in copy, saved-portfolios table and every check-script entry were deleted in one change. Do NOT rebuild, re-route, re-document or reference it; there is no /portfolio-lab page and no spec for one.",
+      "status": "removed",
+      "residue": []
+    },
+    {
+      "id": "lab.price-history-yahoo",
+      "name": "Portfolio Lab price history (public id lab-price_history-ondemand)",
+      "killed": "2026-10-08",
+      "reason": "Only reader was the retired Portfolio Lab page. The /api/price-history endpoint itself stays: the Ticker page's technicals read it.",
+      "status": "removed",
+      "residue": []
+    },
+    {
+      "id": "options.lse-atm-iv-ondemand",
+      "name": "ATM implied-vol term structure, on demand (health row lse_atm_iv, table lse_iv_term)",
+      "killed": "2026-10-08",
+      "reason": "Only reader was the retired Portfolio Lab page. lse-live 'iv' mode removed, the scan batch's heartbeat stamp removed, health row deleted, table lse_iv_term dropped.",
+      "status": "removed",
+      "residue": []
+    },
+    {
+      "id": "options.lse-archive-iv-daily",
+      "name": "Archive EOD implied vol, nightly (health row lse_archive_iv, workflow LSE-ARCHIVE-IV)",
+      "killed": "2026-10-08",
+      "reason": "Only reader was the retired Portfolio Lab page. Workflow, script, pg_cron backup lse-archive-iv-backup-0330utc, trigger-workflow allowlist entry, failure-alert watchlist entry, health row and manifest entries all deleted in the same change.",
+      "status": "removed",
+      "residue": []
     }
   ]
 }

@@ -69,7 +69,6 @@ import { useSession } from '../auth/useSession';
 
 import HomePage from './pages/HomePage';
 import MacroPage from './pages/MacroPage';
-import PortfolioLabPage from './pages/PortfolioLabPage';
 import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
@@ -234,7 +233,6 @@ function Shell() {
                 rules matter MORE on a public page, not less — they are what
                 stop a short sample reading as a record. */}
             <Route path="/scorecard" element={<ScorecardPage />} />
-            <Route path="/portfolio-lab" element={<PortfolioLabPage />} />
             <Route path="/indicators" element={<LegacyIndicatorsRedirect />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />

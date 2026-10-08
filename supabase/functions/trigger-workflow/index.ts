@@ -34,11 +34,6 @@ const ALLOWED_WORKFLOWS = new Set<string>([
   // 4.13/4.17). It was missing here, so the backup returned workflow_not_allowed
   // and the two Paper intraday feeds went stale whenever GitHub skipped a slot.
   "PAPER-PORTFOLIO-INTRADAY.yml",
-  // 2026-07-29 — LSE-ARCHIVE-IV's first-ever scheduled fire (02:30 UTC) never
-  // ran (GitHub silently skipped it, LESSONS 4.13). pg_cron backup at 03:30 UTC
-  // dispatches through here; the 90-min dedupe window skips it when GitHub's
-  // own cron did run.
-  "LSE-ARCHIVE-IV.yml",
   // 2026-07-29 — the EDGAR Form 4 ingest is a single-schedule job with no
   // backup path and no alerting. GitHub silently skipped its 10:00/11:00 UTC
   // fire on 7/29, so insider_history_edgar stopped at filing_date 2026-07-27

@@ -57,7 +57,7 @@ const IS_PROD = LIVE_BASE === 'https://macrotilt.com';
 const LAUNCH = process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {};
 
 // Every public route (sign-in-gated pages render their gate, which is also a page).
-const MOBILE_PAGES = ['/', '/macro', '/paper', '/scorecard', '/portfolio-lab', '/methodology',
+const MOBILE_PAGES = ['/', '/macro', '/paper', '/scorecard', '/methodology',
   '/ticker/AAPL', '/admin/data', '/about', '/terms', '/privacy', '/disclaimer', '/signin'];
 const PHONE = 390;
 

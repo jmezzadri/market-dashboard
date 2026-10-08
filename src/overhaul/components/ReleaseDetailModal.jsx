@@ -18,6 +18,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import IdeaChart from './IdeaChart';
+import useScrollLock from '../lib/useScrollLock';
 import FreshnessChip from './FreshnessChip';
 import useEconReleaseHistory from '../lib/useEconReleaseHistory';
 import ImpactMark, { IMPACT_WORD } from './ImpactMark';
@@ -206,10 +207,9 @@ export default function ReleaseDetailModal({ event, onClose }) {
   useEffect(() => {
     const k = (e) => { if (e.key === 'Escape') onClose?.(); };
     window.addEventListener('keydown', k);
-    const prevOverflow = document.body.style.overflow;
-    if (open) document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = prevOverflow; };
+    return () => { window.removeEventListener('keydown', k); };
   }, [onClose, open]);
+  useScrollLock(open);
   useEffect(() => { setWhich(0); }, [event?.name]);
 
   const target = (typeof document !== 'undefined'

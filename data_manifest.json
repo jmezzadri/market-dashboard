@@ -2264,36 +2264,6 @@
       "sla_basis": "Mirrors scanner.insider-history-uw (49h) so the watchdog treats the shadow exactly like the feed it will replace.",
       "id": "scanner.insider-history-edgar"
     },
-    "lab.price-history-yahoo": {
-      "category": "lab",
-      "element": "Portfolio Lab price history (adjusted daily closes for holdings, benchmarks and sector ETFs)",
-      "sourcing_mode": "stp",
-      "source_vendor": "Yahoo Finance (public chart API via api/price-history.js)",
-      "license_tier": "free",
-      "cadence": "on-demand",
-      "refresh_trigger": "On-demand: api/price-history.js serverless endpoint fetches the Yahoo chart API per ticker when the Portfolio Lab page loads or a ticker is added",
-      "schedule_et": "n/a - fetched on page load per ticker (5y window), edge-cached",
-      "freshness_sla_hours": null,
-      "inputs": [
-        {
-          "provider": "Yahoo Finance",
-          "dataset": "Daily OHLCV + adjusted close per ticker, trailing 5 years",
-          "location": "https://query1.finance.yahoo.com/v8/finance/chart/{ticker} via /api/price-history",
-          "method": "API"
-        }
-      ],
-      "consumer_surfaces": [
-        "Portfolio Lab -> holdings table (last price, expected return, range)",
-        "Portfolio Lab -> efficient frontier (covariance, betas)",
-        "Portfolio Lab -> statistics card (volatility, Sharpe, beta, max drawdown, correlations)",
-        "Portfolio Lab -> growth-of-$10K benchmark chart"
-      ],
-      "target_storage": "None - fetched live per session (module cache), never persisted. Risk-free inputs come from the already-registered ust_2y / ust_10y feeds via public/indicator_history.json.",
-      "failure_mode": "A ticker whose fetch fails is flagged 'No price history found' on the page and excluded from every computation - no synthetic fallback (LESSONS 4.4). If the risk-free fetch fails, CAPM values render em-dash.",
-      "owner": "Data Steward",
-      "notes": "Registered 2026-07-27 with the Portfolio Lab page (PORTFOLIO_LAB_BUILD_SPEC.md). On-demand governance pattern mirrors news.market-headlines-multisource (v8 precedent): registered element, page-stated as-of, no pipeline_health row because no scheduled producer exists. Same endpoint the ticker technicals panel uses. Phase 3 (options-implied method) will register its own element when an options source is chosen.",
-      "id": "lab.price-history-yahoo"
-    },
     "market.lse-intraday-live": {
       "category": "market",
       "element": "Live intraday price (1-minute bars, display only)",
@@ -2322,34 +2292,6 @@
       "sla_basis": "Market-hours-only clock (paper-intraday precedent): 3h in NYSE session time; clock pauses at the close. Display-only feed.",
       "id": "market.lse-intraday-live"
     },
-    "options.lse-atm-iv-ondemand": {
-      "category": "options",
-      "element": "ATM implied-volatility term structure (per expiry, per underlying)",
-      "sourcing_mode": "stp",
-      "source_vendor": "London Strategic Edge",
-      "inputs": [
-        {
-          "provider": "London Strategic Edge",
-          "dataset": "Options chain (calls) with per-contract implied vol from LSE's own pricing models; ATM contract per expiry selected in-house (freshest-contract underlying anchor, strike within 10% of spot)",
-          "location": "https://api.londonstrategicedge.com/vault/options/chain?underlying={T}&type=call",
-          "method": "API"
-        }
-      ],
-      "license_tier": "free",
-      "cadence": "on-demand (30 min server cache in market hours)",
-      "refresh_trigger": "supabase edge function lse-live (mode iv) — called when a Portfolio Lab holding uses the Implied vol method; daily green heartbeat from the lse-scan-iv-daily cron (same vendor endpoint + extraction)",
-      "schedule_et": "No schedule — refreshes on view; daily heartbeat ~17:50 ET weekdays via the scan batch. Cloud-only.",
-      "freshness_sla_hours": 49,
-      "consumer_surfaces": [
-        "Portfolio Lab → Implied vol ER method (expected-range per holding; optimizer volatility input)",
-        "Methodology → Portfolio Lab section (implied-vol method description)"
-      ],
-      "target_storage": "Supabase: lse_iv_term (shared cache)",
-      "failure_mode": "Implied vol rows show em-dash + 'no options data'; method falls back to CAPM drift + historical volatility (spec §3.3). Names without listed options on LSE are expected gaps.",
-      "owner": "Data Steward",
-      "sla_basis": "Daily heartbeat via the scan cron + on-view stamps: 49h standard daily budget.",
-      "id": "options.lse-atm-iv-ondemand"
-    },
     "equity.lse-iv-scan-daily": {
       "category": "equity",
       "element": "Scanner ATM implied vol + cross-sectional volatility rank",
@@ -2376,34 +2318,6 @@
       "owner": "Data Steward",
       "sla_basis": "Joe 2026-06-11 doctrine: daily cadence + 24h grace = 49h.",
       "id": "equity.lse-iv-scan-daily"
-    },
-    "options.lse-archive-iv-daily": {
-      "category": "options",
-      "element": "Archive EOD implied vol (live-feed-uncovered names)",
-      "sourcing_mode": "stp",
-      "source_vendor": "London Strategic Edge",
-      "inputs": [
-        {
-          "provider": "London Strategic Edge",
-          "dataset": "Options prints research archive (1d aggregation) + daily candles + US3M series",
-          "location": "api.londonstrategicedge.com/vault/export (dataset=options) + /candles + /series",
-          "method": "API"
-        }
-      ],
-      "license_tier": "free",
-      "cadence": "on-demand (30 min server cache in market hours)",
-      "refresh_trigger": "GitHub Actions LSE-ARCHIVE-IV nightly",
-      "schedule_et": "22:30",
-      "freshness_sla_hours": 49,
-      "consumer_surfaces": [
-        "Portfolio Lab → Implied vol ER method (expected-range per holding; optimizer volatility input)",
-        "Methodology → Portfolio Lab section (implied-vol method description)"
-      ],
-      "target_storage": "Supabase lse_iv_term (source=archive, dated as_of)",
-      "failure_mode": "Archive rows go stale/absent; the name reverts to the honest CAPM fallback with the em-dash note.",
-      "owner": "Data Steward",
-      "sla_basis": "49h daily budget (calendar-aware); nightly weekday run at 22:30 ET",
-      "id": "options-lse_archive_iv-daily"
     }
   }
 }

@@ -43,8 +43,6 @@ html, body, #root { background: var(--lg-ground); }
 .paper-v12 .qtt-sectile,
 .v13.home-v12.sc-wrap .sc-tile,
 .v13.home-v12.sc-wrap .sc-tablewrap,
-.home-v12.lab-v12 .lab-card,
-.home-v12.lab-v12 .lab-tablewrap,
 .home-v12.methodology-v12 .me-section,
 .home-v12.methodology-v12 .me-toc,
 .home-v12.methodology-v12 .meth-hero,
@@ -83,7 +81,6 @@ html, body, #root { background: var(--lg-ground); }
 .paper-v12 .qtt-card:hover,
 .paper-v12 .qtt-sectile:hover,
 .v13.home-v12.sc-wrap .sc-tile:hover,
-.home-v12.lab-v12 .lab-card:hover,
 .home-v12.methodology-v12 .me-section:hover,
 .home-v12.data-v12 .df-col:hover,
 .home-v12.ticker-v12 .mt-card:hover,
@@ -112,26 +109,26 @@ html, body, #root { background: var(--lg-ground); }
 .v13.home-v12.home-cockpit .bgrid > .tile:nth-child(2) { animation-delay: var(--dur-240); }
 .v13.home-v12.home-cockpit .bgrid > .tile:nth-child(3) { animation-delay: var(--dur-320); }
 .v13.home-v12.home-cockpit .bgrid > .tile:nth-child(4) { animation-delay: var(--dur-400); }
-.v13.macro-v13 .mac-cat:nth-child(1), .v13.home-v12.sc-wrap .sc-tile:nth-child(1), .home-v12.lab-v12 .lab-card:nth-child(1), .home-v12.data-v12 .df-col:nth-child(1) { animation-delay: var(--dur-160); }
-.v13.macro-v13 .mac-cat:nth-child(2), .v13.home-v12.sc-wrap .sc-tile:nth-child(2), .home-v12.lab-v12 .lab-card:nth-child(2), .home-v12.data-v12 .df-col:nth-child(2) { animation-delay: var(--dur-240); }
-.v13.macro-v13 .mac-cat:nth-child(3), .v13.home-v12.sc-wrap .sc-tile:nth-child(3), .home-v12.lab-v12 .lab-card:nth-child(3), .home-v12.data-v12 .df-col:nth-child(3) { animation-delay: var(--dur-320); }
-.v13.macro-v13 .mac-cat:nth-child(4), .v13.home-v12.sc-wrap .sc-tile:nth-child(4), .home-v12.lab-v12 .lab-card:nth-child(4), .home-v12.data-v12 .df-col:nth-child(4) { animation-delay: var(--dur-400); }
+.v13.macro-v13 .mac-cat:nth-child(1), .v13.home-v12.sc-wrap .sc-tile:nth-child(1), .home-v12.data-v12 .df-col:nth-child(1) { animation-delay: var(--dur-160); }
+.v13.macro-v13 .mac-cat:nth-child(2), .v13.home-v12.sc-wrap .sc-tile:nth-child(2), .home-v12.data-v12 .df-col:nth-child(2) { animation-delay: var(--dur-240); }
+.v13.macro-v13 .mac-cat:nth-child(3), .v13.home-v12.sc-wrap .sc-tile:nth-child(3), .home-v12.data-v12 .df-col:nth-child(3) { animation-delay: var(--dur-320); }
+.v13.macro-v13 .mac-cat:nth-child(4), .v13.home-v12.sc-wrap .sc-tile:nth-child(4), .home-v12.data-v12 .df-col:nth-child(4) { animation-delay: var(--dur-400); }
 .v13.macro-v13 .mac-cat:nth-child(5), .v13.home-v12.sc-wrap .sc-tile:nth-child(5) { animation-delay: var(--dur-480); }
 .v13.macro-v13 .mac-cat:nth-child(6), .v13.home-v12.sc-wrap .sc-tile:nth-child(6) { animation-delay: var(--dur-560); }
 /* the scroll-reveal keeps its own fade; the rise runs once the reveal lands */
 .home-v12 .rv { filter: none; }
 
 /* inner panels (a surface inside a card) */
-.mt-overhaul .mt-pill, .mt-overhaul .mt-btn, .mt-overhaul .v13-btn, .mt-overhaul .lab-btn, .mt-overhaul .lab-seg button,
+.mt-overhaul .mt-pill, .mt-overhaul .mt-btn, .mt-overhaul .v13-btn,
 .mt-overhaul .qtt-pill, .mt-overhaul .sc-notebtn, .mt-overhaul .df-tile, .mt-overhaul .mt-iconbtn, .mt-overhaul .mt-topnav-signin,
 .mt-overhaul .mt-topnav-signout, .mt-overhaul .mt-headsearch input, .mt-overhaul .mt-headsearch, .mt-overhaul .lg-input,
-.mt-overhaul .mt-headpill, .mt-overhaul .v13-input, .mt-overhaul .lab-input, .mt-overhaul input[type='text'], .mt-overhaul input[type='search'], .mt-overhaul select {
+.mt-overhaul .mt-headpill, .mt-overhaul .v13-input, .mt-overhaul input[type='text'], .mt-overhaul input[type='search'], .mt-overhaul select {
   background: var(--lg-panel); border: 1px solid var(--lg-line); color: var(--lg-fg); border-radius: var(--r-pill);
   transition: background var(--dur-350), border-color var(--dur-350), transform var(--dur-350);
 }
-.mt-overhaul .mt-pill:hover, .mt-overhaul .mt-btn:hover, .mt-overhaul .v13-btn:hover, .mt-overhaul .lab-btn:hover, .mt-overhaul .qtt-pill:hover,
+.mt-overhaul .mt-pill:hover, .mt-overhaul .mt-btn:hover, .mt-overhaul .v13-btn:hover, .mt-overhaul .qtt-pill:hover,
 .mt-overhaul .sc-notebtn:hover, .mt-overhaul .df-tile:hover, .mt-overhaul .mt-iconbtn:hover { background: var(--lg-panel-on); border-color: var(--lg-line-on); transform: translateY(-2px); }
-.mt-overhaul .mt-pill.on, .mt-overhaul .mt-btn.on, .mt-overhaul .v13-btn.on, .mt-overhaul .lab-seg button.on, .mt-overhaul .qtt-pill.on, .mt-overhaul .t.on {
+.mt-overhaul .mt-pill.on, .mt-overhaul .mt-btn.on, .mt-overhaul .v13-btn.on, .mt-overhaul .qtt-pill.on, .mt-overhaul .t.on {
   background: var(--lg-panel-on); border-color: var(--lg-line-on); color: var(--lg-fg);
 }
 
@@ -394,7 +391,7 @@ html, body, #root { background: var(--lg-ground); }
 /* the ground shows through every page wrapper */
 .v13.home-v12, .v13, .mt-overhaul .mt-main-wrap, .mt-overhaul .home-v12, .mt-overhaul .mt-page, .mt-overhaul .mt-static-page, .login-v12, .login-v12 .lg-wrap { background: transparent; background-image: none; }
 
-/* ── page polish: scorecard / lab / methodology / data / ticker / static ── */
+/* ── page polish: scorecard / methodology / data / ticker / static ── */
 .v13.home-v12.sc-wrap { max-width: 1400px; margin: 0 auto; padding: 0 var(--sp-24); width: 100%; box-sizing: border-box; }
 .v13.home-v12.sc-wrap .sc-book, .v13.home-v12.sc-wrap .sc-list, .v13.home-v12.sc-wrap .sc-err {
   background: linear-gradient(145deg, var(--lg-glass-a), var(--lg-glass-b)); border: 1px solid var(--lg-glass-line); box-shadow: var(--lg-card-shadow);
@@ -405,19 +402,15 @@ html, body, #root { background: var(--lg-ground); }
 .v13.home-v12.sc-wrap .sc-tiles { gap: var(--sp-12); margin-top: var(--sp-12); }
 .v13.home-v12.sc-wrap .sc-tile { padding: var(--sp-16) var(--sp-20); }
 .v13.home-v12.sc-wrap .sc-tablewrap { margin-top: var(--sp-12); overflow: hidden; }
-.v13.home-v12.sc-wrap .sc-tablewrap table, .home-v12.lab-v12 .lab-tablewrap table { border-radius: 0; }
+.v13.home-v12.sc-wrap .sc-tablewrap table{ border-radius: 0; }
 .v13.home-v12.sc-wrap .sc-table thead th { background: var(--lg-panel); }
 /* every table inside a glass card keeps the card's corners */
-.v13 .sc-tablewrap, .v13 .lab-tablewrap, .v13 .tk-tablewrap, .v13 .mac-cat { overflow: hidden; }
+.v13 .sc-tablewrap, .v13 .tk-tablewrap, .v13 .mac-cat { overflow: hidden; }
 .v13.macro-v13 .mac-cat { padding-bottom: var(--sp-6); }
 .v13.macro-v13 .mac-cathead { background: transparent; border-radius: var(--r-card) var(--r-card) 0 0; }
 .v13.macro-v13 .mac-cat::-webkit-scrollbar, .v13.macro-v13 .mac-rows::-webkit-scrollbar { width: 6px; }
 .v13.macro-v13 .mac-engine { padding: var(--sp-18) var(--sp-24); }
 .v13.macro-v13 .mac-engine > div:nth-child(2) { align-self: center; }
-/* lab */
-.home-v12.lab-v12 .lab-card { padding: var(--sp-18) var(--sp-22); }
-.home-v12.lab-v12 .lab-grid { gap: var(--sp-12); }
-.home-v12.lab-v12 .lab-curve { stroke: var(--lg-cool); }
 /* methodology */
 .home-v12.methodology-v12 .me-section { padding: var(--sp-22) var(--sp-26); margin-bottom: var(--sp-12); }
 .home-v12.methodology-v12 .me-toc { padding: var(--sp-14) var(--sp-16); }
@@ -567,7 +560,7 @@ html, body, #root { background: var(--lg-ground); }
 .v13.home-v12.methodology-v12 .me-section:last-child { margin-bottom: 0; }
 .v13.home-v12.ticker-v12 .mt-pagehero { margin: var(--lg-gap) auto 0; }
 .home-v12.ticker-v12 .mt-card, .home-v12.ticker-v12 .tk-relcard { margin-top: var(--lg-gap); }
-.home-v12.lab-v12 .lab-grid { gap: var(--lg-gap); }
+
 .paper-v12 .qtt-card { margin-bottom: var(--lg-gap) !important; }
 .paper-v12 .qtt-card:last-child { margin-bottom: 0 !important; }
 .paper-v12 .qtt-secgrid { gap: var(--lg-gap) !important; }
@@ -589,3 +582,34 @@ html, body, #root { background: var(--lg-ground); }
 .v13.home-v12.home-cockpit .bgrid > .tile { gap: var(--sp-8); }
 .v13.home-v12.home-cockpit .bgrid > .tile { padding-bottom: var(--sp-12); }
 .v13.home-v12.home-cockpit .bgrid > .idea-tile { gap: var(--sp-6); }
+
+/* ── top bar: Home + the three main areas, set large (Joe, 2026-10-08) ────
+   Four items only, so they can carry real weight: body-plus size, bold, full
+   ink, centred between the wordmark and the sign-in control, the current page
+   a solid accent pill. The bar keeps its height — the Home page is fitted to
+   1440x900 against it. Below 860px the row is replaced by the menu sheet,
+   where the same four items are the whole list. */
+.mt-overhaul .mt-topnav-links { margin: 0 auto; gap: var(--sp-8); }
+.mt-overhaul .mt-navlink {
+  font-size: var(--v13-t4); font-weight: var(--fw-700); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--lg-fg); padding: var(--sp-8) var(--sp-18); white-space: nowrap;
+}
+.mt-overhaul .mt-navlink:hover { background: var(--lg-accent-soft); color: var(--lg-fg); }
+.mt-overhaul .mt-navlink.on,
+.mt-overhaul .mt-navlink.on:hover { background: var(--lg-nav-on-bg); color: var(--lg-nav-on-fg); }
+@media (max-width: 1100px) {
+  .mt-overhaul .mt-topnav-links { gap: var(--sp-2); }
+  .mt-overhaul .mt-navlink { font-size: var(--v13-t3); padding: var(--sp-8) var(--sp-12); letter-spacing: 0.04em; }
+  /* signed in, the address would run into the last item at these widths */
+  .mt-overhaul .mt-topnav-email { display: none; }
+}
+.mt-overhaul .mt-navsheet-link { font-weight: var(--fw-700); letter-spacing: 0.04em; text-transform: uppercase; }
+.mt-overhaul .mt-navsheet-link.on { color: var(--lg-accent); }
+
+/* The footer now carries the reference pages, so it has to read properly on a
+   phone: at narrow widths its columns and legal band sat flush against the
+   screen edge. Same gutter as every other block on the page. */
+@media (max-width: 1240px) {
+  .mt-overhaul .mt-footer-grid,
+  .mt-overhaul .mt-footer-legalband { padding-left: var(--lg-edge); padding-right: var(--lg-edge); box-sizing: border-box; }
+}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 /* Draw charts in REAL PIXELS — one SVG user unit = one CSS pixel.
  *
- * Joe, 2026-09-09, on Portfolio Lab: "all the different sized fonts we're
+ * Joe, 2026-09-09: "all the different sized fonts we're
  * using?! It looks like a fucking kindergardener designed the page."
  *
  * Every chart on the site drew onto a fixed user-unit canvas (640 units for the

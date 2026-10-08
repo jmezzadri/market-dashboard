@@ -22,10 +22,9 @@
    stays "scanner" so old #scanner deep links keep landing (as do
    #power-trend / #divergences). #conviction-events is gone with its book.
 
-   Untouched: §01 Macro + the Engine, §04 Portfolio Lab, §05 Data
-   (freshness contract + manifest-derived vendor table; the stale
-   dead-pipeline rows in the jobs table were replaced with the three QT
-   jobs). Section numbers stay 01–05.
+   Untouched: §01 Macro + the Engine, §04 Data (freshness contract +
+   manifest-derived vendor table; the stale dead-pipeline rows in the jobs
+   table were replaced with the three QT jobs). Section numbers are 01–04.
 
    Cream rebrand Phase B (2026-07-07): page moved to the shared home-v12
    cream system (cream-system.css) with page styles in methodology-v12.css.
@@ -36,6 +35,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useIndicators from '../lib/useIndicators';
+import { PAGE_NAME } from '../chrome/siteNav';
 import FreshnessChip from '../components/FreshnessChip';
 import '../styles/cream-system.css';
 import '../styles/methodology-v12.css';
@@ -44,15 +44,14 @@ import '../styles/v13.css';
 import '../styles/pages-v13.css';
 
 /* TOC = the site's pages, one entry per nav page, EXACTLY as named in
-   NAV_ITEMS (chrome/TopNav.jsx) — Joe 2026-07-28. The Engine folds into
+   chrome/siteNav.js — Joe 2026-07-28. The Engine folds into
    Macro (that's the page it lives on); freshness + sources fold into Data.
    #engine / #freshness / #sources stay as in-page anchors for deep links. */
 const SECTIONS = [
-  ['macro',     'Macro'],
+  ['macro',     PAGE_NAME.macro],
   ['scanner',   'Idea feeds'],
-  ['portfolio', 'Paper'],
-  ['lab',       'Portfolio Lab'],
-  ['data',      'Data'],
+  ['portfolio', PAGE_NAME.paper],
+  ['data',      PAGE_NAME.data],
 ];
 
 /* The vendor table is DERIVED from the data manifest (single source of truth)
@@ -60,15 +59,15 @@ const SECTIONS = [
 /* Values = the nav's current page names. 'indicators' folds into Macro (the
    standalone All Indicators page was retired 2026-07-07; Macro is the
    indicator inventory surface). */
-const TAB_LABEL = { home: 'Home', overview: 'Macro', indicators: 'Macro',
-  macro: 'Macro', 'asset-tilt': 'Macro', readme: 'Methodology',
-  methodology: 'Methodology', scanner: 'Scanner', paper: 'Paper',
-  portfolio: 'Paper', portopps: 'Scanner', ticker: 'Ticker', data: 'Data',
-  admin: 'Data', lab: 'Portfolio Lab', 'portfolio-lab': 'Portfolio Lab',
-  scorecard: 'Scorecard', email: 'Email' };
+const TAB_LABEL = { home: PAGE_NAME.home, overview: PAGE_NAME.macro,
+  indicators: PAGE_NAME.macro, macro: PAGE_NAME.macro, 'asset-tilt': PAGE_NAME.macro,
+  readme: PAGE_NAME.methodology, methodology: PAGE_NAME.methodology,
+  scanner: 'Scanner', paper: PAGE_NAME.paper, portfolio: PAGE_NAME.paper,
+  portopps: 'Scanner', ticker: 'Ticker', data: PAGE_NAME.data, admin: PAGE_NAME.data,
+  scorecard: PAGE_NAME.scorecard, email: 'Email' };
 const CAT_LABEL = { indicator: 'Indicators', market: 'Market data', equity: 'Equity data',
   portfolio: 'Portfolio', news: 'News', options: 'Options data',
-  commentary: 'Commentary', ops: 'Operations', lab: 'Portfolio Lab' };
+  commentary: 'Commentary', ops: 'Operations' };
 
 function fmtPct(v, digits = 2) {
   if (v == null || !Number.isFinite(v)) return '—';
@@ -230,7 +229,7 @@ export default function MethodologyPage() {
         <article id="macro" className="me-section">
           <div className="me-num">01</div>
           <div>
-            <div className="mt-eyebrow">Macro</div>
+            <div className="mt-eyebrow">{PAGE_NAME.macro}</div>
             <h2 className="me-h2">Six categories · {liveIndicatorCount} indicators</h2>
             <p className="me-body-p">
               Every indicator on MacroTilt is sorted into one of the categories you can filter on the
@@ -294,7 +293,7 @@ export default function MethodologyPage() {
               de-risk episodes since 1986 of which 48 lasted four weeks or less — including one that sold
               the exact bottom of the April 2025 drawdown. Requiring confirmation cuts that to 45 episodes
               and improves return, Sharpe and maximum drawdown together, in both halves of the sample and
-              at every threshold pair tested. The Macro Overview page charts every de-risked stretch
+              at every threshold pair tested. The Macro Landscape page charts every de-risked stretch
               against the S&amp;P 500.{' '}
               <FreshnessChip elementId="indicator-move-daily" variant="dot" />
             </p>
@@ -409,7 +408,7 @@ export default function MethodologyPage() {
         <article id="portfolio" className="me-section">
           <div className="me-num">03</div>
           <div>
-            <div className="mt-eyebrow">Paper</div>
+            <div className="mt-eyebrow">{PAGE_NAME.paper}</div>
             <h2 className="me-h2">One paper book · Quality Trend</h2>
             <p className="me-body-p">
               MacroTilt runs a live <b>$1,000,000 paper account</b> with no manual input and no
@@ -419,7 +418,7 @@ export default function MethodologyPage() {
               monthly, with no leverage, plus an automatic crash brake described below. Every rule
               on this page is the deployed rule — the scoring code and this page describe the same
               system. (A 40-name version of this book ran on paper from August 17–25, 2026 on an
-              account that was then closed; its brief record is preserved on the Paper page and is
+              account that was then closed; its brief record is preserved on the Paper Portfolio page and is
               not part of this book's track record.)
             </p>
             <p className="me-body-p">
@@ -506,7 +505,7 @@ export default function MethodologyPage() {
               <b>Data sources.</b> Prices are Alpaca&rsquo;s full-market daily history, which
               includes delisted companies. Fundamentals are SEC XBRL company filings, keyed to
               their filing dates. Insider purchases are the SEC&rsquo;s insider-filing record.
-              All three are public data. Fills and account marks on the Paper page are the paper
+              All three are public data. Fills and account marks on the Paper Portfolio page are the paper
               broker&rsquo;s official records, snapshotted after each close.
             </p>
             <p className="me-body-p">
@@ -529,7 +528,7 @@ export default function MethodologyPage() {
               scores the book but buys nothing. The brake can only ever do those two things
               &mdash; all out, or all in. It never picks stocks, never shorts, never borrows,
               and if its data is missing it does nothing. Today&rsquo;s reading and the
-              brake&rsquo;s state are shown on the Paper page.
+              brake&rsquo;s state are shown on the Paper Portfolio page.
             </p>
             <p className="me-body-p">
               <b>The evidence, on this exact book.</b> The rule was chosen on September 10,
@@ -576,90 +575,12 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 04 — Portfolio Lab */}
-        <article id="lab" className="me-section">
-          <div className="me-num">04</div>
-          <div>
-            <div className="mt-eyebrow">Portfolio Lab</div>
-            <h2 className="me-h2">Expected return, three ways · one optimizer</h2>
-            <p className="me-body-p">
-              The <b>Portfolio Lab</b> (signed-in users) estimates the expected return of any US stock or
-              ETF, builds portfolios from those estimates, and compares the result against benchmarks.
-              Every price on the page is a <b>split- and dividend-adjusted daily close</b> fetched live
-              from Yahoo Finance&rsquo;s public chart data — one price source for every series on the page —
-              covering the trailing five years.
-            </p>
-            <p className="me-body-p">
-              <b>Method 1 — CAPM.</b> Expected return = risk-free rate + beta × equity risk premium.
-              Beta is measured by comparing the stock&rsquo;s daily moves to SPY&rsquo;s over that
-              stock&rsquo;s own history, up to five years — so a recently listed name never shortens the
-              beta window of anything else in the book. A holding with under a full trading year of
-              history states how much it has and is left out of the expected-return, risk and frontier
-              numbers; the rest of the book is unaffected. This long-window beta is the right input for a
-              multi-year expected return; it can differ from the &ldquo;Beta · 1y&rdquo; tile on a ticker&rsquo;s
-              detail page, which deliberately measures only the trailing year — a stock whose character
-              changed recently (ONDS, for example) reads higher on the one-year measure. The risk-free rate is the live 2-year Treasury yield (a
-              2y–10y blend for the 3-year horizon), and the equity risk premium is Damodaran&rsquo;s published
-              implied premium for the US market, reviewed quarterly.
-            </p>
-            <p className="me-body-p">
-              <b>Method 2 — Weighted Scenarios.</b> You supply Bull / Base / Bear target prices for the
-              chosen horizon and a probability for each (they must sum to 100%). Expected return is the
-              probability-weighted average of the three implied returns. This method uses your inputs
-              only — no model.
-            </p>
-            <p className="me-body-p">
-              <b>Method 3 — Implied vol.</b> This method prices risk directly from the options market.
-              The expected return is the return the market&rsquo;s own going rate demands for the stock&rsquo;s
-              volatility: risk-free rate + (equity risk premium ÷ SPY&rsquo;s option-implied volatility) ×
-              the stock&rsquo;s option-implied volatility, with both volatilities read at the one-year point.
-              A stock exactly as volatile as the market earns exactly risk-free + the equity risk
-              premium; a stock the options market prices at six times SPY&rsquo;s volatility must offer six
-              times the premium. It is the return <i>required to justify the risk</i> at the market&rsquo;s
-              going rate — not a forecast that the stock will earn it. Implied volatility comes from the
-              London Strategic Edge options chain — the at-the-money call at each listed expiry (strike
-              within 10% of the current price, anchored to the most recently updated contract) —
-              interpolated to the horizon linearly in total variance between the two nearest expiries
-              (held flat beyond the last listed expiry). The range shown is the market-implied expected
-              move over the horizon. In the optimizer, a holding on this method keeps historical
-              correlations but its volatility is replaced by the implied figure. A name the live feed
-              does not cover but whose options trade on the vendor&rsquo;s research archive gets a
-              previous-close implied-vol curve derived overnight from actual traded option prices
-              (strikes within 10% of the close, discounted Black-76 against the 3-month Treasury
-              rate) — the row is labeled with its data date. A name with no usable options anywhere
-              shows an em-dash and falls back to CAPM with historical volatility.
-            </p>
-            <p className="me-body-p">
-              <b>The optimizer</b> draws the long-only efficient frontier: for each level of expected
-              return, the mix of your holdings with the lowest volatility, where expected returns come
-              from each holding&rsquo;s selected method and risk (volatility and correlations) comes
-              from the longest daily history that every optimized holding shares, up to five years —
-              except holdings on the Implied vol method, whose own
-              volatility is options-implied (correlations stay historical). Clicking a point loads its weights. Marked points:
-              minimum volatility, maximum Sharpe ratio, and equal weight. Portfolio statistics —
-              volatility, Sharpe, beta, maximum drawdown, contribution to risk — are computed from the
-              same daily history with the portfolio rebalanced monthly to its current weights. The
-              &ldquo;Sector mix&rdquo; benchmark holds each stock&rsquo;s sector ETF at the same weight, mapped from the
-              company&rsquo;s SEC industry classification.
-            </p>
-            <div className="me-formula" data-mono="code">
-              CAPM: expected_return = risk_free + beta × equity_risk_premium<br />
-              Scenarios: expected_return = Σ probability × (target_price ÷ last_price − 1)<br />
-              Implied vol: expected_return = risk_free + (equity_risk_premium ÷ SPY_implied_vol) × stock_implied_vol<br />
-              Implied vol: expected_range = ± implied_vol(horizon) × √years, around that expected return<br />
-              term interpolation: variance(horizon) is linear in σ²·days between the two nearest expiries<br />
-              Frontier: minimize portfolio_variance subject to target return · weights ≥ 0 · weights sum to 100%<br />
-              horizon scaling: return compounds by years · volatility scales by √years
-            </div>
-          </div>
-        </article>
-
-        {/* 05 — Data (freshness contract + sources & vendors;
+        {/* 04 — Data (freshness contract + sources & vendors;
             #freshness / #sources anchors kept for deep links) */}
         <article id="data" className="me-section">
-          <div className="me-num">05</div>
+          <div className="me-num">04</div>
           <div>
-            <div className="mt-eyebrow" id="freshness" style={{ scrollMarginTop: 120 }}>Data</div>
+            <div className="mt-eyebrow" id="freshness" style={{ scrollMarginTop: 120 }}>{PAGE_NAME.data}</div>
             <h2 className="me-h2">When everything refreshes, and how you can tell</h2>
             <p className="me-body-p">
               Every value, chart, gauge and table on MacroTilt sits next to a <b>freshness chip</b>. The

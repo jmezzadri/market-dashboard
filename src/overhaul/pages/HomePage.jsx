@@ -38,6 +38,7 @@ import useMarketLevels from '../lib/useMarketLevels';
 import useLseLive from '../../hooks/useLseLive';
 import IndicatorDrillModal from '../components/IndicatorDrillModal';
 import ReleaseDetailModal from '../components/ReleaseDetailModal';
+import useScrollLock from '../lib/useScrollLock';
 import ReleaseCalendarModal from '../components/ReleaseCalendarModal';
 import ImpactMark from '../components/ImpactMark';
 import useEconReleaseHistory from '../lib/useEconReleaseHistory';
@@ -295,10 +296,9 @@ export default function HomePage() {
     if (!anyModal) return undefined;
     const k = (e) => { if (e.key === 'Escape') { setBriefOpen(false); setIdeaOpen(false); } };
     window.addEventListener('keydown', k);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = prev; };
+    return () => { window.removeEventListener('keydown', k); };
   }, [anyModal]);
+  useScrollLock(anyModal);
   const modalTarget = (typeof document !== 'undefined' && (document.querySelector('.mt-overhaul') || document.body)) || null;
 
   const heroChart = idea?.charts?.[0];

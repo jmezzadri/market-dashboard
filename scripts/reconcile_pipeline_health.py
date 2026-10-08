@@ -39,6 +39,10 @@ FALLBACK_PULL_SLA = {"D": 49, "W": 200, "M": 1200, "Q": 4800}
 # discontinued, feed removed from producer + manifest + UI (2026-06-16).
 RETIRED_FEEDS = {
     "cmdty_uranium",
+    # Retired 2026-10-08 (Joe) with the page that was their only reader; see
+    # killed_elements.json. Tables, nightly job, backup timer and rows are gone.
+    "lse_atm_iv",
+    "lse_archive_iv",
     # Power Trend swap (2026-07-15): compute_momentum_list.py + the Faber crash
     # guard were retired end-to-end; power_trend_list is the registered successor.
     "momentum_guard",
