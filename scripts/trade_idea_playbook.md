@@ -16,6 +16,20 @@ git credentials.**
 file and that script ever disagree, the script wins — update this file in the
 same commit that changes it.
 
+**Recording the outcome (bug #1261, 2026-10-08) — this supersedes any raw
+`update pipeline_health` text in the task instructions.** Record publish/skip
+with the two SELECT functions, never a raw UPDATE — the Supabase MCP
+`execute_sql` tool can hold an UPDATE for a confirmation nobody is there to
+give, and the write silently never lands:
+
+```
+select * from ops_record_publish('trade_ideas');                 -- you published
+select * from ops_record_skip('trade_ideas', '<one sentence why>'); -- you did not
+```
+
+Each must return one row. Double any apostrophe inside the reason. Neither
+touches `last_good_at`.
+
 **What this is not:** it is not a recommendation to any person, it is not
 signal for the paper engine, and it never claims a track record. The paper
 portfolio is a separate, backtested system; nothing here touches it.
