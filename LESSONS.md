@@ -189,6 +189,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `6.21` An edge measured on a short window with in-sample percentiles is a description of that window; positioning edges are tested on the full record, expanding ranks, independent episodes, split by trend
 - `6.22` A return hurdle that ignores time is wrong at both ends; the bar is a pace, and a call must add to the BOOK, not just clear a number
 - `6.23` A backtest must cover the regime of the factor the note itself names as the cause; same direction as a call just closed for a broken thesis is the same bet re-expressed
+- `6.24` Two series compared "over the same days" rarely end on the same day; ask for the yardstick on or BEFORE the mark, never on or after
 
 **7 · CODE & RELEASE DISCIPLINE**
 
@@ -1828,6 +1829,14 @@ Two things went wrong on the way to shipping it that are worth keeping. (1) The 
 4. **Withdraw the same session.** A published call its author no longer stands behind comes down that morning with the reason logged here and in the skip record; it does not wait for Monday's review.
 
 **Applies to:** the Trade Idea session, Senior Quant, the weekly thesis review. Contract: `scripts/build_trade_idea.py` (regime_match required from 2026-10-08).
+
+### 6.24 (2026-10-08) — Two series compared "over the same days" rarely end on the same day
+
+**What happened:** Joe: *"how come my long Natgas trade shows - in the vs. S&P500 column?"* The natural gas leg had a print for 10-08; the S&P's last close was 10-07. The scorer asked for the S&P "on or after" the call's mark date, found nothing, and silently dropped the whole comparison — a blank in a column whose rule is "one yardstick on every row". The same blank hit the EUR/USD row. No error, no log line; the summary tiles also quietly averaged over fewer calls.
+
+**Rule:** a yardstick is read on or BEFORE the date it is compared at, never on or after, and its own date is recorded beside it (`benchmark.as_of`). A lag longer than a long weekend (`BENCHMARK_MAX_LAG_DAYS`) is a stale yardstick: blank, on purpose. Any "first on or after" lookup at the END of a window is a bug until proven otherwise — it is right only for choosing a start. Tests: `test_benchmark_uses_the_index_last_close_when_the_call_is_marked_later`, `test_benchmark_stays_blank_when_the_index_is_stale`.
+
+**Applies to:** Senior Quant, Lead Developer — every comparison between two series with different publication clocks.
 
 # 7 · CODE & RELEASE DISCIPLINE
 ### 7.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component

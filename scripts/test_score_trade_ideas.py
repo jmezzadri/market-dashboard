@@ -328,6 +328,28 @@ class TestHorizonAndPath(unittest.TestCase):
         self.assertEqual(r["benchmark"]["label"], "S&P 500")
         self.assertAlmostEqual(r["benchmark"]["difference"], 6.0, places=6)
 
+    def test_benchmark_uses_the_index_last_close_when_the_call_is_marked_later(self):
+        """Joe 2026-10-08: "how come my long Natgas trade shows - in the vs.
+        S&P500 column?" The call was marked for a session the S&P had not
+        closed yet, and the comparison went blank. The index's last close on
+        or before the mark date is used and its date recorded: call +21%,
+        index +4% as of the day before, gap +17."""
+        h = hist(px=days("2026-01-05", [100, 110, 121]),
+                 spx_index=days("2026-01-05", [100, 104]))
+        r = S.score_one(idea(), h, "2026-01-07")
+        self.assertAlmostEqual(r["mark"], 21.0, places=6)
+        self.assertEqual(r["benchmark"]["as_of"], "2026-01-06")
+        self.assertAlmostEqual(r["benchmark"]["move"], 4.0, places=6)
+        self.assertAlmostEqual(r["benchmark"]["difference"], 17.0, places=6)
+
+    def test_benchmark_stays_blank_when_the_index_is_stale(self):
+        """An index more than four days behind the mark is not the same days;
+        a blank is honest, a stale yardstick is not."""
+        px = days("2026-01-05", [100, 101, 102, 103, 104, 105, 106, 107, 108])
+        h = hist(px=px, spx_index=days("2026-01-05", [100, 104]))
+        r = S.score_one(idea(), h, px[-1][0])
+        self.assertIsNone(r["benchmark"])
+
 
 class TestSummaryDiscipline(unittest.TestCase):
     def test_no_hit_rate_below_the_threshold(self):
