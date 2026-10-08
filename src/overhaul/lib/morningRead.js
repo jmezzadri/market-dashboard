@@ -22,6 +22,8 @@
    Exported pure functions so the same code runs in the page (useMemo) and in
    the calibration backtest harness. */
 
+import { pctWindowDays, pctWindowLabel, DEFAULT_PCT_WINDOW_DAYS } from './pctWindow';
+
 const DAY = 86400000;
 
 function t(iso) { return Date.parse(String(iso).slice(0, 10) + 'T00:00:00Z'); }
@@ -50,18 +52,19 @@ function monthLabel(iso) {
 const CAD_WORD = { D: 'daily', W: 'weekly', M: 'monthly', Q: 'quarterly' };
 const CAD_DELTA = { D: 'DoD', W: 'WoW', M: 'MoM', Q: 'QoQ' };
 
-/* Window helpers — all 3y trailing, consistent with the pill basis. */
-function window3y(points, endIdx) {
-  const cut = t(points[endIdx][0]) - 3 * 365 * DAY;
+/* Window helpers — trailing 3y by default, full history for the ids in
+   lib/pctWindow.js; always the same basis as the pill. */
+function window3y(points, endIdx, windowDays = DEFAULT_PCT_WINDOW_DAYS) {
+  const cut = Number.isFinite(windowDays) ? t(points[endIdx][0]) - windowDays * DAY : -Infinity;
   const out = [];
   for (let i = 0; i <= endIdx; i++) {
     if (t(points[i][0]) >= cut && Number.isFinite(points[i][1])) out.push(points[i][1]);
   }
   return out;
 }
-export function pctRankAt(points, endIdx) {
+export function pctRankAt(points, endIdx, windowDays = DEFAULT_PCT_WINDOW_DAYS) {
   if (endIdx < 0 || !points[endIdx] || !Number.isFinite(points[endIdx][1])) return null;
-  const vals = window3y(points, endIdx);
+  const vals = window3y(points, endIdx, windowDays);
   if (vals.length < 12) return null;
   const v = points[endIdx][1];
   return Math.round((vals.filter((x) => x < v).length / vals.length) * 100);
@@ -117,9 +120,10 @@ export function analyzeIndicator(ind, endIdx) {
   if (!pts || endIdx < 6) return null;
   const v = pts[endIdx][1];
   if (!Number.isFinite(v)) return null;
-  const pct = pctRankAt(pts, endIdx);
+  const winD = pctWindowDays(ind.id);
+  const pct = pctRankAt(pts, endIdx, winD);
   if (pct == null) return null;
-  const prevPct = pctRankAt(pts, endIdx - 1);
+  const prevPct = pctRankAt(pts, endIdx - 1, winD);
   const st = stateFor(pct, ind.direction);
   const stPrev = stateFor(prevPct, ind.direction);
   const d1 = v - pts[endIdx - 1][1];
@@ -138,7 +142,7 @@ export function analyzeIndicator(ind, endIdx) {
     // that in the 90-day backtest).
     const since = lastLevelSince(pts, endIdx, pct >= 99);
     sev = 5;
-    tail = `${ord(pct)} pct, ${pct >= 99 ? 'highest' : 'lowest'}${since ? ` since ${monthLabel(since)}` : ' of the last 3 years'}`;
+    tail = `${ord(pct)} pct, ${pct >= 99 ? 'highest' : 'lowest'}${since ? ` since ${monthLabel(since)}` : (Number.isFinite(winD) ? ' of the last 3 years' : ' on record')}`;
   } else if (st !== stPrev && prevPct != null && Math.abs(pct - prevPct) >= 5) {
     // ≥5-pt move required so a 1-2 pt wobble across a boundary stays quiet
     // (right-sized after the 90-day backtest fired on 76th→73rd noise).
@@ -152,7 +156,7 @@ export function analyzeIndicator(ind, endIdx) {
     // sigma. Added 2026-06-11 right-sizing round 2: S&P 500 Breadth (200d)
     // jumped 33rd→66th in a day and the sigma gate alone missed it.
     sev = 4;
-    tail = `jumped from the ${ord(prevPct)} to the ${ord(pct)} percentile of its 3-year range in one ${cadW === 'daily' ? 'day' : 'print'}`;
+    tail = `jumped from the ${ord(prevPct)} to the ${ord(pct)} percentile of its ${pctWindowLabel(ind.id)} range in one ${cadW === 'daily' ? 'day' : 'print'}`;
   } else if (sig && Math.abs(d1) >= 2.5 * sig) {
     // 2.5σ AND must actually be the largest move in ≥60 prints — the anchor
     // date is then always literally true.

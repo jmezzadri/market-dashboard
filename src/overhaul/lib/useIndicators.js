@@ -21,7 +21,7 @@ import { useEffect, useMemo, useState } from 'react';
 import useEngineLevels, { engineZone } from './useEngineLevels';
 import { IND, DIRECTION, TAILS } from '../../data/indicatorRegistry';
 import jsonOnce from './jsonOnce';
-
+import { pctWindowDays, pctWindowLabel, DEFAULT_PCT_WINDOW_DAYS } from './pctWindow';
 const FAMILY_LABEL = {
   equity: 'Equities',
   credit: 'Credit',
@@ -50,13 +50,15 @@ const FAMILY_FULL = {
 // series), so the pill color and the page copy disagreed. Joe directive
 // 2026-06-10: the 3-year basis is canonical site-wide; chart band shading in
 // IndicatorDetail derives from this same window so pill and chart agree.
-export const PILL_WINDOW_DAYS = 3 * 365;
-function pctRank(value, points) {
+export const PILL_WINDOW_DAYS = DEFAULT_PCT_WINDOW_DAYS;
+// windowDays: pctWindowDays(id) — Infinity ranks against the full history
+// (cmdi only, Joe 2026-10-08; see lib/pctWindow.js).
+function pctRank(value, points, windowDays = PILL_WINDOW_DAYS) {
   if (value == null || !points?.length) return null;
   const lastIso = String(points[points.length - 1][0]).slice(0, 10);
   const lastT = Date.parse(lastIso + 'T00:00:00Z');
   if (!Number.isFinite(lastT)) return null;
-  const cutT = lastT - PILL_WINDOW_DAYS * 86400000;
+  const cutT = Number.isFinite(windowDays) ? lastT - windowDays * 86400000 : -Infinity;
   const vs = [];
   for (const p of points) {
     const t = Date.parse(String(p[0]).slice(0, 10) + 'T00:00:00Z');
@@ -262,7 +264,7 @@ export default function useIndicators() {
       if (!h) return;
       const last = h.points?.length ? h.points[h.points.length - 1] : null;
       const value = last?.[1];
-      const pct = pctRank(value, h.points);
+      const pct = pctRank(value, h.points, pctWindowDays(id));
       // The REGISTRY decides which tail warns, not the feed. Until 2026-09-03
       // this read stats.direction and fell back to 'hw', so every low-end
       // warning (ERP, breadth, payrolls, 2s10s, reserves) went unflagged.
@@ -301,6 +303,9 @@ export default function useIndicators() {
       const liveP1y = livePts.length ? priorAt(livePts, 365) : null;
       out.push({
         id,
+        // Which history the pill ranks against: '3-year' (site default) or
+        // 'full-history' (lib/pctWindow.js). Every tooltip quotes this.
+        pctWindow: pctWindowLabel(id),
         name: meta[0],
         familyId,
         familyLabel: FAMILY_LABEL[familyId] || familyId,
@@ -364,7 +369,7 @@ export default function useIndicators() {
       if (!i.points || i.points.length < 2 || i.pct == null || freshCutT == null) return;
       const ownT = Date.parse(String(i.asOf).slice(0, 10) + 'T00:00:00Z');
       if (!Number.isFinite(ownT) || ownT < freshCutT) return;
-      const prevPct = pctRank(i.points[i.points.length - 2][1], i.points.slice(0, -1));
+      const prevPct = pctRank(i.points[i.points.length - 2][1], i.points.slice(0, -1), pctWindowDays(i.id));
       if (prevPct != null) i.deltaPct = i.pct - prevPct;
     });
     return out;
