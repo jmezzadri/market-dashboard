@@ -230,6 +230,8 @@ SIZE_MIN, SIZE_MAX = 0.25, 5.0
 # benchmark per row. Per-note scorecard.benchmark overrides are ignored for
 # the same reason: one page, one yardstick.
 BENCHMARK = {"series": "spx_index", "measure": "pct_change", "label": "S&P 500"}
+# A long weekend is three days plus a holiday; anything staler is not a comparison.
+BENCHMARK_MAX_LAG_DAYS = 4
 
 # Series the scorer builds from stored ones. These are NOT written to
 # indicator_history.json and never render on the site, so they need no manifest
@@ -723,8 +725,25 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
     if isinstance(bm, dict) and bm.get("series") in hist:
         bseries = hist[bm["series"]]
         _, bv = first_on_or_after(bseries, entry_date)
-        _, bnow = first_on_or_after(bseries, last_date)
-        if bv and bnow:
+        # The call and the S&P do not always have the same last print: a
+        # commodity or currency leg can be marked for a session the index has
+        # not closed yet. The old code asked for the S&P on or AFTER the
+        # call's last mark, found nothing, and left the column blank (Joe,
+        # 2026-10-08: "how come my long Natgas trade shows - in the vs.
+        # S&P500 column?"). Use the index's last close on or BEFORE the mark
+        # date and record which day that was (`as_of`); the two line up again
+        # on the next run. If the index is more than BENCHMARK_MAX_LAG_DAYS
+        # behind the mark, the comparison is not "the same days" in any honest
+        # sense and the column stays blank rather than show a stale yardstick.
+        b_obs = [(d, v) for d, v in bseries if entry_date <= d <= last_date]
+        common = None
+        if b_obs:
+            b_date, b_val = b_obs[-1]
+            lag = (dt.date.fromisoformat(last_date) - dt.date.fromisoformat(b_date)).days
+            if lag <= BENCHMARK_MAX_LAG_DAYS:
+                common = (b_date, last_mark, b_val)
+        if bv and common:
+            c_date, c_mark, bnow = common
             if bm.get("measure") == "bond_return":
                 b_move = -modified_duration(bv, bm.get("maturity_years", 10)) * (bnow - bv)
             else:
@@ -734,8 +753,9 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
                 "label": bm.get("label") or bm["series"],
                 "measure": bm.get("measure", "pct_change"),
                 "entry_value": bv,
+                "as_of": c_date,
                 "move": round(b_move, 4),
-                "difference": round(last_mark - b_move, 4),
+                "difference": round(c_mark - b_move, 4),
                 "note": "What the obvious alternative did over exactly the same days.",
             }
     return out
