@@ -1,84 +1,63 @@
 {
-  "generated_at": "2026-09-30T21:23:45Z",
+  "generated_at": "2026-10-08T11:12:12Z",
   "cadence": "weekly, Monday before the US open",
   "method": "Every Monday each open call is re-examined against the claims its note made. The numbers are computed from the record: where the call stands against what the note called for, how far the stop is, and a price-only range for where it can finish, drawn from the position's own recent volatility with no view assumed. The verdict is a judgment, stated with dated evidence: each claim the note relied on is re-measured and marked as holding or not, and the verdict has to follow from those marks. A broken thesis closes the call on the Scorecard from the review date. The return a note called for is written once and never changed.",
   "latest": {
-    "review_date": "2026-09-30",
-    "marked_to": "2026-09-30",
-    "scores_generated_at": "2026-09-30T20:31:45Z",
-    "book_now": "After this review the book is four calls, all with a physical constraint or a policy actor behind them: long US natural gas against war-priced oil (the oil-to-gas extreme has been closing from the oil side, gas has held its gain), short wheat through the fund with money-manager length still at a record, long the yen at the month-two retest of the July intervention, and a long euro that is under water but whose driver — record euro shorts — is still in place. Two calls come off today. The bank-versus-Nasdaq pair is closed: what has moved it is a rates shock the note said it was not built on, and the volatility-curve reading it was built on is gone. The TIPS-versus-Treasuries pair is closed because it worked: the gap between gold and the inflation breakeven that the note was built on has closed, three-quarters of the widening it called for has printed, and what is left is not worth carrying a duration mismatch through a 10-year yield at 5.29%. Highest conviction: natural gas and wheat, each within a point or two of what its note called for with the driver intact. Lowest: the euro, which needs the dollar to give back its September gain inside six weeks. A reader holding the earlier calls takes off the bank pair and the TIPS pair at the review date's close and leaves the other four alone.",
+    "review_date": "2026-10-08",
+    "marked_to": "2026-10-08",
+    "scores_generated_at": "2026-10-08T02:23:11Z",
+    "book_now": "This review is three days late: Monday's scheduled run did not publish, so the record was re-measured on Thursday. After it the book is three calls, each with a physical constraint or a policy actor behind it: long US natural gas against war-priced oil, short wheat through the fund, and long the yen at the month-two retest of the July intervention. One call comes off. The long euro is closed because the reason behind it did not survive an honest re-test: over the full record since 2004, a stretched speculative euro short has more often been followed by a weaker euro than a stronger one, and the three-month gain the note quoted existed only inside a three-year window. Highest conviction: natural gas, which has earned twice what its note called for with the fund short still at a record, and wheat, where the fund selling the note predicted is now under way. Lowest: the yen, flat two and a half weeks in and waiting on the authorities. A reader holding the calls takes off the euro at today's close and leaves the other three alone.",
     "book_risk": {
       "pairs": [
         {
-          "a": "Long EUR/USD",
-          "b": "Short WEAT (Teucrium wheat fund)",
-          "correlation": 0.07
-        },
-        {
-          "a": "Long EUR/USD",
-          "b": "Long Natgas",
-          "correlation": -0.02
-        },
-        {
-          "a": "Long EUR/USD",
-          "b": "Long Japanese yen via FXY",
-          "correlation": 0.48
-        },
-        {
           "a": "Short WEAT (Teucrium wheat fund)",
           "b": "Long Natgas",
-          "correlation": -0.16
+          "correlation": -0.22
         },
         {
           "a": "Short WEAT (Teucrium wheat fund)",
           "b": "Long Japanese yen via FXY",
-          "correlation": 0.01
+          "correlation": 0.0
         },
         {
           "a": "Long Natgas",
           "b": "Long Japanese yen via FXY",
-          "correlation": -0.05
+          "correlation": -0.04
         }
       ],
       "flagged_pairs": [],
       "exposures": [
         {
-          "trade_label": "Long EUR/USD",
-          "US equities": 0.07,
-          "10-year yield": -0.18,
-          "the dollar": -0.84
-        },
-        {
           "trade_label": "Short WEAT (Teucrium wheat fund)",
-          "US equities": -0.16,
-          "10-year yield": 0.3,
-          "the dollar": 0.06
+          "US equities": -0.18,
+          "10-year yield": 0.37,
+          "the dollar": 0.23
         },
         {
           "trade_label": "Long Natgas",
-          "US equities": -0.36,
-          "10-year yield": 1.15,
-          "the dollar": 0.32
+          "US equities": -0.06,
+          "10-year yield": 1.03,
+          "the dollar": -0.21
         },
         {
           "trade_label": "Long Japanese yen via FXY",
-          "US equities": 0.34,
-          "10-year yield": -0.41,
-          "the dollar": -1.47
+          "US equities": 0.35,
+          "10-year yield": -0.38,
+          "the dollar": -1.36
         }
       ],
       "book": {
-        "positions": 4,
-        "sigma_day_pct": 0.728,
-        "annualised_pct": 11.6,
+        "positions": 3,
+        "sigma_day_pct": 0.914,
+        "annualised_pct": 14.5,
         "range_21_sessions": {
-          "p10": -4.28,
-          "p90": 4.28
+          "p10": -5.37,
+          "p90": 5.37
         },
         "beta": {
-          "US equities": 0.04,
-          "10-year yield": 0.18,
-          "the dollar": -0.67
+          "US equities": 0.05,
+          "10-year yield": 0.34,
+          "the dollar": -0.51
         },
         "basis": "equal weight across the open calls, one unit each, trailing 63 sessions; a 21-session driftless range"
       },
@@ -86,200 +65,10 @@
     },
     "counts": {
       "intact": 3,
-      "weakened": 1,
-      "broken": 2
+      "weakened": 0,
+      "broken": 1
     },
     "calls": [
-      {
-        "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
-        "date": "2026-08-16",
-        "kind": "rates",
-        "trade_label": "Long 10y TIPS / Short 10y UST",
-        "title": "Two prices for the same insurance, and only one of them is cheap",
-        "horizon_months": 6,
-        "verdict": "broken",
-        "action": "close",
-        "called_for_pct": 0.95,
-        "called_for_basis": "the +12 basis point six-month median widening in the note's base rate, turned into a return at the legs' entry duration (about eight years)",
-        "expected_return_now_pct": 0.4,
-        "expected_basis": "the current mark (+0.17%) plus the 3 basis points of widening still outstanding against the +12bp base rate, at the entry duration of about eight years",
-        "view_now": "This one is closed because it worked, not because it failed. The note was built on gold and the breakeven pricing inflation differently; gold has fallen 3.4% and the breakeven has widened 9 of the 12 basis points the base rate called for, and the gap is gone. What the pair has to show for it is +0.17%, because a general rise in yields hurts the longer-duration TIPS leg more than the Treasury leg. With the driver resolved, what is left is roughly 3 basis points of expected widening carried through a 10-year at 5.29% and real yields at their three-year high — a duration mismatch with no edge attached. We take the result.",
-        "action_reason": "The mispricing the note identified has closed. Closed at the review date's close on the Scorecard; the remaining expected gain is a few basis points and the rates market is too violent to carry a duration mismatch for it.",
-        "weakened_reason": null,
-        "driver_checks": [
-          {
-            "claim": "Two hedges against the same risk disagree: gold sits in the top 15% of its trailing three years while the 10-year inflation breakeven sits in the bottom 35% of its own. The gap, not the breakeven level, is the edge.",
-            "at_publication": "gold $4,363.60 at the 85th percentile of three years; breakeven 2.27%, the 31st percentile (Aug 14)",
-            "now": "gold $4,215.80 at the 77th percentile; breakeven 2.36%, the 78th percentile — the two have converged from both sides and the condition no longer exists",
-            "source": "macrotilt.com indicator history (gold; Treasury.gov 10-year nominal minus TIPS)",
-            "as_of": "2026-09-30",
-            "holds": false,
-            "critical": true
-          },
-          {
-            "claim": "The widening comes mostly from the nominal yield moving up, so TIPS against nominal Treasuries collects the gap whichever way rates go.",
-            "at_publication": "10-year 4.68%, real yield 2.41%, breakeven 2.27% (Aug 14)",
-            "now": "10-year 5.29% (+61bp), real yield 2.93% (+52bp), breakeven 2.36% (+9bp of the +12bp called for); the pair has earned +0.17% because the TIPS leg carries more duration than the Treasury leg and both yields rose",
-            "source": "macrotilt.com indicator history and the daily scorecard marks",
-            "as_of": "2026-09-30",
-            "holds": true,
-            "critical": false
-          },
-          {
-            "claim": "The stop has not printed: no weekly close in the breakeven below 2.10%, and no payrolls print below −100,000.",
-            "at_publication": "breakeven 2.27% (Aug 14)",
-            "now": "breakeven 2.36%; the 4 September payrolls print did not breach the threshold; 2 October is pending",
-            "source": "macrotilt.com indicator history; the daily scorecard's stop check",
-            "as_of": "2026-09-30",
-            "holds": true,
-            "critical": false
-          }
-        ],
-        "quant": {
-          "mark_pct": 0.2309,
-          "mark_date": "2026-09-30",
-          "entry_date": "2026-08-14",
-          "target_date": "2027-02-14",
-          "sessions_held": 33,
-          "vs_spx_pp": 1.9544,
-          "max_favourable_pct": 0.8992,
-          "max_adverse_pct": 0.0,
-          "sessions_left": 95,
-          "horizon_elapsed_pct": 25.2,
-          "vol": {
-            "sigma_day_pct": 0.1702,
-            "sessions_used": 63,
-            "annualised_pct": 2.7,
-            "at_entry_annualised_pct": 2.332,
-            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-09-30"
-          },
-          "range_at_horizon": {
-            "p10": -1.9,
-            "p25": -0.89,
-            "p50": 0.23,
-            "p75": 1.35,
-            "p90": 2.36,
-            "width_pct": 1.659,
-            "basis": "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"
-          },
-          "p_finish_positive": 0.555,
-          "called_for_pct": 0.95,
-          "p_finish_at_or_above_called_for": 0.332,
-          "remaining_to_called_for_pct": 0.72,
-          "stop": {
-            "series": "breakeven_10y",
-            "label": "the 10-year breakeven",
-            "rule": "breakeven_10y <= 2.1 (weekly close)",
-            "level": 2.1,
-            "now": 2.36,
-            "as_of": "2026-09-30",
-            "distance": 0.26,
-            "distance_pct_of_level": 12.38,
-            "units": "absolute (points)",
-            "sigma_day": 0.02119,
-            "sigmas_away": 12.27,
-            "basis": "weekly_close",
-            "p_touch_before_horizon": 0.328,
-            "p_touch_windows": 5096,
-            "p_touch_note": "share of the series' own 5096 past windows of 95 sessions in which it moved at least this far down, on closes; the rule needs a weekly close, which fires less often"
-          }
-        }
-      },
-      {
-        "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
-        "date": "2026-08-17",
-        "kind": "equity",
-        "trade_label": "Long KBW / Short NASDAQ",
-        "title": "The volatility curve is at its steepest in five years. That has been a pay cut, not a warning.",
-        "horizon_months": 6,
-        "verdict": "broken",
-        "action": "close",
-        "called_for_pct": 3.69,
-        "called_for_basis": "the note's conditional median for banks against the S&P over six months after a bottom-5% volatility-curve reading (37 episodes, 60% hit rate)",
-        "expected_return_now_pct": -11.0,
-        "expected_basis": "the current mark (−10.3%) plus the note's own unconditional median for a random bank-versus-index entry (−1.4% over six months) — there is no conditioning edge left to add",
-        "view_now": "The call was built on a volatility-curve reading that has since gone back to mid-range, and the ten points it has lost came from something the note explicitly said it was not built on: a rates shock that has taken the 10-year to 5.29% and hit banks harder than the index it is short. The base rate offered a median gain of under four points at a 60% hit rate; from ten points under water that edge does not reach back to even. We no longer expect this call to pan out. Banks may well recover once rates settle, but that would be a different call with a different reason, and it should be written as one.",
-        "action_reason": "The reason for the position is gone and what is moving it is a risk the note ruled out of scope. Closed at the review date's close on the Scorecard; a reader holding it takes it off rather than waiting four and a half months for a mechanism that is no longer in play.",
-        "weakened_reason": null,
-        "driver_checks": [
-          {
-            "claim": "The relative leg is a volatility-structure trade: banks against the index respond to the steep volatility curve, not to a rates or credit shock, which the note listed as the risk it was not built on.",
-            "at_publication": "10-year Treasury 4.68%, 2-year 4.17%, VIX 14.25; banks moving with the volatility regime, not with rates (Aug 14)",
-            "now": "10-year Treasury 5.29% and the 10-year real yield 2.93%, both at the 100th percentile of the last three years; 2-year 4.88%; banks are down 10.0% since entry against the Nasdaq up 0.3% and the S&P down 1.3% — the move is a rates repricing, not the volatility mechanism",
-            "source": "macrotilt.com indicator history (Treasury.gov daily curve) and the daily scorecard marks",
-            "as_of": "2026-09-30",
-            "holds": false,
-            "critical": true
-          },
-          {
-            "claim": "The slope of the S&P volatility curve (30-day over three-month implied) sits in the bottom 5% of its five-year range — the conditioning signal.",
-            "at_publication": "0.77, the 0.6th percentile of five years (Aug 14)",
-            "now": "0.89, the 50th percentile of five years — the curve has normalised; VIX 16.19",
-            "source": "macrotilt.com indicator history (VIX / VIX3M ratio)",
-            "as_of": "2026-09-29",
-            "holds": false,
-            "critical": false
-          },
-          {
-            "claim": "Banks are not extended: the sleeve the record points to has room to gain on the index.",
-            "at_publication": "Banks relative to the S&P mid-range of three years (Aug 14)",
-            "now": "Banks relative to the S&P at the 2.8th percentile of three years — cheaper, but because of the rates shock, not the setup",
-            "source": "macrotilt.com indicator history (bank index divided by the S&P 500)",
-            "as_of": "2026-09-30",
-            "holds": true,
-            "critical": false
-          }
-        ],
-        "quant": {
-          "mark_pct": -12.2257,
-          "mark_date": "2026-09-30",
-          "entry_date": "2026-08-14",
-          "target_date": "2027-02-14",
-          "sessions_held": 33,
-          "vs_spx_pp": -10.5022,
-          "max_favourable_pct": 0.1156,
-          "max_adverse_pct": -12.2257,
-          "sessions_left": 95,
-          "horizon_elapsed_pct": 25.2,
-          "vol": {
-            "sigma_day_pct": 1.1934,
-            "sessions_used": 63,
-            "annualised_pct": 18.94,
-            "at_entry_annualised_pct": 23.027,
-            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-09-30"
-          },
-          "range_at_horizon": {
-            "p10": -27.13,
-            "p25": -20.07,
-            "p50": -12.23,
-            "p75": -4.38,
-            "p90": 2.68,
-            "width_pct": 11.632,
-            "basis": "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"
-          },
-          "p_finish_positive": 0.147,
-          "called_for_pct": 3.69,
-          "p_finish_at_or_above_called_for": 0.086,
-          "remaining_to_called_for_pct": 15.92,
-          "stop": {
-            "series": "vix_ts",
-            "label": "the VIX-to-VIX3M ratio",
-            "rule": "vix_ts >= 1 (close)",
-            "level": 1.0,
-            "now": 0.8867,
-            "as_of": "2026-09-29",
-            "distance": 0.1133,
-            "distance_pct_of_level": 11.33,
-            "units": "absolute (points)",
-            "sigma_day": 0.03025,
-            "sigmas_away": 3.75,
-            "basis": "close",
-            "p_touch_before_horizon": 0.672,
-            "p_touch_windows": 4988,
-            "p_touch_note": "share of the series' own 4988 past windows of 95 sessions in which it moved at least this far up, on closes"
-          }
-        }
-      },
       {
         "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
         "date": "2026-08-14",
@@ -287,91 +76,92 @@
         "trade_label": "Long EUR/USD",
         "title": "The most one-sided trade in the market is not on any chart",
         "horizon_months": 3,
-        "verdict": "weakened",
-        "action": "hold",
+        "horizon_label": "3 months",
+        "verdict": "broken",
+        "action": "close",
         "called_for_pct": 3.18,
         "called_for_basis": "the note's base rate: median three-month euro return after speculative euro positioning at or below the 15th percentile (77% positive, 26 weeks)",
-        "expected_return_now_pct": -0.2,
-        "expected_basis": "the current mark (−1.66%) plus roughly half the base-rate three-month median (+3.18%) for the six weeks left, with the euro reading still inside the condition",
-        "view_now": "The euro side of the setup is still there: speculators remain near a record short and hedgers near a record long, and that is the base rate the call is graded on. The dollar side has gone against us in the one way the note said it could — real yields have surged, the dollar index is up 1.5% and speculators have used the rally to halve their long rather than being forced out of it. The pair is down 1.7% with six weeks left and the stop at 103 on the dollar index is 1.5% away. We still expect the euro to recover from here, but not enough inside the horizon to reach what the note called for.",
-        "action_reason": "The base rate the call is marked on still applies and the stop has not printed, so the position stays on through its horizon. It is the lowest-conviction call in the book and is sized as one.",
+        "expected_return_now_pct": -2.9,
+        "expected_basis": "closed at the current mark of about -2.9%; with the edge disproven there is no expected recovery to add",
+        "view_now": "The reason for this call is gone. The gain the note quoted after a stretched speculative euro short exists only inside a three-year window; over the full record the same setup has lost money more often than it has made it. Meanwhile the dollar side has run against us as the note's own risk described, with US yields higher and the euro near a 17-month low. We no longer expect this call to reach what the note called for.",
+        "action_reason": "A broken thesis is closed whatever the price has done. The evidence the call rested on did not hold up on the full record, so it comes off now rather than running to its November horizon or its stop.",
         "weakened_reason": null,
         "driver_checks": [
           {
-            "claim": "Speculators hold an extended euro short — at or below the 15th percentile of three years — which is the base rate the call is marked on.",
-            "at_publication": "euro speculative positioning at the 10th percentile (Aug 4 report)",
-            "now": "13th percentile, commercials at the 89th on the other side — still extended",
-            "source": "CFTC Commitments of Traders via macrotilt.com positioning (Sep 22 report)",
-            "as_of": "2026-09-22",
-            "holds": true,
+            "claim": "The base rate the call is marked on is a real edge: the euro has tended to rise over the following three months after speculators hold an extended short.",
+            "at_publication": "+3.18% median over three months, 77% positive, measured on 26 weekly reports inside one three-year window",
+            "now": "re-tested on the full record since 2004 with each week ranked only against the history available that week: nine separate episodes, an average loss of 1.2% over three months, one in three won; the speculators were more often right",
+            "source": "MacroTilt outside-research challenge re-test of the euro positioning signal (CFTC record 2004 to 2026)",
+            "as_of": "2026-10-02",
+            "holds": false,
             "critical": true
           },
           {
-            "claim": "The same trade is on in the dollar index: speculators at or above the 85th percentile long, and the position has not yet been paid.",
-            "at_publication": "dollar-index speculative long at the 90th percentile, 43.1% of open interest; dollar index 100.01 (Aug 4 report, Aug 13 close)",
-            "now": "67th percentile, 22.3% of open interest — half the position has been taken off — and the dollar index is 101.50, up 1.5%: the long was paid before it was unwound",
-            "source": "CFTC Commitments of Traders via macrotilt.com positioning (Sep 22 report); macrotilt.com indicator history",
-            "as_of": "2026-09-30",
-            "holds": false,
+            "claim": "Speculators hold an extended euro short, at or below the 15th percentile of three years.",
+            "at_publication": "10th percentile (Aug 4 report)",
+            "now": "11th percentile of three years, net short 7.4% of open interest; on the full record that is closer to the 30th percentile, mid-range",
+            "source": "CFTC Commitments of Traders via macrotilt.com positioning (Sep 29 report)",
+            "as_of": "2026-09-29",
+            "holds": true,
             "critical": false
           },
           {
-            "claim": "A hawkish turn in US rates would change the sign — the note's own risk.",
-            "at_publication": "10-year 4.68%, 2-year 4.17% (Aug 13)",
-            "now": "10-year 5.29%, 2-year 4.88%, real yield 2.93% — the rate gap has widened in the dollar's favour, which is the risk the note named",
-            "source": "macrotilt.com indicator history (Treasury.gov daily curve)",
-            "as_of": "2026-09-30",
-            "holds": false,
+            "claim": "No weekly close in the dollar index at or above 103.",
+            "at_publication": "dollar index 100.01 (Aug 13 close)",
+            "now": "102.23, under 1% from the stop, with the euro at 1.120, near a 17-month low",
+            "source": "macrotilt.com indicator history",
+            "as_of": "2026-10-07",
+            "holds": true,
             "critical": false
           }
         ],
         "quant": {
-          "mark_pct": -1.6558,
-          "mark_date": "2026-09-29",
+          "mark_pct": -2.8955,
+          "mark_date": "2026-10-08",
           "entry_date": "2026-08-13",
           "target_date": "2026-11-13",
-          "sessions_held": 39,
-          "vs_spx_pp": -0.0126,
+          "sessions_held": 47,
+          "vs_spx_pp": null,
           "max_favourable_pct": 1.3264,
-          "max_adverse_pct": -1.6558,
-          "sessions_left": 31,
-          "horizon_elapsed_pct": 51.6,
+          "max_adverse_pct": -2.8955,
+          "sessions_left": 25,
+          "horizon_elapsed_pct": 60.9,
           "vol": {
-            "sigma_day_pct": 0.2534,
+            "sigma_day_pct": 0.2745,
             "sessions_used": 63,
-            "annualised_pct": 4.02,
+            "annualised_pct": 4.36,
             "at_entry_annualised_pct": 5.663,
-            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-09-29"
+            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-10-08"
           },
           "range_at_horizon": {
-            "p10": -3.46,
-            "p25": -2.61,
-            "p50": -1.66,
-            "p75": -0.7,
-            "p90": 0.15,
-            "width_pct": 1.411,
+            "p10": -4.65,
+            "p25": -3.82,
+            "p50": -2.9,
+            "p75": -1.97,
+            "p90": -1.14,
+            "width_pct": 1.373,
             "basis": "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"
           },
-          "p_finish_positive": 0.12,
+          "p_finish_positive": 0.017,
           "called_for_pct": 3.18,
           "p_finish_at_or_above_called_for": 0.0,
-          "remaining_to_called_for_pct": 4.84,
+          "remaining_to_called_for_pct": 6.08,
           "stop": {
             "series": "usd",
             "label": "the dollar index",
             "rule": "usd >= 103 (weekly close)",
             "level": 103.0,
-            "now": 101.37,
-            "as_of": "2026-09-29",
-            "distance": 1.63,
-            "distance_pct_of_level": 1.58,
+            "now": 102.23,
+            "as_of": "2026-10-07",
+            "distance": 0.77,
+            "distance_pct_of_level": 0.75,
             "units": "proportional (%)",
-            "sigma_day": 0.28752,
-            "sigmas_away": 5.59,
+            "sigma_day": 0.30274,
+            "sigmas_away": 2.49,
             "basis": "weekly_close",
-            "p_touch_before_horizon": 0.43,
-            "p_touch_windows": 5191,
-            "p_touch_note": "share of the series' own 5191 past windows of 31 sessions in which it moved at least this far up, on closes; the rule needs a weekly close, which fires less often"
+            "p_touch_before_horizon": 0.634,
+            "p_touch_windows": 5203,
+            "p_touch_note": "share of the series' own 5203 past windows of 25 sessions in which it moved at least this far up, on closes; the rule needs a weekly close, which fires less often"
           }
         }
       },
@@ -382,91 +172,92 @@
         "trade_label": "Short WEAT (Teucrium wheat fund)",
         "title": "The last buyers just showed up in wheat",
         "horizon_months": 2,
+        "horizon_label": "2 months",
         "verdict": "intact",
         "action": "hold",
         "called_for_pct": 6.0,
         "called_for_basis": "the note's base rate between its one-month (−5.3%) and three-month (−6.6%) medians for a two-month horizon, taken as a short return",
-        "expected_return_now_pct": 6.6,
-        "expected_basis": "the note's three-month base-rate median (−6.6% on wheat, 13 of 16 negative) taken as a short return, with the driver reading unchanged",
-        "view_now": "The driver is unchanged: fund length in wheat is still at a record and has not begun to come out, and wheat has drifted 3% lower while the fund the note told the reader to short has fallen 5.7%. That is most of what the base rate called for, five weeks in, with the stop at 767 more than 10% away. The remaining edge is the difference between the one-month and three-month medians — a further point or so — plus the fund's own drag when the curve is steep.",
-        "action_reason": "Driver intact, most of the move earned, stop far away. It runs to its early-November horizon.",
+        "expected_return_now_pct": 5.5,
+        "expected_basis": "the current mark of about +3.8% plus roughly a point and a half more, a little under the base rate because funds have already sold out of their length and there is less selling left to come",
+        "view_now": "The unwind the note called for is happening: funds that were record long when the call was made are now net short, and wheat has fallen from 716 at entry to 686. The fund the reader shorts is down about 4% as of Tuesday's mark, most of what the note called for, with four weeks left. Much of the selling is now done, so the remaining edge is smaller than at entry, but nothing argues against the call.",
+        "action_reason": "Driver intact and working as described, stop far away. It runs to its early-November horizon.",
         "weakened_reason": null,
         "driver_checks": [
           {
-            "claim": "Managed money is net long wheat above the 85th percentile of its full 2013–2026 record — the last buyers are in.",
-            "at_publication": "96th percentile, net long 3.2% of open interest (Sep 1 report)",
-            "now": "96th percentile — fund length has not started to unwind; front-month wheat 693 from 716 at entry (−3.2%)",
-            "source": "CFTC disaggregated positioning via macrotilt.com (Sep 22 report); macrotilt.com indicator history",
+            "claim": "Fund length in wheat was at a record when the call was made, and those buyers have not been replaced: the length comes out rather than building further.",
+            "at_publication": "managed money at the 96th percentile, net long 3.2% of open interest (Sep 1 report)",
+            "now": "net short 3.4% of open interest, down every week since entry; funds have sold out of the position the note said was stretched, which is the mechanism the call relies on",
+            "source": "CFTC positioning via macrotilt.com (Sep 29 report)",
             "as_of": "2026-09-29",
             "holds": true,
             "critical": true
           },
           {
-            "claim": "The whole grain complex leans the same way — corn and soybean funds at the 96th and 89th percentiles.",
-            "at_publication": "corn 96th, soybeans 89th percentile (Sep 1 report)",
-            "now": "wheat funds still at the 96th percentile; the note's grain-complex reading is from the same source and the wheat reading has not moved",
-            "source": "CFTC disaggregated positioning via macrotilt.com (Sep 22 report)",
-            "as_of": "2026-09-22",
+            "claim": "The fade of record fund length in wheat is a real edge on the full record.",
+            "at_publication": "funds at or above the 85th percentile, followed by lower wheat over the next three months",
+            "now": "re-tested on the full record with honest percentiles: 11 separate episodes, wheat lower by 7.8% on average over three months, 73% of episodes worked",
+            "source": "MacroTilt outside-research challenge re-test of the wheat positioning signal (CFTC record 2006 to 2026)",
+            "as_of": "2026-10-02",
             "holds": true,
-            "critical": false
+            "critical": true
           },
           {
-            "claim": "No daily close above 767, the Aug 28 high — a new closing high would say the supply shock is still repricing.",
+            "claim": "No daily close above 767, the Aug 28 high.",
             "at_publication": "wheat 733 (Sep 4)",
-            "now": "693; the highest close since entry was well under 767",
+            "now": "686, with the highest close since entry 716; the stop is 12% above the market",
             "source": "macrotilt.com indicator history; the daily scorecard's stop check",
-            "as_of": "2026-09-29",
+            "as_of": "2026-10-08",
             "holds": true,
             "critical": false
           }
         ],
         "quant": {
-          "mark_pct": 5.436,
-          "mark_date": "2026-09-29",
+          "mark_pct": 3.775,
+          "mark_date": "2026-10-06",
           "entry_date": "2026-09-04",
           "target_date": "2026-11-04",
-          "sessions_held": 17,
-          "vs_spx_pp": 6.0548,
-          "max_favourable_pct": 5.738,
+          "sessions_held": 22,
+          "vs_spx_pp": 2.4752,
+          "max_favourable_pct": 7.248,
           "max_adverse_pct": -1.7743,
-          "sessions_left": 25,
-          "horizon_elapsed_pct": 40.5,
+          "sessions_left": 20,
+          "horizon_elapsed_pct": 52.4,
           "vol": {
-            "sigma_day_pct": 1.6688,
+            "sigma_day_pct": 1.6664,
             "sessions_used": 63,
-            "annualised_pct": 26.49,
+            "annualised_pct": 26.45,
             "at_entry_annualised_pct": 24.202,
-            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-09-29"
+            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-10-06"
           },
           "range_at_horizon": {
-            "p10": -5.26,
-            "p25": -0.19,
-            "p50": 5.44,
-            "p75": 11.06,
-            "p90": 16.13,
-            "width_pct": 8.344,
+            "p10": -5.78,
+            "p25": -1.25,
+            "p50": 3.77,
+            "p75": 8.8,
+            "p90": 13.33,
+            "width_pct": 7.452,
             "basis": "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"
           },
-          "p_finish_positive": 0.743,
+          "p_finish_positive": 0.694,
           "called_for_pct": 6.0,
-          "p_finish_at_or_above_called_for": 0.473,
-          "remaining_to_called_for_pct": 0.56,
+          "p_finish_at_or_above_called_for": 0.383,
+          "remaining_to_called_for_pct": 2.23,
           "stop": {
             "series": "cmdty_wheat",
             "label": "front-month wheat",
             "rule": "cmdty_wheat >= 767 (close)",
             "level": 767.0,
-            "now": 693.25,
-            "as_of": "2026-09-29",
-            "distance": 73.75,
-            "distance_pct_of_level": 9.62,
+            "now": 704.25,
+            "as_of": "2026-10-06",
+            "distance": 62.75,
+            "distance_pct_of_level": 8.18,
             "units": "proportional (%)",
-            "sigma_day": 2.16979,
-            "sigmas_away": 4.9,
+            "sigma_day": 2.16693,
+            "sigmas_away": 4.11,
             "basis": "close",
-            "p_touch_before_horizon": 0.244,
-            "p_touch_windows": 6543,
-            "p_touch_note": "share of the series' own 6543 past windows of 25 sessions in which it moved at least this far up, on closes"
+            "p_touch_before_horizon": 0.256,
+            "p_touch_windows": 6553,
+            "p_touch_note": "share of the series' own 6553 past windows of 20 sessions in which it moved at least this far up, on closes"
           }
         }
       },
@@ -477,91 +268,92 @@
         "trade_label": "Long Natgas",
         "title": "Oil carries a war premium. US natural gas carries none.",
         "horizon_months": 3,
+        "horizon_label": "3 months",
         "verdict": "intact",
         "action": "hold",
         "called_for_pct": 7.6,
         "called_for_basis": "the note's base rate: median front-month gas gain over three months after an oil-to-gas ratio reading at or above the 95th percentile (42 episodes since 2004)",
-        "expected_return_now_pct": 8.0,
-        "expected_basis": "the note's base-rate median (+7.6% over three months) plus a modest allowance for the ratio still sitting at the 90th percentile with funds at a record short; the sub-sample where oil had already rallied 10% into the reading gives +5.0%, which the position has passed",
-        "view_now": "This is doing exactly what the base rate said an extreme of this kind does: the ratio is coming in from both sides, with oil giving up 11% and gas holding a 7% gain — most of the +7.6% the note called for, three weeks into a thirteen-week horizon. The extended fund short in gas is still there, which is fuel for the leg we own. The ratio is no longer at the 95th percentile, so the remaining edge is smaller than at entry; the position keeps its gain with a stop 19% away.",
-        "action_reason": "Driver intact and the mechanism is working as described. It runs to its December horizon; the note's own sizing already treats it as a three-month trade, not a winter hold.",
+        "expected_return_now_pct": 15.0,
+        "expected_basis": "the current mark of about +15.4% with no further drift added, because the ratio has fallen back below the extreme the base rate was measured from; the record fund short is a risk to the upside, not a number we add",
+        "view_now": "This has done what the base rate said an extreme of this kind does, and more: gas is up 15% against the 7.6% the note called for, four weeks into a thirteen-week horizon, while oil has given back its premium. The ratio is no longer extreme, so the edge that set up the call is largely spent; what remains is a record fund short in gas that would have to be bought back. We expect the call to finish roughly where it is now, with a wide range either side.",
+        "action_reason": "Driver intact and the stop is a third away. It runs to its December horizon; with the edge mostly earned, the review will close it early if the ratio swings back toward oil or the fund short is bought back.",
         "weakened_reason": null,
         "driver_checks": [
           {
-            "claim": "The oil-to-gas price ratio is at an extreme (95th percentile or above since 2000), and such extremes close from both ends — gas up, oil flat-to-down.",
-            "at_publication": "35.5, the 96th percentile of 6,539 daily readings since 2000 (Sep 11)",
-            "now": "29.5, the 90th percentile — it has closed from both ends as the note said: WTI 89.19 (−11% since entry) and gas 3.02 (+6.8%)",
+            "claim": "The oil-to-gas price ratio was at an extreme, and such extremes close from both ends: gas up, oil flat to down.",
+            "at_publication": "35.5, the 96th percentile of daily readings since 2000 (Sep 11)",
+            "now": "27.3, the 87th percentile; it has closed from both ends as the note said, with US crude 89.00 and front-month gas 3.27 (+15% since entry)",
             "source": "macrotilt.com indicator history (WTI and front-month Henry Hub)",
-            "as_of": "2026-09-29",
+            "as_of": "2026-10-08",
             "holds": true,
             "critical": true
           },
           {
-            "claim": "Managed money is short gas at an extreme (8th percentile of three years) — the short is extended, not fresh.",
-            "at_publication": "8th percentile, six weeks running (Sep 8 report)",
-            "now": "8th percentile, commercials at the 97th on the other side — still extended",
-            "source": "CFTC positioning via macrotilt.com (Sep 22 report)",
-            "as_of": "2026-09-22",
+            "claim": "Managed money is short gas at an extreme: the short is extended, not fresh.",
+            "at_publication": "8th percentile of three years, six weeks running (Sep 8 report)",
+            "now": "1st percentile of three years, net short 13.0% of open interest, with commercials at the 100th on the other side; the short is larger than at entry",
+            "source": "CFTC positioning via macrotilt.com (Sep 29 report)",
+            "as_of": "2026-09-29",
             "holds": true,
             "critical": false
           },
           {
             "claim": "No weekly close in front-month gas below 2.45.",
             "at_publication": "2.82 (Sep 11)",
-            "now": "3.02 — the stop is 19% below the market",
+            "now": "3.27; the stop is a third below the market",
             "source": "macrotilt.com indicator history; the daily scorecard's stop check",
-            "as_of": "2026-09-29",
+            "as_of": "2026-10-08",
             "holds": true,
             "critical": false
           }
         ],
         "quant": {
-          "mark_pct": 6.7821,
-          "mark_date": "2026-09-29",
+          "mark_pct": 15.3656,
+          "mark_date": "2026-10-08",
           "entry_date": "2026-09-11",
           "target_date": "2026-12-11",
-          "sessions_held": 13,
-          "vs_spx_pp": 6.6011,
+          "sessions_held": 19,
+          "vs_spx_pp": null,
           "max_favourable_pct": 16.4606,
           "max_adverse_pct": 0.0,
-          "sessions_left": 50,
-          "horizon_elapsed_pct": 20.6,
+          "sessions_left": 44,
+          "horizon_elapsed_pct": 30.2,
           "vol": {
-            "sigma_day_pct": 2.6279,
+            "sigma_day_pct": 2.5592,
             "sessions_used": 63,
-            "annualised_pct": 41.72,
+            "annualised_pct": 40.63,
             "at_entry_annualised_pct": 92.06,
-            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-09-29"
+            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-10-08"
           },
           "range_at_horizon": {
-            "p10": -17.03,
-            "p25": -5.75,
-            "p50": 6.78,
-            "p75": 19.32,
-            "p90": 30.6,
-            "width_pct": 18.582,
+            "p10": -6.39,
+            "p25": 3.92,
+            "p50": 15.37,
+            "p75": 26.82,
+            "p90": 37.12,
+            "width_pct": 16.976,
             "basis": "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"
           },
-          "p_finish_positive": 0.642,
+          "p_finish_positive": 0.817,
           "called_for_pct": 7.6,
-          "p_finish_at_or_above_called_for": 0.482,
-          "remaining_to_called_for_pct": 0.82,
+          "p_finish_at_or_above_called_for": 0.676,
+          "remaining_to_called_for_pct": -7.77,
           "stop": {
             "series": "cmdty_natgas",
             "label": "front-month gas",
             "rule": "cmdty_natgas <= 2.45 (weekly close)",
             "level": 2.45,
-            "now": 3.023,
-            "as_of": "2026-09-29",
-            "distance": 0.573,
-            "distance_pct_of_level": 23.39,
+            "now": 3.266,
+            "as_of": "2026-10-08",
+            "distance": 0.816,
+            "distance_pct_of_level": 33.31,
             "units": "proportional (%)",
-            "sigma_day": 2.51677,
-            "sigmas_away": 7.53,
+            "sigma_day": 2.46526,
+            "sigmas_away": 10.13,
             "basis": "weekly_close",
-            "p_touch_before_horizon": 0.305,
-            "p_touch_windows": 6503,
-            "p_touch_note": "share of the series' own 6503 past windows of 50 sessions in which it moved at least this far down, on closes; the rule needs a weekly close, which fires less often"
+            "p_touch_before_horizon": 0.158,
+            "p_touch_windows": 6515,
+            "p_touch_note": "share of the series' own 6515 past windows of 44 sessions in which it moved at least this far down, on closes; the rule needs a weekly close, which fires less often"
           }
         }
       },
@@ -572,95 +364,163 @@
         "trade_label": "Long Japanese yen via FXY",
         "title": "The record yen rescue looks dead. So did the last three at exactly this point.",
         "horizon_months": 4,
+        "horizon_label": "4 months",
         "verdict": "intact",
         "action": "hold",
         "called_for_pct": 6.0,
         "called_for_basis": "the note's target: 147 on dollar-yen by late January 2027, the median months-two-to-six move applied from 157.34, roughly +6% on the fund",
         "expected_return_now_pct": 6.0,
-        "expected_basis": "the note's base rate unchanged: the median months-two-to-six move in dollar-yen after an intervention campaign (−6.9%), which is roughly +6% on the fund before costs",
-        "view_now": "Eight sessions in and flat, which is what month two looked like in every prior campaign. The authorities have not withdrawn their stated readiness to intervene, the BoJ has just raised rates, and dollar-yen is sitting exactly where the call entered. Nothing has been tested yet; the tests are the 2 October jobs report and any sign the authorities have stepped back. Three prior episodes is a thin record, as the note said, and one counterexample would change the median.",
-        "action_reason": "Nothing has changed since publication; the call is one week into a four-month horizon with the driver in place.",
+        "expected_basis": "the note's base rate unchanged: the median months-two-to-six move in dollar-yen after an intervention campaign (−6.9%), roughly +6% on the fund before costs, with the position where it entered",
+        "view_now": "Two and a half weeks in and flat, which is what month two looked like in the prior campaigns. The authorities repeated their readiness to act alongside the US at the end of September and the yen did not weaken through the jobs report. Nothing has been tested yet; three prior episodes is a thin record, as the note said, and one counterexample would change the median.",
+        "action_reason": "Nothing has changed since publication; the call is under three weeks into a four-month horizon with the driver in place.",
         "weakened_reason": null,
         "driver_checks": [
           {
-            "claim": "An official yen-buying campaign is under way and the authorities have not stepped back: the July 30–31 intervention was acknowledged jointly by the US and Japan with a stated readiness to act again.",
-            "at_publication": "campaign began July 30; joint US–Japan acknowledgment Aug 3 with readiness for more; BoJ raised its rate to 1.25% on Sep 18 (Sep 22)",
-            "now": "no retraction of the readiness to intervene has been reported; the BoJ rate stands at 1.25%; dollar-yen 157.41 against 157.37 at entry, still within 2% of the level where the buying began",
-            "source": "CNBC / Morgan Stanley reporting of the Aug 3 joint acknowledgment; macrotilt.com indicator history",
-            "as_of": "2026-09-30",
+            "claim": "An official yen-buying campaign is under way and the authorities have not stepped back: the July intervention was acknowledged jointly by the US and Japan with a stated readiness to act again.",
+            "at_publication": "campaign began July 30; joint US and Japan acknowledgment Aug 3 with readiness for more; Bank of Japan rate raised to 1.25% on Sep 18",
+            "now": "Japan's top currency official repeated on Sep 28 that joint US and Japan action remains on the table, and no retraction has been reported since; the Bank of Japan rate stands at 1.25%; dollar-yen 157.87 against 157.37 at entry",
+            "source": "FXStreet, Japan's Mimura reiterates joint intervention warning (Sep 28); FXStreet, yen after Japanese pay data (Oct 7); macrotilt.com indicator history",
+            "as_of": "2026-10-08",
             "holds": true,
             "critical": true
           },
           {
             "claim": "The pattern is a month-two retest followed by the real move in months two to six; this call entered at the retest.",
             "at_publication": "month two of the campaign; dollar-yen 157.34 (Sep 22)",
-            "now": "eight sessions in, dollar-yen flat at 157.41; nothing in the pattern has been contradicted yet",
+            "now": "twelve sessions in, dollar-yen between 157.4 and 158.4 the whole time, through the Oct 2 jobs report; nothing in the pattern has been contradicted",
             "source": "macrotilt.com indicator history (dollar-yen)",
-            "as_of": "2026-09-29",
+            "as_of": "2026-10-08",
             "holds": true,
             "critical": false
           },
           {
             "claim": "No weekly close in dollar-yen above 164, the July 28 weak point.",
             "at_publication": "157.34 (Sep 22)",
-            "now": "157.41 — the stop is 4% away; leveraged funds are at the 75th percentile long yen, still mid-range",
-            "source": "macrotilt.com indicator history; CFTC positioning via macrotilt.com (Sep 22 report)",
-            "as_of": "2026-09-29",
+            "now": "157.87; the stop is about 4% away",
+            "source": "macrotilt.com indicator history",
+            "as_of": "2026-10-08",
             "holds": true,
             "critical": false
           }
         ],
         "quant": {
-          "mark_pct": 0.1203,
-          "mark_date": "2026-09-29",
+          "mark_pct": -0.4639,
+          "mark_date": "2026-10-06",
           "entry_date": "2026-09-21",
           "target_date": "2027-01-21",
-          "sessions_held": 7,
-          "vs_spx_pp": 1.3291,
+          "sessions_held": 12,
+          "vs_spx_pp": -1.1623,
           "max_favourable_pct": 0.1718,
           "max_adverse_pct": -0.8935,
-          "sessions_left": 79,
-          "horizon_elapsed_pct": 6.0,
+          "sessions_left": 74,
+          "horizon_elapsed_pct": 11.9,
           "vol": {
-            "sigma_day_pct": 0.6318,
+            "sigma_day_pct": 0.6197,
             "sessions_used": 63,
-            "annualised_pct": 10.03,
+            "annualised_pct": 9.84,
             "at_entry_annualised_pct": null,
-            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-09-29"
+            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-10-06"
           },
           "range_at_horizon": {
-            "p10": -7.08,
-            "p25": -3.67,
-            "p50": 0.12,
-            "p75": 3.91,
-            "p90": 7.32,
-            "width_pct": 5.615,
+            "p10": -7.3,
+            "p25": -4.06,
+            "p50": -0.46,
+            "p75": 3.13,
+            "p90": 6.37,
+            "width_pct": 5.331,
             "basis": "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"
           },
-          "p_finish_positive": 0.509,
+          "p_finish_positive": 0.465,
           "called_for_pct": 6.0,
-          "p_finish_at_or_above_called_for": 0.148,
-          "remaining_to_called_for_pct": 5.88,
+          "p_finish_at_or_above_called_for": 0.113,
+          "remaining_to_called_for_pct": 6.46,
           "stop": {
             "series": "fx_jpy",
             "label": "dollar-yen",
             "rule": "fx_jpy >= 164 (weekly close)",
             "level": 164.0,
-            "now": 157.412,
-            "as_of": "2026-09-29",
-            "distance": 6.588,
-            "distance_pct_of_level": 4.02,
+            "now": 158.296,
+            "as_of": "2026-10-06",
+            "distance": 5.704,
+            "distance_pct_of_level": 3.48,
             "units": "proportional (%)",
-            "sigma_day": 0.57005,
-            "sigmas_away": 7.34,
+            "sigma_day": 0.56859,
+            "sigmas_away": 6.34,
             "basis": "weekly_close",
-            "p_touch_before_horizon": 0.391,
-            "p_touch_windows": 7692,
-            "p_touch_note": "share of the series' own 7692 past windows of 79 sessions in which it moved at least this far up, on closes; the rule needs a weekly close, which fires less often"
+            "p_touch_before_horizon": 0.435,
+            "p_touch_windows": 7703,
+            "p_touch_note": "share of the series' own 7703 past windows of 74 sessions in which it moved at least this far up, on closes; the rule needs a weekly close, which fires less often"
           }
         }
       }
     ]
   },
-  "history": []
+  "history": [
+    {
+      "review_date": "2026-09-30",
+      "marked_to": "2026-09-30",
+      "calls": [
+        {
+          "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
+          "trade_label": "Long 10y TIPS / Short 10y UST",
+          "verdict": "broken",
+          "action": "close",
+          "called_for_pct": 0.95,
+          "expected_return_now_pct": 0.4,
+          "mark_pct": 0.2309,
+          "p_finish_at_or_above_called_for": 0.332
+        },
+        {
+          "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
+          "trade_label": "Long KBW / Short NASDAQ",
+          "verdict": "broken",
+          "action": "close",
+          "called_for_pct": 3.69,
+          "expected_return_now_pct": -11.0,
+          "mark_pct": -12.2257,
+          "p_finish_at_or_above_called_for": 0.086
+        },
+        {
+          "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
+          "trade_label": "Long EUR/USD",
+          "verdict": "weakened",
+          "action": "hold",
+          "called_for_pct": 3.18,
+          "expected_return_now_pct": -0.2,
+          "mark_pct": -1.6558,
+          "p_finish_at_or_above_called_for": 0.0
+        },
+        {
+          "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
+          "trade_label": "Short WEAT (Teucrium wheat fund)",
+          "verdict": "intact",
+          "action": "hold",
+          "called_for_pct": 6.0,
+          "expected_return_now_pct": 6.6,
+          "mark_pct": 5.436,
+          "p_finish_at_or_above_called_for": 0.473
+        },
+        {
+          "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
+          "trade_label": "Long Natgas",
+          "verdict": "intact",
+          "action": "hold",
+          "called_for_pct": 7.6,
+          "expected_return_now_pct": 8.0,
+          "mark_pct": 6.7821,
+          "p_finish_at_or_above_called_for": 0.482
+        },
+        {
+          "id": "2026-09-22-the-record-yen-rescue-looks-dead-so-did-the-last",
+          "trade_label": "Long Japanese yen via FXY",
+          "verdict": "intact",
+          "action": "hold",
+          "called_for_pct": 6.0,
+          "expected_return_now_pct": 6.0,
+          "mark_pct": 0.1203,
+          "p_finish_at_or_above_called_for": 0.148
+        }
+      ]
+    }
+  ]
 }
