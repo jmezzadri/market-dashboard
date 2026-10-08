@@ -180,7 +180,7 @@
       "reason": "generate-commentary wrote a daily AI macro/sector blurb to macro_commentary + sector_commentary, but NOTHING read those tables: the Home brief and the daily email both come from /daily_brief.json (DAILY-BRIEF-WRITER). The only visible artifact was the watchdog rows going red and putting a stale banner on every page (9-day outage, LESSONS 2026-07-29). Joe approved killing the chain: pg_cron generate-commentary-daily-1130utc unscheduled, watchdog narrative-gap check removed, 3 manifest elements + 3 pipeline_health rows deleted, names in reconciler RETIRED_FEEDS. Tables kept as a frozen archive (no producer).",
       "status": "removed",
       "residue": [
-        "supabase/functions/generate-commentary/ left deployed-but-unscheduled and in-repo as archive; delete folder if it ever confuses anyone. macro_commentary/sector_commentary tables frozen at 2026-07-28."
+        "supabase/functions/generate-commentary/ removed from the repo 2026-10-08 (metered Anthropic cleanup); the deployed copy on Supabase is unscheduled and has no key. macro_commentary/sector_commentary tables frozen at 2026-07-28."
       ]
     },
     {

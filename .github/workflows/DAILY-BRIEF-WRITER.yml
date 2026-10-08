@@ -12,7 +12,7 @@ name: DAILY-BRIEF-WRITER
 # to 'live' (and retire the old routine) once the new email is confirmed good.
 #
 # Pipeline name (Data Steward convention): commentary-daily-brief-daily
-# Required secrets: ANTHROPIC_API_KEY, SMTP_USER, SMTP_PASSWORD, EMAIL_TO,
+# Required secrets: SMTP_USER, SMTP_PASSWORD, EMAIL_TO,
 #   EMAIL_FROM (optional), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, MACROTILT_BOT_PAT
 
 # 2026-06-30 RE-ARM: this workflow was manually disabled during the 2026-06-29
@@ -78,7 +78,6 @@ jobs:
 
       - name: Build brief + send email (stdlib only)
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
