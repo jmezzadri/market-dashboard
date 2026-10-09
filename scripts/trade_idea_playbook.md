@@ -229,6 +229,36 @@ sweep was reduced to a veto. That ordering is now reversed:
    our data, one entry in the log. It never delays the publish deadline; if
    time is short the Trade Idea comes first and the read waits a week.
 
+5. **Sectors, styles and macro themes are swept every run (Joe, 2026-10-09).**
+   Joe: *"do you ever look at sector based trades?"* and *"I really need you
+   to think about broader macro themes. Value vs. growth, etc. Do research!"*
+   Until this date the sweep carried exactly one sector series (banks against
+   the S&P), so a sector or style trade could not be found, let alone tested.
+   The harness is `scripts/research/theme_sweep/` — read its README first; it
+   lists the data, the method and every theme already tested with its result.
+   Each run:
+   - **State of the themes.** Six-month return against the S&P, ranked on its
+     own history, for the 9 SPDR sectors, the industry funds (refiners, energy
+     producers, semis, software, regional banks, homebuilders, retail,
+     transports, miners, biotech, REITs, aerospace), value against growth,
+     small against large, cyclicals against defensives. Say in the skip reason
+     or the note which themes sit beyond the 5th / 95th percentile.
+   - **Macro state against themes.** Name today's macro states (yields, oil,
+     the dollar, the curve, vol) and test what each theme did after the same
+     state — `scan_macro_states.py`. The street's current theme calls come
+     from the morning read (dated pages only) and are tested the same way.
+   - **A scan is a screen.** Hundreds of tests produce dozens of chance hits.
+     A row counts only if it holds in both halves of the sample, survives
+     moving the threshold, is echoed by a neighbouring theme, and passes the
+     same-regime test below. The first refiner screen (+13% a quarter with
+     the diesel margin at its 95th percentile) died on exactly that test:
+     nothing in the sample had entered after a 58% quarter.
+   - **Value against growth is tested on the long record**, not on funds that
+     have six months of prices here: the Ken French daily series back to
+     1926, with the listed fund named only as the vehicle.
+   - At least one of the run's named candidates must be a sector, style or
+     macro-theme trade, with its test.
+
 It must still be a *trade*, not an observation — something with an instrument,
 a horizon and a level that proves it wrong — and the full bar below applies
 unchanged: measured edge with a baseline, real variant, book fit, no
