@@ -48,6 +48,17 @@ TARGETS = [
     # 2026-06-11 (Joe): flipped from GBP=X (pounds per dollar, ~0.75) to
     # GBPUSD=X — cable, dollars per pound (~1.33), the desk-standard quote.
     ("fx_gbp",         "GBPUSD=X",    "British pound",    "FX",          "$/£"),
+    # 2026-10-09 (Joe: widen the market banner — "do some research and
+    # homework"). The six things a cross-asset desk expects on a tape that the
+    # site did not collect at all: US small caps, the two overseas benchmarks,
+    # bitcoin, platinum and European gas. Banner-only: none is ranked on Macro
+    # or read by any engine.
+    ("rut_index",      "^RUT",        "Russell 2000",     "Equities",    "index"),
+    ("n225_index",     "^N225",       "Nikkei 225",       "Equities",    "index"),
+    ("dax_index",      "^GDAXI",      "DAX",              "Equities",    "index"),
+    ("crypto_btc",     "BTC-USD",     "Bitcoin",          "Crypto",      "$"),
+    ("cmdty_platinum", "PL=F",        "Platinum",         "Commodities", "$/oz"),
+    ("cmdty_ttf",      "TTF=F",       "European natural gas (Dutch TTF)", "Commodities", "EUR/MWh"),
 ]
 
 
@@ -170,28 +181,36 @@ def daily_bars(q):
     """Completed daily bars from one Yahoo chart result, dated the way the
     EXCHANGE dates them.
 
-    Two things the old gmtime() dating got wrong (2026-10-09):
+    What gmtime() dating got wrong (2026-10-09):
       - FX daily bars are stamped at London midnight, which in summer is 23:00
         UTC the evening BEFORE — so every FX close was filed one day early.
       - Yahoo appends the live quote as an extra entry stamped "now". Filed as
-        a daily bar it became tomorrow's close (evening run, UTC already
-        tomorrow) and then sat in the stored history as a close nobody traded.
-    A real daily bar is stamped at exactly midnight in the exchange's own
-    timezone; anything else is the live quote and is not a close. A bar with
-    no close yet (Yahoo shows the just-finished session as null for some
-    hours) is skipped, never guessed."""
-    import datetime as _dtm
+        a daily bar it became a close nobody traded.
+    The live quote is recognised by what it is: the entry stamped at the
+    feed's own regularMarketTime, off the series' usual stamp. It is NOT
+    recognised by "not at midnight" — the first version of this function did
+    that and threw away every half-session close (Jul 3, the Friday after
+    Thanksgiving, Dec 24), which Yahoo stamps 09:30 instead of 00:00, and
+    would have thrown away every equity-index bar, which are stamped at the
+    open. A bar with no close yet is skipped, never guessed."""
+    import datetime as _dtm, collections as _co
     from zoneinfo import ZoneInfo as _zi
     tz = _zi(q["meta"]["exchangeTimezoneName"])
-    pts = []
+    live_ts = q["meta"].get("regularMarketTime")
+    rows = []
     for t, c in zip(q["timestamp"], q["indicators"]["quote"][0]["close"]):
         if c is None:
             continue
-        local = _dtm.datetime.fromtimestamp(t, tz)
-        if (local.hour, local.minute) != (0, 0):
-            continue
-        pts.append([local.strftime("%Y-%m-%d"), round(float(c), 4)])
-    return pts
+        rows.append((t, _dtm.datetime.fromtimestamp(t, tz), c))
+    if not rows:
+        return []
+    usual = _co.Counter((l.hour, l.minute) for _, l, _c in rows).most_common(1)[0][0]
+    by_date = {}
+    for t, local, c in rows:
+        if t == live_ts and (local.hour, local.minute) != usual:
+            continue                      # the appended live quote, not a bar
+        by_date[local.strftime("%Y-%m-%d")] = round(float(c), 4)
+    return [[d, by_date[d]] for d in sorted(by_date)]
 
 
 def fetch_uranium_spot():
@@ -535,12 +554,21 @@ def selftest():
     # quote and a null close are not bars.
     _lon = _zi2("Europe/London")
     _b = lambda y, m, d, hh=0, mm=0, z=_lon: int(_td.datetime(y, m, d, hh, mm, tzinfo=z).timestamp())
-    got = daily_bars({"meta": {"exchangeTimezoneName": "Europe/London"},
-                      "timestamp": [_b(2026, 10, 8), _b(2026, 10, 9), _b(2026, 10, 9, 13, 50)],
-                      "indicators": {"quote": [{"close": [1.1201, None, 1.1198]}]}})
-    good = got == [["2026-10-08", 1.1201]]
+    _live = _b(2026, 10, 9, 13, 50)
+    got = daily_bars({"meta": {"exchangeTimezoneName": "Europe/London", "regularMarketTime": _live},
+                      "timestamp": [_b(2026, 10, 7), _b(2026, 10, 8), _b(2026, 10, 9), _live],
+                      "indicators": {"quote": [{"close": [1.1254, 1.1201, None, 1.1198]}]}})
+    good = got == [["2026-10-07", 1.1254], ["2026-10-08", 1.1201]]
     ok &= good
-    print(f"  {'OK' if good else 'FAIL'} daily_bars keeps only settled exchange-midnight bars: {got}")
+    print(f"  {'OK' if good else 'FAIL'} daily_bars drops the live quote and the null bar: {got}")
+    # A half-session close is stamped 09:30, not 00:00, and is still a close.
+    _ny = _zi2("America/New_York")
+    got = daily_bars({"meta": {"exchangeTimezoneName": "America/New_York", "regularMarketTime": _b(2026, 1, 2, 9, 47, _ny)},
+                      "timestamp": [_b(2025, 12, 22, 0, 0, _ny), _b(2025, 12, 23, 0, 0, _ny), _b(2025, 12, 24, 9, 30, _ny), _b(2025, 12, 26, 0, 0, _ny)],
+                      "indicators": {"quote": [{"close": [58.0, 58.38, 58.35, 56.74]}]}})
+    good = ["2025-12-24", 58.35] in got and len(got) == 4
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} daily_bars keeps a half-session close stamped 09:30: {got[-2:]}")
     # merge guard
     import tempfile
     global HISTORY_PATH

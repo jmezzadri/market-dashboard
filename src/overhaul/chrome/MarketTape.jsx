@@ -14,7 +14,7 @@
                   commodities are quoted that way on every desk. Rates, spreads
                   and vol indexes move in their own points, so they are not.
    `live`       — quote symbol on the shared live-quote path. Only the three
-                  equity indexes have one: in the session they show the live
+                  US equity indexes have one: in the session they show the live
                   level and move, outside it the last close. Everything else is
                   a daily series and is stamped "close" (LESSONS 4.26 rule 1:
                   a move renders with its session, in the same element).
@@ -42,6 +42,11 @@ export const TAPE = [
     { key: 'spx_index', label: 'S&P', dec: 0, live: '^GSPC', pct: true, idx: 'spx_index' },
     { key: 'ndx_index', label: 'NASDAQ', dec: 0, live: '^IXIC', pct: true, idx: 'ndx_index' },
     { key: 'dji_index', label: 'DOW', dec: 0, live: '^DJI', pct: true, idx: 'dji_index' },
+    { key: 'rut_index', label: 'Russell 2K', dec: 0, live: '^RUT', pct: true },
+  ] },
+  { group: 'Overseas equities', items: [
+    { key: 'n225_index', label: 'Nikkei', dec: 0, pct: true },
+    { key: 'dax_index', label: 'DAX', dec: 0, pct: true },
   ] },
   { group: 'Volatility', items: [
     { key: 'vix', label: 'VIX', dec: 1, ind: 'vix' },
@@ -67,12 +72,14 @@ export const TAPE = [
     { key: 'cmdty_oil', label: 'WTI', dec: 2, pct: true, ind: 'cmdty_oil' },
     { key: 'cmdty_brent', label: 'Brent', dec: 2, pct: true, ind: 'cmdty_brent' },
     { key: 'cmdty_natgas', label: 'Nat Gas', dec: 3, pct: true, ind: 'cmdty_natgas' },
+    { key: 'cmdty_ttf', label: 'TTF', dec: 2, pct: true },
     { key: 'cmdty_gasoline', label: 'Gasoline', dec: 3, pct: true },
     { key: 'cmdty_heatoil', label: 'Diesel', dec: 3, pct: true },
   ] },
   { group: 'Metals', items: [
     { key: 'cmdty_gold', label: 'Gold', dec: 0, pct: true, ind: 'cmdty_gold' },
     { key: 'cmdty_silver', label: 'Silver', dec: 2, pct: true, ind: 'cmdty_silver' },
+    { key: 'cmdty_platinum', label: 'Platinum', dec: 0, pct: true },
     { key: 'cmdty_copper', label: 'Copper', dec: 2, pct: true, ind: 'cmdty_copper' },
     { key: 'cmdty_uranium', label: 'Uranium', dec: 2, pct: true, ind: 'cmdty_uranium' },
   ] },
@@ -80,6 +87,9 @@ export const TAPE = [
     { key: 'cmdty_corn', label: 'Corn', dec: 0, pct: true, ind: 'cmdty_corn' },
     { key: 'cmdty_wheat', label: 'Wheat', dec: 0, pct: true, ind: 'cmdty_wheat' },
     { key: 'cmdty_soybeans', label: 'Soybeans', dec: 0, pct: true, ind: 'cmdty_soybeans' },
+  ] },
+  { group: 'Crypto', items: [
+    { key: 'crypto_btc', label: 'Bitcoin', dec: 0, pct: true },
   ] },
 ];
 export const TAPE_ITEMS = TAPE.flatMap((g) => g.items);

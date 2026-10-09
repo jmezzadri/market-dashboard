@@ -76,7 +76,8 @@
   "v_2026_08_17b": "Redeploy trigger \u2014 the 11:48Z deploy of this file did not reach production; no content change.",
   "v_2026_08_17c": "Retired portfolio.ce-events-daily (Conviction Events decision ledger): the book it fed was retired 2026-08-13 and its producer workflows are disabled, so the element could never be tracked again \u2014 it was showing as 'registered but no health record' in the header rollup. The upstream inputs it derived from (insider_history_edgar, prices_eod) remain registered; the ce_events table keeps its historical rows.",
   "v_2026_08_28": "Quality Trend retired (Joe, 2026-08-26; superseded by paper_portfolio/TACTICAL_BOOK_SPEC.md, which is design-only). Deregistered both of its feeds \u2014 qt-target-book (producer QT-REBALANCE) and qt-nav-daily (producer QT-EOD-DAILY) \u2014 and deleted their pipeline_health rows, closing the standing \"1 feed stale\" site header. The producers were deleted in the same change (QT-EOD-DAILY, QT-REBALANCE, QT-FUNDAMENTALS-REFRESH, QT-PLACE-ORDERS) along with the pg_cron job qt-live-sync-10min, which was still snapshotting a funded-but-never-traded account every ten minutes. The closed book's data (qt_nav_daily, qt_target_book, qt_orders) is kept \u2014 /paper renders it as a finished record. Per LESSONS 0.10, retired means deleted, everywhere, in the same change.",
-  "v_2026_10_09": "Market banner moved from Home to the top of every page and widened from 9 series to 27 (Joe, 2026-10-09). No new feed: every series was already produced and registered; each one now lists the banner as a consumer surface. Gasoline and heating oil (diesel) are displayed on the site for the first time. Same change: MARKET-INDICATORS-EOD stored a bar from the next, still-open futures/FX session as the newest daily point every evening (the job runs after the 18:00 ET reopen); the producer now keeps only sessions that have settled."
+  "v_2026_10_09": "Market banner moved from Home to the top of every page and widened from 9 series to 27 (Joe, 2026-10-09). No new feed: every series was already produced and registered; each one now lists the banner as a consumer surface. Gasoline and heating oil (diesel) are displayed on the site for the first time. Same change: MARKET-INDICATORS-EOD stored a bar from the next, still-open futures/FX session as the newest daily point every evening (the job runs after the 18:00 ET reopen); the producer now keeps only sessions that have settled.",
+  "v_2026_10_09b": "Market banner widened to 33 series (Joe, 2026-10-09): six new daily feeds registered, all Yahoo Finance, all produced by MARKET-INDICATORS-EOD and shown only on the banner \u2014 Russell 2000, Nikkei 225, DAX, Bitcoin, platinum, Dutch TTF gas. MARKET-INDICATORS-EOD now also runs Tue-Sat 05:30 ET. Producer dating corrected twice the same day (exchange-timezone dates; live quote never stored; half-session closes kept) \u2014 LESSONS 4.41."
  },
  "elements": [
   {
@@ -4557,6 +4558,216 @@
    "data_max_age_hours": 54,
    "release_calendar": "nyse-trading-day",
    "output_destination": "public.qt_brake_state"
+  },
+  {
+   "id": "market-rut_index-daily",
+   "category": "market",
+   "name": "rut_index",
+   "description": "Russell 2000 index level (^RUT) \u2014 US small caps.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API ^RUT",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "05:30",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "public/indicator_history.json[rut_index]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": [],
+   "as_of_cutoff_et": null,
+   "as_of_cutoff_note": "no single intraday cutoff",
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "display_name": "Russell 2000 index level"
+  },
+  {
+   "id": "market-n225_index-daily",
+   "category": "market",
+   "name": "n225_index",
+   "description": "Nikkei 225 index level (^N225), in yen.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API ^N225",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "05:30",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "public/indicator_history.json[n225_index]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": [],
+   "as_of_cutoff_et": null,
+   "as_of_cutoff_note": "no single intraday cutoff",
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "display_name": "Nikkei 225 index level"
+  },
+  {
+   "id": "market-dax_index-daily",
+   "category": "market",
+   "name": "dax_index",
+   "description": "DAX index level (^GDAXI), in euros.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API ^GDAXI",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "05:30",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "public/indicator_history.json[dax_index]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": [],
+   "as_of_cutoff_et": null,
+   "as_of_cutoff_note": "no single intraday cutoff",
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "display_name": "DAX index level"
+  },
+  {
+   "id": "market-crypto_btc-daily",
+   "category": "market",
+   "name": "crypto_btc",
+   "description": "Bitcoin in US dollars (BTC-USD), daily close at midnight UTC.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API BTC-USD",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "05:30",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "public/indicator_history.json[crypto_btc]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": [],
+   "as_of_cutoff_et": null,
+   "as_of_cutoff_note": "no single intraday cutoff",
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "display_name": "Bitcoin"
+  },
+  {
+   "id": "indicator-cmdty_platinum-daily",
+   "category": "indicator",
+   "name": "cmdty_platinum",
+   "description": "Platinum futures (PL=F), $/oz.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API PL=F",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "05:30",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "public/indicator_history.json[cmdty_platinum]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": [],
+   "as_of_cutoff_et": null,
+   "as_of_cutoff_note": "no single intraday cutoff",
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "display_name": "Platinum"
+  },
+  {
+   "id": "indicator-cmdty_ttf-daily",
+   "category": "indicator",
+   "name": "cmdty_ttf",
+   "description": "Dutch TTF natural gas futures (TTF=F), EUR/MWh \u2014 the European gas benchmark.",
+   "sourcing_mode": "STP from vendor",
+   "source_vendor": "Yahoo Finance",
+   "source_endpoint": "Yahoo chart API TTF=F",
+   "license_tier": "free",
+   "monthly_cost_usd": 0,
+   "cadence": "daily",
+   "scheduled_fetch_time_et": "05:30",
+   "refresh_trigger": "MARKET-INDICATORS-EOD",
+   "freshness_sla_hours": 49,
+   "data_max_age_hours": 54,
+   "data_calendar": "nyse-trading-day",
+   "output_destination": "public/indicator_history.json[cmdty_ttf]",
+   "producer_script": "scripts/fetch_market_indicators.py",
+   "consumer_surfaces": [
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
+    }
+   ],
+   "current_status": "live",
+   "release_calendar": "nyse-trading-day",
+   "failure_mode": "Falls back to last good close on Yahoo outage.",
+   "owner": "Data Steward",
+   "dependencies": [],
+   "as_of_cutoff_et": null,
+   "as_of_cutoff_note": "no single intraday cutoff",
+   "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
+   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "display_name": "European natural gas (TTF)"
   }
  ],
  "_known_gaps_surfaced_in_phase1": [
