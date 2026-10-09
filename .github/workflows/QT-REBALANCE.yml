@@ -135,17 +135,36 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        # 2026-10-09 (health sweep): this step used to stamp GREEN unconditionally,
+        # overwriting the red that rebalance.py's own completeness audit
+        # (_stamp_health, LESSONS 4.31) had written seconds earlier. The Oct 1
+        # book shipped QLYS + HNGE with no sector/industry, /paper rendered
+        # "Unclassified 10%", and the row sat green for 8 days. The stamp now
+        # re-runs the same audit on the rows it reads back and stays red on holes.
         run: |
-          AS_OF=$(python3 -c "
+          OUT=$(python3 -c "
           import os, json, urllib.request
-          req = urllib.request.Request(
-              os.environ['SUPABASE_URL'] + '/rest/v1/qt_target_book?select=rebalance_date&order=rebalance_date.desc&limit=1',
-              headers={'apikey': os.environ['SUPABASE_SERVICE_ROLE_KEY'],
-                       'Authorization': 'Bearer ' + os.environ['SUPABASE_SERVICE_ROLE_KEY']})
-          rows = json.load(urllib.request.urlopen(req))
-          print(rows[0]['rebalance_date'] if rows else '-')
+          def get(q):
+              req = urllib.request.Request(os.environ['SUPABASE_URL'] + '/rest/v1/qt_target_book?' + q,
+                  headers={'apikey': os.environ['SUPABASE_SERVICE_ROLE_KEY'],
+                           'Authorization': 'Bearer ' + os.environ['SUPABASE_SERVICE_ROLE_KEY']})
+              return json.load(urllib.request.urlopen(req))
+          top = get('select=rebalance_date&order=rebalance_date.desc&limit=1')
+          if not top:
+              print('-|0|0|'); raise SystemExit
+          d = top[0]['rebalance_date']
+          rows = get('select=symbol,company,sector,industry,market_cap,addv&rebalance_date=eq.' + d)
+          bad = [r['symbol'] for r in rows if any(r.get(k) in (None, '') for k in ('company','sector','industry','market_cap','addv'))]
+          print(d + '|' + str(len(bad)) + '|' + str(len(rows)) + '|' + ','.join(bad))
           ")
-          python3 scripts/upsert_pipeline_health.py qt-target-book "$AS_OF" green
+          IFS='|' read -r AS_OF NBAD NROWS BADLIST <<< "$OUT"
+          echo "book $AS_OF: $NBAD of $NROWS holdings incomplete ${BADLIST}"
+          if [ "$NBAD" != "0" ]; then
+            python3 scripts/upsert_pipeline_health.py qt-target-book "$AS_OF" red \
+              "$NBAD of $NROWS holdings in the $AS_OF book are missing sector, industry, market cap or trading volume ($BADLIST) - add them to qt_gics"
+          else
+            python3 scripts/upsert_pipeline_health.py qt-target-book "$AS_OF" green
+          fi
 
       # The only step in this workflow that can move the account (LESSONS 3.6:
       # the trading grant lives on the one step that trades).
