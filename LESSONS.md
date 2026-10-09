@@ -1008,6 +1008,8 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer — every user-visible state label; the weekday health sweep.
 
+**2026-10-09 addendum (Joe: "You did a health check on the site and didn't notice this garbage modal?!"):** the engine track-record modal on /macro ("See it against the market") shipped 2026-07-29 with `eng-*` classNames and NO stylesheet — raw browser defaults, no padding, year ticks run together as "200720102013…", empty legend swatches, an unstyled table. It sat broken for ten weeks. The sweep had rendered / and /paper that same morning and called the site verified. **Rule: a page check that never opens a modal has not checked the modal.** RENDERED-DOM-SMOKE now opens the track-record modal and asserts the content is padded, the axis ticks are positioned, and no year labels run together on ANY checked surface (the generic tell of a component with no CSS). Any new modal or drawer ships with its own entry in `checkMacroModals` (or a sibling) in the same PR — rule 6 of 0.13 again: a surface with no reader does not exist.
+
 
 ### 4.33 (2026-09-15) — A forecaster that has not rolled to the next month yet is not a broken fetch; fail-loud rules need the race window named
 
