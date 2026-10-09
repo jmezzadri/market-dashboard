@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-09T13:05:48Z",
+  "generated_at": "2026-10-09T13:48:48Z",
   "as_of": "2026-10-09",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
@@ -16,11 +16,11 @@
       "marked": 8,
       "open": 4,
       "closed": 4,
-      "avg_mark_pct": 0.04,
+      "avg_mark_pct": -0.66,
       "best": {
-        "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
-        "trade_label": "Long Natgas",
-        "mark": 11.9
+        "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
+        "trade_label": "Short WEAT (Teucrium wheat fund)",
+        "mark": 6.53
       },
       "worst": {
         "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
@@ -28,10 +28,10 @@
         "mark": -12.23
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": 0.32,
+      "avg_vs_spx_pp": -0.38,
       "ahead_of_spx": 3,
       "behind_spx": 4,
-      "line": "8 calls marked (4 open, 4 closed). Taken as one book they average +0.0% a call and sit 0.3 points ahead of the S&P 500 over the same days — 3 ahead of the index, 4 behind. Best: Long Natgas, +11.9%. Worst: Long KBW / Short NASDAQ, -12.2%."
+      "line": "8 calls marked (4 open, 4 closed). Taken as one book they average -0.7% a call and sit 0.4 points behind the S&P 500 over the same days — 3 ahead of the index, 4 behind. Best: Short WEAT (Teucrium wheat fund), +6.5%. Worst: Long KBW / Short NASDAQ, -12.2%."
     },
     "stats_withheld": true,
     "stats_withheld_reason": "4 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless.",
@@ -41,15 +41,15 @@
       "calendar_days": 56,
       "history_weeks": 8,
       "benchmark_label": "S&P 500",
-      "total_return_pct": -0.3931,
+      "total_return_pct": -1.2619,
       "benchmark_total_pct": -0.4312,
-      "excess_total_pct": 0.0382,
-      "annualized_pct": -2.5343,
+      "excess_total_pct": -0.8307,
+      "annualized_pct": -7.944,
       "benchmark_annualized_pct": -2.7773,
-      "excess_annualized_pct": 0.2431,
+      "excess_annualized_pct": -5.1667,
       "annualized_withheld_reason": null,
-      "realized_contribution_pct": -3.5869,
-      "unrealized_contribution_pct": 3.1938,
+      "realized_contribution_pct": -3.5837,
+      "unrealized_contribution_pct": 2.3218,
       "positions_open": 4,
       "positions_closed": 4,
       "min_positions_held": 1,
@@ -186,115 +186,115 @@
     ],
     [
       "2026-09-14",
-      -0.5127,
+      -0.632,
       -2.2953,
       6
     ],
     [
       "2026-09-15",
-      -0.4441,
+      -0.3583,
       -2.7345,
       6
     ],
     [
       "2026-09-16",
-      -1.1989,
+      -1.2381,
       -3.1694,
       6
     ],
     [
       "2026-09-17",
-      -1.155,
+      -1.2988,
       -2.0673,
       6
     ],
     [
       "2026-09-18",
-      -0.9666,
+      -1.0456,
       -1.904,
       6
     ],
     [
       "2026-09-21",
-      -2.4852,
+      -2.3316,
       -0.4397,
       5
     ],
     [
       "2026-09-22",
-      -1.8812,
+      -1.5152,
       -0.4404,
       6
     ],
     [
       "2026-09-23",
-      -1.5279,
+      -1.4665,
       -1.1919,
       6
     ],
     [
       "2026-09-24",
-      0.0116,
+      -0.3872,
       -1.2163,
       6
     ],
     [
       "2026-09-25",
-      -0.2002,
+      -0.6933,
       -0.7127,
       6
     ],
     [
       "2026-09-28",
-      -1.0179,
+      -0.9976,
       -1.4784,
       6
     ],
     [
       "2026-09-29",
-      -1.1747,
+      -1.8878,
       -1.6432,
       6
     ],
     [
       "2026-09-30",
-      -1.0325,
+      -1.7964,
       -1.8906,
       6
     ],
     [
       "2026-10-01",
-      -1.9284,
+      -2.7039,
       -1.6995,
       4
     ],
     [
       "2026-10-02",
-      -1.335,
+      -1.9305,
       -0.9779,
       4
     ],
     [
       "2026-10-05",
-      -1.489,
+      -2.1467,
       -0.3211,
       4
     ],
     [
       "2026-10-06",
-      -1.4136,
+      -2.0142,
       0.2557,
       4
     ],
     [
       "2026-10-07",
-      -0.2707,
+      -0.917,
       0.0356,
       4
     ],
     [
       "2026-10-08",
-      -0.3931,
+      -1.2619,
       -0.4312,
       4
     ]
@@ -456,7 +456,7 @@
         "return_pct": -0.2577,
         "benchmark_pct": 0.0085,
         "excess_pct": -0.2662,
-        "contribution_pct": -0.0651,
+        "contribution_pct": -0.0654,
         "days_held": 17
       }
     },
@@ -476,31 +476,31 @@
       "unit": "%",
       "legs": [
         {
-          "series": "cmdty_natgas",
+          "series": "ticker:UNG",
           "side": "long",
           "measure": "pct_change",
           "weight": 1.0,
           "entry_date": "2026-09-11",
-          "entry_value": 2.831,
-          "label": "Front-month US natural gas",
-          "short_label": "Natgas",
-          "return_pct": 11.9039
+          "entry_value": 10.17,
+          "label": "US natural gas fund (UNG)",
+          "short_label": "US natural gas (UNG)",
+          "return_pct": 6.293
         }
       ],
-      "buy_pct": 11.9039,
+      "buy_pct": 6.293,
       "sell_pct": null,
-      "trade_label": "Long Natgas",
-      "position_pct": 11.9039,
-      "risk_sized_pct": 2.976,
+      "trade_label": "Long US natural gas (UNG)",
+      "position_pct": 6.293,
+      "risk_sized_pct": 1.5733,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.25,
-        "spread_vol_pct": 92.06,
+        "spread_vol_pct": 58.309,
         "target_vol_pct": 10.0,
-        "observations": 254,
+        "observations": 251,
         "basis": "trailing 365d daily vol of the unlevered spread to 2026-09-11, annualised x sqrt(252), frozen at entry",
-        "clamped_from": 0.109,
-        "clamp_reason": "uncapped size 0.11x fell outside the 0.25-5.0x band; a 30x notional on a 0.3%-vol spread is a modelling artefact, not a position"
+        "clamped_from": 0.171,
+        "clamp_reason": "uncapped size 0.17x fell outside the 0.25-5.0x band; a 30x notional on a 0.3%-vol spread is a modelling artefact, not a position"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
       "benchmark": {
@@ -510,19 +510,19 @@
         "entry_value": 7656.98,
         "as_of": "2026-10-08",
         "move": 1.4154,
-        "difference": 10.4885,
+        "difference": 4.8776,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 11.9039,
+      "mark": 6.293,
       "mark_date": "2026-10-08",
       "sessions_held": 20,
       "max_favourable": {
-        "value": 16.4606,
+        "value": 13.5693,
         "date": "2026-09-24"
       },
       "max_adverse": {
-        "value": 0.0,
-        "date": "2026-09-11"
+        "value": -0.0983,
+        "date": "2026-10-01"
       },
       "invalidation": {
         "rule": "cmdty_natgas <= 2.45 (weekly close)",
@@ -535,10 +535,10 @@
       "days_held": 27,
       "book": {
         "as_of": "2026-10-08",
-        "return_pct": 11.9039,
+        "return_pct": 6.293,
         "benchmark_pct": 1.4154,
-        "excess_pct": 10.4885,
-        "contribution_pct": 2.2615,
+        "excess_pct": 4.8776,
+        "contribution_pct": 1.3913,
         "days_held": 27
       }
     },
@@ -618,7 +618,7 @@
         "return_pct": 6.5308,
         "benchmark_pct": 0.6058,
         "excess_pct": 5.925,
-        "contribution_pct": 0.9975,
+        "contribution_pct": 0.9959,
         "days_held": 34
       }
     },
@@ -701,7 +701,7 @@
         "return_pct": -2.9336,
         "benchmark_pct": -0.3488,
         "excess_pct": -2.5848,
-        "contribution_pct": -0.6309,
+        "contribution_pct": -0.6308,
         "days_held": 24
       }
     },
@@ -795,7 +795,7 @@
         "return_pct": -12.226,
         "benchmark_pct": -1.7239,
         "excess_pct": -10.5021,
-        "contribution_pct": -2.6695,
+        "contribution_pct": -2.6678,
         "days_held": 47
       }
     },
@@ -891,7 +891,7 @@
         "return_pct": 0.2309,
         "benchmark_pct": -1.7239,
         "excess_pct": 1.9548,
-        "contribution_pct": 0.1326,
+        "contribution_pct": 0.1324,
         "days_held": 47
       }
     },
@@ -974,7 +974,7 @@
         "return_pct": -2.8955,
         "benchmark_pct": -0.4312,
         "excess_pct": -2.4643,
-        "contribution_pct": -0.4191,
+        "contribution_pct": -0.4175,
         "days_held": 56
       }
     }
