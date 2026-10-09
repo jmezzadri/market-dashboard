@@ -469,6 +469,14 @@ All four closed the same day. Three of them were auto-filed by the freshness ala
 **Applies to:** Lead Developer — every weekday sweep, and any future automated filer.
 
 
+### 0.15 (2026-10-09, Joe) — The sweep report is for Joe, not a log. Report only what changed or needs him
+
+**What happened:** the 10/9 sweep found and fixed ONE bug, then closed with an 11-row table: 9 rows of "all green / retired / no action". Joe: *"One real bug with a table with 11 items?!?"*
+
+**Rule:** the closing message lists ONLY (a) what was fixed, (b) anything that needs Joe — in bold, and (c) the bug queue, as one short line. Every check that came back green collapses into ONE line ("Everything else checked and green"). Transient reds, deliberately retired watchers and already-handled items do not get rows — they go in project memory / LESSONS, not the message. If nothing was fixed and nothing needs Joe, the message is one line. This governs the "closing table" wording in the scheduled sweep prompt.
+
+**Applies to:** Lead Developer — every scheduled sweep and status report to Joe.
+
 ### 0.14 (2026-10-02, Joe, emphatic) — THE PAPER BOOK REBALANCES ITSELF EVERY MONTH. Never ask Joe to approve, confirm or trigger a paper trade.
 
 **What happened:** the Quality Trend book was scored on schedule on 2026-10-01 (out: Twilio, CF Industries; in: Qualys, Hinge Health), but no orders went out. Placing the orders had been built as a separate manual-only job with a typed confirmation, and nothing ever ran it — the September trades had been placed by hand in a session, so the gap never showed. On 10/2 the agent found the miss and then asked Joe "yes or no" to place the trades and to automate the step. Joe: *"NEVER ASK ME AGAIN!!! THIS IS SUPPOSED TO AUTO REBALANCE MONTHLY. THIS IS A MAJOR FUCKING FAILURE!!!"*
