@@ -112,12 +112,48 @@ function scanCommonText(name, text) {
   ]) {
     if (re.test(text)) violations.push(`[${name}] visible ${label} in rendered page text`);
   }
-  // The 4.31 launch bug: a book rendering majority-unclassified. A small
-  // residual (a name missing from qt_gics) is legitimate and stays quiet.
+  // The 4.31 launch bug. Was ">= 50%" until 2026-10-09, when a 10% residual
+  // (QLYS + HNGE missing from qt_gics) sat on /paper for 8 days unflagged.
+  // Any unclassified holding is a hole the reader sees.
   const m = text.match(/Unclassified\s+(\d{1,3}(?:\.\d+)?)%/);
-  if (m && parseFloat(m[1]) >= 50) {
-    violations.push(`[${name}] "Unclassified ${m[1]}%" rendered — classification writer is not running (LESSONS 4.31)`);
+  if (m && parseFloat(m[1]) > 0) {
+    violations.push(`[${name}] "Unclassified ${m[1]}%" rendered — a holding is missing from qt_gics (LESSONS 4.31)`);
   }
+  // Unstyled-component signature: axis labels with no positioning CSS collapse
+  // into one run ("2007201020132016…"). That is how the engine track-record
+  // modal shipped with no stylesheet at all (2026-07-29 → 2026-10-09).
+  const run = text.match(/(?:(?:19|20)\d\d){3,}/);
+  if (run) violations.push(`[${name}] year labels run together ("${run[0].slice(0, 24)}…") — a chart axis is rendering unstyled`);
+}
+
+// Modals are invisible to a page-load check. Open the ones a reader opens and
+// verify they are styled: content padded, axis ticks positioned, text clean.
+async function checkMacroModals(browser) {
+  const page = await renderPage(browser, '/macro');
+  const opened = await page.click('.mac-hist--click', { timeout: 15_000 }).then(() => true).catch(() => false);
+  if (!opened) {
+    violations.push('[macro] engine track-record trigger (.mac-hist--click) not found');
+    await page.close();
+    return;
+  }
+  await page.waitForTimeout(4_000);
+  const r = await page.evaluate(() => {
+    const m = document.querySelector('.mt-glassmodal');
+    if (!m) return null;
+    const inner = m.querySelector('.eng-track') || m.firstElementChild;
+    const pad = inner ? parseFloat(getComputedStyle(inner).paddingLeft) : 0;
+    const tick = m.querySelector('.eng-axis span');
+    return { text: m.innerText, pad, tickPos: tick ? getComputedStyle(tick).position : null };
+  });
+  if (!r) {
+    violations.push('[macro] engine track-record modal did not open');
+  } else {
+    section('MACRO TRACK-RECORD MODAL', r.text.slice(0, 3000));
+    if (r.pad < 12) violations.push(`[macro modal] track-record content has ${r.pad}px padding — the modal is rendering unstyled`);
+    if (r.tickPos && r.tickPos !== 'absolute') violations.push('[macro modal] chart year ticks are not positioned — axis CSS missing');
+    scanCommonText('macro modal', r.text);
+  }
+  await page.close();
 }
 
 async function checkHome(browser) {
@@ -282,6 +318,7 @@ const browser = await chromium.launch(LAUNCH);
 try {
   await checkHome(browser);
   await checkPaper(browser);
+  await checkMacroModals(browser);
   await checkMobile(browser);
 } finally {
   await browser.close();
