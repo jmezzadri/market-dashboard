@@ -985,6 +985,8 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer — any change that adds a rendered field; any restore/un-retirement.
 
+**2026-10-09 addendum (health sweep) — the audit worked and was then overwritten by its own workflow.** The Oct 1 book scored two new names (QLYS, HNGE) absent from `qt_gics`; `_stamp_health` correctly wrote qt-target-book RED, and seconds later QT-REBALANCE's "Stamp pipeline health green" step stamped GREEN unconditionally. /paper rendered "Unclassified 10.0% · QLYS · HNGE" for eight days under a green row; the sweep found it by rendering the page, not from any alarm. Fixed: the workflow stamp now re-audits the rows it reads back and stays red on any hole; both names added to `qt_gics` and the Oct 1 rows healed. **Rule: a later stamp in the same job must never be less strict than an earlier one.** Any step that writes a status after a producer's self-audit either re-runs that audit or leaves status alone — "the job finished" is not evidence the output is complete.
+
 
 ### 4.32 (2026-09-02) — "live" is a claim about the SESSION, not the feed; and only a real browser can check what a page claims
 
