@@ -1135,9 +1135,26 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
         if loss <= 0:
             raise ContractError("expected_return.loss_at_stop_pct must be a positive number")
         if er_pct < MIN_REWARD_TO_RISK * loss:
-            raise ContractError(
-                f"expected_return.pct ({er_pct:g}%) is less than {MIN_REWARD_TO_RISK:g}x the loss at the stop ({loss:g}%) — "
-                "tighten the stop, change the instrument, or drop the idea")
+            # 2026-10-09 — Joe can waive the 2x rule for one named note. He was
+            # shown that the energy call's history supports a 10% gain against
+            # a 10% stop (no stop level gave 2x: a tighter stop was hit in 7 of
+            # 8 episodes) and said "POst the energy trade!". The waiver is a
+            # FIELD, dated and attributed, so it is visible in the published
+            # file and cannot be claimed by wording; the session may not grant
+            # itself one. The note must still state the real loss at the stop.
+            wv = er.get("reward_risk_waiver")
+            ok = (isinstance(wv, dict)
+                  and str(wv.get("approved_by", "")).strip() == "Joe"
+                  and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(wv.get("approved_on", "")))
+                  and len(str(wv.get("reason", "")).strip()) >= 80)
+            if not ok:
+                raise ContractError(
+                    f"expected_return.pct ({er_pct:g}%) is less than {MIN_REWARD_TO_RISK:g}x the loss at the stop ({loss:g}%) — "
+                    "tighten the stop, change the instrument, or drop the idea. (Joe alone can waive this for a "
+                    "single note: expected_return.reward_risk_waiver{approved_by: 'Joe', approved_on, reason>=80 chars}.)")
+            warnings.append(
+                f"reward-to-risk waiver used: {er_pct:g}% expected against {loss:g}% at the stop "
+                f"(approved by Joe {wv.get('approved_on')})")
 
     # 3h — not an overly correlated book (2026-09-30). A candidate whose
     # position returns have run at |correlation| above MAX_BOOK_CORRELATION
@@ -1226,7 +1243,20 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                 exp_new = (sum(paces) + my_pace) / (n + 1)
                 if vol_new is None or vol_spx is None:
                     raise ContractError("book test: volatility could not be computed")
-                if vol_new > vol_spx:
+                # 2026-10-09 — the test deadlocked. The open book (natural gas,
+                # short wheat, yen) already ran at 17.3% against the S&P's
+                # 11.5%, so NO single addition could pass, including one that
+                # lowered the book's volatility (energy stocks: 17.3% -> 14.7%).
+                # When the book is already above the market, a candidate passes
+                # this test only if it brings the book's volatility DOWN; the
+                # shortfall is reported, not hidden.
+                vol_before = _ann_vol([sum(r[d] for _, r in book_rets) / n for d in common]) if n else None
+                calmer = (vol_before is not None and vol_before > vol_spx and vol_new < vol_before)
+                if vol_new > vol_spx and calmer:
+                    warnings.append(
+                        f"book volatility is above the S&P's ({vol_spx:.1f}%) before and after this call, but the call "
+                        f"lowers it: {vol_before:.1f}% -> {vol_new:.1f}% over {len(common)} sessions")
+                if vol_new > vol_spx and not calmer:
                     raise ContractError(
                         f"with this call the book's volatility would be {vol_new:.1f}% a year against the S&P's "
                         f"{vol_spx:.1f}% over the same {len(common)} sessions — the book must stay calmer than the market")

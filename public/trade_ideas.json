@@ -1,9 +1,322 @@
 {
-  "generated_at": "2026-10-07T11:12:59Z",
+  "generated_at": "2026-10-09T13:02:12Z",
   "cadence": "Research runs every morning before the US open; the best ideas publish — at most two a week.",
-  "next_publish": "2026-10-08",
+  "next_publish": "2026-10-10",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
   "ideas": [
+    {
+      "date": "2026-10-09",
+      "kind": "equity",
+      "title": "Yields and oil are surging together. Energy stocks gained after that in 7 of 8 cases.",
+      "dek": "The 10-year Treasury yield has jumped 0.66 points in three months and oil is in the top tenth of its three-year range. The two have lined up eight times since 1999. The energy sector fund rose 12.1% on average over the next six months, against 4.3% in an ordinary six months. It usually fell about 8% first.",
+      "position_type": "outright long",
+      "call": "Over the next six months US energy stocks are set up to gain about 10%: in the eight earlier cases since 1999 when the 10-year Treasury yield jumped while oil sat in the top tenth of its three-year range, the energy sector fund rose 12.1% on average, against 4.3% in an ordinary six months.",
+      "instrument": "XLE, the US-listed energy sector fund, held long, six months",
+      "horizon": "six months (through early April 2027)",
+      "the_trade": {
+        "buy": "XLE — the Energy Select Sector SPDR Fund, which holds the large US oil producers, refiners and service companies — bought as shares and held for six months.",
+        "buy_line": "XLE shares, held six months",
+        "sizing": "The exit is a weekly close 10% below entry, and the expected gain is about 10%. That is one-to-one, not the two-to-one this site normally requires, so size it smaller than a usual position. In six of the eight earlier cases the fund fell roughly 8% before finishing higher."
+      },
+      "edge": {
+        "source": "cross-asset divergence",
+        "summary": "When the 10-year Treasury yield rises at least 0.4 points in three months to a one-year high while oil is in the top tenth of its three-year range, energy stocks have outrun both their own average and the S&P 500 over the following six months. Both conditions hold today.",
+        "backtest": {
+          "window": "XLE daily closes, December 1998 to October 2026; 10-year Treasury yield and West Texas Intermediate spot oil from FRED; independent episodes at least 126 sessions apart",
+          "n": 8,
+          "result": "XLE over the next 126 sessions: +15.9% (1999), +14.5% (2004), -3.7% (2006), +14.0% (2007), +8.7% (2013), +3.8% (2018), +39.0% (2021), +4.6% (2022). Mean +12.1%, median +11.3%, higher in 7 of 8. Against the S&P 500: +13.1 points on average, ahead in 6 of 8. With a weekly-close exit 10% below entry applied: mean +10.1%, one case stopped out.",
+          "baseline": "Every 126-session period for XLE since December 1998: mean +4.4%, median +5.2%, higher 62% of the time.",
+          "regime_match": "The named cause is expensive oil arriving together with a jump in bond yields. All 8 episodes share that state by construction: mean +12.1%, 7 higher. The narrower match is oil above $90 a barrel, as today: 2 cases, 2013 (+8.7%) and 2022 (+4.6%), both positive and both below the average. Loosening oil to the top fifth of its range gives 12 cases and a mean of +5.6%, so the result leans on the strict oil threshold. Oil today is at the 93rd percentile."
+        }
+      },
+      "variant": "The common view this week is that the energy trade is late. Refiners returned about 50% in the third quarter and analyst Robert Rapier warned that high margins may not last (Karmactive, October 9, 2026). David Hunter of Contrarian Macro Advisors expects oil in the $60s by year-end (Discovery Alert, October 9, 2026). President Trump's pledge not to strike Iran before the November election sent Brent lower on Friday (AP, October 9, 2026). The record of this exact combination says the broad sector, which has not run the way refiners have, kept gaining in 7 of 8 cases.",
+      "thesis": [
+        "The 10-year Treasury yield closed at 5.22% on Oct 8, up 0.66 points from 4.56% on Jul 10.",
+        "West Texas Intermediate spot oil was $96.24 on Oct 6, the 93rd percentile of the past three years.",
+        "Eight earlier cases since 1999: XLE rose 12.1% on average over six months. An ordinary six months is 4.4%.",
+        "XLE beat the S&P 500 by 13.1 points on average in those cases. The S&P 500 fund itself averaged -0.2%.",
+        "The broad energy fund is level with the S&P 500 over six months. Refiners are up more than 50 points."
+      ],
+      "evidence": [
+        {
+          "claim": "XLE closing price",
+          "value": "65.24",
+          "source": "MacroTilt end-of-day price store (XLE)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "10-year Treasury yield",
+          "value": "5.22%",
+          "source": "MacroTilt indicator history (Treasury.gov daily yield curve)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "10-year Treasury yield 63 sessions earlier",
+          "value": "4.56%",
+          "source": "MacroTilt indicator history (Treasury.gov daily yield curve)",
+          "as_of": "2026-07-10"
+        },
+        {
+          "claim": "Highest 10-year Treasury yield close in the past year",
+          "value": "5.31% on 2026-10-05",
+          "source": "MacroTilt indicator history (Treasury.gov daily yield curve)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "West Texas Intermediate spot oil",
+          "value": "$96.24 a barrel, 93rd percentile of the trailing three years",
+          "source": "FRED series DCOILWTICO",
+          "as_of": "2026-10-06"
+        },
+        {
+          "claim": "XLE return over the 126 sessions after each of the 8 earlier cases",
+          "value": "+15.9%, +14.5%, -3.7%, +14.0%, +8.7%, +3.8%, +39.0%, +4.6%; mean +12.1%, median +11.3%",
+          "source": "computed from MacroTilt end-of-day prices and FRED DGS10 / DCOILWTICO, 1998-2026",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "XLE return over any 126 sessions, December 1998 to October 2026",
+          "value": "mean +4.4%, median +5.2%, higher 62% of the time",
+          "source": "computed from MacroTilt end-of-day prices",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "XLE minus S&P 500 over the same 8 cases",
+          "value": "mean +13.1 points, XLE ahead in 6 of 8",
+          "source": "computed from MacroTilt end-of-day prices (XLE, SPY)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "S&P 500 fund return over the same 8 cases",
+          "value": "mean -0.2%, against +4.8% in an ordinary 126 sessions",
+          "source": "computed from MacroTilt end-of-day prices (SPY)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "Lowest close during each of the 8 cases, measured from entry",
+          "value": "-8.2%, -5.7%, -8.0%, -7.8%, 0.0%, -8.9%, -8.6%, -16.3%",
+          "source": "computed from MacroTilt end-of-day prices (XLE)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "The same 8 cases with a weekly-close exit 10% below entry",
+          "value": "mean +10.1%, median +11.3%; one case (2022) exited at -11.3%",
+          "source": "computed from MacroTilt end-of-day prices (XLE)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "The same test with oil in the top fifth of its three-year range instead of the top tenth (evidence against)",
+          "value": "12 cases, mean +5.6%, higher in 7 of 12",
+          "source": "computed from MacroTilt end-of-day prices and FRED",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "XLE against the S&P 500 fund over the past 126 sessions",
+          "value": "0.0 points; XLE +13.8%",
+          "source": "computed from MacroTilt end-of-day prices (XLE, SPY)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "Valero and Marathon Petroleum against the S&P 500 fund over the past 126 sessions",
+          "value": "+65.8 and +82.1 points",
+          "source": "computed from MacroTilt end-of-day prices (VLO, MPC, SPY)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "XLE price change over the past 63 sessions",
+          "value": "+18.4%",
+          "source": "computed from MacroTilt end-of-day prices (XLE)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "Marathon Petroleum against the S&P 500 fund over the 63 sessions after each earlier 40% quarterly gain",
+          "value": "mean -5.3 points, ahead in 2 of 10",
+          "source": "computed from MacroTilt end-of-day prices (MPC, SPY), 2011-2026",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "Third-quarter 2026 returns of Marathon Petroleum, Phillips 66 and Valero",
+          "value": "+55.1%, +51.8%, +49.4%",
+          "source": "Karmactive, citing Robert Rapier",
+          "as_of": "2026-10-09"
+        },
+        {
+          "claim": "XLE 200-day average price",
+          "value": "56.95",
+          "source": "computed from MacroTilt end-of-day prices (XLE)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "Third-quarter 2026 returns: energy sector and S&P 500",
+          "value": "+16.5% and +2.0%",
+          "source": "Karmactive, citing Robert Rapier",
+          "as_of": "2026-10-09"
+        }
+      ],
+      "charts": [
+        {
+          "series": "cmdty_oil",
+          "title": "Oil is near the top of its three-year range",
+          "subtitle": "West Texas Intermediate crude, front-month price, past three years",
+          "unit": "$",
+          "decimals": 0,
+          "window": "3y",
+          "caption": "The signal needs oil in the top tenth of this range. A fall back toward the middle of the range removes the reason for the trade.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "ust_10y",
+          "title": "The 10-year yield is the highest since at least 2006",
+          "subtitle": "US 10-year Treasury yield, daily since 2006",
+          "unit": "%",
+          "decimals": 2,
+          "window": "full",
+          "caption": "A rise of at least 0.4 points in three months is the second half of the signal. The yield rose 0.66 points between July 10 and October 8.",
+          "source": "MacroTilt indicator history (Treasury.gov)"
+        },
+        {
+          "series": "cmdty_diesel_crack",
+          "title": "Refining margins are at an extreme",
+          "subtitle": "New York Harbor diesel price minus Brent crude, dollars a barrel, past three years",
+          "unit": "$",
+          "decimals": 0,
+          "window": "3y",
+          "caption": "This is why refiners have already run more than 50 points ahead of the market. The note buys the whole sector, which has not.",
+          "source": "MacroTilt indicator history"
+        }
+      ],
+      "levels": {
+        "trigger": "Enter at current levels, XLE near 65. The fund closed at 65.24 on October 8.",
+        "invalidation": "A weekly close at or below 58.72 on XLE, 10% under the October 8 close. In the eight earlier cases that level was reached once, in 2022.",
+        "target": "About 71.80 on XLE by early April 2027, a 10% gain. The unstopped average of the eight cases, +12.1%, would be about 73.10."
+      },
+      "sections": [
+        {
+          "title": "What lined up",
+          "bullets": [
+            "The 10-year Treasury yield rose from 4.56% on July 10 to 5.22% on October 8.",
+            "Its one-year closing high is 5.31%, set on October 5.",
+            "West Texas Intermediate spot oil was $96.24 on October 6, the 93rd percentile of three years.",
+            "October 6 is the latest day with both readings, and both conditions held."
+          ]
+        },
+        {
+          "title": "What followed the last eight times",
+          "bullets": [
+            "November 1999: +15.9%. May 2004: +14.5%. March 2006: -3.7%. July 2007: +14.0%.",
+            "July 2013: +8.7%. February 2018: +3.8%. October 2021: +39.0%. April 2022: +4.6%.",
+            "Mean +12.1% over 126 sessions. An ordinary 126 sessions for XLE averages +4.4%.",
+            "The S&P 500 fund averaged -0.2% over the same eight cases, against +4.8% normally.",
+            "A ninth case began May 15, 2026 and has not run its full six months."
+          ]
+        },
+        {
+          "title": "The rough ride, stated plainly",
+          "bullets": [
+            "In six of the eight cases XLE fell about 8% from entry before finishing higher.",
+            "An exit 5% below entry would have closed seven of the eight at a loss.",
+            "The exit here is a weekly close 10% below entry. It was hit once, in 2022.",
+            "With that exit the eight cases average +10.1%. The risk is 10% to make about 10%.",
+            "This site normally requires an expected gain of twice the loss at the exit. This note does not meet that."
+          ]
+        },
+        {
+          "title": "Why the sector and not the refiners",
+          "bullets": [
+            "Valero and Marathon Petroleum are 66 and 82 points ahead of the S&P 500 over six months.",
+            "After runs that large, Marathon lagged the S&P 500 by 5.3 points over the next quarter on average.",
+            "XLE is level with the S&P 500 over the same six months.",
+            "XLE holds producers, refiners and service companies together."
+          ]
+        },
+        {
+          "title": "The vehicle",
+          "bullets": [
+            "XLE is a listed fund and trades like a stock in any brokerage account.",
+            "Levels and the exit are on XLE's own closing price.",
+            "Returns here are price only and leave out the fund's dividend."
+          ]
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "CPI, Oct 14, 8:30 AM. A hot number keeps yields high, which is the condition this rests on.",
+            "Fed decision, Oct 28, 2:00 PM.",
+            "US election, Nov 3. The pledge not to strike Iran runs only until then."
+          ]
+        }
+      ],
+      "other_side": "Eight cases is a small sample, and the result depends on where the oil line is drawn: with oil in the top fifth of its range instead of the top tenth, the average gain falls to 5.6% across 12 cases, barely above normal. Only two of the eight cases had oil above $90 as it is today, and both gained less than the average. Today's oil price carries a war premium that a deal with Iran could remove in a day, and one strategist quoted this week expects oil in the $60s by year-end. Energy stocks have already risen 18% in three months. And the payoff is one-to-one: the exit that keeps the trade alive through its usual 8% dip is as far away as the expected gain.",
+      "risks": [
+        "A US-Iran agreement reopens the Strait of Hormuz and oil falls out of the top of its range.",
+        "Yields have peaked: a weak CPI on Oct 14 pulls the 10-year down and removes half the signal.",
+        "A broad stock selloff takes energy down with it, as in the 2022 case that hit the exit.",
+        "Eight cases cannot rule out a ninth that looks like 2006, the one loss."
+      ],
+      "so_what": "Rising bond yields and expensive oil have arrived together eight times since 1999, and the energy sector fund rose over the next six months in seven of them, by 12.1% on average. The trade usually dips about 8% first, so the exit sits 10% below entry and the payoff is one-to-one.",
+      "review_conditions": [
+        {
+          "claim": "Oil remains expensive relative to its recent range",
+          "measure": "West Texas Intermediate spot price (FRED DCOILWTICO), percentile of the trailing three years",
+          "at_publication": "93rd percentile, $96.24 (Oct 6)",
+          "holds_while": "at or above the 80th percentile of the trailing three years",
+          "critical": true
+        },
+        {
+          "claim": "Energy stocks are in an uptrend",
+          "measure": "XLE closing price against its own 200-day average, MacroTilt end-of-day prices",
+          "at_publication": "65.24 against a 200-day average of 56.95 (Oct 8)",
+          "holds_while": "XLE closes the week above its 200-day average",
+          "critical": false
+        },
+        {
+          "claim": "Bond yields have not collapsed",
+          "measure": "10-year Treasury yield, MacroTilt indicator history",
+          "at_publication": "5.22% (Oct 8)",
+          "holds_while": "the 10-year yield is at or above 4.75%",
+          "critical": false
+        }
+      ],
+      "expected_return": {
+        "pct": 10.1,
+        "loss_at_stop_pct": 10.0,
+        "basis": "the average XLE price return over 126 sessions in the eight earlier cases with the 10% weekly-close exit applied (+10.1%; +12.1% without the exit), on XLE shares, which is what the Scorecard marks",
+        "instrument": "XLE shares held for six months",
+        "reward_risk_waiver": {
+          "approved_by": "Joe",
+          "approved_on": "2026-10-09",
+          "reason": "Joe was shown that no exit level gives two-to-one on this trade (a 5% exit was hit in 7 of 8 cases; a 10% exit gives about +10% against -10%) and instructed that the note be posted with the 10% exit as a one-time exception."
+        }
+      },
+      "book": {
+        "stance": "With energy stocks added the book holds four positions: long US natural gas, short wheat, long yen and long the US energy sector. It is positioned for an economy where oil and bond yields stay high. The energy and natural gas calls share that backdrop; wheat and the yen do not. Highest conviction is the wheat short, which rests on eleven tested episodes. Lowest is this energy call, which rests on eight and pays one-to-one. Measured over the last 99 sessions, adding it lowers the book's volatility from 17.3% to 14.7% a year, still above the S&P 500's 11.5%, and raises expected excess return per unit of risk from 0.58 to 0.68.",
+        "rebalance": "The three open calls stay as they are: long natural gas, short wheat and long yen. Energy stocks are added as a fourth position at a smaller size than usual because its payoff is one-to-one. If the natural gas call reaches its December target, take it off before adding to energy; the two share the oil backdrop."
+      },
+      "scorecard": {
+        "legs": [
+          {
+            "series": "ticker:XLE",
+            "side": "long",
+            "measure": "pct_change",
+            "label": "US energy sector fund (XLE)",
+            "short_label": "US energy stocks (XLE)"
+          }
+        ],
+        "horizon_months": 6,
+        "invalidation": {
+          "series": "ticker:XLE",
+          "op": "<=",
+          "level": 58.72,
+          "basis": "weekly_close"
+        },
+        "benchmark": {
+          "series": "spx_index"
+        }
+      },
+      "id": "2026-10-09-yields-and-oil-are-surging-together-energy-stock",
+      "status": "live",
+      "published_at": "2026-10-09T13:02:12Z"
+    },
     {
       "date": "2026-09-22",
       "kind": "fx",
