@@ -193,9 +193,9 @@ const CSS = `
 .paper-v12 .perf-wide .perf-name, .paper-v12 .perf-cell.perf-name { text-align: left; padding-left: 0; color: var(--cream-text); font-weight: var(--fw-400); }
 .paper-v12 .perf-wide .perf-paper td { font-size: var(--v13-t5); }
 .paper-v12 .perf-wide .perf-paper .perf-name, .paper-v12 .perf-cell.perf-name.perf-paper { font-weight: var(--fw-700); }
-.paper-v12 .perf-group { font-size: var(--v13-t2); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: var(--cream-text); padding-bottom: var(--sp-2); }
+.paper-v12 .perf-wide th.perf-group, .paper-v12 .perf-ngrid > .perf-group { font-size: var(--v13-t3); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: var(--cream-text); padding-bottom: var(--sp-2); }
 .paper-v12 .perf-group-sub { font-weight: var(--fw-400); letter-spacing: .04em; text-transform: none; opacity: .72; }
-.paper-v12 .perf-unit { font-size: var(--v13-t2); font-weight: var(--fw-600); color: var(--ink-soft); padding-top: var(--sp-2); }
+.paper-v12 .perf-wide th.perf-unit, .paper-v12 .perf-ngrid > .perf-unit { font-size: var(--v13-t3); font-weight: var(--fw-600); color: var(--ink-soft); padding-top: var(--sp-2); }
 .paper-v12 .perf-wide .perf-first { padding-left: var(--sp-34); }
 .paper-v12 .perf-wide td:last-child, .paper-v12 .perf-wide th:last-child { padding-right: 0; }
 .paper-v12 .perf-narrow { display: none; font-variant-numeric: tabular-nums; }
