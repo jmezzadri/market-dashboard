@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-08T16:42:28Z",
+  "generated_at": "2026-10-09T00:31:04Z",
   "window": {
-    "from": "2026-10-01",
-    "to": "2026-12-17"
+    "from": "2026-10-02",
+    "to": "2026-12-18"
   },
   "counts": {
-    "total": 114,
+    "total": 112,
     "tier1": 35
   },
   "sources": [
@@ -26,50 +26,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-10-01",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-01",
-      "time_et": "10:00 AM",
-      "name": "ISM Manufacturing",
-      "short": "ISM Mfg",
-      "tier": 1,
-      "category": "Surveys",
-      "blurb": "Factory-sector survey; above 50 means the sector is expanding.",
-      "source": "ISM published schedule (computed)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-01",
-      "time_et": "10:00 AM",
-      "name": "Construction spending",
-      "short": "Constr",
-      "tier": 3,
-      "category": "Housing",
-      "blurb": "Value of construction put in place, residential and non-residential.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-01",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-02",
       "time_et": "8:30 AM",
@@ -1277,6 +1233,28 @@
       "tier": 3,
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-18",
+      "time_et": "overnight",
+      "name": "Bank of Japan decision (MPM)",
+      "short": "BoJ",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "Bank of Japan rate decision, released around midday Tokyo on the meeting's final day \u2014 overnight for US markets.",
+      "source": "Bank of Japan MPM schedule (boj.or.jp)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-18",
+      "time_et": "10:00 AM",
+      "name": "Consumer sentiment (Michigan, final)",
+      "short": "UMich final",
+      "tier": 2,
+      "category": "Surveys",
+      "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
