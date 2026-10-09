@@ -730,11 +730,11 @@
       "scorecard": {
         "legs": [
           {
-            "series": "cmdty_natgas",
+            "series": "ticker:UNG",
             "side": "long",
             "measure": "pct_change",
-            "label": "Front-month US natural gas",
-            "short_label": "Natgas"
+            "label": "US natural gas fund (UNG)",
+            "short_label": "US natural gas (UNG)"
           }
         ],
         "horizon_months": 3,
@@ -747,11 +747,12 @@
         "benchmark": {
           "series": "spx_index"
         },
-        "note": "Marked on the front-month Henry Hub series the levels are stated on; UNG is the retail vehicle and will lag the series by its roll cost."
+        "note": "Return is marked on UNG, the fund the note names (changed 2026-10-09 on Joe's instruction: the front-month series overstated what a holder of the fund earned, because the fund pays a cost each month to roll its contracts). The exit level is still checked on the front-month Henry Hub series the note's levels are stated on."
       },
       "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
       "status": "live",
-      "published_at": "2026-09-12T09:27:05Z"
+      "published_at": "2026-09-12T09:27:05Z",
+      "corrected_at": "2026-10-09T13:48:39Z"
     },
     {
       "date": "2026-09-06",
