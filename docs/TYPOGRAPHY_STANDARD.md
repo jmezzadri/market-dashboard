@@ -75,8 +75,8 @@ about which meant what.
 
 | Token | Size | Role |
 |---|---|---|
-| `--v13-t1` | 10px | label and eyebrow — uppercase, 700, letter-spaced |
-| `--v13-t2` | 11px | meta, caption, the quiet line under a gauge or chart |
+| `--v13-t1` | 11px | label and eyebrow — uppercase, 700, letter-spaced |
+| `--v13-t2` | 12px | meta, caption, the quiet line under a gauge or chart |
 | `--v13-t3` | 13px | body, table cell, list row, the value half of a pair |
 | `--v13-t4` | 15px | lead paragraph and editorial prose |
 | `--v13-t5` | 18px | tile headline — one per tile, the largest thing in it |

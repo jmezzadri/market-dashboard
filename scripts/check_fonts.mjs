@@ -274,7 +274,7 @@ if (base) {
           prose.push({ sel: el.tagName + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : ''), text: text.slice(0, 70) });
         }
       }
-      const STEPS = [10, 11, 13, 15, 18, 26, 34, 44], WS = ['400', '600', '700'];
+      const STEPS = [11, 12, 13, 15, 18, 26, 34, 44], WS = ['400', '600', '700'];
       const offScale = []; const seen = new Set();
       for (const el of document.querySelectorAll('body *')) {
         if (!el.offsetParent) continue;
@@ -327,7 +327,7 @@ if (base) {
     }, PROSE_WORDS);
 
     for (const p of found.offScale) {
-      fail(`${url} ${p.sel}`, `renders at ${p.size}px / ${p.weight} — off the six-step scale (10, 11, 13, 15, 18, 26) or not one of the three weights (400, 600, 700). "${p.text}…"`);
+      fail(`${url} ${p.sel}`, `renders at ${p.size}px / ${p.weight} — off the six-step scale (11, 12, 13, 15, 18, 26) or not one of the three weights (400, 600, 700). "${p.text}…"`);
     }
     for (const p of found.svgText) {
       fail(`${url} ${p.sel}`, `declares ${p.declared} but RENDERS at ${p.eff}px / ${p.weight} — the viewBox is stretched ${p.scale}x, so the label lands off the six-step scale. Draw the chart at its measured pixel width (one user unit = one CSS pixel).`);
