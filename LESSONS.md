@@ -135,6 +135,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `4.37` A one-session change measured across a futures contract roll is not a market move; cross-check the benchmark pair and drop the artifact leg
 - `4.38` A generator regenerates the WHOLE artifact; a hand-edit to generated output is a revert waiting for the next scheduled run
 - `4.39` A vendor's display name is a rename trap; fetch history by the stable series code
+- `4.41` "After the close" is not "after the session": a futures bar dated tomorrow is already on the vendor by evening, and a guard that only looks backwards stores it as today's close
 
 **5 · PIPELINES, SCHEDULES & ALERTING**
 
@@ -1096,6 +1097,14 @@ They are not the same series and they are nowhere near each other:
 
 
 # 5 · PIPELINES, SCHEDULES & ALERTING
+### 4.41 (2026-10-09) — "After the close" is not "after the session": a futures bar dated tomorrow is already on the vendor by evening
+
+**What happened:** While putting oil, gas and metals on the site-wide market banner, the stored commodity and FX series were found to end on a bar dated the NEXT day — WTI "91.01, Oct 9" on file at 7:27 AM Oct 9, against an Oct 8 settle of 89.00. MARKET-INDICATORS-EOD is scheduled for 16:45 ET but GitHub actually starts it between 20:10 and 21:30 ET. The 2026-06-11 guard dropped a bar dated today only when the clock read before 17:05 ET; by evening that test is off, and Yahoo is already serving a bar for the session that reopened at 18:00 ET, dated tomorrow. Every night the first two hours of the next session were stored as the newest daily close and shown as "close" on Home (Copper, ¥/$), ranked on Macro and handed to the brief. Uranium had the same fault by a different route: its reading was stamped with the runner's UTC date, which in the US evening is already tomorrow.
+
+**Rule:** A daily series keeps a bar only if its date is on or before the last session that has SETTLED — today once settlement has passed, otherwise yesterday — and the same cut is applied to points already on file, because a merge that preserves stored history preserves a bad point too. A date written by a job is the market's local date, never the runner's. A guard is tested at the time the job really runs, read from the run history, not at the time on the schedule line.
+
+**Applies to:** Lead Developer, Data Steward — every producer of a daily market series.
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.

@@ -1523,6 +1523,10 @@
   --r-pill-sm: 12px;
   --dur-350: 350ms; --dur-500: 500ms; --dur-600: 600ms; --dur-900: 900ms; --dur-1100: 1100ms; --dur-1600: 1600ms; --dur-2600: 2600ms;
   --dur-22000: 22000ms; --dur-26000: 26000ms; --dur-30000: 30000ms; --dur-32000: 32000ms;
+  /* Market banner: time for ONE tile to cross a fixed point. The strip's full
+     loop is this times the number of tiles, so adding a tile never speeds it up. */
+  --dur-tape-tile: 3400ms;
+  --tape-tile-w: 108px;
   --v13-t7: 34px;   /* section headline */
   --v13-t8: 44px;   /* the regime call — the largest thing on the page */
   --blur-glass: 30px;

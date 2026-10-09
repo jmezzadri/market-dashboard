@@ -132,6 +132,25 @@ def state_for(pct):
     return "calm"
 
 
+def et_today(now=None):
+    """Today's date in New York, ISO."""
+    import datetime as _dtm
+    from zoneinfo import ZoneInfo as _zi
+    return (now or _dtm.datetime.now(_zi("America/New_York"))).strftime("%Y-%m-%d")
+
+
+def last_settled_date(now=None):
+    """Newest date whose futures/FX session has settled (17:05 ET): today once
+    settlement has passed, otherwise yesterday. Weekends need no special case —
+    a date with no bar simply has nothing to keep."""
+    import datetime as _dtm
+    from zoneinfo import ZoneInfo as _zi
+    et = now or _dtm.datetime.now(_zi("America/New_York"))
+    if (et.hour, et.minute) >= (17, 5):
+        return et.strftime("%Y-%m-%d")
+    return (et - _dtm.timedelta(days=1)).strftime("%Y-%m-%d")
+
+
 def fetch(ticker):
     import requests, time as _t
     # Full DAILY history via explicit date range. range="max" downsamples old
@@ -317,18 +336,26 @@ def run():
     for key, ticker, name, bucket, unit in TARGETS:
         try:
             pts = fetch(ticker)
-            # In-progress-session guard (2026-06-11): drop a bar dated today
-            # until futures/FX settlement (17:05 ET) — an open session is a
-            # quote, not a daily close.
-            import datetime as _dtm
-            from zoneinfo import ZoneInfo as _zi
-            _et = _dtm.datetime.now(_zi("America/New_York"))
-            if pts and (_et.hour, _et.minute) < (17, 5) and pts[-1][0] >= _et.strftime("%Y-%m-%d"):
-                print(f"  in-progress guard: dropped open-session bar {pts[-1][0]} for {ticker}")
-                pts = pts[:-1]
+            # Completed-session guard. Two cases, one cutoff (2026-10-09):
+            #  - before futures/FX settlement (17:05 ET) a bar dated today is
+            #    an open session (the 2026-06-11 guard);
+            #  - AFTER it, Yahoo already serves a bar dated TOMORROW — the
+            #    evening session that opened at 18:00 ET. The job really runs
+            #    ~20:10-21:30 ET, so every night it stored the first hours of
+            #    the next session as the newest "close".
+            # A bar is kept only if it is dated on or before the last session
+            # that has settled.
+            cutoff = last_settled_date()
+            dropped = [p for p in pts if p[0] > cutoff]
+            if dropped:
+                print(f"  completed-session guard: dropped {[p[0] for p in dropped]} for {ticker}")
+                pts = [p for p in pts if p[0] <= cutoff]
             if not pts:
                 raise RuntimeError("no completed-session bars")
-            stored = (hist0.get(key) or {}).get("points") or []
+            # Stored points get the same cut: the merge below keeps anything
+            # already on file, so a future-dated bar written by an earlier run
+            # would otherwise survive as the newest point forever.
+            stored = [p for p in ((hist0.get(key) or {}).get("points") or []) if str(p[0]) <= cutoff]
             # MKT_RESEED replaces with the clean daily pull (one-time, wipes any prior
             # coarse/monthly data); normal runs merge-preserve so depth never regresses.
             allpts = pts if os.environ.get("MKT_RESEED") else _merge_points(stored, pts)
@@ -375,8 +402,10 @@ def run():
         spot = fetch_uranium_spot()
         if spot is None:
             raise RuntimeError("could not parse spot U3O8 from source")
-        import datetime as _du
-        today = _du.date.today().isoformat()
+        # New York date, not the runner's UTC date: the job runs in the US
+        # evening, when UTC is already tomorrow, so the reading was being
+        # stamped with a day that had not started. 2026-10-09.
+        today = et_today()
         existing = (hist0.get("cmdty_uranium") or {})
         upts = [list(pt) for pt in (existing.get("points") or []) if pt[0] != today]
         # Monthly backbone, rebuilt on EVERY run rather than seeded once.
@@ -462,6 +491,15 @@ def selftest():
     good = cp == [["2026-10-01", 36.0], ["2026-10-03", 34.4]]
     ok &= good
     print(f"  {'OK' if good else 'FAIL'} crack = 3.00*42-90 = 36.0 on shared dates only: {cp}")
+    # completed-session cutoff: before settlement -> yesterday; after -> today,
+    # and tomorrow's already-open evening session is never "settled".
+    from zoneinfo import ZoneInfo as _zi2
+    _ny = _zi2("America/New_York")
+    c1 = last_settled_date(_td.datetime(2026, 10, 9, 8, 0, tzinfo=_ny))
+    c2 = last_settled_date(_td.datetime(2026, 10, 8, 20, 40, tzinfo=_ny))
+    good = c1 == "2026-10-08" and c2 == "2026-10-08" and "2026-10-09" > c2
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} settled cutoff: 8:00 ET Oct 9 -> {c1}; 20:40 ET Oct 8 -> {c2}")
     # merge guard
     import tempfile
     global HISTORY_PATH

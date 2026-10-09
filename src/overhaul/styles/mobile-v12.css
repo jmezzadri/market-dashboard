@@ -288,25 +288,6 @@
   .mt-overhaul .es-verdict { grid-template-columns: 1fr !important; gap: var(--sp-12); }
   .mt-overhaul .idea-modal-facts,
   .mt-overhaul .idea-backtest { grid-template-columns: 1fr !important; }
-  /* The tape is .tape > .wrap > .row > .t — the CELLS live two levels down.
-     Gridding .tape itself put the wrapper in a two-column grid and squeezed
-     every cell to 51px while its number stayed 32px, so the values overlapped
-     each other. Grid the .row, which is what actually holds the cells. */
-  .mt-overhaul .tape .row {
-    display: grid !important; grid-template-columns: repeat(3, 1fr) !important;
-    gap: 0;
-  }
-  .mt-overhaul .tape .t {
-    padding: var(--sp-14) var(--sp-4) var(--sp-12); border-left: none;
-    border-top: 1px solid var(--hair, var(--c-212c33-a14));
-    min-width: 0; overflow: hidden;
-  }
-  .mt-overhaul .tape .tv {
-    font-size: var(--v13-t5)!important; white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis; display: block;
-  }
-  .mt-overhaul .tape .tk { font-size: var(--v13-t1)!important; letter-spacing: .06em; }
-
   /* SCORECARD — the ledger row is a six-column grid on desktop. */
   .mt-overhaul .sc-trade { grid-template-columns: 1fr !important; gap: var(--sp-2) 0; }
   .mt-overhaul .sc-tradefact .k { padding-top: var(--sp-10); }
@@ -322,7 +303,6 @@
 }
 
 @media (max-width: 520px) {
-  .mt-overhaul .tape { grid-template-columns: repeat(2, 1fr); }
   .mt-overhaul .mt-footer-cols,
   .mt-overhaul footer .cols { grid-template-columns: 1fr !important; }
 }

@@ -63,7 +63,7 @@
    "consumer_surfaces_updated": 10,
    "reason": "PR #2A audit missed 2 v11 mechanism indicators (sofr_ois, naaim) and did not record v11 mechanism participation in consumer_surfaces for ~13 existing indicators. PR #2C closes both gaps."
   },
-  "last_updated": "2026-08-17",
+  "last_updated": "2026-10-09",
   "last_change": "2026-05-27 \u2014 renamed 11 manifest `name` fields to match producer-side pipeline_health indicator_ids (massive-eod, massive-universe, massive-ticker-details, massive-corporate-actions, latest_scan, scenarios, v10_allocation, uw-universe-snapshots). Closes the site-wide red-chip regression where chips found no pipeline_health row for the renamed elements. Paired with the watchdog edge function patch that writes data_as_of on every run.",
   "v_2026_06_11": "2026-06-11 one-shot stamp fix: registered 11 previously-untracked elements (cycle board, ISM keys, scanner V5 legacy feed, user positions, scenario impact, put/call, dollar index, Buffett, bank unrealized losses, sector perf, scenario stress, indicator-history aggregate).",
   "v_2026_06_11b": "Un-registered put_call/buffett/bank_unreal \u2014 these feeds were killed as phantoms on 2026-06-10 (commit 'Kill phantom feeds'); the 2026-06-11 stamp-fix registration pass resurrected them by mistake. Their tracking rows are deleted by the repair workflow. Registration must check kill history first.",
@@ -75,7 +75,8 @@
   "v_2026_08_17": "Quality Trend launch: retired the five Conviction-Events-era paper elements (paper-nav-daily, paper-positions-snapshot, paper-orders-intent, paper-positions-intraday, paper-nav-intraday) \u2014 their producers (PAPER-PORTFOLIO-EOD-DAILY, PAPER-PORTFOLIO-INTRADAY, CONVICTION-KILL-CHECK) were disabled with the old Alpaca account's deletion on 2026-08-13 and their pipeline_health rows are deleted, closing the standing 'Paper Portfolio \u00b7 Order intents' red chip. Registered the two replacement feeds: qt-target-book (monthly scoring, QT-REBALANCE) and qt-nav-daily (close snapshot + fill sync, QT-EOD-DAILY). Producers stamp their own pipeline_health rows per the 2026-06-03 rule.",
   "v_2026_08_17b": "Redeploy trigger \u2014 the 11:48Z deploy of this file did not reach production; no content change.",
   "v_2026_08_17c": "Retired portfolio.ce-events-daily (Conviction Events decision ledger): the book it fed was retired 2026-08-13 and its producer workflows are disabled, so the element could never be tracked again \u2014 it was showing as 'registered but no health record' in the header rollup. The upstream inputs it derived from (insider_history_edgar, prices_eod) remain registered; the ce_events table keeps its historical rows.",
-  "v_2026_08_28": "Quality Trend retired (Joe, 2026-08-26; superseded by paper_portfolio/TACTICAL_BOOK_SPEC.md, which is design-only). Deregistered both of its feeds \u2014 qt-target-book (producer QT-REBALANCE) and qt-nav-daily (producer QT-EOD-DAILY) \u2014 and deleted their pipeline_health rows, closing the standing \"1 feed stale\" site header. The producers were deleted in the same change (QT-EOD-DAILY, QT-REBALANCE, QT-FUNDAMENTALS-REFRESH, QT-PLACE-ORDERS) along with the pg_cron job qt-live-sync-10min, which was still snapshotting a funded-but-never-traded account every ten minutes. The closed book's data (qt_nav_daily, qt_target_book, qt_orders) is kept \u2014 /paper renders it as a finished record. Per LESSONS 0.10, retired means deleted, everywhere, in the same change."
+  "v_2026_08_28": "Quality Trend retired (Joe, 2026-08-26; superseded by paper_portfolio/TACTICAL_BOOK_SPEC.md, which is design-only). Deregistered both of its feeds \u2014 qt-target-book (producer QT-REBALANCE) and qt-nav-daily (producer QT-EOD-DAILY) \u2014 and deleted their pipeline_health rows, closing the standing \"1 feed stale\" site header. The producers were deleted in the same change (QT-EOD-DAILY, QT-REBALANCE, QT-FUNDAMENTALS-REFRESH, QT-PLACE-ORDERS) along with the pg_cron job qt-live-sync-10min, which was still snapshotting a funded-but-never-traded account every ten minutes. The closed book's data (qt_nav_daily, qt_target_book, qt_orders) is kept \u2014 /paper renders it as a finished record. Per LESSONS 0.10, retired means deleted, everywhere, in the same change.",
+  "v_2026_10_09": "Market banner moved from Home to the top of every page and widened from 9 series to 27 (Joe, 2026-10-09). No new feed: every series was already produced and registered; each one now lists the banner as a consumer surface. Gasoline and heating oil (diesel) are displayed on the site for the first time. Same change: MARKET-INDICATORS-EOD stored a bar from the next, still-open futures/FX session as the newest daily point every evening (the job runs after the 18:00 ET reopen); the producer now keeps only sessions that have settled."
  },
  "elements": [
   {
@@ -112,6 +113,10 @@
     {
      "tab": "readme",
      "tile": "Methodology \u2014 indicator table"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -204,6 +209,10 @@
     {
      "tab": "overview",
      "tile": "v11 Credit mechanism modal \u2014 indicator row (as 'HY OAS' on screen \u2014 naming clash with manifest 'hy_ig'; tracked for cleanup)"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -289,6 +298,10 @@
     },
     {
      "tab": "readme"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -331,6 +344,10 @@
     },
     {
      "tab": "readme"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -541,6 +558,10 @@
     },
     {
      "tab": "readme"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -2163,6 +2184,10 @@
     {
      "tab": "overview",
      "tile": "v11 Credit mechanism modal \u2014 indicator row"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live_pending_first_workflow_run",
@@ -2698,6 +2723,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -2735,6 +2764,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -2772,6 +2805,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -2809,6 +2846,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -2846,6 +2887,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -2883,6 +2928,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -2916,7 +2965,11 @@
    "consumer_surfaces": [
     {
      "tab": "research",
-     "tile": "Daily X chart research (not displayed on site)"
+     "tile": "Daily X chart research"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -2950,7 +3003,11 @@
    "consumer_surfaces": [
     {
      "tab": "research",
-     "tile": "Daily X chart research (not displayed on site)"
+     "tile": "Daily X chart research"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -3090,6 +3147,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -3127,6 +3188,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -3164,6 +3229,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -3201,6 +3270,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -3238,6 +3311,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -3275,6 +3352,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -3312,6 +3393,10 @@
     },
     {
      "tab": "indicators"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -3354,6 +3439,10 @@
     },
     {
      "tab": "readme"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live_pending_first_workflow_run",
@@ -3394,6 +3483,10 @@
     {
      "tab": "home",
      "tile": "Market Brief snapshot \u2014 Rates"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live_pending_first_workflow_run",
@@ -3476,6 +3569,10 @@
     },
     {
      "tab": "readme"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live_pending_first_workflow_run",
@@ -3602,6 +3699,10 @@
     {
      "tab": "indicators",
      "tile": "Indicator drill \u2014 index overlay toggle"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -3645,6 +3746,10 @@
     {
      "tab": "indicators",
      "tile": "Indicator drill \u2014 index overlay toggle"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",
@@ -3688,6 +3793,10 @@
     {
      "tab": "indicators",
      "tile": "Indicator drill \u2014 index overlay toggle"
+    },
+    {
+     "tab": "home",
+     "tile": "Market banner \u2014 top of every page"
     }
    ],
    "current_status": "live",

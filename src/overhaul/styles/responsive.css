@@ -303,7 +303,6 @@
   .home-v12 .bgrid { gap: var(--sp-18) !important; }
 }
 @media (max-width: 640px) {
-  .home-v12 .tape .row { grid-template-columns: repeat(3, 1fr) !important; }
   .home-v12 .calrow .what { white-space: normal; }
   .home-v12 .calrow .when { min-width: 70px; }
 }
