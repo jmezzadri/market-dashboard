@@ -163,15 +163,34 @@ def fetch(ticker):
     res = r.json()["chart"]["result"]
     if not res:
         raise RuntimeError("no result")
-    q = res[0]
-    ts = q["timestamp"]
-    closes = q["indicators"]["quote"][0]["close"]
+    return daily_bars(res[0])
+
+
+def daily_bars(q):
+    """Completed daily bars from one Yahoo chart result, dated the way the
+    EXCHANGE dates them.
+
+    Two things the old gmtime() dating got wrong (2026-10-09):
+      - FX daily bars are stamped at London midnight, which in summer is 23:00
+        UTC the evening BEFORE — so every FX close was filed one day early.
+      - Yahoo appends the live quote as an extra entry stamped "now". Filed as
+        a daily bar it became tomorrow's close (evening run, UTC already
+        tomorrow) and then sat in the stored history as a close nobody traded.
+    A real daily bar is stamped at exactly midnight in the exchange's own
+    timezone; anything else is the live quote and is not a close. A bar with
+    no close yet (Yahoo shows the just-finished session as null for some
+    hours) is skipped, never guessed."""
+    import datetime as _dtm
+    from zoneinfo import ZoneInfo as _zi
+    tz = _zi(q["meta"]["exchangeTimezoneName"])
     pts = []
-    for t, c in zip(ts, closes):
+    for t, c in zip(q["timestamp"], q["indicators"]["quote"][0]["close"]):
         if c is None:
             continue
-        d = time.strftime("%Y-%m-%d", time.gmtime(t))
-        pts.append([d, round(float(c), 4)])
+        local = _dtm.datetime.fromtimestamp(t, tz)
+        if (local.hour, local.minute) != (0, 0):
+            continue
+        pts.append([local.strftime("%Y-%m-%d"), round(float(c), 4)])
     return pts
 
 
@@ -356,6 +375,18 @@ def run():
             # already on file, so a future-dated bar written by an earlier run
             # would otherwise survive as the newest point forever.
             stored = [p for p in ((hist0.get(key) or {}).get("points") or []) if str(p[0]) <= cutoff]
+            # Inside the span the vendor covers, the vendor's dates are the
+            # only dates: a stored point there that the vendor does not have
+            # is a leftover live-quote snapshot or a mis-dated bar, and it is
+            # dropped. History older than the vendor's first bar is kept.
+            if pts and not os.environ.get("MKT_RESEED"):
+                have = {p[0] for p in pts}
+                kept = [p for p in stored if str(p[0]) < pts[0][0] or str(p[0]) in have]
+                if len(stored) - len(kept):
+                    print(f"  purge: {len(stored) - len(kept)} stored point(s) for {key} not in the vendor's daily bars")
+                if len(kept) + len(have - {str(p[0]) for p in kept}) < 0.97 * len(stored):
+                    raise RuntimeError(f"purge would shrink {key} by more than 3% — refusing")
+                stored = kept
             # MKT_RESEED replaces with the clean daily pull (one-time, wipes any prior
             # coarse/monthly data); normal runs merge-preserve so depth never regresses.
             allpts = pts if os.environ.get("MKT_RESEED") else _merge_points(stored, pts)
@@ -500,6 +531,16 @@ def selftest():
     good = c1 == "2026-10-08" and c2 == "2026-10-08" and "2026-10-09" > c2
     ok &= good
     print(f"  {'OK' if good else 'FAIL'} settled cutoff: 8:00 ET Oct 9 -> {c1}; 20:40 ET Oct 8 -> {c2}")
+    # daily_bars: London-midnight FX bar is dated by London, the appended live
+    # quote and a null close are not bars.
+    _lon = _zi2("Europe/London")
+    _b = lambda y, m, d, hh=0, mm=0, z=_lon: int(_td.datetime(y, m, d, hh, mm, tzinfo=z).timestamp())
+    got = daily_bars({"meta": {"exchangeTimezoneName": "Europe/London"},
+                      "timestamp": [_b(2026, 10, 8), _b(2026, 10, 9), _b(2026, 10, 9, 13, 50)],
+                      "indicators": {"quote": [{"close": [1.1201, None, 1.1198]}]}})
+    good = got == [["2026-10-08", 1.1201]]
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} daily_bars keeps only settled exchange-midnight bars: {got}")
     # merge guard
     import tempfile
     global HISTORY_PATH
