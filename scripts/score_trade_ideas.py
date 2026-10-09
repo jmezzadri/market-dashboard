@@ -710,6 +710,15 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
             if isinstance(inv, dict) and inv.get("series") else None),
         "result": last_mark if status != "open" else None,
         "thesis_review_close": ({"review_date": rd, "closed_on": close_date} if status == "closed_thesis" else None),
+        # 2026-10-09 — what the portfolio view needs. `close_date` is the last
+        # mark of a closed call (the day it actually came off, not the day it
+        # was planned to); `close_reason` is the reader's wording for why; and
+        # `path` is the daily position return the portfolio is built from
+        # (main() drops it from the published file).
+        "close_date": last_date if status != "open" else None,
+        "close_reason": CLOSE_REASONS.get(status),
+        "days_held": (dt.date.fromisoformat(last_date) - dt.date.fromisoformat(entry_date)).days,
+        "path": [[d, m] for d, m in scored],
     }
 
     # Benchmark — the passive alternative in this call's own asset class, over
@@ -759,6 +768,145 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
                 "note": "What the obvious alternative did over exactly the same days.",
             }
     return out
+
+
+CLOSE_REASONS = {
+    "closed_horizon": "Planned close date reached",
+    "closed_invalidated": "Exit level reached",
+    "closed_thesis": "Weekly review",
+}
+MIN_DAYS_TO_ANNUALIZE = 28
+
+
+def _last_on_or_before(series, iso):
+    out = None
+    for d, v in series:
+        if d > iso:
+            break
+        out = (d, v)
+    return out
+
+
+def portfolio(rows: list[dict], hist: dict) -> dict | None:
+    """One portfolio that follows every marked call — Joe, 2026-10-09: "I want
+    to know performance of our calls overall ... whats the performance of
+    closed trades (i.e., realized gain/loss) and ... open trades (unrealized)
+    ... we need to somehow show annualized returns ... I dont even know what
+    the total return is."
+
+    The method, chosen with the Senior Quant: each session the portfolio is
+    divided equally among the calls open that session, and earns the average
+    of their one-session returns. A call is held from the session after its
+    entry close through its close date. Days with no call open earn nothing.
+    The benchmark is the S&P 500 price index over the same calendar window.
+
+    * Everything is cut at ONE as-of date — the benchmark's last close — so a
+      commodity that has printed for a session the index has not finished is
+      not ahead of the yardstick (LESSONS 6.24). Each row gets a `book` block
+      on that same date; the page shows those figures, not the row's own mark.
+    * A call with no print on a session carries its last value (earns zero).
+    * Contribution = the part of the portfolio's total return that came from
+      one call: the sum over its sessions of (portfolio value before the
+      session x its return that session / calls open). Contributions add up
+      to the total EXACTLY, so realized + unrealized = total by construction.
+    * Annualized is compounded from calendar days and withheld below
+      MIN_DAYS_TO_ANNUALIZE, where it is noise.
+
+    Mutates each marked row (adds `book`) and returns
+    {"summary": {...}, "line": [[date, portfolio %, benchmark %, calls open]]},
+    or None when nothing can be computed. The page renders this verbatim.
+    """
+    bseries = hist.get(BENCHMARK["series"]) if isinstance(BENCHMARK, dict) else None
+    marked = [r for r in rows
+              if (r.get("status") == "open" or str(r.get("status", "")).startswith("closed"))
+              and r.get("path") and r.get("entry_date")]
+    if not bseries or not marked:
+        return None
+    inception = min(r["entry_date"] for r in marked)
+    days = [d for d, _ in bseries if d >= inception]
+    if len(days) < 2:
+        return None
+    as_of = days[-1]
+    bmap = dict(bseries)
+    paths = {id(r): dict((d, float(m)) for d, m in r["path"]) for r in marked}
+    prev = {id(r): 0.0 for r in marked}
+    contrib = {id(r): 0.0 for r in marked}
+    value, line, n_open_seen = 1.0, [[days[0], 0.0, 0.0, 0]], []
+    for d in days[1:]:
+        active = []
+        for r in marked:
+            if d <= r["entry_date"]:
+                continue
+            closed_on = r.get("close_date")
+            if closed_on and d > closed_on:
+                continue
+            cur = paths[id(r)].get(d, prev[id(r)])
+            step = (1.0 + cur / 100.0) / (1.0 + prev[id(r)] / 100.0) - 1.0
+            prev[id(r)] = cur
+            active.append((r, step))
+        if active:
+            for r, step in active:
+                contrib[id(r)] += value * step / len(active)
+            value *= 1.0 + sum(step for _, step in active) / len(active)
+            n_open_seen.append(len(active))
+        line.append([d, round((value - 1.0) * 100.0, 4),
+                     round((bmap[d] / bmap[days[0]] - 1.0) * 100.0, 4), len(active)])
+
+    # Per-row figures on the portfolio's as-of date.
+    for r in marked:
+        end = min(r.get("close_date") or as_of, as_of)
+        ret = prev[id(r)] if end >= r["entry_date"] else 0.0
+        _, b0 = first_on_or_after(bseries, r["entry_date"])
+        b1 = _last_on_or_before(bseries, end)
+        bench = (100.0 * (b1[1] / b0 - 1.0)) if (b0 and b1 and b1[0] >= r["entry_date"]) else None
+        r["book"] = {
+            "as_of": end,
+            "return_pct": round(ret, 4),
+            "benchmark_pct": None if bench is None else round(bench, 4),
+            "excess_pct": None if bench is None else round(ret - bench, 4),
+            "contribution_pct": round(contrib[id(r)] * 100.0, 4),
+            "days_held": max(0, (dt.date.fromisoformat(end) - dt.date.fromisoformat(r["entry_date"])).days),
+        }
+
+    total = (value - 1.0) * 100.0
+    bench_total = (bmap[as_of] / bmap[days[0]] - 1.0) * 100.0
+    cal_days = (dt.date.fromisoformat(as_of) - dt.date.fromisoformat(days[0])).days
+    open_rows = [r for r in marked if r["status"] == "open"]
+    closed_rows = [r for r in marked if r["status"] != "open"]
+    realized = sum(contrib[id(r)] for r in closed_rows) * 100.0
+    unrealized = sum(contrib[id(r)] for r in open_rows) * 100.0
+    summary = {
+        "inception": days[0],
+        "as_of": as_of,
+        "calendar_days": cal_days,
+        "history_weeks": int(round(cal_days / 7.0)),
+        "benchmark_label": BENCHMARK.get("label") or "S&P 500",
+        "total_return_pct": round(total, 4),
+        "benchmark_total_pct": round(bench_total, 4),
+        "excess_total_pct": round(total - bench_total, 4),
+        "annualized_pct": None,
+        "benchmark_annualized_pct": None,
+        "excess_annualized_pct": None,
+        "annualized_withheld_reason": None,
+        "realized_contribution_pct": round(realized, 4),
+        "unrealized_contribution_pct": round(unrealized, 4),
+        "positions_open": len(open_rows),
+        "positions_closed": len(closed_rows),
+        "min_positions_held": min(n_open_seen) if n_open_seen else 0,
+        "max_positions_held": max(n_open_seen) if n_open_seen else 0,
+        "basis": ("A model portfolio divided equally each day among the calls open that day. Price returns "
+                  "only; not the returns of any account."),
+    }
+    if cal_days >= MIN_DAYS_TO_ANNUALIZE:
+        ann = ((value) ** (365.0 / cal_days) - 1.0) * 100.0
+        b_ann = ((1.0 + bench_total / 100.0) ** (365.0 / cal_days) - 1.0) * 100.0
+        summary["annualized_pct"] = round(ann, 4)
+        summary["benchmark_annualized_pct"] = round(b_ann, 4)
+        summary["excess_annualized_pct"] = round(ann - b_ann, 4)
+    else:
+        summary["annualized_withheld_reason"] = (
+            f"{cal_days} days of history. An annualized figure is not shown below {MIN_DAYS_TO_ANNUALIZE} days.")
+    return {"summary": summary, "line": line}
 
 
 def summarise(rows: list[dict]) -> dict:
@@ -871,6 +1019,9 @@ def main(argv=None) -> int:
 
     rows = [score_one(i, hist, today, review_closes) for i in ideas]
     rows.sort(key=lambda r: str(r.get("date")), reverse=True)
+    port = portfolio(rows, hist)          # adds each marked row's `book` block
+    for r in rows:
+        r.pop("path", None)               # the daily path is working data, not output
     payload = {
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "as_of": today,
@@ -892,8 +1043,10 @@ def main(argv=None) -> int:
                        "named reference series; they are not the returns of any account and include no costs, "
                        "financing or slippage."),
         "summary": summarise(rows),
+        "portfolio_line": port["line"] if port else [],
         "scores": rows,
     }
+    payload["summary"]["portfolio"] = port["summary"] if port else None
 
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:

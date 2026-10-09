@@ -75,7 +75,7 @@ const SURFACES = [
   {
     path: "/scorecard",
     name: "Scorecard",
-    mustInclude: ["Trade Idea scorecard", "Published"],
+    mustInclude: ["Macro Scorecard", "Since inception"],
     mustMatch: [/\d/],
   },
   {
