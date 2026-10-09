@@ -162,7 +162,7 @@ async function checkHome(browser) {
   section('HOME', text.slice(0, 6000));
 
   // Tape tiles: label / value / stamp, straight from the DOM the reader sees.
-  const tiles = await page.$$eval('.tape .row > *', (nodes) =>
+  const tiles = await page.$$eval('.tape .row:not([aria-hidden]) .t', (nodes) =>
     nodes.map((n) => ({
       label: n.querySelector('.tk')?.textContent?.trim() ?? null,
       value: n.querySelector('.tv')?.textContent?.trim() ?? null,

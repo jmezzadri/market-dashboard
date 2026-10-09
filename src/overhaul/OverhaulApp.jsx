@@ -63,6 +63,7 @@ import { TweaksProvider } from './tweaks/TweaksContext';
 
 import TopNav from './chrome/TopNav';
 import PageHeader from './chrome/PageHeader';
+import MarketTape from './chrome/MarketTape';
 import SiteFooter from './chrome/SiteFooter';
 import LoginScreen from '../auth/LoginScreen';
 import { useSession } from '../auth/useSession';
@@ -204,6 +205,8 @@ function Shell() {
         <main className="mt-main">
           <TopNav />
           <PageHeader />
+          {/* Scrolling cross-asset banner — every page (Joe, 2026-10-09). */}
+          <MarketTape />
           <ScrollToTop />
           <VersionWatch />
           <Routes>

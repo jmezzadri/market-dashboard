@@ -35,14 +35,13 @@ import { useTweaks } from '../tweaks/TweaksContext';
 import useEngineRegime from '../lib/useEngineRegime';
 import { stressGaugePct, yieldGaugePct, stressMessage } from '../lib/engineGauges';
 import useMarketLevels from '../lib/useMarketLevels';
-import useLseLive from '../../hooks/useLseLive';
 import IndicatorDrillModal from '../components/IndicatorDrillModal';
 import ReleaseDetailModal from '../components/ReleaseDetailModal';
 import useScrollLock from '../lib/useScrollLock';
 import ReleaseCalendarModal from '../components/ReleaseCalendarModal';
 import ImpactMark from '../components/ImpactMark';
 import useEconReleaseHistory from '../lib/useEconReleaseHistory';
-import IndexDrillModal, { INDEX_DRILLS } from '../components/IndexDrillModal';
+import { TAPE_ITEMS } from '../chrome/MarketTape';
 import useDailyBrief from '../lib/useDailyBrief';
 import useEconCalendar from '../lib/useEconCalendar';
 import useTradeIdea from '../lib/useTradeIdea';
@@ -59,17 +58,6 @@ import '../styles/pages-v13.css';
 function fmt(v, dec) {
   if (v == null || !Number.isFinite(v)) return '—';
   return v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-}
-function ddParts(dd, dec) {
-  if (dd == null || !Number.isFinite(dd)) return { arrow: '', txt: '', cls: '' };
-  const d = Math.min(dec, 2);
-  // Round to the displayed precision first, so a change that rounds to zero
-  // (e.g. a monthly series unchanged since its last print) shows nothing
-  // rather than a spurious "-0.0".
-  const r = Number(dd.toFixed(d));
-  if (r === 0) return { arrow: '', txt: '', cls: '' };
-  const a = Math.abs(r).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
-  return r > 0 ? { arrow: '▲', txt: a, cls: 'up' } : { arrow: '▼', txt: a, cls: 'down' };
 }
 function Html({ html, tag = 'span', className }) {
   const T = tag;
@@ -116,81 +104,6 @@ function tileLine(s, max = 150) {
   return head === t ? head : `${head}.`;
 }
 
-/* Market tape.
-   `pct: true`  — an equity index, quoted the way equity indexes are quoted:
-                  percent, not points (Joe 2026-08-18).
-   `live`       — the quote symbol pulled through the shared live-quote path
-                  (LSE primary, Yahoo fallback). Present only on the three
-                  equity indexes: during the session they show the live level
-                  and the live move; outside it, the last close. The remaining
-                  tiles are macro series that only ever print daily, so they
-                  stay on indicator_history and stay labelled "close".
-   All three indexes already have stored daily history in indicator_history
-   (spx_index / ndx_index / dji_index, ~5,200 sessions each — they back the
-   "Add index to chart" overlays), so the live quote is the headline and the
-   stored close is the fallback. An earlier version of this comment claimed we
-   carried no Dow history; that was wrong and is corrected here rather than
-   left to be re-read as fact.
-   `ind`         — the registry indicator this tile drills into. Clicking opens
-                  that indicator's full detail RIGHT HERE (Joe 2026-08-18:
-                  "I just want to stay on home page"). Previously every tile
-                  was an <a href="/macro?ind=…">, so one click both navigated
-                  to Macro and popped a modal over it — the modal was the part
-                  he wanted. Reading a level on the home page is not a reason
-                  to leave the home page.
-   `idx`         — the three equity indexes drill too, but into their OWN panel
-                  (IndexDrillModal), not IndicatorDetail. They are levels, not
-                  registry indicators: a percentile of the S&P's own level is
-                  not a statistic, just a restatement of the fact that indexes
-                  trend. Their panel shows what a level supports — trailing
-                  returns, drawdown from the window high, the chart — with no
-                  percentile bar and no amber/red bands. */
-const RIBBON = [
-  { key: 'spx_index', label: 'S&P', dec: 0, suffix: '', live: '^GSPC', pct: true, idx: 'spx_index' },
-  { key: 'ndx_index', label: 'NASDAQ', dec: 0, suffix: '', live: '^IXIC', pct: true, idx: 'ndx_index' },
-  { key: 'dji_index', label: 'DOW', dec: 0, suffix: '', live: '^DJI', pct: true, idx: 'dji_index' },
-  { key: 'move', label: 'MOVE', dec: 0, suffix: '', ind: 'move' },
-  { key: 'ust_10y', label: '10Y', dec: 2, suffix: '%', ind: 'ust_10y' },
-  { key: 'vix', label: 'VIX', dec: 1, suffix: '', ind: 'vix' },
-  { key: 'fx_jpy', label: '¥/$', dec: 1, suffix: '', ind: 'fx_jpy' },
-  { key: 'hy_ig', label: 'HY OAS', dec: 0, suffix: '', ind: 'hy_ig' },
-  { key: 'cmdty_copper', label: 'Copper', dec: 2, suffix: '', ind: 'cmdty_copper' },
-];
-const RIBBON_LIVE_SYMS = RIBBON.filter((r) => r.live).map((r) => r.live);
-
-/* One tape tile's numbers, resolved once so the value, the change and the
-   as-of label can never come from different observations.
-
-   The "live" stamp is a claim about the SESSION, not about the feed
-   (2026-09-02, Joe pre-open): outside market hours the quote provider still
-   answers — with the last close — so "we got a quote" must not print "live"
-   over Tuesday's close at 7am. Gate the stamp on marketOpen exactly the way
-   the ticker-page hero already does (`lseLive.marketOpen === true`); when the
-   session is closed the live quote is still the freshest CLOSE we have, so
-   keep its numbers and stamp them "close". marketOpen null (loading/error)
-   counts as closed — a momentary "close" during the session is honest,
-   a "live" on a closed market is not. */
-function tapeTile(r, lv, liveQ, marketOpen) {
-  const live = r.live && liveQ && liveQ.covered && liveQ.price != null ? liveQ : null;
-  if (live) {
-    const base = live.prevClose != null && live.prevClose > 0 ? live.prevClose : null;
-    return {
-      value: live.price,
-      pct: base != null ? ((live.price / base) - 1) * 100 : null,
-      dd: base != null ? live.price - base : null,
-      stamp: marketOpen === true ? 'live' : 'close',
-    };
-  }
-  if (!lv) return null;
-  const prev = lv.dd != null ? lv.value - lv.dd : null;
-  return {
-    value: lv.value,
-    pct: prev > 0 && lv.dd != null ? (lv.dd / prev) * 100 : null,
-    dd: lv.dd,
-    stamp: 'close',
-  };
-}
-
 /* Reveal — scroll-reveal wrapper. Replays in BOTH directions (Joe 2026-07-07).
    State lives in React so data-poll re-renders preserve the revealed class. */
 function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
@@ -217,16 +130,12 @@ export default function HomePage() {
   const isDark = tweaks.theme !== 'light';
   const flip = () => setTweak('theme', isDark ? 'light' : 'navy');
 
-  const { level, hist: levelHist } = useMarketLevels();
-  /* The equity indexes ride the same live-quote path as every other price on
-     the site — one resolver, so the tape and a ticker page can never tell the
-     user two different stories about the same session. */
-  const ribbonLive = useLseLive(RIBBON_LIVE_SYMS);
+  // The market banner itself lives in the site frame now (chrome/MarketTape);
+  // Home only needs the levels for its "data through" footer line.
+  const { level } = useMarketLevels();
   // Which indicator's drill is open, or null. One piece of state; the modal
   // resolves everything else itself.
   const [drillInd, setDrillInd] = useState(null);
-  // Index levels get their own panel — see IndexDrillModal for why.
-  const [drillIdx, setDrillIdx] = useState(null);
   const regime = useEngineRegime();
   const { brief } = useDailyBrief();
   const { days: calDays, all: calAll, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 4 });
@@ -256,7 +165,7 @@ export default function HomePage() {
   // header renders, lowercased to match this strip's voice.
   const marketLabel = nyseMarketState().label.toLowerCase();
   const newestAsOf = useMemo(() => {
-    const ds = RIBBON.map((r) => level(r.key)?.asOf).filter(Boolean).sort();
+    const ds = TAPE_ITEMS.map((r) => level(r.key)?.asOf).filter(Boolean).sort();
     return ds.length ? ds[ds.length - 1] : null;
   }, [level]);
 
@@ -305,48 +214,6 @@ export default function HomePage() {
 
   return (
     <div className="home-v12 v13 home-cockpit">
-
-      {/* market tape */}
-      <Reveal className="tape">
-        <div className="wrap row">
-          {RIBBON.map((r) => {
-            const t = tapeTile(r, level(r.key), ribbonLive.bySymbol?.[r.live], ribbonLive.marketOpen);
-            // Equity indexes quote in percent; macro series quote in their own
-            // native unit, where a point change is the meaningful number.
-            const d = r.pct ? ddParts(t?.pct, 2) : ddParts(t?.dd, r.dec);
-            const inner = (
-              <>
-                <span className="tk">{r.label}</span>
-                <span className="tv">{t ? fmt(t.value, r.dec) + r.suffix : '—'}</span>
-                <span className={`td ${d.cls || 'fl'}`}>
-                  {d.txt ? `${d.arrow} ${d.txt.replace(/^[+−-]/, '')}${r.pct ? '%' : ''}` : '—'}{' '}
-                  <small>{t?.stamp || 'close'}</small>
-                </span>
-              </>
-            );
-            // A tile with an indicator behind it opens that indicator's detail
-            // in place. A tile without one is a quote, not a link — it must
-            // not look clickable (LESSONS: an affordance that does nothing is
-            // a bug report waiting to happen).
-            const openDrill = r.ind
-              ? () => setDrillInd(r.ind)
-              : (r.idx && INDEX_DRILLS[r.idx] ? () => setDrillIdx(r.idx) : null);
-            return openDrill ? (
-              <button
-                key={r.key}
-                type="button"
-                className="t t--drill"
-                onClick={openDrill}
-                title={`${r.label} — open detail`}
-              >
-                {inner}
-              </button>
-            ) : (
-              <div key={r.key} className="t t--static">{inner}</div>
-            );
-          })}
-        </div>
-      </Reveal>
 
       <section className="wrap">
         <div className="bgrid">
@@ -609,7 +476,6 @@ export default function HomePage() {
       <ReleaseCalendarModal open={calOpen} events={calAll} todayISO={todayISO} meta={calMeta} impactOf={impactOf}
                             onClose={() => setCalOpen(false)} onPick={(e) => { setOpenRelease(e); }} />
       <ReleaseDetailModal event={openRelease} onClose={() => setOpenRelease(null)} />
-      <IndexDrillModal indexKey={drillIdx} hist={levelHist} onClose={() => setDrillIdx(null)} />
 
       {ideaOpen && idea && (
         <TradeIdeaNoteModal idea={idea} chartSeries={chartSeries} onClose={() => setIdeaOpen(false)} />

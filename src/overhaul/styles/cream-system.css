@@ -72,8 +72,8 @@
 
 /* ── tape ── */
 .home-v12 .tape{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);background:var(--bg2);transition:background var(--dur-500)}
-/* 9 tiles since 2026-08-18 (NASDAQ + Dow joined the three-index block). */
-.home-v12 .tape .row{display:grid;grid-template-columns:repeat(9,1fr)}
+/* The row's layout (a scrolling strip since 2026-10-09) lives in glass.css,
+   "market banner" block. */
 /* Tape tiles are <button> (drill in place) or <div> (quote only) since
    2026-08-18 — they were <a href="/macro?ind=…">, which navigated away from
    Home just to open a modal. Resets keep the two elements pixel-identical to
@@ -387,8 +387,6 @@
 
 /* ── responsive (see also responsive.css additions) ── */
 @media (max-width: 1100px){
-  .home-v12 .tape .row{grid-template-columns:repeat(5,1fr)}
-  .home-v12 .t:nth-child(n+6){border-top:1px solid var(--hair)}
   .home-v12 .engine-card{grid-template-columns:1fr;gap:var(--sp-28)}
   .home-v12 .sp7,.home-v12 .sp5{grid-column:span 12}
 }
@@ -399,8 +397,6 @@
   .home-v12 .idea-facts{grid-template-columns:1fr;gap:var(--sp-14) 0}
 }
 @media (max-width: 640px){
-  .home-v12 .tape .row{grid-template-columns:repeat(3,1fr)}
-  .home-v12 .t:nth-child(n+4){border-top:1px solid var(--hair)}
   .home-v12 .t .tv{font-size: var(--v13-t6)}
   .home-v12 .hero{padding:var(--sp-56) 0 var(--sp-48)}
   .home-v12 .ir{height:auto;min-height:64px;flex-wrap:wrap;padding:var(--sp-10) var(--sp-6)}

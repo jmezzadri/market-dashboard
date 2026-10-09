@@ -613,3 +613,37 @@ html, body, #root { background: var(--lg-ground); }
   .mt-overhaul .mt-footer-grid,
   .mt-overhaul .mt-footer-legalband { padding-left: var(--lg-edge); padding-right: var(--lg-edge); box-sizing: border-box; }
 }
+
+/* ── market banner (2026-10-09) ──────────────────────────────────────────
+   One scrolling strip under the header on every page. It was nine fixed
+   tiles in a grid on Home only. The panel itself keeps every rule above (it
+   is still `.v13.home-v12 .tape`, rendered inside a host that carries those
+   classes); this block only changes how the tiles are laid out and moved.
+   Structure: .tape > .tape-view (the window) > .tape-track (the thing that
+   slides) > .row x2 (the strip and its decorative copy) > .tgroup > .t */
+.mt-overhaul .v13.home-v12.home-cockpit.mt-tape-host { min-height: 0; background: transparent; padding-bottom: 0; }
+.mt-overhaul .mt-tape-host .tape { overflow: hidden; }
+/* The window is a real sideways scroller with its bar hidden: the strip moves
+   on its own, and on a phone or trackpad the reader can also drag it. */
+.mt-overhaul .mt-tape-host .tape .tape-view { max-width: none; width: 100%; padding: 0; margin: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
+.mt-overhaul .mt-tape-host .tape .tape-view::-webkit-scrollbar { display: none; }
+.mt-overhaul .mt-tape-host .tape .tape-view:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: -2px; border-radius: var(--r-panel); }
+.mt-overhaul .mt-tape-host .tape .tape-track {
+  display: flex; width: max-content;
+  animation: mt-tape-slide calc(var(--tape-n) * var(--dur-tape-tile)) linear infinite;
+}
+/* Reading or reaching for a tile stops the strip under the pointer. */
+.mt-overhaul .mt-tape-host .tape:hover .tape-track,
+.mt-overhaul .mt-tape-host .tape:focus-within .tape-track { animation-play-state: paused; }
+@keyframes mt-tape-slide { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.mt-overhaul .mt-tape-host .tape .row { display: flex; flex: 0 0 auto; }
+.mt-overhaul .mt-tape-host .tape .tgroup { display: flex; flex: 0 0 auto; border-right: 1px solid var(--lg-glass-line); }
+.mt-overhaul .mt-tape-host .tape .t { flex: 0 0 auto; width: auto; min-width: var(--tape-tile-w); white-space: nowrap; }
+.mt-overhaul .mt-tape-host .tape .t:hover { transform: none; }
+.mt-overhaul .mt-tape-host .tape .t.t--drill { min-height: var(--mt-tap); }
+/* Reduced motion: nothing slides. The strip becomes a row the reader moves
+   by hand, and the decorative copy is not needed. */
+@media (prefers-reduced-motion: reduce) {
+  .mt-overhaul .mt-tape-host .tape .tape-track { animation: none; }
+  .mt-overhaul .mt-tape-host .tape .row[aria-hidden='true'] { display: none; }
+}
