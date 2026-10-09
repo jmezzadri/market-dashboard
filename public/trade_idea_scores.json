@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-09T02:40:48Z",
+  "generated_at": "2026-10-09T13:05:48Z",
   "as_of": "2026-10-09",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
-    "published": 7,
-    "open": 3,
+    "published": 8,
+    "open": 4,
     "pending_entry": 0,
     "closed": 4,
     "unscoreable": 0,
@@ -13,14 +13,14 @@
     "unscoreable_reasons": [],
     "min_closed_for_stats": 10,
     "overall": {
-      "marked": 7,
-      "open": 3,
+      "marked": 8,
+      "open": 4,
       "closed": 4,
-      "avg_mark_pct": -0.21,
+      "avg_mark_pct": 0.04,
       "best": {
         "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
         "trade_label": "Long Natgas",
-        "mark": 10.74
+        "mark": 11.9
       },
       "worst": {
         "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
@@ -28,15 +28,358 @@
         "mark": -12.23
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": -0.03,
+      "avg_vs_spx_pp": 0.32,
       "ahead_of_spx": 3,
       "behind_spx": 4,
-      "line": "7 calls marked (3 open, 4 closed). Taken as one book they average -0.2% a call and sit level with the S&P 500 over the same days — 3 ahead of the index, 4 behind. Best: Long Natgas, +10.7%. Worst: Long KBW / Short NASDAQ, -12.2%."
+      "line": "8 calls marked (4 open, 4 closed). Taken as one book they average +0.0% a call and sit 0.3 points ahead of the S&P 500 over the same days — 3 ahead of the index, 4 behind. Best: Long Natgas, +11.9%. Worst: Long KBW / Short NASDAQ, -12.2%."
     },
     "stats_withheld": true,
-    "stats_withheld_reason": "4 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless."
+    "stats_withheld_reason": "4 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless.",
+    "portfolio": {
+      "inception": "2026-08-13",
+      "as_of": "2026-10-08",
+      "calendar_days": 56,
+      "history_weeks": 8,
+      "benchmark_label": "S&P 500",
+      "total_return_pct": -0.3931,
+      "benchmark_total_pct": -0.4312,
+      "excess_total_pct": 0.0382,
+      "annualized_pct": -2.5343,
+      "benchmark_annualized_pct": -2.7773,
+      "excess_annualized_pct": 0.2431,
+      "annualized_withheld_reason": null,
+      "realized_contribution_pct": -3.5869,
+      "unrealized_contribution_pct": 3.1938,
+      "positions_open": 4,
+      "positions_closed": 4,
+      "min_positions_held": 1,
+      "max_positions_held": 6,
+      "basis": "A model portfolio divided equally each day among the calls open that day. Price returns only; not the returns of any account."
+    }
   },
+  "portfolio_line": [
+    [
+      "2026-08-13",
+      0.0,
+      0.0,
+      0
+    ],
+    [
+      "2026-08-14",
+      0.0,
+      -0.1696,
+      1
+    ],
+    [
+      "2026-08-17",
+      -0.0211,
+      -0.6915,
+      3
+    ],
+    [
+      "2026-08-18",
+      0.2459,
+      -1.3749,
+      3
+    ],
+    [
+      "2026-08-19",
+      -0.1956,
+      -1.1669,
+      3
+    ],
+    [
+      "2026-08-20",
+      0.0369,
+      -2.0237,
+      3
+    ],
+    [
+      "2026-08-21",
+      -0.0536,
+      -1.5979,
+      3
+    ],
+    [
+      "2026-08-24",
+      0.1152,
+      -1.8737,
+      3
+    ],
+    [
+      "2026-08-25",
+      -0.212,
+      -1.5606,
+      3
+    ],
+    [
+      "2026-08-26",
+      -0.2019,
+      -1.5808,
+      4
+    ],
+    [
+      "2026-08-27",
+      -0.6894,
+      -0.8719,
+      4
+    ],
+    [
+      "2026-08-28",
+      -0.8561,
+      -1.1185,
+      4
+    ],
+    [
+      "2026-08-31",
+      -1.0495,
+      -1.447,
+      4
+    ],
+    [
+      "2026-09-01",
+      -1.1462,
+      -2.148,
+      4
+    ],
+    [
+      "2026-09-02",
+      -0.8087,
+      -1.6975,
+      4
+    ],
+    [
+      "2026-09-03",
+      -0.7154,
+      -0.6575,
+      4
+    ],
+    [
+      "2026-09-04",
+      -0.6064,
+      -1.0308,
+      4
+    ],
+    [
+      "2026-09-08",
+      -1.1517,
+      -1.6088,
+      5
+    ],
+    [
+      "2026-09-09",
+      -0.7508,
+      -2.0853,
+      5
+    ],
+    [
+      "2026-09-10",
+      -1.0579,
+      -2.6579,
+      5
+    ],
+    [
+      "2026-09-11",
+      -0.9897,
+      -1.8209,
+      5
+    ],
+    [
+      "2026-09-14",
+      -0.5127,
+      -2.2953,
+      6
+    ],
+    [
+      "2026-09-15",
+      -0.4441,
+      -2.7345,
+      6
+    ],
+    [
+      "2026-09-16",
+      -1.1989,
+      -3.1694,
+      6
+    ],
+    [
+      "2026-09-17",
+      -1.155,
+      -2.0673,
+      6
+    ],
+    [
+      "2026-09-18",
+      -0.9666,
+      -1.904,
+      6
+    ],
+    [
+      "2026-09-21",
+      -2.4852,
+      -0.4397,
+      5
+    ],
+    [
+      "2026-09-22",
+      -1.8812,
+      -0.4404,
+      6
+    ],
+    [
+      "2026-09-23",
+      -1.5279,
+      -1.1919,
+      6
+    ],
+    [
+      "2026-09-24",
+      0.0116,
+      -1.2163,
+      6
+    ],
+    [
+      "2026-09-25",
+      -0.2002,
+      -0.7127,
+      6
+    ],
+    [
+      "2026-09-28",
+      -1.0179,
+      -1.4784,
+      6
+    ],
+    [
+      "2026-09-29",
+      -1.1747,
+      -1.6432,
+      6
+    ],
+    [
+      "2026-09-30",
+      -1.0325,
+      -1.8906,
+      6
+    ],
+    [
+      "2026-10-01",
+      -1.9284,
+      -1.6995,
+      4
+    ],
+    [
+      "2026-10-02",
+      -1.335,
+      -0.9779,
+      4
+    ],
+    [
+      "2026-10-05",
+      -1.489,
+      -0.3211,
+      4
+    ],
+    [
+      "2026-10-06",
+      -1.4136,
+      0.2557,
+      4
+    ],
+    [
+      "2026-10-07",
+      -0.2707,
+      0.0356,
+      4
+    ],
+    [
+      "2026-10-08",
+      -0.3931,
+      -0.4312,
+      4
+    ]
+  ],
   "scores": [
+    {
+      "id": "2026-10-09-yields-and-oil-are-surging-together-energy-stock",
+      "date": "2026-10-09",
+      "kind": "equity",
+      "title": "Yields and oil are surging together. Energy stocks gained after that in 7 of 8 cases.",
+      "instrument": "XLE, the US-listed energy sector fund, held long, six months",
+      "position_type": "outright long",
+      "status": "open",
+      "entry_date": "2026-10-08",
+      "target_date": "2027-04-08",
+      "horizon_months": 6,
+      "horizon_weeks": null,
+      "horizon_label": "6 months",
+      "unit": "%",
+      "legs": [
+        {
+          "series": "ticker:XLE",
+          "side": "long",
+          "measure": "pct_change",
+          "weight": 1.0,
+          "entry_date": "2026-10-08",
+          "entry_value": 65.24,
+          "label": "US energy sector fund (XLE)",
+          "short_label": "US energy stocks (XLE)",
+          "return_pct": 0.0
+        }
+      ],
+      "buy_pct": 0.0,
+      "sell_pct": null,
+      "trade_label": "Long US energy stocks (XLE)",
+      "position_pct": 0.0,
+      "risk_sized_pct": 0.0,
+      "sizing": {
+        "method": "risk_parity",
+        "multiple": 0.452,
+        "spread_vol_pct": 22.103,
+        "target_vol_pct": 10.0,
+        "observations": 251,
+        "basis": "trailing 365d daily vol of the unlevered spread to 2026-10-08, annualised x sqrt(252), frozen at entry"
+      },
+      "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
+      "benchmark": {
+        "series": "spx_index",
+        "label": "S&P 500",
+        "measure": "pct_change",
+        "entry_value": 7765.36,
+        "as_of": "2026-10-08",
+        "move": 0.0,
+        "difference": 0.0,
+        "note": "What the obvious alternative did over exactly the same days."
+      },
+      "mark": 0.0,
+      "mark_date": "2026-10-08",
+      "sessions_held": 1,
+      "max_favourable": {
+        "value": 0.0,
+        "date": "2026-10-08"
+      },
+      "max_adverse": {
+        "value": 0.0,
+        "date": "2026-10-08"
+      },
+      "invalidation": {
+        "rule": "ticker:XLE <= 58.72 (weekly close)",
+        "date": null
+      },
+      "result": null,
+      "thesis_review_close": null,
+      "close_date": null,
+      "close_reason": null,
+      "days_held": 0,
+      "book": {
+        "as_of": "2026-10-08",
+        "return_pct": 0.0,
+        "benchmark_pct": 0.0,
+        "excess_pct": 0.0,
+        "contribution_pct": 0.0,
+        "days_held": 0
+      }
+    },
     {
       "id": "2026-09-22-the-record-yen-rescue-looks-dead-so-did-the-last",
       "date": "2026-09-22",
@@ -61,14 +404,14 @@
           "entry_value": 58.2,
           "label": "Japanese yen via FXY",
           "short_label": "Japanese yen via FXY",
-          "return_pct": -0.3608
+          "return_pct": -0.2577
         }
       ],
-      "buy_pct": -0.3608,
+      "buy_pct": -0.2577,
       "sell_pct": null,
       "trade_label": "Long Japanese yen via FXY",
-      "position_pct": -0.3608,
-      "risk_sized_pct": -0.3608,
+      "position_pct": -0.2577,
+      "risk_sized_pct": -0.2577,
       "sizing": {
         "method": "none",
         "multiple": 1.0,
@@ -83,14 +426,14 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7764.7,
-        "as_of": "2026-10-07",
-        "move": 0.4774,
-        "difference": -0.8382,
+        "as_of": "2026-10-08",
+        "move": 0.0085,
+        "difference": -0.2662,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -0.3608,
-      "mark_date": "2026-10-07",
-      "sessions_held": 13,
+      "mark": -0.2577,
+      "mark_date": "2026-10-08",
+      "sessions_held": 14,
       "max_favourable": {
         "value": 0.1718,
         "date": "2026-09-25"
@@ -104,7 +447,18 @@
         "date": null
       },
       "result": null,
-      "thesis_review_close": null
+      "thesis_review_close": null,
+      "close_date": null,
+      "close_reason": null,
+      "days_held": 17,
+      "book": {
+        "as_of": "2026-10-08",
+        "return_pct": -0.2577,
+        "benchmark_pct": 0.0085,
+        "excess_pct": -0.2662,
+        "contribution_pct": -0.0651,
+        "days_held": 17
+      }
     },
     {
       "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
@@ -130,14 +484,14 @@
           "entry_value": 2.831,
           "label": "Front-month US natural gas",
           "short_label": "Natgas",
-          "return_pct": 10.7383
+          "return_pct": 11.9039
         }
       ],
-      "buy_pct": 10.7383,
+      "buy_pct": 11.9039,
       "sell_pct": null,
       "trade_label": "Long Natgas",
-      "position_pct": 10.7383,
-      "risk_sized_pct": 2.6846,
+      "position_pct": 11.9039,
+      "risk_sized_pct": 2.976,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.25,
@@ -156,12 +510,12 @@
         "entry_value": 7656.98,
         "as_of": "2026-10-08",
         "move": 1.4154,
-        "difference": 9.3229,
+        "difference": 10.4885,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 10.7383,
-      "mark_date": "2026-10-09",
-      "sessions_held": 21,
+      "mark": 11.9039,
+      "mark_date": "2026-10-08",
+      "sessions_held": 20,
       "max_favourable": {
         "value": 16.4606,
         "date": "2026-09-24"
@@ -175,7 +529,18 @@
         "date": null
       },
       "result": null,
-      "thesis_review_close": null
+      "thesis_review_close": null,
+      "close_date": null,
+      "close_reason": null,
+      "days_held": 27,
+      "book": {
+        "as_of": "2026-10-08",
+        "return_pct": 11.9039,
+        "benchmark_pct": 1.4154,
+        "excess_pct": 10.4885,
+        "contribution_pct": 2.2615,
+        "days_held": 27
+      }
     },
     {
       "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
@@ -201,14 +566,14 @@
           "entry_value": 26.49,
           "label": "WEAT (Teucrium wheat fund)",
           "short_label": "WEAT (Teucrium wheat fund)",
-          "return_pct": -6.0023
+          "return_pct": -6.5308
         }
       ],
       "buy_pct": null,
-      "sell_pct": -6.0023,
+      "sell_pct": -6.5308,
       "trade_label": "Short WEAT (Teucrium wheat fund)",
-      "position_pct": 6.0023,
-      "risk_sized_pct": 2.4789,
+      "position_pct": 6.5308,
+      "risk_sized_pct": 2.6972,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.413,
@@ -223,14 +588,14 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7718.6,
-        "as_of": "2026-10-07",
-        "move": 1.0775,
-        "difference": 4.9248,
+        "as_of": "2026-10-08",
+        "move": 0.6058,
+        "difference": 5.925,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 6.0023,
-      "mark_date": "2026-10-07",
-      "sessions_held": 23,
+      "mark": 6.5308,
+      "mark_date": "2026-10-08",
+      "sessions_held": 24,
       "max_favourable": {
         "value": 7.248,
         "date": "2026-09-30"
@@ -244,7 +609,18 @@
         "date": null
       },
       "result": null,
-      "thesis_review_close": null
+      "thesis_review_close": null,
+      "close_date": null,
+      "close_reason": null,
+      "days_held": 34,
+      "book": {
+        "as_of": "2026-10-08",
+        "return_pct": 6.5308,
+        "benchmark_pct": 0.6058,
+        "excess_pct": 5.925,
+        "contribution_pct": 0.9975,
+        "days_held": 34
+      }
     },
     {
       "id": "2026-08-24-the-people-who-actually-own-the-bond-market-are-",
@@ -316,7 +692,18 @@
         "rule": "ust_10y >= 5.0 (weekly close)"
       },
       "result": -2.9336,
-      "thesis_review_close": null
+      "thesis_review_close": null,
+      "close_date": "2026-09-18",
+      "close_reason": "Exit level reached",
+      "days_held": 24,
+      "book": {
+        "as_of": "2026-09-18",
+        "return_pct": -2.9336,
+        "benchmark_pct": -0.3488,
+        "excess_pct": -2.5848,
+        "contribution_pct": -0.6309,
+        "days_held": 24
+      }
     },
     {
       "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
@@ -399,6 +786,17 @@
       "thesis_review_close": {
         "review_date": "2026-09-30",
         "closed_on": "2026-09-30"
+      },
+      "close_date": "2026-09-30",
+      "close_reason": "Weekly review",
+      "days_held": 47,
+      "book": {
+        "as_of": "2026-09-30",
+        "return_pct": -12.226,
+        "benchmark_pct": -1.7239,
+        "excess_pct": -10.5021,
+        "contribution_pct": -2.6695,
+        "days_held": 47
       }
     },
     {
@@ -484,6 +882,17 @@
       "thesis_review_close": {
         "review_date": "2026-09-30",
         "closed_on": "2026-09-30"
+      },
+      "close_date": "2026-09-30",
+      "close_reason": "Weekly review",
+      "days_held": 47,
+      "book": {
+        "as_of": "2026-09-30",
+        "return_pct": 0.2309,
+        "benchmark_pct": -1.7239,
+        "excess_pct": 1.9548,
+        "contribution_pct": 0.1326,
+        "days_held": 47
       }
     },
     {
@@ -556,6 +965,17 @@
       "thesis_review_close": {
         "review_date": "2026-10-08",
         "closed_on": "2026-10-08"
+      },
+      "close_date": "2026-10-08",
+      "close_reason": "Weekly review",
+      "days_held": 56,
+      "book": {
+        "as_of": "2026-10-08",
+        "return_pct": -2.8955,
+        "benchmark_pct": -0.4312,
+        "excess_pct": -2.4643,
+        "contribution_pct": -0.4191,
+        "days_held": 56
       }
     }
   ]

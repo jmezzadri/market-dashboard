@@ -540,6 +540,19 @@ credential-questioning anti-pattern wearing a new hat.
 
 ---
 
+### 1.5 (2026-10-09, Joe, emphatic) — Write to Joe in full sentences with standard finance terms. No shorthand, and no dumbed-down substitutes either
+
+**What happened:** one session, three failures in a row. (1) A results table read "+12.1% at one oil threshold, +5.6% at a slightly looser one" — Joe: *"Why is it so fucking hard to understand how you write!? ... You try and write in such short hand I literally have NO FUCKING CLUE WHAT YOURE SAYING!!!"* He said he sees it across sessions, projects and charts. (2) The over-correction: a Scorecard mockup labelled a row "All 7 returns added together" (*"Thats retarded"* — percentages from separate trades do not add into a return) and called annualized return "at a yearly pace" (*"Why cant you just be normal and say Annualized?"*). (3) Asked for a total return, the agent offered dollars; Joe wanted percent.
+
+**Rule:**
+1. **Full sentences.** Say what was tested, what was found and why it matters, in that order. A table cell that only makes sense to the person who ran the test is not an answer.
+2. **Standard finance terms, used exactly:** total return, annualized, since inception, realized, unrealized, benchmark, excess return, contribution. Joe has 25 years in markets. Do not paraphrase these into plain-English substitutes, and do not invent labels for things that already have a name.
+3. **No internal or desk shorthand** on anything he reads: not "invalidated", "thesis broken", "marked to", "regime match", script or field names.
+4. **Never add percentages across separate trades.** A total is a portfolio return: money divided across the positions, compounded through time. Realized and unrealized are contributions to that total and must add up to it.
+5. **Percent, not dollars,** for performance.
+
+**Applies to:** all four specialists — every message to Joe, every label, chart and table on the site.
+
 # 2 · SCOPE & TURN DISCIPLINE
 
 
