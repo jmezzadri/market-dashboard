@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-09T16:24:49Z",
+  "generated_at": "2026-10-10T00:08:47Z",
   "window": {
-    "from": "2026-10-02",
-    "to": "2026-12-18"
+    "from": "2026-10-03",
+    "to": "2026-12-19"
   },
   "counts": {
-    "total": 112,
-    "tier1": 35
+    "total": 110,
+    "tier1": 34
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -26,28 +26,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-10-02",
-      "time_et": "8:30 AM",
-      "name": "Jobs report",
-      "short": "Jobs",
-      "tier": 1,
-      "category": "Labor",
-      "blurb": "Nonfarm payrolls, the unemployment rate and average hourly earnings.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-02",
-      "time_et": "10:00 AM",
-      "name": "Factory orders",
-      "short": "Factory",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Full manufacturers' shipments, inventories and orders.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-05",
       "time_et": "10:00 AM",
