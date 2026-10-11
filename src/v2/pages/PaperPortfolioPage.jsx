@@ -632,7 +632,19 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const lastMarkAgeDays = latestNav
     ? (Date.now() - new Date(latestNav.created_at || latestNav.d).getTime()) / 86_400_000
     : Infinity;
-  const bookIsLive = !!(latestNav && Number(latestNav.n_positions) > 0 && lastMarkAgeDays <= 5);
+  // 2026-10-11: a current book the crash brake has moved to cash holds no
+  // positions but is still the live book — without this it wore the retired
+  // notice for as long as the brake stayed on.
+  const brakeInCash = !!(brake && brake.stress_on);
+  const bookIsLive = !!(latestNav && lastMarkAgeDays <= 5
+    && (Number(latestNav.n_positions) > 0 || brakeInCash));
+  // 2026-10-11 (Joe: "when the page loads it's some old crap on there").
+  // Until the first fetch lands there is no book to describe, and "not live"
+  // is not the same as "retired": the page painted the full closed-book
+  // notice and a $1,000,000 "at inception" figure for the second or two
+  // before the data arrived. While loading, say nothing about the book.
+  // The same holds when the first fetch fails: report the failure, not a retirement.
+  const loading = nav === null;
 
   // The dates of the record being shown — the HELD window, so a live book
   // reads "since Sep 1" rather than counting the pre-launch cash-parking days.
@@ -799,6 +811,24 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     }
     return <span style={{ color: INK3 }}>—</span>;
   };
+
+  if (loading) {
+    return (
+      <div className="home-v12 v13 paper-v12">
+        <style>{CSS}</style>
+        <div className="wrap qtt" style={{ padding: 'var(--sp-44) var(--sp-40) var(--sp-96)', minHeight: '70vh' }}>
+          <div className="eyebrow2" style={{ marginBottom: 'var(--sp-10)' }}>
+            <span className="dot" />
+            Paper Portfolio
+          </div>
+          <h1 className="serif" style={{ fontSize: 'var(--v13-t6)', lineHeight: 1.08, margin: 0 }}>
+            Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
+          </h1>
+          <div aria-live="polite" style={{ marginTop: 'var(--sp-26)', fontSize: 'var(--v13-t3)', color: INK3 }}>{err ? `The book could not be loaded (${err}). Refresh to retry.` : 'Loading the book…'}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="home-v12 v13 paper-v12">
