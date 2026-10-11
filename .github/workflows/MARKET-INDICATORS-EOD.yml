@@ -11,6 +11,10 @@
 # SCHEDULE
 # ────────
 # Weekdays 20:45 UTC (16:45 ET EDT) — after the US equity/futures close.
+# Plus a morning pass Tue-Sat 09:30 UTC (05:30 ET EDT): the vendor often has
+# no close for the session that just ended until hours later, so the morning
+# pass is what lands the previous day's settle (added 2026-10-09). GitHub
+# starts both runs late — observed 3 to 6 hours after the scheduled time.
 # Uranium is weekly by nature; it is pulled on every run and simply ranks
 # once enough history accrues.
 #
