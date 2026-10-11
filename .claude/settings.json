@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh api -X PUT repos/jmezzadri/market-dashboard/pulls/*/merge *)",
+      "Bash(gh api -X POST repos/jmezzadri/market-dashboard/actions/workflows/*/dispatches *)"
+    ]
+  }
+}
