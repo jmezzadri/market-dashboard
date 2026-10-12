@@ -27,6 +27,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          FORCE_RECOMPUTE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
         run: |
           python3 - <<'PY'
           import requests,io,os,re,json,urllib.request,time
@@ -155,6 +156,22 @@ jobs:
               s=s[s.index>=s.index.max()-pd.Timedelta(days=365*wy)]
               if len(s)>20: s=s.clip(lower=s.quantile(0.01),upper=s.quantile(0.99))
               return {"mean":round(float(s.mean()),4),"sd":round(float(s.std()),4),"window":f"{wy}y","winsorize":"1%-99%","n":int(len(s)),"direction":direction}
+          # 2026-10-12 health sweep (bug #1264, Supabase Disk IO budget): this job
+          # re-pulls 22 years of closes for ~600 names on EVERY MASSIVE-DAILY
+          # completion — up to six times a day, weekends included — and was the
+          # single largest disk reader on the database. Skip the re-pull when the
+          # price panel has not changed since the last publish. Signature = latest
+          # trade_date + row count on it, so the evening preliminary read and the
+          # morning complete-panel recompute (more rows, same date) both still run.
+          # A manual dispatch always recomputes.
+          sig_r=mgmt("select max(trade_date)::text d, count(*) n from public.prices_eod where trade_date=(select max(trade_date) from public.prices_eod);",t=60)
+          panel_sig="%s|%s"%(sig_r[0]["d"],sig_r[0]["n"])
+          try: prev_sig=json.load(open("public/indicator_history.json")).get("spx_above_200ema",{}).get("panel_sig")
+          except Exception: prev_sig=None
+          if prev_sig==panel_sig and os.environ.get("FORCE_RECOMPUTE")!="1":
+              print("prices_eod panel unchanged since last publish (%s) - skipping the 22-year re-pull."%panel_sig)
+              raise SystemExit(0)
+          print("panel signature",panel_sig,"(previous:",prev_sig,") - recomputing")
           out={}; errors=[]
           for code,memfn,k50,k200 in [("SPX",spy_members,"spx_above_50ema","spx_above_200ema"),("NDX",qqq_members,"ndx_above_50ema","ndx_above_200ema")]:
               try:
@@ -168,7 +185,7 @@ jobs:
                       if n50>0:  p50.append([d, round(100.0*a50/n50,1)])
                       if n200>0: p200.append([d, round(100.0*a200/n200,1)])
                   out[k50]={"freq":"D","unit":"%","points":p50,"as_of":p50[-1][0],"stats":stats(p50)}
-                  out[k200]={"freq":"D","unit":"%","points":p200,"as_of":p200[-1][0],"stats":stats(p200)}
+                  out[k200]={"freq":"D","unit":"%","points":p200,"as_of":p200[-1][0],"stats":stats(p200),"panel_sig":panel_sig}
                   print(code,"days",len(p200),"range",p200[0][0],"->",p200[-1][0],"latest %>50d",p50[-1],"%>200d",p200[-1])
               except Exception as e:
                   print(code,"FAILED",repr(e))

@@ -1223,6 +1223,8 @@ Rules:
 
 **Applies to:** Lead Developer — the daily brief, and every scheduled job that emails, posts, trades, or otherwise reaches the outside world.
 
+**2026-10-12 — same shape, the side effect was database load, not email (bug #1264).** Supabase warned twice in eight days that the Disk IO budget was running out. The largest single reader on the database was BREADTH-DAILY: it re-pulls 22 years of closes for ~600 names, and it is fired by every MASSIVE-DAILY completion — six runs on Saturday Oct 10 alone, each recomputing an unchanged panel. Rule (a) covers cost as well as messages: before chaining a heavy job onto `workflow_run`, count how often the upstream really completes, and make the job prove its input changed before doing the heavy work. BREADTH-DAILY now skips when the price panel's signature (latest date + rows on it) matches the one stored on the published series; manual dispatch always recomputes.
+
 ### 5.9 (2026-08-06) — A runner shortage has two shapes; the alert suppressor only knew one, so a GitHub outage emailed Joe "Workflow FAILED"
 
 **What happened:** Joe got `[MacroTilt] Workflow FAILED: PAPER-PORTFOLIO-EOD-DAILY` (run 31116873789, 15:39Z). Nothing in MacroTilt was broken. GitHub was having a platform-wide Actions/Pages outage that afternoon, and dozens of our runs across eight different workflows died without ever executing a line of our code.
