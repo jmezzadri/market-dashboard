@@ -31,6 +31,19 @@ function fmtVal(v, dec = 2) {
   if (v == null || !Number.isFinite(v)) return '—';
   return v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
+// 2026-10-13 health sweep: units were always appended, so a "$" unit rendered
+// as "94$" on the home Trade Idea tile. Currency symbols go in front.
+const PREFIX_UNITS = new Set(['$', '€', '£', '¥']);
+function withUnit(text, unit) {
+  const u = unit || '';
+  if (!u || text === '—') return text;
+  if (PREFIX_UNITS.has(u)) {
+    const t = String(text);
+    return t.startsWith('−') || t.startsWith('-') ? `${t[0]}${u}${t.slice(1)}` : `${u}${t}`;
+  }
+  return `${text}${u}`;
+}
+
 function fmtDate(iso, long = false) {
   const d = new Date(`${iso}T00:00:00Z`);
   return d.toLocaleDateString('en-US', long
@@ -199,7 +212,7 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
             it. A value that can be covered by another value is a defect, and no
             amount of picking a corner fixes it for every series. */}
         <span className="ic-readout" aria-live="polite">
-          <b>{fmtVal(shown[1], dec)}{spec.unit || ''}</b>
+          <b>{withUnit(fmtVal(shown[1], dec), spec.unit)}</b>
           <span>{fmtDate(shown[0], true)}{hover ? '' : ' · latest'}</span>
         </span>
       </figcaption>
@@ -212,7 +225,7 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
         onTouchMove={(e) => e.touches[0] && onMove(e.touches[0])}
       >
         <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img"
-             aria-label={`${spec.title}. Latest ${fmtVal(last[1], dec)}${spec.unit || ''} on ${fmtDate(last[0], true)}.`}>
+             aria-label={`${spec.title}. Latest ${withUnit(fmtVal(last[1], dec), spec.unit)} on ${fmtDate(last[0], true)}.`}>
           {/* recessive grid — solid hairlines, one shade off the surface */}
           {yTicks.map((v) => (
             <g key={v}>
@@ -248,7 +261,7 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
           {!exp && (
             <text className="ic-endlab" x={X(last[0]) + 9}
                   y={Math.max(PAD.t + 6, Math.min(PAD.t + ih - 6, Y(last[1])))} dominantBaseline="middle">
-              {fmtVal(last[1], dec)}{spec.unit || ''}
+              {withUnit(fmtVal(last[1], dec), spec.unit)}
             </text>
           )}
 
@@ -268,7 +281,7 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
               <g className="ic-expected">
                 <circle className="ic-expdot" cx={ex} cy={ey} r="4.5" />
                 <text className="ic-explab" x={ex} y={labY} textAnchor="middle" dominantBaseline="middle">
-                  {fmtVal(exp.value, dec)}{spec.unit || ''}
+                  {withUnit(fmtVal(exp.value, dec), spec.unit)}
                   <tspan className="ic-explab-k"> {exp.label}</tspan>
                 </text>
               </g>
@@ -323,14 +336,14 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
             <thead><tr><th>Date</th><th>{spec.title}</th></tr></thead>
             <tbody>
               {exp && (
-                <tr className="ic-exprow"><td>{fmtDate(exp.date, true)} · {exp.label}</td><td>{fmtVal(exp.value, dec)}{spec.unit || ''}</td></tr>
+                <tr className="ic-exprow"><td>{fmtDate(exp.date, true)} · {exp.label}</td><td>{withUnit(fmtVal(exp.value, dec), spec.unit)}</td></tr>
               )}
               {/* Newest first, and a bounded sample of a long daily series with
                   the count stated — a silent cap would read as the whole series. */}
               {all.slice().reverse().filter((_, i, arr) => i < 12 || i % Math.ceil(arr.length / 24) === 0)
                 .slice(0, 30)
                 .map((p) => (
-                  <tr key={p[0]}><td>{fmtDate(p[0], true)}</td><td>{fmtVal(p[1], dec)}{spec.unit || ''}</td></tr>
+                  <tr key={p[0]}><td>{fmtDate(p[0], true)}</td><td>{withUnit(fmtVal(p[1], dec), spec.unit)}</td></tr>
                 ))}
             </tbody>
           </table>
