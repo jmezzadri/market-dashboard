@@ -1322,6 +1322,8 @@ Two independent defects, both introduced by the fix for 4.25 and neither caught 
 
 **Also shipped in the same change, and worth its own line:** `ops-code-commit` could write and replace files but never **delete** one, so a cloud session could retire a module and was then forced to leave the corpse in the tree. Dead source invites a future session to "fix" it. File entries now accept `{path, delete: true}` (`sha: null` against the base tree), governed by the same path allowlist — it widens what may be done to a path, never which paths. Redeployed with `verify_jwt: false` per 4.27.
 
+**2026-10-13 — repeat, per-source this time (bug #1267):** existing home sales and NFIB were missing from the calendar on the day both printed. FRED's release calendar had stopped returning dates for release 291 (NAR) — an empty list, no error — and the window-wide "fewer than three majors" guard cannot see one release going dark. NFIB had never been carried. Fix: existing home sales is fetched from NAR's own rolling schedule page (stored 2026 copy used only on fetch failure, and that use is filed as a problem); NFIB is computed from its published rule (second Tuesday, 6:00 AM ET); and any monthly FRED release that returns zero dates in the window is now filed as a problem. Rule 2 applies per source, not only to the total.
+
 **Applies to:** Lead Developer, Data Steward — every dated surface on the site, and every "we'll curate it by hand for now" shortcut.
 
 ### 5.15 (2026-08-18) — Two brief emails a day for twelve days, and I cleared the duplicate generator on a one-day sample

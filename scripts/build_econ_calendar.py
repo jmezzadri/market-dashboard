@@ -97,8 +97,9 @@ RELEASES = {
               blurb="Weekly initial and continuing unemployment claims — the highest-frequency labor signal."),
     13:  dict(name="Industrial production",        short="Ind Prod", time="9:15 AM",  tier=2, cat="Growth",
               blurb="Factory, mining and utility output plus capacity utilisation."),
-    291: dict(name="Existing home sales",          short="Existing", time="10:00 AM", tier=2, cat="Housing",
-              blurb="Closed sales of previously owned homes — the bulk of the housing market."),
+    # 291 (Existing home sales) REMOVED 2026-10-13 (bug #1267): FRED's release
+    # calendar returns no dates for it any more, silently, so the event vanished
+    # from the calendar. It now comes from NAR's own published schedule below.
     97:  dict(name="New home sales",               short="New homes", time="10:00 AM", tier=2, cat="Housing",
               blurb="Contracts signed on newly built homes — the rate-sensitive edge of housing."),
     51:  dict(name="Trade balance",                short="Trade",    time="8:30 AM",  tier=2, cat="Trade",
@@ -229,6 +230,12 @@ def build_fred_events(start: dt.date, end: dt.date, key: str):
         except Exception as exc:  # noqa: BLE001
             problems.append(f"release {rid} ({meta['name']}): {exc}")
             continue
+        # 2026-10-13 (bug #1267): FRED returned an empty list for release 291 and
+        # existing home sales vanished with no trace. Every release here is at
+        # least monthly except the quarterly ECI (11) and productivity (47), so
+        # an empty list across a ten-week window is a problem, not a quiet month.
+        if not dates and rid not in (11, 47):
+            problems.append(f"release {rid} ({meta['name']}): FRED returned no dates in the window")
         for d in dates:
             events.append(dict(
                 date=d.isoformat(), time_et=meta["time"], name=meta["name"], short=meta["short"],
@@ -351,6 +358,96 @@ def build_ism_events(start: dt.date, end: dt.date):
                     source="ISM published schedule (computed)",
                     time_source="published release policy",
                 ))
+        m += 1
+        if m == 13:
+            m, y = 1, y + 1
+    return events
+
+
+# ── source 3b: NAR existing home sales + NFIB, from the publishers ──────────
+# 2026-10-13 (bug #1267): Existing home sales disappeared from the calendar
+# because FRED's release calendar stopped listing NAR dates (no error, just an
+# empty list), and NFIB was never carried. Both now come from the publisher.
+#
+# NAR publishes a fixed annual table, not a rule (2026 dates moved earlier in
+# the month than the old ~20th-25th slot), so per LESSONS 5.14 it is FETCHED
+# from NAR's rolling schedule page every run, not typed in. Rows read
+# "Tue., Oct. 13 | September Existing-Home Sales"; all releases 10:00 AM ET.
+# NAR_FALLBACK is the 2026 table as published ("NAR Releases 2026 Statistical
+# News Release Schedule", nar.realtor/newsroom) — used ONLY when the fetch
+# fails, and that use is always filed as a problem so it cannot go quietly stale.
+NAR_SCHEDULE_URL = "https://www.nar.realtor/press-releases/nar-statistical-news-release-schedule"
+NAR_FALLBACK = ["2026-01-14", "2026-02-12", "2026-03-10", "2026-04-13", "2026-05-11", "2026-06-09",
+                "2026-07-09", "2026-08-11", "2026-09-10", "2026-10-13", "2026-11-12", "2026-12-09"]
+_NAR_ROW_RE = re.compile(
+    r"(?:Mon|Tue|Tues|Wed|Thu|Thur|Thurs|Fri)\.?,?\s+([A-Z][a-z]{2,8})\.?\s+(\d{1,2})\b"
+    r"[\s|]*(?:January|February|March|April|May|June|July|August|September|October|November|December)"
+    r"\s+Existing-Home\s+Sales")
+
+
+def parse_nar_schedule(html: str):
+    text = re.sub(r"<[^>]+>", " ", html)
+    text = re.sub(r"&nbsp;|&#160;", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    ym = re.search(r"(20\d\d) Statistical News Release Schedule", text)
+    if not ym:
+        return []
+    year, prev_month, out = int(ym.group(1)), 0, []
+    for mon, day in _NAR_ROW_RE.findall(text):
+        m = MONTHS_ABBR.get(mon[:3].lower())
+        if not m:
+            continue
+        if m < prev_month:          # table ran past December into next year
+            year += 1
+        prev_month = m
+        out.append(dt.date(year, m, int(day)))
+    return out
+
+
+def build_nar_events(start: dt.date, end: dt.date):
+    events, problems = [], []
+    try:
+        dates = parse_nar_schedule(_get_browser_text(NAR_SCHEDULE_URL))
+        if not dates:
+            raise ValueError("no Existing-Home Sales rows parsed")
+        source = "NAR statistical news release schedule"
+    except Exception as exc:  # noqa: BLE001
+        dates = [dt.date.fromisoformat(x) for x in NAR_FALLBACK]
+        source = "NAR 2026 release schedule (stored copy)"
+        problems.append(f"NAR existing home sales: live schedule fetch failed ({exc}); used stored 2026 table")
+    for d in sorted(set(dates)):
+        if start <= d <= end:
+            events.append(dict(
+                date=d.isoformat(), time_et="10:00 AM", name="Existing home sales", short="Existing",
+                tier=2, category="Housing",
+                blurb="Closed sales of previously owned homes — the bulk of the housing market.",
+                source=source, time_source="published release policy",
+            ))
+    if dates and end > max(dates) + dt.timedelta(days=35):   # a month with no row = schedule not yet loaded
+        problems.append(f"NAR existing home sales: schedule ends {max(dates).isoformat()}, "
+                        f"window runs to {end.isoformat()}")
+    return events, problems
+
+
+def build_nfib_events(start: dt.date, end: dt.date):
+    """NFIB Small Business Optimism Index: "released on the second Tuesday of
+    each month" (nfib.com SBET page), 6:00 AM ET. Verified: Sep 2026 index
+    landed Tue 2026-10-13, the second Tuesday of October."""
+    events = []
+    y, m = start.year, start.month
+    for _ in range(6):
+        d = dt.date(y, m, 1)
+        d += dt.timedelta(days=(1 - d.weekday()) % 7)   # first Tuesday
+        d += dt.timedelta(days=7)                        # second Tuesday
+        while not is_business_day(d):
+            d += dt.timedelta(days=1)
+        if start <= d <= end:
+            events.append(dict(
+                date=d.isoformat(), time_et="6:00 AM", name="Small business optimism (NFIB)", short="NFIB",
+                tier=3, category="Surveys",
+                blurb="Monthly survey of small-business owners — hiring plans, prices charged and outlook.",
+                source="NFIB published schedule (computed)", time_source="published release policy",
+            ))
         m += 1
         if m == 13:
             m, y = 1, y + 1
@@ -703,6 +800,10 @@ def build(today: dt.date | None = None, key: str | None = None):
     events += fomc
     problems += fomc_problems
     events += build_ism_events(start, end)
+    nar, nar_problems = build_nar_events(start, end)
+    events += nar
+    problems += nar_problems
+    events += build_nfib_events(start, end)
     umich, umich_problems = build_umich_prelim_events(start, end, key)
     events += umich
     problems += umich_problems
@@ -737,6 +838,8 @@ def build(today: dt.date | None = None, key: str | None = None):
             "FRED release calendar (api.stlouisfed.org) — BLS, BEA, Census and Federal Reserve releases",
             "Federal Reserve FOMC calendar (federalreserve.gov) — meeting dates",
             "ISM published schedule — 1st and 3rd business day of the month, computed",
+            "NAR statistical news release schedule (nar.realtor) — existing home sales dates",
+            "NFIB published schedule — second Tuesday of the month, computed",
             "UMich preliminary schedule — two Fridays before each FRED final date, computed",
             "ECB Governing Council calendar (ecb.europa.eu) — decision dates",
             "Bank of England MPC dates (bankofengland.co.uk) — decision dates",
