@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-12T19:11:36Z",
+  "generated_at": "2026-10-13T02:09:37Z",
   "window": {
-    "from": "2026-10-05",
-    "to": "2026-12-21"
+    "from": "2026-10-06",
+    "to": "2026-12-22"
   },
   "counts": {
     "total": 111,
-    "tier1": 34
+    "tier1": 33
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -26,17 +26,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-10-05",
-      "time_et": "10:00 AM",
-      "name": "ISM Services",
-      "short": "ISM Svc",
-      "tier": 1,
-      "category": "Surveys",
-      "blurb": "Services-sector survey \u2014 the larger share of the economy.",
-      "source": "ISM published schedule (computed)",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-06",
       "time_et": "8:30 AM",
@@ -1244,6 +1233,17 @@
       "tier": 3,
       "category": "Growth",
       "blurb": "An 85-indicator composite of national economic activity.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-22",
+      "time_et": "8:30 AM",
+      "name": "Philadelphia Fed services survey",
+      "short": "Philly Svc",
+      "tier": 3,
+      "category": "Surveys",
+      "blurb": "Philadelphia Fed non-manufacturing outlook survey.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
