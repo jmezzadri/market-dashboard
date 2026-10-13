@@ -19,6 +19,70 @@ Procedure: `PLAYBOOK.md`. Posts already read: `processed_posts.json`.
 
 ---
 
+## 2026-10-13 — do financials breaking down under a record S&P call the top?
+
+Eight new posts, Oct 3–12; four read (listed in `processed_posts.json`). One
+was cut off before its trade section; public part only. The other four
+(Oct 3, 5, 10, 11) are left out of that file so the next read picks them up.
+
+**What their work does that ours does not.** It reads the market's internals
+as a late-cycle clock: financials falling hard while the index holds its high,
+the equal-weight index lagging, credit spreads as the first thing to break.
+It also treats a calm, upward-sloping volatility curve as licence to add risk.
+Ours tests one signal against one baseline and has never asked whether a
+break in financials says anything about the index.
+
+**The question that puts to us.** We withdrew a long-banks note on Oct 7 and
+closed a banks call at -12%. If weak financials under a record S&P is a top
+signal, the lesson of those two calls is not "banks are hard", it is "the
+index is the short". Is it?
+
+**The test.** `financials_break_test.py`, output `results_2026-10-13.txt`.
+XLF (1998–2026) and KBE (2005–2026) down 5%, 8% or 10% over 63 sessions while
+SPY sits within 3% or 5% of its one-year high. SPY over the next 63 and 126
+sessions, independent episodes, against every day in the same sample.
+
+**The result.** Nothing, at every threshold.
+
+| state | S&P next 126 sessions | baseline | episodes |
+|---|---|---|---|
+| KBE down 8%+, SPY within 5% of high | +5.9%, 79% up | +5.1%, 74% up | 14 |
+| KBE down 10%+, SPY within 5% of high | +3.4%, 82% up | +5.1%, 74% up | 11 |
+| XLF down 5%+, SPY within 5% of high | +3.4%, 77% up | +3.8%, 70% up | 13 |
+| XLF down 8%+, SPY within 5% of high | +1.3%, 71% up | +3.8%, 70% up | 7 |
+
+No t-statistic reaches 1.3 in either direction. The 2007 episode is in the
+sample and lost 10–11%; it is one of 14. Today KBE is down 7.8% over 63
+sessions and XLF 2.0%, with SPY 0.1% under its high — the state is close to
+live on banks and not live on the broad sector.
+
+On their volatility-curve read: already tested here on 2026-08-17. A steep
+curve preceded lower S&P returns than average, not higher (+4.36% vs +6.63%
+at six months, 37 episodes). Our data argues against adding index risk on
+that signal. No new test needed.
+
+**What changed in MacroTilt.** Nothing, and that is the finding: a break in
+financials under a record index is not evidence for an index short or a
+hedge note. It joins the list of tested-and-empty index signals. The Oct 7
+lesson stands as written (LESSONS 6.23) — the bank calls failed on regime,
+not because banks were warning about the S&P.
+
+### Not yet tested — carried to the next read
+
+- Tight range followed by a break to a new 3-month high, with a measured-move
+  target and a rule for the first retest. A cruder version ran today in the
+  Trade Idea sweep: copper at a new 3-year closing high made +2.8% vs +3.2%
+  over 63 sessions (19 episodes) — no edge. The range-compression part is
+  still untested.
+- Equal-weight S&P lagging the cap-weight index as a warning. We hold RSP
+  only from 2020; needs a longer equal-weight series.
+- Credit spreads widening as the first break: HY OAS up X bp in a month with
+  the S&P near its high. We carry the spread series; not done today.
+- Corporate-bond-to-Treasury relative strength, spread-based (carried from
+  Oct 2).
+
+---
+
 ## 2026-10-03 — kill-tests from the daily session's second sweep
 
 Not an outside-research read: the 10-02 method applied to the three loudest
