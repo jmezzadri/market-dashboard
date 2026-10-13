@@ -735,57 +735,29 @@ export default function TickerPage() {
             )}
           </div>
         </div>
-        <div className="tk-scoreblock">
-          {score != null ? (
-            <>
-              {/* Insider Conviction scan name — the 0–5 score applies. */}
-              <div className="mt-eyebrow">MacroTilt Score</div>
-              <div className="tk-bigdial">
-                <ScoreDial score={score} max={5} size={96} />
-              </div>
-              {signal && (
-                <span className="mt-tag mt-tag--accent tk-sigpill">
-                  {signal}{direction ? ` · ${direction}` : ''}
-                </span>
-              )}
-              <div className="tk-scoredelta">
-                <span>Score change · 1 week</span>
-                <b className="num">{
-                  scanRow?.score_1w != null
-                    ? `${(score - scanRow.score_1w) >= 0 ? '+' : ''}${(score - scanRow.score_1w).toFixed(2)}`
-                    : '—'
-                }</b>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Not an Insider-scan name — the 0–5 score doesn't apply here.
-                  Say which scanner (if any) surfaced it instead of a dead dial. */}
-              <div className="mt-eyebrow">Scanner signal</div>
-              {(ptRow || rsiHits.length) ? (
-                <div className="tk-srcpills">
-                  {ptRow && (
-                    <span className="mt-tag mt-tag--accent tk-sigpill">
-                      Power Trend · #{ptRow.rank}
-                    </span>
-                  )}
-                  {rsiHits.map((h) => (
-                    <span key={h.dir} className="mt-tag mt-tag--accent tk-sigpill">
-                      RSI Divergence · {h.dir}{h.strong ? ' · strong' : ''}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <div className="tk-noscore">Not in a scan<span>no current scanner signal</span></div>
-              )}
-              <div className="tk-scoredelta">
-                <span>{ptRow || rsiHits.length
-                  ? 'The 0–5 MacroTilt Score applies to Insider Conviction names only'
-                  : 'Scores appear when a scanner surfaces this name'}</span>
-              </div>
-            </>
-          )}
-        </div>
+        {/* Trader Card (Joe 2026-10-13): the top-right slot used to hold the
+            scanner box, which for every name outside the day's ~6 scan names
+            rendered "Not in a scan" — dead space in the best spot on the
+            page. It is now a desk read: where the name sits in its 52-week
+            range, the setup (RSI, trend, MACD, volume), the return ladder,
+            and positioning. Every number was already on the page further
+            down; nothing new is computed here. Scanner signals, when a name
+            has one, sit as pills at the foot of the card. */}
+        <TraderCard
+          price={liveHero ? livePrice : (hasPrice ? price : null)}
+          lo52={lo52}
+          hi52={hi52}
+          tech={tech}
+          beta1y={beta1y}
+          avgVol={avgVol}
+          finra={positioning?.finra || null}
+          score={score}
+          signal={signal}
+          direction={direction}
+          ptRow={ptRow}
+          rsiHits={rsiHits}
+          scanRow={scanRow}
+        />
       </Reveal>
 
       {/* The verdict — expandable score drill-down, right under the identity */}
@@ -961,28 +933,12 @@ export default function TickerPage() {
           />
         </div>
 
-        {/* Live technicals — moved here from the score tab; computed on the fly
-            from daily history (no scanner lag), so they live with the stats. */}
-        <div className="tk-techstrip">
-          <div className="mt-eyebrow">Live technicals · daily</div>
-          <div className="tk-techgrid">
-            <TechCell label="RSI(14)"      tip="14-day Wilder RSI. Above 70 is overbought, below 30 oversold." value={tech?.rsi_14 != null ? tech.rsi_14.toFixed(1) : '—'} />
-            <TechCell label="MACD cross"   tip="Whether the trend line sits above its signal line (bullish) or below it (bearish)." value={tech?.macd_cross || '—'} />
-            <TechCell label="vs SMA 50"    tip="Percent the price sits above or below its 50-day average." value={fmtPctFraction(tech?.pct_vs_50ma)} />
-            <TechCell label="vs SMA 200"   tip="Percent the price sits above or below its 200-day average." value={fmtPctFraction(tech?.pct_vs_200ma)} />
-            <TechCell label="Volume surge" tip="Today's volume divided by the trailing 30-day average. Above 1.0 means heavier-than-usual trading." value={tech?.vol_surge != null ? `${tech.vol_surge.toFixed(2)}×` : '—'} />
-            <TechCell label="1w return"    tip="Price change over the last 5 trading days." value={fmtPctFraction(tech?.week_change)} />
-            <TechCell label="1m return"    tip="Price change over the last ~21 trading days." value={fmtPctFraction(tech?.month_change)} />
-            <TechCell label="YTD return"   tip="Price change since the start of the calendar year." value={fmtPctFraction(tech?.ytd_change)} />
-            <TechCell label="1m vs S&P"    tip="This name's 1-month return minus the S&P 500's over the same period." value={fmtPctFraction(tech?.spy_relative_month)} />
-          </div>
-        </div>
-
         <div className="tk-emptyfoot">
           Open, day high/low, average volume, and beta come from the daily price
           history; market cap from the daily reference feed; dividend yield from the
-          corporate-actions pipeline. Live technicals are computed from daily history.
-          Hover the ⓘ on any tile for its definition.
+          corporate-actions pipeline. The setup, returns and positioning on the card
+          up top are computed from the same daily history. Hover the ⓘ on any tile
+          for its definition.
         </div>
       </Reveal>
 
@@ -1317,6 +1273,142 @@ function FundamentalsTab({ deep }) {
    The 0–5 badge expands here into its four engine components. Each card shows
    its points, the rule that fired, and the raw drivers behind it. Every value
    reads from the scan row, so the cards always reconcile to the badge above. */
+/* ---------- Trader Card (hero, right column) ---------- */
+
+function TraderCard({ price, lo52, hi52, tech, beta1y, avgVol, finra, score, signal, direction, ptRow, rsiHits, scanRow }) {
+  const hasRange = price != null && lo52 != null && hi52 != null && hi52 > lo52;
+  const pos = hasRange ? Math.min(100, Math.max(0, ((price - lo52) / (hi52 - lo52)) * 100)) : null;
+  const offHigh = hasRange ? ((price / hi52) - 1) * 100 : null;
+  const offLow  = hasRange ? ((price / lo52) - 1) * 100 : null;
+
+  const rsi = tech?.rsi_14 ?? null;
+  const rsiRead = rsi == null ? null : rsi >= 70 ? 'overbought' : rsi <= 30 ? 'oversold' : 'neutral';
+  const p50 = tech?.pct_vs_50ma ?? null;
+  const p200 = tech?.pct_vs_200ma ?? null;
+  const trendRead = (p50 == null || p200 == null) ? null
+    : (p50 >= 0 && p200 >= 0) ? 'uptrend'
+    : (p50 < 0 && p200 < 0) ? 'downtrend'
+    : (p50 >= 0 ? 'above 50d, below 200d' : 'below 50d, above 200d');
+  const macd = tech?.macd_cross || null;
+  const vs = tech?.vol_surge ?? null;
+  const volRead = vs == null ? null : vs >= 1.5 ? 'heavy' : vs <= 0.7 ? 'quiet' : 'normal';
+
+  const tone = (v) => (v == null ? '' : v >= 0 ? 'up' : 'down');
+  const pct = (v) => fmtPctFraction(v);
+  const sig = (v) => (v == null ? '' : v > 0 ? '+' : '');
+
+  const siPct = finra?.short_interest_float_pct ?? null;
+  const dtc = finra?.days_to_cover ?? null;
+
+  const hasSignals = score != null || ptRow || (rsiHits && rsiHits.length);
+
+  return (
+    <aside className="tk-desk" aria-label="Trader card">
+      {/* 52-week range */}
+      <div className="tk-deskrow">
+        <div className="tk-desklabel">52-week range</div>
+        {hasRange ? (
+          <>
+            <div className="tk-range" style={{ '--pos': `${pos}%` }}>
+              <span className="tk-range-lo num">${fmt(lo52, 2)}</span>
+              <span className="tk-range-track"><span className="tk-range-mark" /></span>
+              <span className="tk-range-hi num">${fmt(hi52, 2)}</span>
+            </div>
+            <div className="tk-desksub num">
+              <span className={tone(offHigh)}>{sig(offHigh)}{offHigh.toFixed(1)}% vs high</span>
+              <span className="lm-flowfootsep" />
+              <span className={tone(offLow)}>{sig(offLow)}{offLow.toFixed(1)}% vs low</span>
+            </div>
+          </>
+        ) : <div className="tk-desksub">—</div>}
+      </div>
+
+      {/* Setup */}
+      <div className="tk-deskrow">
+        <div className="tk-desklabel">Setup · daily</div>
+        <div className="tk-deskgrid">
+          <DeskCell label="RSI(14)" tip="14-day Wilder RSI. Above 70 is overbought, below 30 oversold."
+            value={rsi != null ? rsi.toFixed(1) : '—'} sub={rsiRead}
+            tone={rsiRead === 'overbought' ? 'down' : rsiRead === 'oversold' ? 'up' : ''} />
+          <DeskCell label="Trend" tip="Price versus its 50-day and 200-day averages."
+            value={p50 != null && p200 != null ? `${sig(p50)}${(p50 * 100).toFixed(0)}% · ${sig(p200)}${(p200 * 100).toFixed(0)}%` : '—'}
+            sub={trendRead ? `${trendRead} · 50d · 200d` : null}
+            tone={trendRead === 'uptrend' ? 'up' : trendRead === 'downtrend' ? 'down' : ''} />
+          <DeskCell label="MACD" tip="Whether the trend line sits above its signal line (bullish) or below it (bearish)."
+            value={macd || '—'} tone={macd === 'bullish' ? 'up' : macd === 'bearish' ? 'down' : ''} />
+          <DeskCell label="Volume" tip="Last session's volume divided by the trailing 30-day average."
+            value={vs != null ? `${vs.toFixed(2)}×` : '—'} sub={volRead ? `${volRead} · avg ${fmtVol(avgVol)}` : null} />
+        </div>
+      </div>
+
+      {/* Returns */}
+      <div className="tk-deskrow">
+        <div className="tk-desklabel">Returns</div>
+        <div className="tk-deskgrid tk-deskgrid--4">
+          <DeskCell label="1w"  value={pct(tech?.week_change)}  tone={tone(tech?.week_change)} />
+          <DeskCell label="1m"  value={pct(tech?.month_change)} tone={tone(tech?.month_change)} />
+          <DeskCell label="YTD" value={pct(tech?.ytd_change)}   tone={tone(tech?.ytd_change)} />
+          <DeskCell label="1m vs S&P" tip="This name's 1-month return minus the S&P 500's over the same period."
+            value={pct(tech?.spy_relative_month)} tone={tone(tech?.spy_relative_month)} />
+        </div>
+      </div>
+
+      {/* Positioning */}
+      <div className="tk-deskrow">
+        <div className="tk-desklabel">Positioning</div>
+        <div className="tk-deskgrid tk-deskgrid--3">
+          <DeskCell label="Short int." tip="FINRA settlement short interest ÷ shares outstanding. Published twice a month with a settlement lag."
+            value={siPct != null ? `${Number(siPct).toFixed(1)}%` : '—'} sub="of shares out" />
+          <DeskCell label="Days to cover" tip="Shares short ÷ average daily volume at the same settlement date."
+            value={dtc != null ? Number(dtc).toFixed(1) : '—'} />
+          <DeskCell label="Beta · 1y" tip="Sensitivity to the S&P 500 over the trailing year of daily closes."
+            value={beta1y != null ? beta1y.toFixed(2) : '—'} />
+        </div>
+      </div>
+
+      {/* Scanner signals — only when the name actually has one */}
+      {hasSignals ? (
+        <div className="tk-deskrow tk-deskrow--signals">
+          <div className="tk-desklabel">MacroTilt signals</div>
+          <div className="tk-srcpills">
+            {score != null && (
+              <span className="mt-tag mt-tag--accent tk-sigpill">
+                Insider Conviction · {Number(score).toFixed(1)} / 5{signal ? ` · ${signal}${direction ? ` · ${direction}` : ''}` : ''}
+              </span>
+            )}
+            {ptRow && (
+              <span className="mt-tag mt-tag--accent tk-sigpill">Power Trend · #{ptRow.rank}</span>
+            )}
+            {(rsiHits || []).map((h) => (
+              <span key={h.dir} className="mt-tag mt-tag--accent tk-sigpill">
+                RSI Divergence · {h.dir}{h.strong ? ' · strong' : ''}
+              </span>
+            ))}
+          </div>
+          {score != null && scanRow?.score_1w != null && (
+            <div className="tk-desksub num">
+              Score change · 1 week <b>{(score - scanRow.score_1w) >= 0 ? '+' : ''}{(score - scanRow.score_1w).toFixed(2)}</b>
+            </div>
+          )}
+        </div>
+      ) : null}
+    </aside>
+  );
+}
+
+function DeskCell({ label, value, sub, tip, tone = '' }) {
+  return (
+    <div className="tk-deskcell">
+      <div className="tk-deskcell-l">
+        {label}
+        {tip && <Tip content={tip}><span className="tk-info">ⓘ</span></Tip>}
+      </div>
+      <b className={`num ${tone}`}>{value}</b>
+      {sub && <span className="tk-deskcell-s">{sub}</span>}
+    </div>
+  );
+}
+
 function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
   // Collapsed by default — the page opens to a clean 4-row summary; the raw
   // drivers (rule text, filings table, readings) appear only when a row is
@@ -1515,6 +1607,10 @@ function InsiderFilingsTable({ events }) {
 function CompanyOverview({ deep, sector, exchange }) {
   const ref = deep?.ref || null;
   const desc = ref?.description || null;
+  /* Two lines by default, the full profile on demand (Joe 2026-10-13: the
+     description was the tallest block on the page and the least traded on). */
+  const [openDesc, setOpenDesc] = useState(false);
+  const longDesc = !!desc && desc.length > 220;
   const industry = ref?.sic_description || null;
   const city = ref?.address_city || null;
   const state = ref?.address_state || null;
@@ -1529,7 +1625,14 @@ function CompanyOverview({ deep, sector, exchange }) {
           <div className="mt-eyebrow">Company overview</div>
         </div>
         {desc ? (
-          <p className="tk-about">{desc}</p>
+          <>
+            <p className={`tk-about${longDesc && !openDesc ? ' tk-about--clamp' : ''}`}>{desc}</p>
+            {longDesc && (
+              <button type="button" className="tk-aboutmore" onClick={() => setOpenDesc((v) => !v)}>
+                {openDesc ? 'Less' : 'More'}
+              </button>
+            )}
+          </>
         ) : (
           <div className="tk-empty">No company description on file for this ticker.</div>
         )}
