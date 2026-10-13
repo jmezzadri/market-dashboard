@@ -1,17 +1,19 @@
 {
-  "generated_at": "2026-10-13T02:09:37Z",
+  "generated_at": "2026-10-13T11:10:31Z",
   "window": {
     "from": "2026-10-06",
     "to": "2026-12-22"
   },
   "counts": {
-    "total": 111,
+    "total": 117,
     "tier1": 33
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
     "Federal Reserve FOMC calendar (federalreserve.gov) \u2014 meeting dates",
     "ISM published schedule \u2014 1st and 3rd business day of the month, computed",
+    "NAR statistical news release schedule (nar.realtor) \u2014 existing home sales dates",
+    "NFIB published schedule \u2014 second Tuesday of the month, computed",
     "UMich preliminary schedule \u2014 two Fridays before each FRED final date, computed",
     "ECB Governing Council calendar (ecb.europa.eu) \u2014 decision dates",
     "Bank of England MPC dates (bankofengland.co.uk) \u2014 decision dates",
@@ -101,6 +103,28 @@
       "category": "Agriculture",
       "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
       "source": "USDA OCE WASDE schedule (usda.gov)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-13",
+      "time_et": "6:00 AM",
+      "name": "Small business optimism (NFIB)",
+      "short": "NFIB",
+      "tier": 3,
+      "category": "Surveys",
+      "blurb": "Monthly survey of small-business owners \u2014 hiring plans, prices charged and outlook.",
+      "source": "NFIB published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-13",
+      "time_et": "10:00 AM",
+      "name": "Existing home sales",
+      "short": "Existing",
+      "tier": 2,
+      "category": "Housing",
+      "blurb": "Closed sales of previously owned homes \u2014 the bulk of the housing market.",
+      "source": "NAR statistical news release schedule",
       "time_source": "published release policy"
     },
     {
@@ -578,6 +602,17 @@
     },
     {
       "date": "2026-11-10",
+      "time_et": "6:00 AM",
+      "name": "Small business optimism (NFIB)",
+      "short": "NFIB",
+      "tier": 3,
+      "category": "Surveys",
+      "blurb": "Monthly survey of small-business owners \u2014 hiring plans, prices charged and outlook.",
+      "source": "NFIB published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-10",
       "time_et": "8:30 AM",
       "name": "Consumer prices (CPI)",
       "short": "CPI",
@@ -607,6 +642,17 @@
       "category": "Labor",
       "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-12",
+      "time_et": "10:00 AM",
+      "name": "Existing home sales",
+      "short": "Existing",
+      "tier": 2,
+      "category": "Housing",
+      "blurb": "Closed sales of previously owned homes \u2014 the bulk of the housing market.",
+      "source": "NAR statistical news release schedule",
       "time_source": "published release policy"
     },
     {
@@ -974,6 +1020,17 @@
     },
     {
       "date": "2026-12-08",
+      "time_et": "6:00 AM",
+      "name": "Small business optimism (NFIB)",
+      "short": "NFIB",
+      "tier": 3,
+      "category": "Surveys",
+      "blurb": "Monthly survey of small-business owners \u2014 hiring plans, prices charged and outlook.",
+      "source": "NFIB published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-08",
       "time_et": "8:30 AM",
       "name": "Trade balance",
       "short": "Trade",
@@ -992,6 +1049,17 @@
       "category": "Labor",
       "blurb": "Output per hour and what each unit of output costs in labor.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-09",
+      "time_et": "10:00 AM",
+      "name": "Existing home sales",
+      "short": "Existing",
+      "tier": 2,
+      "category": "Housing",
+      "blurb": "Closed sales of previously owned homes \u2014 the bulk of the housing market.",
+      "source": "NAR statistical news release schedule",
       "time_source": "published release policy"
     },
     {
