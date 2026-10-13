@@ -41,6 +41,7 @@ again. So:
 | Does Joe approve merges? | **No.** The agent ships its own work; Joe never touches GitHub. See 0.2. |
 | How long may a message to Joe be? | **Three sentences**, crisp bullets, anything needed from him on its own bolded line. Numbered table when he has listed bugs. See 0.1. |
 | Is there a fourth specialist? | **Yes — Data Steward**, now a real member of the council, owning data quality and the sign-off required by 0.4. |
+| Upgrade the Supabase compute (Micro → Small) for the Disk IO warnings? | **No — held, 2026-10-13.** Do not raise it again unless the site really degrades: a job failing on database timeouts, the site slow or erroring for readers, or Supabase reporting the instance unresponsive. A Disk IO warning email alone is not a reason. Keep trimming heavy reads quietly (#1264, closed). |
 
 ## Format
 
