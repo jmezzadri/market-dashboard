@@ -371,7 +371,13 @@ export default function TickerPage() {
   /* The scanner row is the canonical 0–5 MacroTilt Score. If the scanner
      doesn't carry this ticker (it ranks only the top discovery names), there
      is simply no score for it — handled below. */
-  const sector  = scanRow?.sector || snap?.sector || 'Equity';
+  /* "Sector" is really the industry classification (SIC description): the
+     scanner's sector column carries it, and the daily reference feed carries
+     it for ~6,300 names the scanner never touches. There is NO real sector
+     feed on the site, so the old 'Equity' placeholder was a substituted
+     value (LESSONS 4.9) — Joe 2026-10-13: "there is no equity sector".
+     Unknown renders nothing, never a made-up label. */
+  const sector  = scanRow?.sector || snap?.sector || deep?.ref?.sic_description || null;
   /* Single price anchor: prices_eod (real last close + its trade_date) is
      canonical so the header price, the chart, and the freshness chip all
      agree on one date. Snapshot / scanner only fill gaps. */
@@ -637,14 +643,18 @@ export default function TickerPage() {
             <div>
               <div className="tk-name">{info.loading ? 'Loading…' : (info.name || snap?.full_name || sym)}</div>
               <div className="tk-meta">
-                <span>{sector}</span>
-                {exchange && (
+                {sector && (
                   <>
+                    <span>{sector}</span>
                     <span className="lm-flowfootsep" />
-                    <span>{exchange}</span>
                   </>
                 )}
-                <span className="lm-flowfootsep" />
+                {exchange && (
+                  <>
+                    <span>{exchange}</span>
+                    <span className="lm-flowfootsep" />
+                  </>
+                )}
                 <span>Mkt cap <b className="num">{fmtMcap(marketcap)}</b></span>
                 <span className="lm-flowfootsep" />
                 <span>Vol <b className="num">{fmtVol(stockVol ?? lastBar?.volume)}</b></span>
@@ -1006,7 +1016,7 @@ export default function TickerPage() {
       <Reveal as="section" className="mt-pagesection">
         <div className="mt-sectionhead">
           <div>
-            <div className="mt-eyebrow">{relatedSameSector ? 'Related names · same sector' : 'Related names'}</div>
+            <div className="mt-eyebrow">{relatedSameSector ? 'Related names · same industry' : 'Related names'}</div>
             <div className="mt-h2">{relatedSameSector ? `Other names the scanner liked in ${sector}` : 'Other names the scanner liked'}</div>
           </div>
         </div>
@@ -1524,8 +1534,10 @@ function CompanyOverview({ deep, sector, exchange }) {
           <div className="tk-empty">No company description on file for this ticker.</div>
         )}
         <div className="tk-keygrid">
-          <KvCell label="Sector"    value={sector || '—'} />
-          <KvCell label="Industry"  value={industry || '—'} />
+          {/* One classification tile. "Sector" was the scanner's SIC
+              industry string under the wrong label, falling back to a
+              made-up 'Equity' (Joe 2026-10-13). */}
+          <KvCell label="Industry"  value={industry || sector || '—'} />
           {/* Exchange only when known — the reference feed doesn't carry it
               for most names, and a permanent em-dash tile reads as broken. */}
           {exchange && <KvCell label="Exchange" value={exchange} />}
