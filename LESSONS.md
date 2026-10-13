@@ -471,6 +471,17 @@ All four closed the same day. Three of them were auto-filed by the freshness ala
 **Applies to:** Lead Developer — every weekday sweep, and any future automated filer.
 
 
+### 0.16 (2026-10-13, Joe, emphatic: "This better be a hard rule!") — CHECK YOU CAN DO IT BEFORE YOU SAY YOU WILL. Never hand Joe your own blocked step.
+
+**What happened:** after Joe held the database upgrade, the sweep said "reply 'update the action brief' and I'll do it." Joe replied. The edit to his scheduled task needed an approval this session could not raise, so it failed twice, and the sweep then gave Joe click-by-click steps to do it himself. Joe: *"Why do you ask me to do stuff and then tell me that you can't do it?"* There was another way all along (a database rule closing those reports on insert), done in the next turn without him.
+
+**Rule:**
+1. Before promising an action, or asking Joe for a go-ahead on one, test that the path works in THIS session (a dry call, a permission check, a read of the target). If you cannot test it, say plainly you are not sure you can, and why.
+2. When a path is blocked, find another route and do the work yourself. A blocked tool is never converted into a to-do for Joe.
+3. Joe is asked only for what truly needs him (money, his own accounts, product decisions per 0.2) — and only once you have confirmed his step will actually work.
+
+**Applies to:** every agent, every session, every report to Joe.
+
 ### 0.15 (2026-10-09, Joe) — The sweep report is for Joe, not a log. Report only what changed or needs him
 
 **What happened:** the 10/9 sweep found and fixed ONE bug, then closed with an 11-row table: 9 rows of "all green / retired / no action". Joe: *"One real bug with a table with 11 items?!?"*
