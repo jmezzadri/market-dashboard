@@ -181,9 +181,9 @@
 .home-v12.ticker-v12 .tk-range-mark { position: absolute; top: 50%; left: var(--pos, 50%); width: 14px; height: 14px; border-radius: var(--r-999); background: var(--ink); border: 2px solid var(--putty); transform: translate(-50%, -50%); }
 
 /* ── main row: chart 2/3 · side 1/3 ── */
-.home-v12.ticker-v12 .tk-mainrow { display: grid; grid-template-columns: minmax(0, 2fr) minmax(360px, 1fr); gap: var(--sp-16); margin-top: var(--sp-16); align-items: stretch; }
+.home-v12.ticker-v12 .tk-mainrow { display: grid; grid-template-columns: minmax(0, 2fr) minmax(360px, 1fr); gap: var(--sp-16); margin-top: var(--sp-16); align-items: start; }
 .home-v12.ticker-v12 .tk-chartsec { margin: 0; padding: 0; min-width: 0; }
-.home-v12.ticker-v12 .tk-chartcard { height: 100%; box-sizing: border-box; }
+.home-v12.ticker-v12 .tk-chartcard { box-sizing: border-box; }
 .home-v12.ticker-v12 .tk-side { display: flex; flex-direction: column; gap: var(--sp-16); min-width: 0; }
 .home-v12.ticker-v12 .tk-panel { padding: var(--sp-18) var(--sp-22) var(--sp-18); border-radius: var(--r-26); }
 .home-v12.ticker-v12 .tk-panelhead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-10); margin-bottom: var(--sp-10); }

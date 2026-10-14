@@ -621,7 +621,7 @@ export default function TickerPage() {
             </div>
           </div>
           {chartMode === 'tv' ? (
-            <TradingViewChart symbol={tvSymbolFor(sym, exchange)} height={480} />
+            <TradingViewChart symbol={tvSymbolFor(sym, exchange)} height={620} />
           ) : (
           <>
           {histAll.loading ? (
@@ -632,7 +632,7 @@ export default function TickerPage() {
             <BigHistoryChart
               points={series}
               accent={chgPct >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
-              height={showRsi ? 400 : 320}
+              height={showRsi ? 640 : 540}
               freq="D"
               overlays={overlays}
               volume={showVol ? volumeWin : null}
