@@ -632,7 +632,7 @@ export default function TickerPage() {
             <BigHistoryChart
               points={series}
               accent={chgPct >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
-              height={showRsi ? 480 : 400}
+              height={showRsi ? 420 : 330}
               freq="D"
               overlays={overlays}
               volume={showVol ? volumeWin : null}
@@ -720,6 +720,7 @@ export default function TickerPage() {
             </table>
           </article>
 
+          <div className="tk-sidepair">
           {/* Technicals */}
           <article className="mt-card tk-panel">
             <div className="tk-panelhead">
@@ -762,6 +763,7 @@ export default function TickerPage() {
                 value={risk.avgAbs1y != null ? `${(risk.avgAbs1y * 100).toFixed(2)}%` : '—'} />
             </dl>
           </article>
+          </div>
         </div>
       </div>
 

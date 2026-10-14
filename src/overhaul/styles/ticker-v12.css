@@ -228,7 +228,7 @@
   .home-v12.ticker-v12 .tk-tape { grid-template-columns: auto auto 1fr; }
   .home-v12.ticker-v12 .tk-tape-ref { grid-column: 1 / -1; border-left: 0; padding-left: 0; padding-top: var(--sp-12); border-top: 1px solid var(--hair); }
   .home-v12.ticker-v12 .tk-mainrow { grid-template-columns: 1fr; }
-  .home-v12.ticker-v12 .tk-side { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .home-v12.ticker-v12 .tk-side { display: grid; grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 900px) {
   .home-v12.ticker-v12 .tk-tape { grid-template-columns: 1fr; gap: var(--sp-14); padding: var(--sp-16) var(--sp-18); border-radius: var(--r-26); }
@@ -249,3 +249,19 @@
 .home-v12.ticker-v12 .tk-chartcard .tk-overlay { margin-top: var(--sp-8); }
 .home-v12.ticker-v12 .tk-chartcard .tk-daterange { margin-top: var(--sp-6); }
 .home-v12.ticker-v12 .tk-backrow { padding-top: var(--sp-14); }
+
+/* technicals + risk side by side under performance (fits a 900px-tall screen) */
+.home-v12.ticker-v12 .tk-sidepair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-12); }
+.home-v12.ticker-v12 .tk-sidepair .tk-panel { padding: var(--sp-12) var(--sp-14) var(--sp-12); }
+.home-v12.ticker-v12 .tk-sidepair .tk-panelnote { display: none; }
+.home-v12.ticker-v12 .tk-sidepair .tk-kvrow { flex-direction: column; align-items: flex-start; gap: var(--sp-1); padding: var(--sp-5) 0; }
+.home-v12.ticker-v12 .tk-sidepair .tk-kvrow dt { font-size: var(--v13-t1); }
+.home-v12.ticker-v12 .tk-chartcard .tk-overlay { margin-top: var(--sp-8); align-items: center; }
+.home-v12.ticker-v12 .tk-chartcard .tk-daterange { display: inline-flex; margin-top: var(--sp-6); }
+@media (max-width: 1180px) {
+  .home-v12.ticker-v12 .tk-side { grid-template-columns: 1fr; }
+  .home-v12.ticker-v12 .tk-sidepair .tk-kvrow { flex-direction: row; align-items: baseline; }
+}
+@media (max-width: 520px) {
+  .home-v12.ticker-v12 .tk-sidepair { grid-template-columns: 1fr; }
+}
