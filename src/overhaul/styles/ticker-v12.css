@@ -181,9 +181,9 @@
 .home-v12.ticker-v12 .tk-range-mark { position: absolute; top: 50%; left: var(--pos, 50%); width: 14px; height: 14px; border-radius: var(--r-999); background: var(--ink); border: 2px solid var(--putty); transform: translate(-50%, -50%); }
 
 /* ── main row: chart 2/3 · side 1/3 ── */
-.home-v12.ticker-v12 .tk-mainrow { display: grid; grid-template-columns: minmax(0, 2fr) minmax(340px, 1fr); gap: var(--sp-12); margin-top: var(--sp-12); align-items: start; }
+.home-v12.ticker-v12 .tk-mainrow { display: grid; grid-template-columns: minmax(0, 2fr) minmax(340px, 1fr); gap: var(--sp-12); margin-top: var(--sp-12); align-items: stretch; }
 .home-v12.ticker-v12 .tk-chartsec { margin: 0; padding: 0; min-width: 0; }
-.home-v12.ticker-v12 .tk-chartcard { box-sizing: border-box; }
+.home-v12.ticker-v12 .tk-chartcard { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; }
 .home-v12.ticker-v12 .tk-side { display: flex; flex-direction: column; gap: var(--sp-12); min-width: 0; }
 .home-v12.ticker-v12 .tk-panel { padding: var(--sp-12) var(--sp-18) var(--sp-12); border-radius: var(--r-22); }
 .home-v12.ticker-v12 .tk-panelhead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-10); margin-bottom: var(--sp-4); }
@@ -207,7 +207,7 @@
 .home-v12.ticker-v12 .tk-kv--2col .tk-kvrow:nth-child(2) { border-top: 0; }
 
 /* ── second row: news · company ── */
-.home-v12.ticker-v12 .tk-secondrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-12); margin-top: var(--sp-12); align-items: start; }
+.home-v12.ticker-v12 .tk-secondrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-12); margin-top: var(--sp-12); align-items: stretch; }
 .home-v12.ticker-v12 .tk-news .tk-newslist { list-style: none; margin: 0; padding: 0; }
 .home-v12.ticker-v12 .tk-news .tk-newsrow { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-6) 0; border-top: 1px solid var(--hair); }
 .home-v12.ticker-v12 .tk-news .tk-newsrow:first-child { border-top: 0; }
@@ -265,3 +265,8 @@
 @media (max-width: 520px) {
   .home-v12.ticker-v12 .tk-sidepair { grid-template-columns: 1fr; }
 }
+
+/* chart body grows to fill the card; the chart is drawn to the measured height */
+.home-v12.ticker-v12 .tk-chartsec { display: flex; flex-direction: column; }
+.home-v12.ticker-v12 .tk-chartbody { flex: 1 1 auto; min-height: 260px; }
+.home-v12.ticker-v12 .tk-chartbody > div { height: 100% !important; }

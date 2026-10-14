@@ -276,6 +276,21 @@ export default function TickerPage() {
   const [fromDate, setFromDate]     = useState('');   // custom range start (YYYY-MM-DD)
   const [toDate, setToDate]         = useState('');    // custom range end
   const compareHist = useTickerEodHistory(compareSym || null);
+  /* The chart fills whatever height the side column takes, so the two tiles
+     always end on the same line (Joe 2026-10-13: no asymmetric tiles). The
+     chart body is measured and the chart drawn to that height. */
+  const chartBodyRef = useRef(null);
+  const [chartH, setChartH] = useState(330);
+  useEffect(() => {
+    const el = chartBodyRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(([e]) => {
+      const h = Math.floor(e.contentRect.height);
+      if (h > 200) setChartH(h);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [chartMode]);
 
 
   const eventsForSym = events.byTicker?.get?.(sym) || { news: [], insider: [], congress: [], darkpool: [] };
@@ -624,6 +639,7 @@ export default function TickerPage() {
             <TradingViewChart symbol={tvSymbolFor(sym, exchange)} height={500} />
           ) : (
           <>
+          <div className="tk-chartbody" ref={chartBodyRef}>
           {histAll.loading ? (
             <div style={{ height: 320, display: 'grid', placeItems: 'center', color: 'var(--mt-ink-3)' }}>
               Loading price history…
@@ -632,7 +648,7 @@ export default function TickerPage() {
             <BigHistoryChart
               points={series}
               accent={chgPct >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
-              height={showRsi ? 420 : 330}
+              height={chartH}
               freq="D"
               overlays={overlays}
               volume={showVol ? volumeWin : null}
@@ -647,6 +663,7 @@ export default function TickerPage() {
               No price history on file for {sym}.
             </div>
           )}
+          </div>
           <div className="tk-overlay" data-layout="natural">
             <button type="button" className={`mt-btn ${show50 ? 'on' : ''}`} onClick={() => setShow50((v) => !v)}>
               {show50 ? '✓ ' : '+ '}50-day avg
