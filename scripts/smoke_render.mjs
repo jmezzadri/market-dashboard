@@ -81,7 +81,10 @@ const SURFACES = [
   {
     path: "/ticker/MTDR",
     name: "Ticker detail (MTDR)",
-    mustInclude: ["Price history", "Key stats"],
+    // 2026-10-13: the Key-stats section moved into the hero (Open/Day high/
+    // Day low/Prev close beside the Trader Card), so those labels and the
+    // card's own headings are the content guard now.
+    mustInclude: ["Price history", "Day high", "52-week range", "Setup"],
     mustMatch: [PRICE],
     minPriceHits: 5,
     mustNotInclude: ["No price history on file"],
@@ -92,7 +95,7 @@ const SURFACES = [
     // A populated Key-stats grid shows several real prices, so require >=5.
     path: "/ticker/NEWT",
     name: "Ticker detail (NEWT, off-snapshot)",
-    mustInclude: ["Price history", "Key stats"],
+    mustInclude: ["Price history", "Day high", "52-week range", "Setup"],
     mustMatch: [PRICE],
     minPriceHits: 5,
     mustNotInclude: ["No price history on file"],
