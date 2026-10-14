@@ -366,7 +366,11 @@ Deno.serve(async (req: Request) => {
       }
       if (row.status === "failed") {
         const why = row.error ? `<div class="cap">${escapeHtml(String(row.error)).slice(0, 300)}</div>` : "";
-        const stage = row.note_b64 && !row.note_committed_at ? "The note did not reach the site, so nothing was posted to X." : "Nothing went out.";
+        const stage = row.note_b64
+          ? (row.note_committed_at
+            ? "The note is live on macrotilt.com, but the chart did not post to X."
+            : "The note did not reach the site, so nothing was posted to X.")
+          : "Nothing went out.";
         return page("Failed", `<h1 class="bad">It did not go through</h1><p>${stage} Tap Approve in the email again to retry.</p>${why}`, false);
       }
       // pending / changes_requested
