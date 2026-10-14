@@ -1326,7 +1326,7 @@ function TraderCard({ price, lo52, hi52, tech, beta1y, avgVol, finra, score, sig
       {/* Returns */}
       <div className="tk-deskrow">
         <div className="tk-desklabel">Returns</div>
-        <div className="tk-deskgrid tk-deskgrid--4">
+        <div className="tk-deskgrid tk-desk4">
           <DeskCell label="1w"  value={pct(tech?.week_change)}  tone={tone(tech?.week_change)} />
           <DeskCell label="1m"  value={pct(tech?.month_change)} tone={tone(tech?.month_change)} />
           <DeskCell label="YTD" value={pct(tech?.ytd_change)}   tone={tone(tech?.ytd_change)} />
@@ -1338,7 +1338,7 @@ function TraderCard({ price, lo52, hi52, tech, beta1y, avgVol, finra, score, sig
       {/* Positioning */}
       <div className="tk-deskrow">
         <div className="tk-desklabel">Positioning</div>
-        <div className="tk-deskgrid tk-deskgrid--3">
+        <div className="tk-deskgrid tk-desk3">
           <DeskCell label="Short int." tip="FINRA settlement short interest ÷ shares outstanding. Published twice a month with a settlement lag."
             value={siPct != null ? `${Number(siPct).toFixed(1)}%` : '—'} sub="of shares out" />
           <DeskCell label="Days to cover" tip="Shares short ÷ average daily volume at the same settlement date."

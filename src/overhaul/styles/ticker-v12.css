@@ -150,8 +150,8 @@
    tiles. Every value is a --v13 step / --sp / --r token. ── */
 .home-v12.ticker-v12 .tk-desk {
   background: var(--putty); border: 0; border-radius: var(--r-32);
-  padding: var(--sp-20) var(--sp-24) var(--sp-22);
-  display: flex; flex-direction: column; gap: var(--sp-16);
+  padding: var(--sp-18) var(--sp-22) var(--sp-20);
+  display: flex; flex-direction: column; gap: var(--sp-12);
   min-width: 420px; max-width: 520px;
   transition: background var(--dur-500);
 }
@@ -180,8 +180,8 @@
 
 /* cells */
 .home-v12.ticker-v12 .tk-deskgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-6); }
-.home-v12.ticker-v12 .tk-deskgrid--3 { grid-template-columns: repeat(3, 1fr); }
-.home-v12.ticker-v12 .tk-deskgrid--4 { grid-template-columns: repeat(4, 1fr); }
+.home-v12.ticker-v12 .tk-desk3 { grid-template-columns: repeat(3, 1fr); }
+.home-v12.ticker-v12 .tk-desk4 { grid-template-columns: repeat(4, 1fr); }
 .home-v12.ticker-v12 .tk-deskcell {
   background: var(--bg2); border-radius: var(--r-14);
   padding: var(--sp-9) var(--sp-12);
@@ -208,8 +208,8 @@
   .home-v12.ticker-v12 .tk-desk { min-width: 0; max-width: none; border-radius: var(--r-26); padding: var(--sp-16) var(--sp-16) var(--sp-18); }
 }
 @media (max-width: 480px) {
-  .home-v12.ticker-v12 .tk-deskgrid--4 { grid-template-columns: repeat(2, 1fr); }
-  .home-v12.ticker-v12 .tk-deskgrid--3 { grid-template-columns: repeat(3, 1fr); }
+  .home-v12.ticker-v12 .tk-desk4 { grid-template-columns: repeat(2, 1fr); }
+  .home-v12.ticker-v12 .tk-desk3 { grid-template-columns: repeat(3, 1fr); }
   .home-v12.ticker-v12 .tk-deskcell b { font-size: var(--v13-t3); }
 }
 
