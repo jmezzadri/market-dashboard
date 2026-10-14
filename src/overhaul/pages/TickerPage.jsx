@@ -1,38 +1,15 @@
-/* Ticker Detail — Wired to real data 2026-05-27 evening.
-
-   Replaces the empty-state version that shipped earlier today (PR #841)
-   with live data from existing hooks. Every tab now reads real values
-   when the user is authenticated; em-dashes gracefully otherwise.
-
-   Data sources:
-   - useTickerEvents       → insider / dark pool / news events (3x/weekday
-                             event streams)
-   - useUniverseSnapshot   → close, prev_close, high, low, 52w hi/lo,
-                             avg vol, marketcap, IV rank, IV30d, implied
-                             moves, call/put volume + premium, put/call
-                             ratio, next earnings date (3x/weekday)
-   - useTickerTechnicalsLive → RSI(14), MACD cross, %vs MA50/200,
-                             vol surge, week/month/YTD change, SPY-relative
-                             (Yahoo daily, computed on the fly)
-   - useV5ScanBatch        → per-category sub-scores (Technicals, Insider,
-                             Options, Analyst, Congress, Short Interest) +
-                             insider buy count + buy dollars (signal_intel_v5)
-   - useTickerDeepDive     → ticker_reference (exchange, country, etc.),
-                             recent dividends, recent splits
-   - useMassiveTickerInfo  → full name from Polygon
-   - useTradingOppsTop     → scanner row for price/score/signal/sector
-
-   Layout follows the prototype tk-* class set unchanged.
-
-   Cream rebrand Phase B (2026-07-07): page moved from the home-v11 glass
-   scope to the shared home-v12 cream system (cream-system.css) with page
-   styles in ticker-v12.css. RESKIN ONLY — classNames, layout wrappers and
-   CSS; zero data/logic/chip changes. The chart canvas keeps reading the
-   app's --mt-* theme tokens (SVG strokes/fills are var(--mt-*) references),
-   bridged to the cream palette in ticker-v12.css — no chart code touched.
-   The TradingView embed keeps its own hardcoded light/dark widget config
-   (chart-internals theming is a later pass).
-*/
+/* TickerPage — the per-symbol cockpit (rebuilt 2026-10-13, Joe: "a compact
+   cockpit showing performance, technicals and risk, then info about the
+   stock"). Everything is sourced from feeds that exist today:
+   - prices_eod (daily history)      → price, chart, 52-week range, returns,
+                                        realized vol, drawdown, beta vs SPY
+   - ticker_reference (daily)        → name, industry (SIC), market cap,
+                                        shares, HQ, employees, listed, site
+   - corporate actions (Polygon)     → dividends, splits, dividend yield
+   - FINRA short interest            → short interest, days to cover
+   - LSE 1-minute bars               → live price during the session
+   - ticker_events + Google News     → headlines
+   No scanner feed is read here (the scanner pages are retired). */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import '../styles/cream-system.css';
@@ -44,45 +21,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { latestTradingSessionDate } from '../../lib/freshnessClock';
 import BigHistoryChart from '../components/BigHistoryChart';
 import TradingViewChart, { tvSymbolFor } from '../components/TradingViewChart';
-import ScoreDial from '../components/ScoreDial';
 import FreshnessChip from '../components/FreshnessChip';
 import useLseLive from '../../hooks/useLseLive';
 import Tip from '../components/Tip';
 import useMassiveTickerInfo from '../../hooks/useMassiveTickerInfo';
-import useTradingOppsTop from '../../hooks/useTradingOppsTop';
 import useTickerPositioning from '../../hooks/useTickerPositioning';
 import { useTickerEvents } from '../../hooks/useTickerEvents';
-import { useUniverseSnapshot } from '../../hooks/useUniverseSnapshot';
 import useTickerTechnicalsLive from '../../hooks/useTickerTechnicalsLive';
 import useTickerDeepDive from '../../hooks/useTickerDeepDive';
 import useTickerSuggestions from '../../hooks/useTickerSuggestions';
-import useV5ScanBatch from '../../hooks/useV5ScanBatch';
-import useEdgarInsider from '../../hooks/useEdgarInsider';
 import useTickerEodHistory from '../../hooks/useTickerEodHistory';
 import useTickerEodPrice from '../../hooks/useTickerEodPrice';
-import usePowerTrendRank from '../../hooks/usePowerTrendRank';
-import useDivergenceScan from '../../hooks/useDivergenceScan';
-import { buildScanBreakdown } from '../lib/scoreWeights';
 
-/* Plain-English reading for each scanner score component, from the scan row.
-   Mirrors the Scanner drill so the ticker page and scanner never disagree. */
-function readingForScan(key, r) {
-  if (!r) return '—';
-  if (key === 'Insider') {
-    const rules = r.insider_rules?.length ? r.insider_rules.join(' + ') : '—';
-    return `Rules ${rules}${r.insider_age_days != null ? ` · ${r.insider_age_days}d old` : ''}`;
-  }
-  if (key === 'Technicals') {
-    const pct = r.sma200_pct;
-    const trend = pct == null ? '—' : `${pct >= 0 ? 'above' : 'below'} 200-day by ${Math.abs(pct).toFixed(1)}%`;
-    return `${trend}${r.rsi != null ? ` · RSI ${r.rsi.toFixed(0)}` : ''}`;
-  }
-  return '—';
-}
-
-/* Simple trailing moving average over a [{date, close}] series. Returns an
-   array of [date, value|null] aligned 1:1 — null during the warm-up window
-   so the line just starts later instead of bending toward zero. */
 function sma(rows, period) {
   const out = [];
   let sum = 0;
@@ -195,15 +145,6 @@ const OVERLAY_UNIVERSE = [
   ['Mega-caps', [['AAPL', 'Apple'], ['MSFT', 'Microsoft'], ['NVDA', 'Nvidia'], ['AMZN', 'Amazon'], ['GOOGL', 'Alphabet'], ['META', 'Meta'], ['TSLA', 'Tesla'], ['JPM', 'JPMorgan'], ['V', 'Visa'], ['UNH', 'UnitedHealth'], ['XOM', 'Exxon'], ['JNJ', 'J&J'], ['WMT', 'Walmart'], ['PG', 'P&G']]],
 ];
 const BENCH_LABEL = Object.fromEntries(OVERLAY_UNIVERSE.flatMap(([, items]) => items));
-/* Detail feeds shown in the activity section. Score composition is NOT here —
-   it's an always-visible section, not a per-source feed. */
-/* Insider lives inside the score card now — not duplicated here. */
-const TABS = [
-  ['short',   'Short interest'],
-  ['news',    'News'],
-  ['fund',    'Fundamentals'],
-];
-
 /* ---------- formatters ---------- */
 
 function fmt(v, decimals = 2) {
@@ -288,16 +229,6 @@ const SCORE_CAPS = { Insider: 4, Technicals: 1 };
 
 /* The engine fades insider points for age: full weight through day 15, then a
    straight line down to zero at day 31. Returns the share of full weight left. */
-function insiderAgeWeight(ageDays) {
-  if (ageDays == null || !Number.isFinite(Number(ageDays))) return null;
-  const a = Number(ageDays);
-  if (a <= 15) return 1;
-  if (a >= 31) return 0;
-  return (31 - a) / (31 - 15);
-}
-
-/* Format insider Form-4 transaction code (P=open-market buy, S=open-market
-   sell, etc.). */
 function insiderActionLabel(payload) {
   const code = (payload?.transaction_code || payload?.transaction_type || '').toString().toUpperCase();
   if (code.includes('P') || code === 'BUY')  return { label: 'BUY',  cls: 'mt-tag--calm' };
@@ -305,17 +236,6 @@ function insiderActionLabel(payload) {
   return { label: code || '—', cls: 'mt-tag--range' };
 }
 
-function insiderRoleLabel(payload) {
-  if (!payload) return '—';
-  if (payload.is_ten_percent) return '10%+ owner';
-  if (payload.is_officer)     return payload.title || 'Officer';
-  if (payload.is_director)    return payload.title || 'Director';
-  return payload.title || '—';
-}
-
-/* Reveal — scroll-reveal wrapper, same pattern as HomePage/MacroPage/
-   the v12 page system. Replays in BOTH directions; state lives in React
-   so data-poll re-renders preserve the revealed class. */
 function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
   const ref = useRef(null);
   const [vis, setVis] = useState(false);
@@ -337,20 +257,14 @@ export default function TickerPage() {
   const navigate = useNavigate();
 
   const info = useMassiveTickerInfo(sym);
-  const scanner = useTradingOppsTop(60);
   const events = useTickerEvents({ daysBack: 90 });
-  const universe = useUniverseSnapshot();
   const tech = useTickerTechnicalsLive(sym);
   const deep = useTickerDeepDive(sym);
-  const v5Map = useV5ScanBatch([sym]);
   const eod = useTickerEodPrice(sym);
   const histAll = useTickerEodHistory(sym);
-  const spyHist = useTickerEodHistory(sym === 'SPY' ? null : 'SPY'); // beta benchmark
-  const powerTrend = usePowerTrendRank(sym);
-  const divergence = useDivergenceScan();
+  const spyHist = useTickerEodHistory(sym === 'SPY' ? null : 'SPY'); // benchmark
   const positioning = useTickerPositioning(sym);
 
-  const [tab, setTab] = useState('news');
   const [tf, setTf]   = useState('1Y');
   const [show50, setShow50]       = useState(false);
   const [show200, setShow200]     = useState(false);
@@ -363,30 +277,22 @@ export default function TickerPage() {
   const [toDate, setToDate]         = useState('');    // custom range end
   const compareHist = useTickerEodHistory(compareSym || null);
 
-  const scanRow = (scanner.rows || []).find((r) => r.ticker === sym);
-  const snap = universe.byTicker?.get?.(sym) || null;
-  const v5Row = v5Map?.byTicker?.[sym] || null;
+
   const eventsForSym = events.byTicker?.get?.(sym) || { news: [], insider: [], congress: [], darkpool: [] };
 
-  /* The scanner row is the canonical 0–5 MacroTilt Score. If the scanner
-     doesn't carry this ticker (it ranks only the top discovery names), there
-     is simply no score for it — handled below. */
-  /* "Sector" is really the industry classification (SIC description): the
-     scanner's sector column carries it, and the daily reference feed carries
-     it for ~6,300 names the scanner never touches. There is NO real sector
-     feed on the site, so the old 'Equity' placeholder was a substituted
-     value (LESSONS 4.9) — Joe 2026-10-13: "there is no equity sector".
-     Unknown renders nothing, never a made-up label. */
-  const sector  = scanRow?.sector || snap?.sector || deep?.ref?.sic_description || null;
+  /* Industry classification (SIC description) from the daily reference feed.
+     There is no sector feed on the site; unknown renders nothing, never a
+     made-up label (Joe 2026-10-13: "there is no equity sector"). */
+  const sector  = deep?.ref?.sic_description || null;
   /* Single price anchor: prices_eod (real last close + its trade_date) is
      canonical so the header price, the chart, and the freshness chip all
-     agree on one date. Snapshot / scanner only fill gaps. */
-  const price   = eod?.last_close ?? snap?.close ?? scanRow?.price ?? 0;
+     agree on one date. */
+  const price   = eod?.last_close ?? 0;
   /* Whether a REAL price exists anywhere. The `?? 0` above keeps the chart and
      the derived maths from blowing up on a null, but a rendered "$0.00" is a
      substituted number, which we never show (LESSONS 4.4) — a covered symbol
      with no stored close yet (fresh listing, thin name) gets an em-dash. */
-  const hasPrice = eod?.last_close != null || snap?.close != null || scanRow?.price != null;
+  const hasPrice = eod?.last_close != null;
   /* Day move. Two rules, both learned the hard way:
      (a) never guess a unit. The old code multiplied a snapshot change by 100
          when |x| < 1, which turns a real +0.4% into +40%. universe_snapshots
@@ -394,14 +300,9 @@ export default function TickerPage() {
          inferred — and `perc_change` is NULL on every row anyway.
      (b) never fall back to 0. A missing change is an em-dash; a green
          "+0.00%" is a substituted number (LESSONS 4.4). */
-  const snapPct = (snap?.close != null && snap?.prev_close > 0)
-    ? ((Number(snap.close) / Number(snap.prev_close)) - 1) * 100
-    : null;
-  const chgPct  = eod?.day_pct != null
-    ? Number(eod.day_pct)
-    : (snapPct != null ? snapPct : (scanRow?.chg != null ? Number(scanRow.chg) : null));
+  const chgPct  = eod?.day_pct != null ? Number(eod.day_pct) : null;
   const hasChg  = Number.isFinite(chgPct);
-  const prevClose = eod?.prev_close ?? snap?.prev_close ?? null;
+  const prevClose = eod?.prev_close ?? null;
   const priceAsOf = eod?.trade_date || null;
   // A prices_eod row dated later than the latest COMPLETED NYSE session is an
   // in-progress (intraday) print from the same-day Yahoo fallback — it is NOT
@@ -416,12 +317,9 @@ export default function TickerPage() {
   /* Market cap waterfall (2026-07-20): the retiring UW snapshot only covers
      its own ≥$1B flickering universe, which left names like PBF blank.
      ticker_reference (daily Massive cron, ~13K tickers) now backstops it. */
-  const marketcap = snap?.marketcap ?? scanRow?.marketCap ?? deep?.ref?.market_cap ?? v5Row?.market_cap ?? null;
-  const stockVol  = snap?.stock_volume ?? scanRow?.volume ?? null;
+  const marketcap = deep?.ref?.market_cap ?? null;
+  
 
-  /* Which scanner surfaced this name (2026-07-20) — the score block is scoped
-     to Insider-scan names; everything else shows its source scanner instead
-     of a dead "no score" dial. */
   /* Live price — LSE 1-minute bars (display only; ~10 s behind the tape,
      shared server cache). Uncovered names (LSE carries ~4,000 US stocks +
      major ETFs) render an em-dash — never a substituted number
@@ -448,18 +346,6 @@ export default function TickerPage() {
      a missing base keep the close-first block unchanged. */
   const liveHero = lseLive.marketOpen === true && livePrice != null && livePct != null;
 
-  const ptRow = powerTrend.row;
-  const rsiHits = useMemo(() => {
-    const hits = [];
-    for (const r of (divergence.bull || [])) if (r.ticker === sym) hits.push({ dir: 'Bullish', strong: r.strong });
-    for (const r of (divergence.bear || [])) if (r.ticker === sym) hits.push({ dir: 'Bearish', strong: r.strong });
-    return hits;
-  }, [divergence.bull, divergence.bear, sym]);
-
-  /* Signal pill — derive from scanner row only; hide otherwise. */
-  const signal    = (scanRow?.signal || '').toString().toUpperCase();
-  const direction = signal === 'BUY' ? 'LONG' : signal === 'SELL' ? 'SHORT' : '';
-
   /* Price chart — REAL daily history from prices_eod. SMAs are computed over
      the full history then sliced to the visible window so they're accurate at
      the left edge. Volume, moving-average, event, and compare overlays are all
@@ -473,11 +359,9 @@ export default function TickerPage() {
      stat blanked out. The real values are in prices_eod (the latest daily bar)
      and the scan row (52-week range, market cap, IV). */
   const lastBar = hist.length ? hist[hist.length - 1] : null;
-  const hi52 = scanRow?.week52High ?? snap?.week_52_high ??
-    (hist.length ? Math.max(...hist.slice(-252).map((r) => (r.high ?? r.close))) : null);
-  const lo52 = scanRow?.week52Low ?? snap?.week_52_low ??
-    (hist.length ? Math.min(...hist.slice(-252).map((r) => (r.low ?? r.close))) : null);
-  const avgVol = snap?.avg30_volume ??
+  const hi52 =     (hist.length ? Math.max(...hist.slice(-252).map((r) => (r.high ?? r.close))) : null);
+  const lo52 =     (hist.length ? Math.min(...hist.slice(-252).map((r) => (r.low ?? r.close))) : null);
+  const avgVol =
     (hist.length ? hist.slice(-30).reduce((s, r) => s + (r.volume || 0), 0) / Math.min(30, hist.length) : null);
   /* Beta + dividend yield are computed from data we already store — a year of
      daily closes vs SPY (prices_eod) and the Polygon corporate-actions rows.
@@ -538,50 +422,20 @@ export default function TickerPage() {
   if (show50)  overlays.push({ points: sma50Win,  color: 'var(--mt-accent)', label: '50d SMA', dash: '5 3' });
   if (show200) overlays.push({ points: sma200Win, color: 'var(--mt-warn)',   label: '200d SMA', dash: '5 3' });
 
-  /* Dial score — the scanner row is the single canonical 0–5. If a name isn't
-     in today's scan there is no MacroTilt Score (the old fallback to a second
-     scoring engine disagreed with this dial, so it was removed). */
-  const score = scanRow?.score ?? null;
 
-  /* Score composition — the SAME additive 4-input model as the scanner, so it
-     reconciles exactly to the headline dial (the old v5 weighted table summed
-     to a different number than the dial showed). */
-  const comp = useMemo(() => (scanRow ? buildScanBreakdown(scanRow) : null), [scanRow]);
+  /* ---- Performance / risk, all from the stored daily history ---- */
+  const perf = useMemo(() => perfTable(hist, spyHist.rows || []), [hist, spyHist.rows]);
+  const risk = useMemo(() => riskStats(hist), [hist]);
 
-  // Related names must be the SAME sector as this ticker (the header promises
-  // "same sector"). Match case-insensitively on the scanner's sector field;
-  // if this name has no sector, fall back to an empty list rather than
-  // showing unrelated names under a same-sector header.
-  // Related names: prefer SAME-sector scanner names (the header promises it).
-  // If the scanner has no other names in this sector, fall back to the top
-  // names across all sectors and DROP the "same sector" claim from the header
-  // (an empty card or a false sector label both read as broken).
-  const _others = (scanner.rows || []).filter((r) => r.ticker !== sym);
-  const _sameSector = _others.filter((r) => sector && r.sector
-    && String(r.sector).toLowerCase() === String(sector).toLowerCase());
-  const relatedSameSector = _sameSector.length > 0;
-  const related = (relatedSameSector ? _sameSector : _others).slice(0, 4);
-
-  /* Sort events newest first for the tabs. Insider evidence reads the SEC
-     EDGAR table directly (2026-07-20 UW cutover) — the same table the scanner
-     scores from, so evidence and score can never disagree. */
-  const insiderEvents = useEdgarInsider(sym, 90);
   const newsEvents = useMemo(
     () => [...(eventsForSym.news || [])].sort((a, b) => (b.event_ts || '').localeCompare(a.event_ts || '')),
     [eventsForSym.news],
   );
-
-  /* Live per-ticker news (Google News, fetched on demand when the News tab is
-     open) merged with the stored ticker_events news rows. */
-  const companyName = info.name || snap?.full_name || '';
-  const liveNews = useLiveTickerNews(sym, companyName, tab === 'news');
+  const companyName = info.name || '';
+  const liveNews = useLiveTickerNews(sym, companyName, true);
   const mergedNews = useMemo(
     () => mergeTickerNews(newsEvents, liveNews.items),
     [newsEvents, liveNews.items],
-  );
-  const eventsForBadge = useMemo(
-    () => ({ ...eventsForSym, news: mergedNews }),
-    [eventsForSym, mergedNews],
   );
 
   /* ---- Does this symbol exist at all? (Joe 2026-07-30) ----------------
@@ -589,22 +443,14 @@ export default function TickerPage() {
      $0.00 price, empty chart, empty company overview, empty news — because
      nothing here asked the question. A symbol is REAL if any of our own
      sources carries it: the reference list (~13K US listings), a stored
-     close, stored daily history, the large-cap snapshot, or a scanner row.
+     close, or stored daily history.
      Nothing at all, once every one of those has finished loading, means the
      symbol is not one we cover — say so instead of drawing zeros. */
-  /* Gate on the three per-ticker lookups only. The large-cap snapshot and the
-     scanner batch are whole-table reads that can take ~10 s while signed in,
-     and waiting on them meant a typo showed the full em-dashed shell for ten
-     seconds before the not-found card replaced it. Anything in those feeds is
-     in the reference list or has stored prices anyway, so they add evidence
-     below but never delay the verdict. */
   const resolveLoading = deep.loading || eod.loading || histAll.loading;
   const symbolKnown = !!(
     deep?.ref ||
     eod?.last_close != null ||
     (histAll.rows || []).length > 0 ||
-    snap ||
-    scanRow ||
     info?.name
   );
   /* A failed reference read is NOT evidence of absence — if the lookup itself
@@ -624,6 +470,12 @@ export default function TickerPage() {
     );
   }
 
+  const finra = positioning?.finra || null;
+  const sharesOut = deep?.ref?.weighted_shares_outstanding ?? deep?.ref?.share_class_shares_outstanding ?? null;
+  const headPrice = liveHero ? livePrice : (hasPrice ? price : null);
+  const hasRange = headPrice != null && lo52 != null && hi52 != null && hi52 > lo52;
+  const rangePos = hasRange ? Math.min(100, Math.max(0, ((headPrice - lo52) / (hi52 - lo52)) * 100)) : null;
+
   return (
     <div className="home-v12 v13 ticker-v12">
       <div className="wrap">
@@ -635,178 +487,99 @@ export default function TickerPage() {
         <FreshnessChip elementId="market-prices_eod-daily" variant="label" />
       </div>
 
-      {/* Hero */}
-      <Reveal as="section" className="mt-pagehero tk-hero">
-        <div>
-          <div className="tk-symwrap">
-            <h1 className="tk-symbol">{sym}</h1>
-            <div>
-              <div className="tk-name">{info.loading ? 'Loading…' : (info.name || snap?.full_name || sym)}</div>
-              <div className="tk-meta">
-                {sector && (
-                  <>
-                    <span>{sector}</span>
-                    <span className="lm-flowfootsep" />
-                  </>
-                )}
-                {exchange && (
-                  <>
-                    <span>{exchange}</span>
-                    <span className="lm-flowfootsep" />
-                  </>
-                )}
-                <span>Vol <b className="num">{fmtVol(stockVol ?? lastBar?.volume)}</b></span>
-              </div>
+      {/* ── Tape: one dense strip — identity · price · live · range · reference ── */}
+      <Reveal as="section" className="tk-tape">
+        <div className="tk-tape-id">
+          <h1 className="tk-symbol">{sym}</h1>
+          <div className="tk-tape-idtext">
+            <div className="tk-name">{info.loading ? 'Loading…' : (info.name || sym)}</div>
+            <div className="tk-meta">
+              {sector && <span>{sector}</span>}
+              {sector && exchange && <span className="lm-flowfootsep" />}
+              {exchange && <span>{exchange}</span>}
             </div>
           </div>
-          <div className="tk-priceblock">
-            {liveHero ? (
-              <>
-                <div className="tk-price num">${fmt(livePrice, 2)}</div>
-                <div className={`tk-priceΔ num ${livePct >= 0 ? 'up' : 'down'}`}>
-                  {livePct >= 0 ? '▲' : '▼'} ${Math.abs(livePrice - liveBase).toFixed(2)}{' '}
-                  ({livePct > 0 ? '+' : ''}{livePct.toFixed(2)}%) today
-                </div>
-                <div className="tk-liveline num">
-                  <FreshnessChip elementId="market-lse_intraday-live" variant="dot" />
-                  <span className="tk-livelabel">Live</span>
-                  <span>
-                    {isIntraday
-                      ? <>vs prev close ${fmt(liveBase, 2)}</>
-                      : <>vs close{priceAsOf ? <> {fmtDateShort(priceAsOf)}</> : null} ${fmt(liveBase, 2)}</>}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-            <div className="tk-price num">{hasPrice ? `$${fmt(price, 2)}` : '—'}</div>
-            {hasPrice && hasChg && (
-            <div className={`tk-priceΔ num ${chgPct >= 0 ? 'up' : 'down'}`}>
-              {chgPct >= 0 ? '▲' : '▼'} ${Math.abs(
-                /* actual price move = price − prior close. The old code used
-                   price × pct/100, which bases the $ move on the CURRENT price
-                   instead of the prior close, so the dollar figure and the %
-                   disagreed ($17.75 shown when the real move was $16.40).
-                   If prevClose is missing, derive the move from price and pct
-                   consistently: move = price·pct/(100+pct). */
-                prevClose != null
-                  ? (price - prevClose)
-                  : (price * chgPct) / (100 + chgPct)
-              ).toFixed(2)}{' '}
-              ({chgPct > 0 ? '+' : ''}{Number(chgPct).toFixed(2)}%)
-              {/* The session this move belongs to, on the move itself. Joe,
-                  2026-08-18: KLIC read "+2.70%" in green at 11 AM while the
-                  stock was down 11% — the date was on a separate meta line
-                  below and nobody reads a date to decide whether a green
-                  number is today. A move that is not today says so, here. */}
-              <span className="tk-chgsession">
-                {isIntraday
-                  ? ' today'
-                  : (priceAsOf ? ` · ${fmtDateShort(priceAsOf)} session` : '')}
-              </span>
-            </div>
-            )}
-            <div className="tk-pricemeta num">
-              {priceAsOf ? <>{asOfVerb} {fmtDateShort(priceAsOf)} · </> : null}
-              {prevClose != null
-                ? <>prev close ${fmt(prevClose, 2)}</>
-                : <>prev close —</>}
-            </div>
-            {liveQ && (
+        </div>
+
+        <div className="tk-tape-price">
+          {liveHero ? (
+            <>
+              <div className="tk-price num">${fmt(livePrice, 2)}</div>
+              <div className={`tk-priceΔ num ${livePct >= 0 ? 'up' : 'down'}`}>
+                {livePct >= 0 ? '▲' : '▼'} ${Math.abs(livePrice - liveBase).toFixed(2)} ({livePct > 0 ? '+' : ''}{livePct.toFixed(2)}%) today
+              </div>
               <div className="tk-liveline num">
                 <FreshnessChip elementId="market-lse_intraday-live" variant="dot" />
-                {livePrice != null ? (
+                <span className="tk-livelabel">Live</span>
+                <span>{isIntraday ? <>vs prev close ${fmt(liveBase, 2)}</> : <>vs close{priceAsOf ? <> {fmtDateShort(priceAsOf)}</> : null} ${fmt(liveBase, 2)}</>}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="tk-price num">{hasPrice ? `$${fmt(price, 2)}` : '—'}</div>
+              {hasPrice && hasChg && (
+                <div className={`tk-priceΔ num ${chgPct >= 0 ? 'up' : 'down'}`}>
+                  {chgPct >= 0 ? '▲' : '▼'} ${Math.abs(prevClose != null ? (price - prevClose) : (price * chgPct) / (100 + chgPct)).toFixed(2)}{' '}
+                  ({chgPct > 0 ? '+' : ''}{Number(chgPct).toFixed(2)}%)
+                  <span className="tk-chgsession">{isIntraday ? ' today' : (priceAsOf ? ` · ${fmtDateShort(priceAsOf)}` : '')}</span>
+                </div>
+              )}
+              <div className="tk-liveline num">
+                {liveQ ? (
                   <>
-                    <span className="tk-livelabel">Live</span> ${fmt(livePrice, 2)}
-                    {livePct != null && (
-                      <span className={livePct >= 0 ? 'up' : 'down'}>
-                        {' '}{livePct >= 0 ? '+' : ''}{livePct.toFixed(2)}% vs prev close ${fmt(liveBase, 2)}
-                      </span>
+                    <FreshnessChip elementId="market-lse_intraday-live" variant="dot" />
+                    {livePrice != null ? (
+                      <>
+                        <span className="tk-livelabel">Live</span> ${fmt(livePrice, 2)}
+                        {livePct != null && (
+                          <span className={livePct >= 0 ? 'up' : 'down'}>{' '}{livePct >= 0 ? '+' : ''}{livePct.toFixed(2)}%</span>
+                        )}
+                      </>
+                    ) : (
+                      <><span className="tk-livelabel">Live</span> <span className="tk-livedim">no quote</span></>
                     )}
                   </>
                 ) : (
-                  <><span className="tk-livelabel">Live</span> — <span className="tk-livedim">no live quote for this symbol{lseLive.marketOpen === true ? '; the move above is a prior session' : ''}</span></>
+                  <span className="tk-livedim">{priceAsOf ? `${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}{prevClose != null ? ` · prev ${fmt(prevClose, 2)}` : ''}</span>
                 )}
               </div>
-            )}
-              </>
-            )}
-          </div>
-
-          {/* Session + reference stats, under the price (was a separate
-              "Key stats" section below the chart — the hero's left column
-              sat empty beside the Trader Card). Same values, same tips. */}
-          <div className="tk-sessgrid">
-            <KvCell label="Open"      tip={`Opening price of the last completed session${priceAsOf ? ` (${fmtDateShort(priceAsOf)})` : ''}.`} value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
-            <KvCell label="Day high"  tip="Intraday high of the last completed session." value={lastBar?.high != null ? `$${fmt(lastBar.high, 2)}` : '—'} />
-            <KvCell label="Day low"   tip="Intraday low of the last completed session." value={lastBar?.low  != null ? `$${fmt(lastBar.low, 2)}`  : '—'} />
-            <KvCell label="Prev close" tip="Closing price of the session before the one shown." value={prevClose != null ? `$${fmt(prevClose, 2)}` : '—'} />
-            <KvCell label="Mkt cap"   tip="Market value — share price times shares outstanding. From the daily reference feed." value={fmtMcap(marketcap)} />
-            <KvCell
-              label="Shares out"
-              tip="Weighted shares outstanding, from the daily reference feed."
-              value={fmtVol(deep?.ref?.weighted_shares_outstanding ?? deep?.ref?.share_class_shares_outstanding ?? null)}
-            />
-            <KvCell
-              label="Div yield"
-              tip={divYield.note === 'none'
-                ? 'No dividends on record in the corporate-actions pipeline.'
-                : divYield.note === 'stale'
-                  ? 'Last recorded dividend was over a year ago — no current yield.'
-                  : 'Latest regular cash dividend annualized by its declared frequency, divided by the last close. From the corporate-actions pipeline.'}
-              value={divYield.value != null
-                ? `${(divYield.value * 100).toFixed(2)}%`
-                : divYield.note === 'none' ? 'None' : '—'}
-            />
-            <KvCell
-              label="Listed"
-              tip="Year this ticker first listed on its exchange."
-              value={deep?.ref?.list_date ? String(deep.ref.list_date).slice(0, 4) : '—'}
-            />
-          </div>
-          <div className="tk-sessfoot">
-            {priceAsOf ? `${isIntraday ? 'Intraday' : 'Prior close'} ${fmtDateShort(priceAsOf)} · ` : ''}
-            open, high, low and average volume from the daily price history; market cap and
-            shares from the daily reference feed; dividend yield from the corporate-actions
-            pipeline. Hover ⓘ for a definition.
-          </div>
+            </>
+          )}
         </div>
-        {/* Trader Card (Joe 2026-10-13): the top-right slot used to hold the
-            scanner box, which for every name outside the day's ~6 scan names
-            rendered "Not in a scan" — dead space in the best spot on the
-            page. It is now a desk read: where the name sits in its 52-week
-            range, the setup (RSI, trend, MACD, volume), the return ladder,
-            and positioning. Every number was already on the page further
-            down; nothing new is computed here. Scanner signals, when a name
-            has one, sit as pills at the foot of the card. */}
-        <TraderCard
-          price={liveHero ? livePrice : (hasPrice ? price : null)}
-          lo52={lo52}
-          hi52={hi52}
-          tech={tech}
-          beta1y={beta1y}
-          avgVol={avgVol}
-          finra={positioning?.finra || null}
-          score={score}
-          signal={signal}
-          direction={direction}
-          ptRow={ptRow}
-          rsiHits={rsiHits}
-          scanRow={scanRow}
-        />
+
+        <div className="tk-tape-range">
+          <div className="tk-tape-l">52-week range</div>
+          {hasRange ? (
+            <>
+              <div className="tk-range" style={{ '--pos': `${rangePos}%` }}>
+                <span className="num">${fmt(lo52, 2)}</span>
+                <span className="tk-range-track"><span className="tk-range-mark" /></span>
+                <span className="num">${fmt(hi52, 2)}</span>
+              </div>
+              <div className="tk-tape-s num">
+                <span className="down">{(((headPrice / hi52) - 1) * 100).toFixed(1)}% vs high</span>
+              </div>
+            </>
+          ) : <div className="tk-tape-s">—</div>}
+        </div>
+
+        <div className="tk-tape-ref">
+          <TapeStat label="Open"      value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
+          <TapeStat label="Day range" value={lastBar?.low != null && lastBar?.high != null ? `${fmt(lastBar.low, 2)} – ${fmt(lastBar.high, 2)}` : '—'} />
+          <TapeStat label="Prev close" value={prevClose != null ? `$${fmt(prevClose, 2)}` : '—'} />
+          <TapeStat label="Volume"    value={fmtVol(lastBar?.volume)} sub={avgVol ? `avg ${fmtVol(avgVol)}` : null} />
+          <TapeStat label="Mkt cap"   value={fmtMcap(marketcap)} />
+          <TapeStat label="Shares out" value={fmtVol(sharesOut)} />
+          <TapeStat label="Div yield" value={divYield.value != null ? `${(divYield.value * 100).toFixed(2)}%` : (divYield.note === 'none' ? 'None' : '—')} />
+          <TapeStat label="Short int." value={finra?.short_interest_float_pct != null ? `${Number(finra.short_interest_float_pct).toFixed(1)}%` : '—'} sub={finra?.days_to_cover != null ? `${Number(finra.days_to_cover).toFixed(1)}d to cover` : null} />
+        </div>
       </Reveal>
 
-      {/* The verdict — expandable score drill-down, right under the identity */}
-      <ScoreDrillSection
-        scanRow={scanRow}
-        comp={comp}
-        score={score}
-        insiderEvents={insiderEvents}
-      />
-
+      {/* ── Main row: chart · performance / technicals / risk ── */}
+      <div className="tk-mainrow">
       {/* Price chart */}
-      <Reveal as="section" className="mt-pagesection mt-pagesection--tight2">
-        <article className="mt-card">
+      <Reveal as="section" className="tk-chartsec">
+        <article className="mt-card tk-chartcard">
           <div className="mt-sectionhead tk-charthead">
             <div>
               <div className="mt-eyebrow">Price history</div>
@@ -924,164 +697,91 @@ export default function TickerPage() {
         </article>
       </Reveal>
 
-      {/* Company overview — restored from the old detail view */}
-      <CompanyOverview deep={deep} sector={sector} exchange={exchange} />
 
-      {/* Recent activity & filings — detail feeds, switched by source */}
-      <Reveal as="section" className="mt-pagesection">
-        <div className="mt-sectionhead-tight">
-          <div className="mt-eyebrow">Recent activity &amp; filings</div>
-        </div>
-        <div className="mt-pillgroup tk-tabs">
-          {TABS.map(([id, l]) => (
-            <button
-              key={id}
-              type="button"
-              className={`mt-pill ${tab === id ? 'on' : ''}`}
-              onClick={() => setTab(id)}
-            >
-              {l}{badgeForTab(id, eventsForBadge)}
-            </button>
-          ))}
-        </div>
+        <div className="tk-side">
+          {/* Performance */}
+          <article className="mt-card tk-panel">
+            <div className="tk-panelhead">
+              <div className="mt-eyebrow">Performance</div>
+              <span className="tk-panelnote">total return · vs S&amp;P 500</span>
+            </div>
+            <table className="tk-ptable num">
+              <thead><tr><th /><th>{sym}</th><th>S&amp;P</th><th>+/−</th></tr></thead>
+              <tbody>
+                {perf.map((r) => (
+                  <tr key={r.label}>
+                    <td className="tk-ptable-l">{r.label}</td>
+                    <td className={toneOf(r.ret)}>{fmtPctFraction(r.ret)}</td>
+                    <td className={toneOf(r.bench)}>{fmtPctFraction(r.bench)}</td>
+                    <td className={toneOf(r.rel)}>{fmtPctFraction(r.rel)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </article>
 
-        {tab === 'short'   && <ShortInterestTab pos={positioning} />}
-        {tab === 'news'    && <NewsTab items={mergedNews} loading={liveNews.loading} />}
-        {tab === 'fund'    && <FundamentalsTab deep={deep} />}
-      </Reveal>
+          {/* Technicals */}
+          <article className="mt-card tk-panel">
+            <div className="tk-panelhead">
+              <div className="mt-eyebrow">Technicals</div>
+              <span className="tk-panelnote">daily · from stored history</span>
+            </div>
+            <dl className="tk-kv">
+              <KvRow label="RSI (14)" tip="14-day Wilder RSI. Above 70 is overbought, below 30 oversold."
+                value={tech?.rsi_14 != null ? tech.rsi_14.toFixed(1) : '—'}
+                note={tech?.rsi_14 == null ? null : tech.rsi_14 >= 70 ? 'overbought' : tech.rsi_14 <= 30 ? 'oversold' : 'neutral'}
+                tone={tech?.rsi_14 == null ? '' : tech.rsi_14 >= 70 ? 'down' : tech.rsi_14 <= 30 ? 'up' : ''} />
+              <KvRow label="MACD" tip="Whether the trend line sits above its signal line (bullish) or below it (bearish)."
+                value={tech?.macd_cross || '—'} tone={tech?.macd_cross === 'bullish' ? 'up' : tech?.macd_cross === 'bearish' ? 'down' : ''} />
+              <KvRow label="vs 50-day avg" tip="Percent the price sits above or below its 50-day average."
+                value={fmtPctFraction(tech?.pct_vs_50ma)} tone={toneOf(tech?.pct_vs_50ma)} />
+              <KvRow label="vs 200-day avg" tip="Percent the price sits above or below its 200-day average."
+                value={fmtPctFraction(tech?.pct_vs_200ma)} tone={toneOf(tech?.pct_vs_200ma)} />
+              <KvRow label="Volume vs 30d avg" tip="Last session's volume divided by the trailing 30-day average."
+                value={tech?.vol_surge != null ? `${tech.vol_surge.toFixed(2)}×` : '—'}
+                note={tech?.vol_surge == null ? null : tech.vol_surge >= 1.5 ? 'heavy' : tech.vol_surge <= 0.7 ? 'quiet' : 'normal'} />
+              <KvRow label="52-week position" tip="Where the price sits inside its 52-week range: 0% at the low, 100% at the high."
+                value={rangePos != null ? `${rangePos.toFixed(0)}%` : '—'} />
+            </dl>
+          </article>
 
-      {/* Related names */}
-      <Reveal as="section" className="mt-pagesection">
-        <div className="mt-sectionhead">
-          <div>
-            <div className="mt-eyebrow">{relatedSameSector ? 'Related names · same industry' : 'Related names'}</div>
-            <div className="mt-h2">{relatedSameSector ? `Other names the scanner liked in ${sector}` : 'Other names the scanner liked'}</div>
-          </div>
+          {/* Risk */}
+          <article className="mt-card tk-panel">
+            <div className="tk-panelhead">
+              <div className="mt-eyebrow">Risk</div>
+              <span className="tk-panelnote">annualized · trailing</span>
+            </div>
+            <dl className="tk-kv">
+              <KvRow label="Beta · 1y" tip="Sensitivity to the S&P 500: covariance of daily returns vs SPY over variance of SPY, trailing year."
+                value={beta1y != null ? beta1y.toFixed(2) : '—'} />
+              <KvRow label="Realized vol · 30d" tip="Standard deviation of daily log returns over the last 30 sessions, annualized."
+                value={risk.vol30 != null ? `${(risk.vol30 * 100).toFixed(1)}%` : '—'} />
+              <KvRow label="Realized vol · 1y" tip="Standard deviation of daily log returns over the last 252 sessions, annualized."
+                value={risk.vol1y != null ? `${(risk.vol1y * 100).toFixed(1)}%` : '—'} />
+              <KvRow label="Max drawdown · 1y" tip="Largest peak-to-trough fall in the closing price over the last 252 sessions."
+                value={risk.mdd1y != null ? `${(risk.mdd1y * 100).toFixed(1)}%` : '—'} tone={risk.mdd1y != null ? 'down' : ''} />
+              <KvRow label="Avg daily move · 1y" tip="Mean absolute daily return over the last 252 sessions."
+                value={risk.avgAbs1y != null ? `${(risk.avgAbs1y * 100).toFixed(2)}%` : '—'} />
+              <KvRow label="Short interest" tip="FINRA settlement short interest ÷ shares outstanding. Published twice a month with a settlement lag."
+                value={finra?.short_interest_float_pct != null ? `${Number(finra.short_interest_float_pct).toFixed(1)}%` : '—'}
+                note={finra?.days_to_cover != null ? `${Number(finra.days_to_cover).toFixed(1)} days to cover` : null} />
+            </dl>
+          </article>
         </div>
-        <div className="tk-relatedgrid">
-          {related.map((r) => (
-            <button
-              key={r.ticker}
-              type="button"
-              onClick={() => navigate(`/ticker/${r.ticker}`)}
-              className="tk-relcard"
-            >
-              <div className="tk-relhead">
-                <span className="lm-tkmain">{r.ticker}</span>
-                <ScoreDial score={r.score} max={5} size={36} />
-              </div>
-              <div className="tk-relsub">{r.sector || '—'}</div>
-              {/* A null change is an em-dash, not a green +0.00% (LESSONS 4.4).
-                  These come off the nightly scan snapshot, so the card says so
-                  rather than implying a live quote. */}
-              <div className="tk-relstats num">
-                <span>{r.price != null ? `$${fmt(r.price, 2)}` : '—'}</span>
-                {Number.isFinite(r.chg) ? (
-                  <span className={r.chg >= 0 ? 'up' : 'down'}>
-                    {r.chg >= 0 ? '+' : ''}{Number(r.chg).toFixed(2)}%
-                  </span>
-                ) : <span className="tk-livedim">—</span>}
-              </div>
-            </button>
-          ))}
-          {related.length === 0 && (
-            <div className="tk-relempty">No related names available.</div>
-          )}
-        </div>
-      </Reveal>
-      </div>{/* /.wrap */}
+      </div>
+
+      {/* ── Second row: news · company ── */}
+      <div className="tk-secondrow">
+        <NewsPanel items={mergedNews} loading={liveNews.loading} />
+        <CompanyPanel deep={deep} sector={sector} exchange={exchange} sharesOut={sharesOut} />
+      </div>
+      </div>
     </div>
   );
 }
 
 /* ---------- helpers ---------- */
 
-function badgeForTab(id, events) {
-  const ct =
-    id === 'news'    ? events.news?.length :
-    null;
-  if (ct == null || ct === 0) return null;
-  return <span className="sc-colcount num"> {ct}</span>;
-}
-
-function KvCell({ label, value, tip }) {
-  return (
-    <div className="tk-kvcell">
-      <div className="mt-eyebrow tk-kvlabel">
-        {label}
-        {tip && <Tip content={tip}><span className="tk-info">ⓘ</span></Tip>}
-      </div>
-      <b className="num">{value ?? '—'}</b>
-    </div>
-  );
-}
-
-function TechCell({ label, value, tip }) {
-  return (
-    <div className="tk-techcell">
-      <div className="mt-eyebrow tk-kvlabel">
-        {label}
-        {tip && <Tip content={tip}><span className="tk-info">ⓘ</span></Tip>}
-      </div>
-      <b className="num">{value}</b>
-    </div>
-  );
-}
-
-/* ---------- Short interest tab ---------- */
-
-function ShortInterestTab({ pos }) {
-  const f = pos?.finra || null;
-  const pct1 = (v) => (v == null ? '—' : `${Number(v).toFixed(1)}%`);
-  const ratioPct = (v) => (v == null ? '—' : `${(Number(v) * 100).toFixed(0)}%`);
-  return (
-    <article className="mt-card mt-fade">
-      <div className="tk-tabhead">
-        <div className="mt-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-6)' }}>
-          Short interest
-          {/* These numbers are FINRA settlement short interest (pos.finra),
-              written to public.short_interest by SHORT_INTEREST_INGEST_DAILY.
-              The manifest element for that is NAMED short_interest_uw_finra
-              (its id is equity-short_interest-daily — the id is a leftover from
-              when the same ingest also pulled Unusual Whales daily short
-              volume, retired with the vendor 2026-08-12). Chips resolve by
-              manifest NAME, so it must be the name here. Do not "simplify" this
-              to short_interest: that is a DIFFERENT element — Yahoo-sourced,
-              embedded in per-ticker enrichment — and pointing at it would grade
-              the wrong feed. 2026-08-26. */}
-          <FreshnessChip
-            elementId="short_interest_uw_finra"
-            variant="dot"
-            fallback={{ asOfIso: f?.as_of_date }}
-          />
-        </div>
-      </div>
-      <div className="tk-keygrid tk-keygrid--tight">
-        <KvCell
-          label="% of shares out"
-          value={pct1(f?.short_interest_float_pct)}
-          tip="FINRA settlement short interest ÷ shares outstanding. Published twice a month with a settlement lag."
-        />
-        <KvCell label="Shares short" value={fmtVol(f?.short_interest_shares)} />
-        <KvCell
-          label="Days to cover"
-          value={f?.days_to_cover != null ? Number(f.days_to_cover).toFixed(1) : '—'}
-          tip="Shares short ÷ average daily volume at the same settlement date"
-        />
-      </div>
-      <div className="tk-emptyfoot">
-        {f
-          ? `FINRA settlement as of ${fmtDateShort(f.as_of_date)}; bi-monthly with a reporting lag.`
-          : 'No FINRA settlement row in the last 45 days for this name.'}
-        {' '}Context only — short interest does not enter the MacroTilt Score.
-      </div>
-    </article>
-  );
-}
-
-/* ---------- News tab ---------- */
-
-/* Normalize a headline for dedupe — mirrors api/news-per-ticker.js. */
 function normHeadline(h) {
   return (h || '')
     .toLowerCase()
@@ -1141,514 +841,188 @@ function useLiveTickerNews(sym, company, enabled) {
   return { items, loading };
 }
 
-function NewsTab({ items, loading }) {
-  if (!items.length) {
-    return (
-      <article className="mt-card mt-fade">
-        <div className="tk-tabhead">
-          <div className="mt-eyebrow">Recent headlines</div>
-        </div>
-        <div className="tk-empty">
-          {loading ? 'Loading headlines…' : 'No recent headlines on file for this ticker.'}
-        </div>
-      </article>
-    );
+/* ---------- performance / risk maths (stored daily history) ---------- */
+
+function closeAt(rows, date) {
+  // last close on or before `date`
+  let best = null;
+  for (const r of rows) { if (r.date <= date) best = r.close; else break; }
+  return best;
+}
+
+function perfTable(rows, benchRows) {
+  const out = [];
+  if (!rows.length) return out;
+  const last = rows[rows.length - 1];
+  const windows = [['1 week', 5], ['1 month', 21], ['3 months', 63], ['YTD', null], ['1 year', 252]];
+  for (const [label, n] of windows) {
+    let base = null;
+    let baseDate = null;
+    if (n == null) {
+      const y = String(last.date).slice(0, 4);
+      const prevYear = rows.filter((r) => r.date < `${y}-01-01`);
+      if (prevYear.length) { base = prevYear[prevYear.length - 1]; baseDate = base.date; }
+    } else if (rows.length > n) {
+      base = rows[rows.length - 1 - n]; baseDate = base.date;
+    }
+    const ret = base ? (last.close / base.close) - 1 : null;
+    let bench = null;
+    if (base && benchRows.length) {
+      const b0 = closeAt(benchRows, baseDate);
+      const b1 = closeAt(benchRows, last.date);
+      if (b0 && b1) bench = (b1 / b0) - 1;
+    }
+    out.push({ label, ret, bench, rel: ret != null && bench != null ? ret - bench : null });
   }
+  return out;
+}
+
+function riskStats(rows) {
+  const n = rows.length;
+  if (n < 2) return { vol30: null, vol1y: null, mdd1y: null, avgAbs1y: null };
+  const lr = [];
+  for (let i = 1; i < n; i += 1) {
+    if (rows[i].close > 0 && rows[i - 1].close > 0) lr.push(Math.log(rows[i].close / rows[i - 1].close));
+  }
+  const sd = (a) => {
+    if (a.length < 2) return null;
+    const m = a.reduce((x, y) => x + y, 0) / a.length;
+    return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1));
+  };
+  const vol30 = lr.length >= 20 ? sd(lr.slice(-30)) * Math.sqrt(252) : null;
+  const yr = lr.slice(-252);
+  const vol1y = lr.length >= 120 ? sd(yr) * Math.sqrt(252) : null;
+  const avgAbs1y = yr.length ? yr.reduce((x, y) => x + Math.abs(y), 0) / yr.length : null;
+  let peak = -Infinity; let mdd = 0;
+  for (const r of rows.slice(-252)) {
+    if (r.close > peak) peak = r.close;
+    const dd = (r.close / peak) - 1;
+    if (dd < mdd) mdd = dd;
+  }
+  return { vol30, vol1y, mdd1y: rows.length >= 120 ? mdd : null, avgAbs1y };
+}
+
+function toneOf(v) { return v == null ? '' : v >= 0 ? 'up' : 'down'; }
+
+/* ---------- cockpit pieces ---------- */
+
+function TapeStat({ label, value, sub }) {
   return (
-    <article className="mt-card mt-fade">
-      <div className="tk-tabhead">
-        <div className="mt-eyebrow">Recent headlines · {items.length}{loading ? ' · updating…' : ''}</div>
-      </div>
-      <ul className="tk-newslist">
-        {items.slice(0, 30).map((r, i) => (
-          <li key={`${r.ts}-${i}`} className="tk-newsrow">
-            <span className="tk-newstime num">{fmtTimeAgo(r.ts)}</span>
-            <span className="tk-newshead">
-              {r.url ? (
-                <a href={r.url} target="_blank" rel="noopener noreferrer" className="tk-newslink">
-                  {r.headline || '—'}
-                </a>
-              ) : (r.headline || '—')}
-            </span>
-            <span className="tk-newssrc">{r.source || '—'}</span>
-          </li>
-        ))}
-      </ul>
-    </article>
+    <div className="tk-tapestat">
+      <span className="tk-tape-l">{label}</span>
+      <b className="num">{value}</b>
+      {sub && <span className="tk-tape-s">{sub}</span>}
+    </div>
   );
 }
 
-/* ---------- Fundamentals tab ---------- */
-
-function FundamentalsTab({ deep }) {
-  const dividends = deep.dividends || [];
-  const splits = deep.splits || [];
-
+function KvRow({ label, value, note, tip, tone = '' }) {
   return (
-    <article className="mt-card mt-fade">
-      <div className="tk-tabhead">
-        <div className="mt-eyebrow">Fundamentals</div>
-      </div>
-
-      <div className="tk-fundsplit">
-        <div>
-          <div className="mt-eyebrow">Recent dividends</div>
-          {dividends.length === 0 ? (
-            <div className="tk-empty">No dividends on file.</div>
-          ) : (
-            <table className="tk-evttable">
-              <thead>
-                <tr>
-                  <th>Ex date</th>
-                  <th className="num">Cash</th>
-                  <th>Freq</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dividends.map((d) => (
-                  <tr key={d.ex_dividend_date}>
-                    <td className="num">{fmtDateShort(d.ex_dividend_date)}</td>
-                    <td className="num">{d.cash_amount != null ? `$${Number(d.cash_amount).toFixed(2)}` : '—'}</td>
-                    <td>{d.frequency || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-        <div>
-          <div className="mt-eyebrow">Recent splits</div>
-          {splits.length === 0 ? (
-            <div className="tk-empty">No splits on file.</div>
-          ) : (
-            <table className="tk-evttable">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Ratio</th>
-                </tr>
-              </thead>
-              <tbody>
-                {splits.map((s) => (
-                  <tr key={s.execution_date}>
-                    <td className="num">{fmtDateShort(s.execution_date)}</td>
-                    <td className="num">{s.split_to}-for-{s.split_from}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-
-      <div className="tk-emptyfoot">
-        Revenue, margins, FCF, balance-sheet metrics require a full financial-statements
-        feed not yet wired. Dividends and splits come from the Polygon
-        corporate-actions pipeline.
-      </div>
-    </article>
-  );
-}
-
-/* ---------- Score drill-down (the centerpiece) ----------
-
-   The 0–5 badge expands here into its four engine components. Each card shows
-   its points, the rule that fired, and the raw drivers behind it. Every value
-   reads from the scan row, so the cards always reconcile to the badge above. */
-/* ---------- Trader Card (hero, right column) ---------- */
-
-function TraderCard({ price, lo52, hi52, tech, beta1y, avgVol, finra, score, signal, direction, ptRow, rsiHits, scanRow }) {
-  const hasRange = price != null && lo52 != null && hi52 != null && hi52 > lo52;
-  const pos = hasRange ? Math.min(100, Math.max(0, ((price - lo52) / (hi52 - lo52)) * 100)) : null;
-  const offHigh = hasRange ? ((price / hi52) - 1) * 100 : null;
-  const offLow  = hasRange ? ((price / lo52) - 1) * 100 : null;
-
-  const rsi = tech?.rsi_14 ?? null;
-  const rsiRead = rsi == null ? null : rsi >= 70 ? 'overbought' : rsi <= 30 ? 'oversold' : 'neutral';
-  const p50 = tech?.pct_vs_50ma ?? null;
-  const p200 = tech?.pct_vs_200ma ?? null;
-  const trendRead = (p50 == null || p200 == null) ? null
-    : (p50 >= 0 && p200 >= 0) ? 'uptrend'
-    : (p50 < 0 && p200 < 0) ? 'downtrend'
-    : (p50 >= 0 ? 'above 50d, below 200d' : 'below 50d, above 200d');
-  const macd = tech?.macd_cross || null;
-  const vs = tech?.vol_surge ?? null;
-  const volRead = vs == null ? null : vs >= 1.5 ? 'heavy' : vs <= 0.7 ? 'quiet' : 'normal';
-
-  const tone = (v) => (v == null ? '' : v >= 0 ? 'up' : 'down');
-  const pct = (v) => fmtPctFraction(v);
-  const sig = (v) => (v == null ? '' : v > 0 ? '+' : '');
-
-  const siPct = finra?.short_interest_float_pct ?? null;
-  const dtc = finra?.days_to_cover ?? null;
-
-  const hasSignals = score != null || ptRow || (rsiHits && rsiHits.length);
-
-  return (
-    <aside className="tk-desk" aria-label="Trader card">
-      {/* 52-week range */}
-      <div className="tk-deskrow">
-        <div className="tk-desklabel">52-week range</div>
-        {hasRange ? (
-          <>
-            <div className="tk-range" style={{ '--pos': `${pos}%` }}>
-              <span className="tk-range-lo num">${fmt(lo52, 2)}</span>
-              <span className="tk-range-track"><span className="tk-range-mark" /></span>
-              <span className="tk-range-hi num">${fmt(hi52, 2)}</span>
-            </div>
-            <div className="tk-desksub num">
-              <span className={tone(offHigh)}>{sig(offHigh)}{offHigh.toFixed(1)}% vs high</span>
-              <span className="lm-flowfootsep" />
-              <span className={tone(offLow)}>{sig(offLow)}{offLow.toFixed(1)}% vs low</span>
-            </div>
-          </>
-        ) : <div className="tk-desksub">—</div>}
-      </div>
-
-      {/* Setup */}
-      <div className="tk-deskrow">
-        <div className="tk-desklabel">Setup · daily</div>
-        <div className="tk-deskgrid">
-          <DeskCell label="RSI(14)" tip="14-day Wilder RSI. Above 70 is overbought, below 30 oversold."
-            value={rsi != null ? rsi.toFixed(1) : '—'} sub={rsiRead}
-            tone={rsiRead === 'overbought' ? 'down' : rsiRead === 'oversold' ? 'up' : ''} />
-          <DeskCell label="Trend" tip="Price versus its 50-day and 200-day averages."
-            value={p50 != null && p200 != null ? `${sig(p50)}${(p50 * 100).toFixed(0)}% · ${sig(p200)}${(p200 * 100).toFixed(0)}%` : '—'}
-            sub={trendRead ? `${trendRead} · 50d · 200d` : null}
-            tone={trendRead === 'uptrend' ? 'up' : trendRead === 'downtrend' ? 'down' : ''} />
-          <DeskCell label="MACD" tip="Whether the trend line sits above its signal line (bullish) or below it (bearish)."
-            value={macd || '—'} tone={macd === 'bullish' ? 'up' : macd === 'bearish' ? 'down' : ''} />
-          <DeskCell label="Volume" tip="Last session's volume divided by the trailing 30-day average."
-            value={vs != null ? `${vs.toFixed(2)}×` : '—'} sub={volRead ? `${volRead} · avg ${fmtVol(avgVol)}` : null} />
-        </div>
-      </div>
-
-      {/* Returns */}
-      <div className="tk-deskrow">
-        <div className="tk-desklabel">Returns</div>
-        <div className="tk-deskgrid tk-desk4">
-          <DeskCell label="1w"  value={pct(tech?.week_change)}  tone={tone(tech?.week_change)} />
-          <DeskCell label="1m"  value={pct(tech?.month_change)} tone={tone(tech?.month_change)} />
-          <DeskCell label="YTD" value={pct(tech?.ytd_change)}   tone={tone(tech?.ytd_change)} />
-          <DeskCell label="1m vs S&P" tip="This name's 1-month return minus the S&P 500's over the same period."
-            value={pct(tech?.spy_relative_month)} tone={tone(tech?.spy_relative_month)} />
-        </div>
-      </div>
-
-      {/* Positioning */}
-      <div className="tk-deskrow">
-        <div className="tk-desklabel">Positioning</div>
-        <div className="tk-deskgrid tk-desk3">
-          <DeskCell label="Short int." tip="FINRA settlement short interest ÷ shares outstanding. Published twice a month with a settlement lag."
-            value={siPct != null ? `${Number(siPct).toFixed(1)}%` : '—'} sub="of shares out" />
-          <DeskCell label="Days to cover" tip="Shares short ÷ average daily volume at the same settlement date."
-            value={dtc != null ? Number(dtc).toFixed(1) : '—'} />
-          <DeskCell label="Beta · 1y" tip="Sensitivity to the S&P 500 over the trailing year of daily closes."
-            value={beta1y != null ? beta1y.toFixed(2) : '—'} />
-        </div>
-      </div>
-
-      {/* Scanner signals — only when the name actually has one */}
-      {hasSignals ? (
-        <div className="tk-deskrow tk-deskrow--signals">
-          <div className="tk-desklabel">MacroTilt signals</div>
-          <div className="tk-srcpills">
-            {score != null && (
-              <span className="mt-tag mt-tag--accent tk-sigpill">
-                Insider Conviction · {Number(score).toFixed(1)} / 5{signal ? ` · ${signal}${direction ? ` · ${direction}` : ''}` : ''}
-              </span>
-            )}
-            {ptRow && (
-              <span className="mt-tag mt-tag--accent tk-sigpill">Power Trend · #{ptRow.rank}</span>
-            )}
-            {(rsiHits || []).map((h) => (
-              <span key={h.dir} className="mt-tag mt-tag--accent tk-sigpill">
-                RSI Divergence · {h.dir}{h.strong ? ' · strong' : ''}
-              </span>
-            ))}
-          </div>
-          {score != null && scanRow?.score_1w != null && (
-            <div className="tk-desksub num">
-              Score change · 1 week <b>{(score - scanRow.score_1w) >= 0 ? '+' : ''}{(score - scanRow.score_1w).toFixed(2)}</b>
-            </div>
-          )}
-        </div>
-      ) : null}
-    </aside>
-  );
-}
-
-function DeskCell({ label, value, sub, tip, tone = '' }) {
-  return (
-    <div className="tk-deskcell">
-      <div className="tk-deskcell-l">
+    <div className="tk-kvrow">
+      <dt>
         {label}
         {tip && <Tip content={tip}><span className="tk-info">ⓘ</span></Tip>}
+      </dt>
+      <dd>
+        <b className={`num ${tone}`}>{value}</b>
+        {note && <span className="tk-kvnote">{note}</span>}
+      </dd>
+    </div>
+  );
+}
+
+function NewsPanel({ items, loading }) {
+  return (
+    <article className="mt-card tk-panel tk-news">
+      <div className="tk-panelhead">
+        <div className="mt-eyebrow">News{items.length ? ` · ${items.length}` : ''}{loading ? ' · updating…' : ''}</div>
+        <span className="tk-panelnote">Google News · newest first</span>
       </div>
-      <b className={`num ${tone}`}>{value}</b>
-      {sub && <span className="tk-deskcell-s">{sub}</span>}
-    </div>
-  );
-}
-
-function ScoreDrillSection({ scanRow, comp, score, insiderEvents }) {
-  // Collapsed by default — the page opens to a clean 4-row summary; the raw
-  // drivers (rule text, filings table, readings) appear only when a row is
-  // clicked. No data dumped in your face on load.
-  const [open, setOpen] = useState(null);
-  /* 2026-07-20: the score (and its breakdown) only exists for Insider
-     Conviction scan names. For everything else, render nothing — a card that
-     just says "no score" was noise on every non-scan ticker. */
-  if (!scanRow || !comp) return null;
-  return (
-    <Reveal as="section" className="mt-pagesection">
-      <article className="mt-card">
-        <div className="mt-sectionhead-tight">
-          <div className="mt-eyebrow">
-            How the score is built{score != null ? ` · why the ${Number(score).toFixed(1)} / 5` : ''}
-          </div>
-        </div>
-        <div className="tk-scorecards">
-          {comp.items.map((c) => (
-            <ScoreCard
-              key={c.key}
-              comp={c}
-              scanRow={scanRow}
-              insiderEvents={insiderEvents}
-              open={open === c.key}
-              onToggle={() => setOpen(open === c.key ? null : c.key)}
-            />
-          ))}
-        </div>
-        <div className="tk-scoretotal">
-          <span>Components add up to</span>
-          <b className="num">{comp.total.toFixed(2)}<i> / 5</i></b>
-        </div>
-        {/* Stale paper-book claim removed 2026-08 (strategy reset): the paper
-            book trades Conviction Events, not this score. */}
-        <div className="tk-emptyfoot">
-          A name makes the Insider Conviction list on its insider + trend score
-          (3.0 or higher). Maximum score is 5.
-        </div>
-      </article>
-    </Reveal>
-  );
-}
-
-function ScoreCard({ comp, scanRow, insiderEvents, open, onToggle }) {
-  const pts = comp.points;
-  const cap = SCORE_CAPS[comp.key] || 4;
-  const zero = !(pts > 0);
-  const neg = pts < 0;
-  const fill = Math.max(0, Math.min(1, pts / cap));
-  return (
-    <div className={`tk-scard ${open ? 'on' : ''}`}>
-      <button type="button" className="tk-scard-head" onClick={onToggle}>
-        <span className="tk-scard-caret">{open ? '▾' : '▸'}</span>
-        <span className="tk-scard-name">{comp.key}</span>
-        <span className="tk-scard-why">{comp.why}</span>
-        <span className="tk-scard-bar"><i style={{ width: `${fill * 100}%` }} /></span>
-        <b className={`num tk-scard-pts ${zero ? 'is-zero' : neg ? 'down' : 'up'}`}>
-          {pts > 0 ? '+' : ''}{pts.toFixed(2)}
-        </b>
-      </button>
-      {open && (
-        <div className="tk-scard-body">
-          {comp.key === 'Insider'      && <InsiderDrill scanRow={scanRow} pts={pts} events={insiderEvents} />}
-          {comp.key === 'Technicals'   && <TechnicalsDrill scanRow={scanRow} pts={pts} />}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function InsiderDrill({ scanRow, pts, events }) {
-  const rules = scanRow.insider_rules || [];
-  const age = scanRow.insider_age_days;
-  const w = insiderAgeWeight(age);
-  // Open-market buys are exactly what the engine scores — show them as evidence.
-  const buys = (events || []).filter((e) => insiderActionLabel(e.payload || {}).label === 'BUY');
-  const totalUsd = buys.reduce((s, e) => {
-    const p = e.payload || {};
-    const v = Number(p.value) || (Number(p.amount) && Number(p.price) ? Number(p.amount) * Number(p.price) : 0);
-    return s + (Number.isFinite(v) ? v : 0);
-  }, 0);
-  const dates = buys
-    .map((e) => (e.payload?.transaction_date || e.event_ts || '').slice(0, 10))
-    .filter(Boolean)
-    .sort();
-  const range = dates.length ? `${fmtDateShort(dates[0])}–${fmtDateShort(dates[dates.length - 1])}` : null;
-  return (
-    <>
-      {rules.length ? (
-        <ul className="tk-rulelist">
-          {rules.map((r) => (
-            <li key={r}><b>Rule {r}</b> — {INSIDER_RULES[r] || 'qualifying open-market insider buying.'}</li>
+      {!items.length ? (
+        <div className="tk-empty">{loading ? 'Loading headlines…' : 'No recent headlines on file for this ticker.'}</div>
+      ) : (
+        <ul className="tk-newslist">
+          {items.slice(0, 14).map((r, i) => (
+            <li key={`${r.ts}-${i}`} className="tk-newsrow">
+              <span className="tk-newshead">
+                {r.url ? (
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="tk-newslink">{r.headline || '—'}</a>
+                ) : (r.headline || '—')}
+              </span>
+              <span className="tk-newsmeta"><span className="num">{fmtTimeAgo(r.ts)}</span> · {r.source || '—'}</span>
+            </li>
           ))}
         </ul>
-      ) : (
-        <div className="tk-empty">No insider rule fired.</div>
       )}
-      {rules.length > 0 && (
-        <div className="tk-drill-math">
-          Rule points are capped at +4, then weighted for age:{' '}
-          {age != null ? `most recent qualifying buy ${age} day${age === 1 ? '' : 's'} ago — ` : ''}
-          {w == null ? '' : w >= 1 ? 'fresh, full weight' : `aging, about ${Math.round(w * 100)}% weight left`}
-          {' '}→ <b className="num up">+{pts.toFixed(2)}</b>
-        </div>
-      )}
-      <div className="tk-drill-note">
-        Counts open-market purchases over the last 30 days. Routine pre-scheduled
-        (10b5-1) trades and 10%+ owners are excluded.
-      </div>
-      {buys.length > 0 && (
-        <div className="tk-drill-evidence">
-          <div className="mt-eyebrow">
-            {buys.length} open-market buy{buys.length === 1 ? '' : 's'} on record
-            {totalUsd > 0 ? ` · ${fmt$(totalUsd, 0)}` : ''}{range ? ` · ${range}` : ''}
-          </div>
-          <InsiderFilingsTable events={buys} />
-        </div>
-      )}
-    </>
+    </article>
   );
 }
 
-function TechnicalsDrill({ scanRow, pts }) {
-  const pct = scanRow.sma200_pct;
-  const smaPts = Number(scanRow.sma200_pts) || 0;
-  const rsi = scanRow.rsi;
-  const rsiPts = Number(scanRow.rsi_pts) || 0;
-  return (
-    <div className="tk-drill-math">
-      <div className="tk-drill-line">
-        <b>200-day trend:</b>{' '}
-        {pct == null ? 'no reading' : `${pct >= 0 ? 'above' : 'below'} its 200-day line by ${Math.abs(pct).toFixed(1)}%`}
-        {' '}→ <b className={`num ${smaPts >= 0 ? 'up' : 'down'}`}>{smaPts >= 0 ? '+' : ''}{smaPts}</b>
-        <span className="tk-drill-note"> above the line +1, below −2</span>
-      </div>
-      <div className="tk-drill-line">
-        <b>RSI(14):</b>{' '}
-        {rsi == null ? 'no reading' : `${Number(rsi).toFixed(0)} — ${Number(rsi) > 65 ? 'overbought (above the 65 line)' : 'not overbought (below the 65 line)'}`}
-        {' '}→ <b className={`num ${rsiPts >= 0 ? 'up' : 'down'}`}>{rsiPts >= 0 ? '+' : ''}{rsiPts}</b>
-        <span className="tk-drill-note"> a hot 14-day Wilder RSI subtracts 2</span>
-      </div>
-      <div className="tk-drill-total">Trend total → <b className="num">{pts > 0 ? '+' : ''}{pts.toFixed(2)}</b></div>
-    </div>
-  );
-}
-
-function InsiderFilingsTable({ events }) {
-  return (
-    <div className="tk-tablewrap">
-      <table className="tk-evttable">
-        <thead>
-          <tr>
-            <th>Date</th><th>Insider</th><th>Role</th><th>Action</th>
-            <th className="num">Shares</th><th className="num">Price</th><th className="num">Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {events.slice(0, 50).map((r) => {
-            const p = r.payload || {};
-            const act = insiderActionLabel(p);
-            const role = insiderRoleLabel(p);
-            const shares = Number(p.amount) || null;
-            const value = Number(p.value) || (shares && p.price ? shares * Number(p.price) : null);
-            const isBuy = act.label === 'BUY';
-            return (
-              <tr key={`${r.event_ts}-${p.owner_name}-${shares}`}>
-                <td className="num">{fmtDateShort(p.transaction_date || r.event_ts)}</td>
-                <td>
-                  {p.owner_name || '—'}
-                  {p.is_10b5_1 && <Tip content="Rule 10b5-1 — automatic preset plan, not discretionary"><span className="tk-tag-soft">10b5-1</span></Tip>}
-                </td>
-                <td>{role}</td>
-                <td><span className={`mt-tag ${act.cls}`}>{act.label}</span></td>
-                <td className={`num ${isBuy ? 'up' : 'down'}`}>
-                  {shares != null ? (isBuy ? '+' : '−') + fmtVol(Math.abs(shares)) : '—'}
-                </td>
-                <td className="num">{p.price != null ? `$${fmt(p.price, 2)}` : '—'}</td>
-                <td className={`num ${isBuy ? 'up' : 'down'}`}>
-                  {value != null ? fmt$(Math.abs(value), 0) : '—'}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      {events.length > 50 && (
-        <div className="tk-techfoot">Showing 50 of {events.length} buys.</div>
-      )}
-    </div>
-  );
-}
-
-/* ---------- Company overview (restored) ---------- */
-
-function CompanyOverview({ deep, sector, exchange }) {
+function CompanyPanel({ deep, sector, exchange, sharesOut }) {
   const ref = deep?.ref || null;
   const desc = ref?.description || null;
-  /* Two lines by default, the full profile on demand (Joe 2026-10-13: the
-     description was the tallest block on the page and the least traded on). */
   const [openDesc, setOpenDesc] = useState(false);
-  const longDesc = !!desc && desc.length > 220;
-  const industry = ref?.sic_description || null;
+  const longDesc = !!desc && desc.length > 260;
   const city = ref?.address_city || null;
   const state = ref?.address_state || null;
   const hq = city ? `${city}${state ? `, ${state}` : ''}` : null;
   const employees = ref?.total_employees || null;
   const listed = ref?.list_date || null;
   const site = ref?.homepage_url || null;
+  const dividends = (deep?.dividends || []).slice(0, 4);
+  const splits = (deep?.splits || []).slice(0, 3);
   return (
-    <Reveal as="section" className="mt-pagesection">
-      <article className="mt-card">
-        <div className="mt-sectionhead-tight">
-          <div className="mt-eyebrow">Company overview</div>
+    <article className="mt-card tk-panel tk-company">
+      <div className="tk-panelhead">
+        <div className="mt-eyebrow">Company</div>
+        <span className="tk-panelnote">reference data feed</span>
+      </div>
+      {desc ? (
+        <>
+          <p className={`tk-about${longDesc && !openDesc ? ' tk-about--clamp' : ''}`}>{desc}</p>
+          {longDesc && (
+            <button type="button" className="tk-aboutmore" onClick={() => setOpenDesc((v) => !v)}>
+              {openDesc ? 'Less' : 'More'}
+            </button>
+          )}
+        </>
+      ) : (
+        <div className="tk-empty">No company description on file for this ticker.</div>
+      )}
+      <dl className="tk-kv tk-kv--2col">
+        <KvRow label="Industry"  value={sector || '—'} />
+        {exchange && <KvRow label="Exchange" value={exchange} />}
+        <KvRow label="HQ"        value={hq || '—'} />
+        <KvRow label="Employees" value={employees != null ? Number(employees).toLocaleString() : '—'} />
+        <KvRow label="Listed"    value={listed ? `${fmtDateShort(listed)}, ${String(listed).slice(0, 4)}` : '—'} />
+        <KvRow label="Shares out" value={fmtVol(sharesOut)} />
+        <KvRow label="Website"   value={site ? <a className="tk-newslink" href={site} target="_blank" rel="noopener noreferrer">{site.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a> : '—'} />
+      </dl>
+      <div className="tk-corp">
+        <div>
+          <div className="tk-tape-l">Recent dividends</div>
+          {dividends.length === 0 ? <div className="tk-tape-s">None on file.</div> : (
+            <ul className="tk-corplist num">
+              {dividends.map((d) => (
+                <li key={d.ex_dividend_date}><span>{fmtDateShort(d.ex_dividend_date)}</span><b>{d.cash_amount != null ? `$${Number(d.cash_amount).toFixed(2)}` : '—'}</b><span>{d.frequency || ''}</span></li>
+              ))}
+            </ul>
+          )}
         </div>
-        {desc ? (
-          <>
-            <p className={`tk-about${longDesc && !openDesc ? ' tk-about--clamp' : ''}`}>{desc}</p>
-            {longDesc && (
-              <button type="button" className="tk-aboutmore" onClick={() => setOpenDesc((v) => !v)}>
-                {openDesc ? 'Less' : 'More'}
-              </button>
-            )}
-          </>
-        ) : (
-          <div className="tk-empty">No company description on file for this ticker.</div>
-        )}
-        <div className="tk-keygrid">
-          {/* One classification tile. "Sector" was the scanner's SIC
-              industry string under the wrong label, falling back to a
-              made-up 'Equity' (Joe 2026-10-13). */}
-          <KvCell label="Industry"  value={industry || sector || '—'} />
-          {/* Exchange only when known — the reference feed doesn't carry it
-              for most names, and a permanent em-dash tile reads as broken. */}
-          {exchange && <KvCell label="Exchange" value={exchange} />}
-          <KvCell label="HQ"        value={hq || '—'} />
-          <KvCell label="Employees" value={employees != null ? Number(employees).toLocaleString() : '—'} />
-          <KvCell label="Listed"    value={listed ? `${fmtDateShort(listed)}, ${String(listed).slice(0, 4)}` : '—'} />
+        <div>
+          <div className="tk-tape-l">Splits</div>
+          {splits.length === 0 ? <div className="tk-tape-s">None on file.</div> : (
+            <ul className="tk-corplist num">
+              {splits.map((sp) => (
+                <li key={sp.execution_date}><span>{fmtDateShort(sp.execution_date)}</span><b>{sp.split_to}-for-{sp.split_from}</b><span /></li>
+              ))}
+            </ul>
+          )}
         </div>
-        {site && (
-          <div className="tk-aboutlink">
-            <a href={site} target="_blank" rel="noopener noreferrer" className="tk-newslink">
-              {site.replace(/^https?:\/\//, '')}
-            </a>
-          </div>
-        )}
-        <div className="tk-emptyfoot">Company profile from the reference data feed (Polygon).</div>
-      </article>
-    </Reveal>
+      </div>
+    </article>
   );
 }
-
-
-
-/* ---------- Symbol we don't cover (Joe 2026-07-30) ----------
-   The honest answer to /ticker/APPL. No zeros, no empty chart, no blank
-   company card — one card that says the symbol isn't in our reference list
-   and offers the names it most likely was meant to be. */
 
 function UnknownTicker({ sym, suggestions, onBack, onPick }) {
   const rows = suggestions?.rows || [];
