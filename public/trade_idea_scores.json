@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-14T01:30:08Z",
+  "generated_at": "2026-10-14T23:54:59Z",
   "as_of": "2026-10-14",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
@@ -16,11 +16,11 @@
       "marked": 8,
       "open": 4,
       "closed": 4,
-      "avg_mark_pct": -0.29,
+      "avg_mark_pct": 0.65,
       "best": {
-        "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
-        "trade_label": "Short WEAT (Teucrium wheat fund)",
-        "mark": 7.66
+        "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
+        "trade_label": "Long US natural gas (UNG)",
+        "mark": 12.19
       },
       "worst": {
         "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
@@ -28,10 +28,10 @@
         "mark": -12.23
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": -0.28,
+      "avg_vs_spx_pp": 0.67,
       "ahead_of_spx": 4,
       "behind_spx": 4,
-      "line": "8 calls marked (4 open, 4 closed). Taken as one book they average -0.3% a call and sit 0.3 points behind the S&P 500 over the same days — 4 ahead of the index, 4 behind. Best: Short WEAT (Teucrium wheat fund), +7.7%. Worst: Long KBW / Short NASDAQ, -12.2%."
+      "line": "8 calls marked (4 open, 4 closed). Taken as one book they average +0.7% a call and sit 0.7 points ahead of the S&P 500 over the same days — 4 ahead of the index, 4 behind. Best: Long US natural gas (UNG), +12.2%. Worst: Long KBW / Short NASDAQ, -12.2%."
     },
     "stats_withheld": true,
     "stats_withheld_reason": "4 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless.",
@@ -41,15 +41,15 @@
       "calendar_days": 61,
       "history_weeks": 9,
       "benchmark_label": "S&P 500",
-      "total_return_pct": -0.5267,
+      "total_return_pct": 1.2418,
       "benchmark_total_pct": 0.0828,
-      "excess_total_pct": -0.6095,
-      "annualized_pct": -3.1104,
+      "excess_total_pct": 1.159,
+      "annualized_pct": 7.6643,
       "benchmark_annualized_pct": 0.4967,
-      "excess_annualized_pct": -3.607,
+      "excess_annualized_pct": 7.1676,
       "annualized_withheld_reason": null,
       "realized_contribution_pct": -3.5469,
-      "unrealized_contribution_pct": 3.0203,
+      "unrealized_contribution_pct": 4.7887,
       "positions_open": 4,
       "positions_closed": 4,
       "min_positions_held": 1,
@@ -312,7 +312,7 @@
     ],
     [
       "2026-10-13",
-      -0.5267,
+      1.2418,
       0.0828,
       4
     ]
@@ -342,14 +342,14 @@
           "entry_value": 65.24,
           "label": "US energy sector fund (XLE)",
           "short_label": "US energy stocks (XLE)",
-          "return_pct": 1.1803
+          "return_pct": 3.0043
         }
       ],
-      "buy_pct": 1.1803,
+      "buy_pct": 3.0043,
       "sell_pct": null,
       "trade_label": "Long US energy stocks (XLE)",
-      "position_pct": 1.1803,
-      "risk_sized_pct": 0.5335,
+      "position_pct": 3.0043,
+      "risk_sized_pct": 1.3579,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.452,
@@ -364,17 +364,17 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7765.36,
-        "as_of": "2026-10-12",
-        "move": 0.5393,
-        "difference": 0.641,
+        "as_of": "2026-10-13",
+        "move": 0.5163,
+        "difference": 2.488,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 1.1803,
-      "mark_date": "2026-10-12",
-      "sessions_held": 3,
+      "mark": 3.0043,
+      "mark_date": "2026-10-13",
+      "sessions_held": 4,
       "max_favourable": {
-        "value": 1.1803,
-        "date": "2026-10-12"
+        "value": 3.0043,
+        "date": "2026-10-13"
       },
       "max_adverse": {
         "value": -0.2452,
@@ -388,13 +388,13 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 4,
+      "days_held": 5,
       "book": {
         "as_of": "2026-10-13",
-        "return_pct": 1.1803,
+        "return_pct": 3.0043,
         "benchmark_pct": 0.5163,
-        "excess_pct": 0.664,
-        "contribution_pct": 0.2946,
+        "excess_pct": 2.488,
+        "contribution_pct": 0.7429,
         "days_held": 5
       }
     },
@@ -422,14 +422,14 @@
           "entry_value": 58.2,
           "label": "Japanese yen via FXY",
           "short_label": "Japanese yen via FXY",
-          "return_pct": -0.7216
+          "return_pct": -0.5326
         }
       ],
-      "buy_pct": -0.7216,
+      "buy_pct": -0.5326,
       "sell_pct": null,
       "trade_label": "Long Japanese yen via FXY",
-      "position_pct": -0.7216,
-      "risk_sized_pct": -0.7216,
+      "position_pct": -0.5326,
+      "risk_sized_pct": -0.5326,
       "sizing": {
         "method": "none",
         "multiple": 1.0,
@@ -444,14 +444,14 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7764.7,
-        "as_of": "2026-10-12",
-        "move": 0.5479,
-        "difference": -1.2695,
+        "as_of": "2026-10-13",
+        "move": 0.5248,
+        "difference": -1.0574,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -0.7216,
-      "mark_date": "2026-10-12",
-      "sessions_held": 16,
+      "mark": -0.5326,
+      "mark_date": "2026-10-13",
+      "sessions_held": 17,
       "max_favourable": {
         "value": 0.1718,
         "date": "2026-09-25"
@@ -468,13 +468,13 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 21,
+      "days_held": 22,
       "book": {
         "as_of": "2026-10-13",
-        "return_pct": -0.7216,
+        "return_pct": -0.5326,
         "benchmark_pct": 0.5248,
-        "excess_pct": -1.2464,
-        "contribution_pct": -0.1808,
+        "excess_pct": -1.0574,
+        "contribution_pct": -0.1334,
         "days_held": 22
       }
     },
@@ -502,14 +502,14 @@
           "entry_value": 10.17,
           "label": "US natural gas fund (UNG)",
           "short_label": "US natural gas (UNG)",
-          "return_pct": 7.3746
+          "return_pct": 12.1927
         }
       ],
-      "buy_pct": 7.3746,
+      "buy_pct": 12.1927,
       "sell_pct": null,
       "trade_label": "Long US natural gas (UNG)",
-      "position_pct": 7.3746,
-      "risk_sized_pct": 1.8437,
+      "position_pct": 12.1927,
+      "risk_sized_pct": 3.0482,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.25,
@@ -526,14 +526,14 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7656.98,
-        "as_of": "2026-10-12",
-        "move": 1.9624,
-        "difference": 5.4122,
+        "as_of": "2026-10-13",
+        "move": 1.939,
+        "difference": 10.2537,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 7.3746,
-      "mark_date": "2026-10-12",
-      "sessions_held": 22,
+      "mark": 12.1927,
+      "mark_date": "2026-10-13",
+      "sessions_held": 23,
       "max_favourable": {
         "value": 13.5693,
         "date": "2026-09-24"
@@ -550,13 +550,13 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 31,
+      "days_held": 32,
       "book": {
         "as_of": "2026-10-13",
-        "return_pct": 7.3746,
+        "return_pct": 12.1927,
         "benchmark_pct": 1.939,
-        "excess_pct": 5.4356,
-        "contribution_pct": 1.6474,
+        "excess_pct": 10.2537,
+        "contribution_pct": 2.7633,
         "days_held": 32
       }
     },
@@ -584,14 +584,14 @@
           "entry_value": 26.49,
           "label": "WEAT (Teucrium wheat fund)",
           "short_label": "WEAT (Teucrium wheat fund)",
-          "return_pct": -7.6633
+          "return_pct": -8.3428
         }
       ],
       "buy_pct": null,
-      "sell_pct": -7.6633,
+      "sell_pct": -8.3428,
       "trade_label": "Short WEAT (Teucrium wheat fund)",
-      "position_pct": 7.6633,
-      "risk_sized_pct": 3.1649,
+      "position_pct": 8.3428,
+      "risk_sized_pct": 3.4456,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.413,
@@ -606,17 +606,17 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7718.6,
-        "as_of": "2026-10-12",
-        "move": 1.1484,
-        "difference": 6.5149,
+        "as_of": "2026-10-13",
+        "move": 1.1252,
+        "difference": 7.2176,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 7.6633,
-      "mark_date": "2026-10-12",
-      "sessions_held": 26,
+      "mark": 8.3428,
+      "mark_date": "2026-10-13",
+      "sessions_held": 27,
       "max_favourable": {
-        "value": 7.852,
-        "date": "2026-10-09"
+        "value": 8.3428,
+        "date": "2026-10-13"
       },
       "max_adverse": {
         "value": -1.7743,
@@ -630,13 +630,13 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 38,
+      "days_held": 39,
       "book": {
         "as_of": "2026-10-13",
-        "return_pct": 7.6633,
+        "return_pct": 8.3428,
         "benchmark_pct": 1.1252,
-        "excess_pct": 6.5381,
-        "contribution_pct": 1.259,
+        "excess_pct": 7.2176,
+        "contribution_pct": 1.416,
         "days_held": 39
       }
     },
