@@ -177,7 +177,7 @@ def fetch(ticker):
     return daily_bars(res[0])
 
 
-def daily_bars(q):
+def daily_bars(q, now_ts=None):
     """Completed daily bars from one Yahoo chart result, dated the way the
     EXCHANGE dates them.
 
@@ -205,10 +205,34 @@ def daily_bars(q):
     if not rows:
         return []
     usual = _co.Counter((l.hour, l.minute) for _, l, _c in rows).most_common(1)[0][0]
+    # 2026-10-14 (health sweep): an overseas equity INDEX keeps its finished
+    # session stamped at regularMarketTime (the close) for hours after the
+    # close, so the evening run read it as "the live quote" and dropped it —
+    # every evening Nikkei and DAX landed one session behind, and a Tokyo
+    # holiday (Oct 12) on top tipped n225_index red ("1 feed stale"). For an
+    # INDEX whose regular session has ENDED, that entry is the session's close
+    # and is kept. FX and futures (which trade round the clock and whose
+    # live quote really is mid-session) are untouched.
+    # "Ended" = the clock is past the period's end, OR Yahoo has already rolled
+    # the period to a later local day than the live entry (after local
+    # midnight the period describes tomorrow's session).
+    reg = ((q["meta"].get("currentTradingPeriod") or {}).get("regular") or {})
+    closed_index = False
+    if q["meta"].get("instrumentType") == "INDEX" and live_ts is not None and reg.get("end") and reg.get("start"):
+        _now = now_ts if now_ts is not None else _dtm.datetime.now().timestamp()
+        live_day = _dtm.datetime.fromtimestamp(live_ts, tz).date()
+        period_day = _dtm.datetime.fromtimestamp(int(reg["start"]), tz).date()
+        closed_index = _now >= int(reg["end"]) or live_day < period_day
     by_date = {}
     for t, local, c in rows:
         if t == live_ts and (local.hour, local.minute) != usual:
-            continue                      # the appended live quote, not a bar
+            if not closed_index:
+                continue                  # the appended live quote, not a bar
+            d = local.strftime("%Y-%m-%d")
+            if d not in by_date:          # a real bar for the date wins
+                by_date[d] = round(float(c), 4)
+                print(f"  closed-index session kept: {q['meta'].get('symbol', '?')} {d} = {by_date[d]}")
+            continue
         by_date[local.strftime("%Y-%m-%d")] = round(float(c), 4)
     return [[d, by_date[d]] for d in sorted(by_date)]
 
@@ -569,6 +593,35 @@ def selftest():
     good = ["2025-12-24", 58.35] in got and len(got) == 4
     ok &= good
     print(f"  {'OK' if good else 'FAIL'} daily_bars keeps a half-session close stamped 09:30: {got[-2:]}")
+    # An overseas INDEX after its close: Yahoo stamps the finished session at
+    # regularMarketTime (15:30 Tokyo), not the usual 09:00 open stamp. Once the
+    # regular session has ended that entry is the close and is kept; while the
+    # session is still open it is a live quote and is dropped.
+    _tk = _zi2("Asia/Tokyo")
+    _close = _b(2026, 10, 13, 15, 30, _tk)
+    _q = {"meta": {"exchangeTimezoneName": "Asia/Tokyo", "instrumentType": "INDEX",
+                   "regularMarketTime": _close,
+                   "currentTradingPeriod": {"regular": {"start": _b(2026, 10, 13, 9, 0, _tk), "end": _close}}},
+          "timestamp": [_b(2026, 10, 8, 9, 0, _tk), _b(2026, 10, 9, 9, 0, _tk), _close],
+          "indicators": {"quote": [{"close": [69042.1, 69030.9, 69500.0]}]}}
+    after = daily_bars(_q, now_ts=_close + 6 * 3600)
+    during = daily_bars(_q, now_ts=_close - 2 * 3600)
+    good = after[-1] == ["2026-10-13", 69500.0] and during[-1] == ["2026-10-09", 69030.9]
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} daily_bars keeps a closed INDEX session, drops it mid-session: {after[-1]} / {during[-1]}")
+    # Evening run in New York = next morning in Tokyo: the period has rolled to
+    # Oct 14 (not yet open), and the Oct 13 close must still be kept.
+    _q3 = json.loads(json.dumps(_q))
+    _q3["meta"]["currentTradingPeriod"] = {"regular": {"start": _b(2026, 10, 14, 9, 0, _tk), "end": _b(2026, 10, 14, 15, 30, _tk)}}
+    got = daily_bars(_q3, now_ts=_b(2026, 10, 14, 8, 55, _tk))
+    good = got[-1] == ["2026-10-13", 69500.0]
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} daily_bars keeps the close after the period rolls to the next day: {got[-1]}")
+    # The same shape on FX (not an INDEX) is still dropped after the 'end'.
+    _q2 = json.loads(json.dumps(_q)); _q2["meta"]["instrumentType"] = "CURRENCY"
+    good = daily_bars(_q2, now_ts=_close + 6 * 3600)[-1] == ["2026-10-09", 69030.9]
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} non-INDEX live quote still dropped after the period end")
     # merge guard
     import tempfile
     global HISTORY_PATH

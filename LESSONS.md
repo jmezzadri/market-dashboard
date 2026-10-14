@@ -1137,6 +1137,16 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer, Data Steward — every producer of a daily market series.
 
+### 4.42 (2026-10-14, health sweep) — A rule that spots the "live quote" by its timestamp must know when the session has ENDED; otherwise a finished overseas close is thrown away every evening
+
+**What happened:** The header read "1 feed stale" — `n225_index` red since 02:00 UTC, data_as_of Oct 9 on Oct 14. The 2026-10-09 `daily_bars()` rule (4.41) drops the entry stamped at `regularMarketTime` off the series' usual stamp as "the live quote". Yahoo keeps a finished Nikkei/DAX session stamped at its close time (15:30 Tokyo, 17:30 Frankfurt) for hours, so the evening run dropped it as live — git history shows every evening commit since Oct 9 carrying ^RUT for the day but ^N225/^GDAXI one session behind, with no completed-session-guard line in the log. Only the next morning pass caught them up. A Tokyo holiday (Mon Oct 12) on top of that one-session lag pushed n225 past its 54h window.
+
+**Rule:** A "live quote" test must be gated on the session clock, not just the stamp (the same principle as 4.32). For instrumentType INDEX, the entry at `regularMarketTime` is kept as that date's close once `currentTradingPeriod.regular` has ended — or Yahoo has already rolled the period to a later local day — and a real bar for the date still wins. FX and futures are untouched. The producer logs `closed-index session kept:` each time it uses this path.
+
+**Verify (next sweep):** the first evening MARKET-INDICATORS-EOD run after this ships should print `closed-index session kept: ^N225 …` and `^GDAXI …` with that day's date, and its commit should carry n225/dax for the same session as ^RUT. Yahoo is not reachable from the cloud sweep (gateway 429), so the vendor check is that run log.
+
+**Applies to:** Lead Developer, Data Steward — every producer of a daily series from a vendor that appends a live entry.
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.
