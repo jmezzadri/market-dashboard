@@ -2199,27 +2199,6 @@
       "data_max_age_hours": 73,
       "current_status": "live"
     },
-    "equity-rsi_divergences-daily": {
-      "name": "rsi_divergences",
-      "category": "equity",
-      "element": "RSI divergence scan (daily, liquid US common stocks)",
-      "sourcing_mode": "computed in-house from raw",
-      "source_vendor": "MacroTilt (computed from prices_eod + universe_master)",
-      "license_tier": "internal",
-      "cadence": "daily",
-      "refresh_trigger": "github-actions: DIVERGENCE_SCAN_DAILY.yml (chains off MASSIVE-DAILY completion + 08:45 ET backup crons)",
-      "schedule_et": "08:45 ET Tue-Sat, after the T+1 EOD price panel completes",
-      "freshness_sla_hours": 49,
-      "consumer_surfaces": [
-        "Ticker page -> Scanner signal pills -> 'RSI Divergence · Bullish / Bearish' (with the strong-setup marker)"
-      ],
-      "target_storage": "Supabase: divergence_scan",
-      "failure_mode": "The ticker page's divergence signal pill holds the last good dated scan and its chip reds; two consecutive failures raise the pipeline watchdog P1.",
-      "owner": "Data Steward",
-      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, next-morning compute + 24h grace = 49h",
-      "notes": "Inputs, one provider per source: (1) prices_eod [Polygon Massive EOD OHLCV, already registered as market.prices-eod-massive] for bars and liquidity; (2) universe_master [Polygon Massive reference] for the common-stock-only filter. Transform: RSI(14) on daily closes, simple-average method (Cutler); pivot lows/highs need 5 bars each side and 5 later bars to confirm; regular divergences only on the two most recent confirmed pivots (bullish: lower price low with higher RSI low; bearish: higher price high with lower RSI high); newer pivot within 15 bars; pivots 5-30 bars apart. Data-quality guards: pivot price ratio > 1.8x dropped (splits/artifacts), current close outside 0.5x-2x of the newer pivot dropped, close-vs-vwap disagreement > 50% on the scan day drops the ticker, ADV capped at $40B in the universe SQL, and the trading-day window counts only panel-complete days (>= 5,000 tickers). Universe: type CS active, last close >= $2, 45-trading-day avg dollar volume >= $50M, >= 40 of 45 days present (~1,500 names). Port validated 2026-07-13 against the prototype's reference run: 17/17 names reproduced with matching RSI values. Append-only across scan_dates; delete+rewrite within a scan_date (idempotent).",
-      "id": "equity-rsi_divergences-daily"
-    },
     "screener.power-trend-list": {
       "name": "power_trend_list",
       "category": "equity",

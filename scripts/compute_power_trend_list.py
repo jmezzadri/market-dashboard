@@ -50,7 +50,7 @@ from datetime import date
 import requests
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from compute_divergences import rpc, rpc_paged, _env, _headers  # noqa: E402
+from supabase_rest import rpc, rpc_paged, _env, _headers  # noqa: E402
 from power_trend_rules import cap_top15_industry, next_first_of_month  # noqa: E402
 
 TABLE            = "power_trend_list"
