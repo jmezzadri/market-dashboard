@@ -1,5 +1,9 @@
 # Emails the MacroTilt Daily X Chart to Joe.
 # Fires on every push of a new chart to this branch.
+# v3 (2026-10-14): meta.json may carry the Trade Idea note (note_title, note_lines[],
+# post_to_x). Then the email shows the note above the chart and ONE Approve button
+# publishes the note to macrotilt.com and posts the chart to X (or note only when
+# post_to_x is false). Subject becomes "Approve today's Trade Idea".
 #
 # v2: if meta.json is present (approval flow), sends an HTML email with the chart
 # inline, the caption, and two buttons — "Approve & post" and "Request changes" —
@@ -47,27 +51,47 @@ jobs:
           img_bytes = open("chart.png", "rb").read()
 
           if meta:
-              subject = f"Approve today's X chart - {today}"
+              note_title = (meta.get("note_title") or "").strip()
+              note_lines = [str(x) for x in (meta.get("note_lines") or []) if str(x).strip()]
+              post_to_x = meta.get("post_to_x", True) is not False
+              is_idea = bool(note_title)
+              subject = (f"Approve today's Trade Idea - {today}" if is_idea else f"Approve today's X chart - {today}")
               revised = " (revised)" if meta.get("revision") else ""
               msg = MIMEMultipart("related")
               cap_html = html.escape(caption).replace("\n", "<br>")
+              note_html = ""
+              if is_idea:
+                  items = "".join(f"<li style='margin:6px 0'>{html.escape(l)}</li>" for l in note_lines)
+                  x_note = "" if post_to_x else ("<p style='font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#9c2b1f;margin:10px 0 0'>"
+                           "This month's 10 automated X posts are used up: Approve publishes the note only; the chart will not go to X.</p>")
+                  note_html = f"""<div style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#8a8374;letter-spacing:.04em;text-transform:uppercase">Trade idea for macrotilt.com</div>
+                  <div style="font-size:20px;font-weight:bold;margin:4px 0 8px">{html.escape(note_title)}</div>
+                  <ul style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45;padding-left:20px;margin:0 0 14px">{items}</ul>{x_note}
+                  <div style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#8a8374;letter-spacing:.04em;text-transform:uppercase;margin-top:6px">Chart and caption for X</div>"""
+              approve_label = ("&#10003;&nbsp; Approve: publish note &amp; post to X" if (is_idea and post_to_x)
+                               else "&#10003;&nbsp; Approve: publish note" if is_idea
+                               else "&#10003;&nbsp; Approve &amp; post to X")
+              footer = ("Nothing publishes without your tap. The note goes live on the site and the Scorecard picks it up at the afternoon mark. Unapproved items expire at midnight ET."
+                        if is_idea else "Nothing posts without your tap. Unapproved charts expire at midnight ET.")
               body_html = f"""<!doctype html><html><body style="margin:0;background:#faf8f4;font-family:Georgia,serif;color:#1a1a14">
               <div style="max-width:600px;margin:0 auto;padding:28px 18px">
                 <div style="font-size:21px;font-weight:bold">Macro<span style="color:#b8860b;font-style:italic">Tilt</span>
-                  <span style="font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#8a8374;font-weight:normal">&nbsp;Daily X Chart{revised} &middot; {today}</span></div>
+                  <span style="font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#8a8374;font-weight:normal">&nbsp;{"Trade Idea" if is_idea else "Daily X Chart"}{revised} &middot; {today}</span></div>
                 <div style="background:#ffffff;border:1px solid #e6e1d6;border-radius:12px;padding:18px;margin-top:14px">
+                  {note_html}
                   <img src="cid:chart" alt="Today's chart" style="width:100%;height:auto;border-radius:6px">
                   <div style="background:#f6f3ec;border-radius:8px;padding:14px;margin-top:14px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45">{cap_html}</div>
                   <a href="{meta['approve_url']}" style="display:block;text-align:center;background:#b8860b;color:#ffffff;text-decoration:none;
-                     padding:16px;border-radius:10px;margin-top:16px;font-family:Helvetica,Arial,sans-serif;font-size:17px;font-weight:bold">&#10003;&nbsp; Approve &amp; post to X</a>
+                     padding:16px;border-radius:10px;margin-top:16px;font-family:Helvetica,Arial,sans-serif;font-size:17px;font-weight:bold">{approve_label}</a>
                   <a href="{meta['changes_url']}" style="display:block;text-align:center;background:#f0ece2;color:#1a1a14;text-decoration:none;
                      padding:14px;border-radius:10px;margin-top:10px;font-family:Helvetica,Arial,sans-serif;font-size:15px">&#9998;&nbsp; Request changes</a>
                   <p style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#8a8374;margin:14px 0 0">
-                    Nothing posts without your tap. Unapproved charts expire at midnight ET.</p>
+                    {footer}</p>
                 </div>
               </div></body></html>"""
               alt = MIMEMultipart("alternative")
-              alt.attach(MIMEText(f"Approve today's chart: {meta['approve_url']}\n\nRequest changes: {meta['changes_url']}\n\nCaption:\n{caption}"))
+              plain_note = (note_title + "\n" + "\n".join("- " + l for l in note_lines) + "\n\n") if is_idea else ""
+              alt.attach(MIMEText(f"{plain_note}Approve: {meta['approve_url']}\n\nRequest changes: {meta['changes_url']}\n\nCaption:\n{caption}"))
               alt.attach(MIMEText(body_html, "html"))
               msg.attach(alt)
               inline = MIMEImage(img_bytes, name="macrotilt_daily_chart.png")
