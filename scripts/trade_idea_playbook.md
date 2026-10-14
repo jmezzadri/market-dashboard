@@ -112,6 +112,20 @@ binds here:
   short lines, NO URL anywhere (X spam label, 2026-08-07 — the link lives in
   the bio) until Joe says the label cleared.
 
+## NEVER WAIT FOR A RELEASE (Joe, 2026-10-14)
+
+The last run of the old X Chart task put itself to sleep for an hour with
+three "wait for the 8:30 CPI" commands, on nobody's instruction, because the
+chart would have read better with the print in it. An hour of a cloud session
+was spent waiting for a number. The rule: a run never sleeps, polls or waits
+for a scheduled release, a market open, an email, or anything else on a clock
+— no `sleep` beyond the ~90 seconds the delivery check needs. If the idea
+depends on a number that has not printed yet, the idea is not ready: skip,
+name the release in the skip reason, and the next morning's run has the
+print. A note written before a release is a stance against what is priced;
+a note written after it is a reaction, and that is a different, usually
+worse, product.
+
 ## THE GATES — before any research, in this order
 
 - **Market holiday:** if the NYSE is closed today, reply "Market holiday — no
