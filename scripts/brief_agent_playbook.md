@@ -130,10 +130,48 @@ carries the last trading day's brief. Do not force anything.
 `{head, body}`, `implications[]`, `watch[]` as `{head, body}`, `sections[]` —
 exactly three, titled "Macro & Rates", "Equity Markets", "Credit & Liquidity",
 each `{title, bullets[], positioning, single_name}` — and `movers` (leave `[]`).
-`date`, `recap_session`, `movers`, `metrics` and `ideas` are all written by the
-prepare step — don't sweat them, and do NOT emit `metrics` or `ideas` yourself.
+`date`, `recap_session`, `movers`, `metrics`, `ideas` and `qt_book` are all written
+by the prepare step — don't sweat them, and do NOT emit `metrics`, `ideas` or
+`qt_book` yourself.
 
 ---
+
+### WHERE THINGS LIVE (Joe, 2026-10-14) — the prepare step REJECTS a misfiled item
+
+Joe, on the 10/14 brief: *"Why is the Brent bullet in Credit and Liquidity?
+Credit and liquidity should be all around spreads — IG, HY, commercial paper,
+funding rates. We have random single-name data points buried in each of these
+sections: J&J in equity markets, JPM in credit. Macro & Rates should be all
+about rates, FX and commodities. Why do we have ASML in two different sections?"*
+
+| Block | What goes there | What does not |
+|---|---|---|
+| **Headlines** (`news[]`, max 4) | **Companies.** Earnings, fines, deals, guidance, a single stock's move. | Fed, CPI, Hormuz, yields, oil — those are section bullets. |
+| **Macro & Rates** | Rates, central banks, Fed speakers, FX, commodities, and the geopolitics that moves them. Hormuz is an oil story: it lives here. | Company names, tickers. |
+| **Equity Markets** | Indices, sectors, factors, futures, vol. Earnings only as a market read-through: "banks beat, stocks fell". | Company names, tickers, oil, FX. |
+| **Credit & Liquidity** | IG/HY OAS, CP, SOFR-OIS, funding, dealer inventory, BDCs, bank lending and provisions in aggregate. | Oil, FX, single names. |
+
+**Say it once, in the block where it belongs.** A company is named in one
+headline or nowhere — never in a section, never in two headlines. Nothing from a
+headline reappears in a section. `enforce_sections` in
+`scripts/build_daily_brief.py` checks every one of these and prints the fix.
+
+### THE TWO PORTFOLIOS (Joe, 2026-10-14) — written by the prepare step, not by you
+
+The email carries two bands between the snapshot and section 1, both built
+from feeds, neither written by the model:
+
+- **The Macro Portfolio** — one book line (equal-weight return since inception
+  vs the S&P over the same days, from `trade_idea_scores.json`) and the **open**
+  calls only. Closed calls are not shown — *"showing a running list of closed
+  calls is stupid"*; they live on the scorecard page.
+- **The Quality Trend Portfolio** — the 20-name single-stock paper book
+  (`qt_nav_daily`): equity on $1,000,000, day move, since-inception vs the S&P,
+  name count. Same account and start-date rules as the /paper page.
+
+Do not emit `ideas` or `qt_book` yourself. If the prepare line says `QT book
+MISSING`, the table was unreachable — say so in the report; the email simply
+omits the band.
 
 ### THE ONE RULE (Joe, 2026-08-19)
 
@@ -248,8 +286,9 @@ python3 /tmp/md/scripts/build_daily_brief.py --prepare-file /tmp/brief.json
 Must print `prepared OK`. If it errors, fix the JSON and rerun — never submit
 a brief that failed the prepare step. The prepare step forces the correct
 `date`/`recap_session`, scrubs banned copy, attaches real movers, builds the
-market-snapshot table from `indicator_history.json`, and attaches the live marks
-on MacroTilt's own open calls from `trade_idea_scores.json`.
+market-snapshot table from `indicator_history.json`, and attaches the two
+portfolio bands — open macro calls from `trade_idea_scores.json`, the Quality
+Trend book from `qt_nav_daily`.
 
 If it fails on length or duplication it prints **every** overage at once — fix
 them all in one rewrite. Cut whole items before shaving words: three sharp
