@@ -2,6 +2,14 @@
   "_comment": "Registry of retired MacroTilt concepts (indicators, feeds, engines, UI). A name here is DEAD and must not be re-introduced as a producer, registry entry, tracking row, schedule, or live UI surface. Before resurrecting/fixing/registering any of these, the answer is delete the remnant, not revive it (LESSONS 0.10). 'residue' lists code that still references the dead concept and is pending eradication. Created 2026-06-15 cleanup Phase 4.",
   "killed": [
     {
+      "id": "equity-rsi_divergences-daily",
+      "name": "RSI Divergences scan (divergence_scan)",
+      "killed": "2026-10-13",
+      "reason": "Its only reader was the ticker page's scanner-signal pill, removed in the 2026-10-13 cockpit rebuild (Joe: the scanner concept is dead). Retired end to end: DIVERGENCE_SCAN_DAILY + DIVERGENCE-BACKTEST-ONEOFF workflows, compute/backtest/test scripts, the useDivergenceScan hook, the Methodology section, manifest entries, schedule-registry entry, failure-alert entry, the pipeline_health row and the divergence_scan table. Shared REST helpers moved to scripts/supabase_rest.py.",
+      "status": "removed",
+      "residue": []
+    },
+    {
       "id": "scenario-v9_allocation-weekly",
       "name": "v9 Allocation (legacy)",
       "killed": "2026-06-18",

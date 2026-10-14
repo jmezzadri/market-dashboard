@@ -39,7 +39,7 @@ import time
 from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from compute_divergences import rpc, rpc_paged   # noqa: E402 — shared REST helpers
+from supabase_rest import rpc, rpc_paged   # noqa: E402 — shared REST helpers
 
 COST_SIDE   = 0.001          # 10 bps per side
 N_MIN, N_MAX = 20, 50        # portfolio size: universe//5 clamped here

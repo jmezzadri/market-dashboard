@@ -20,7 +20,8 @@
    nav on 2026-08-11, but Power Trend and RSI Divergences still render on
    Home and Ticker pages, so their rules still need a home here. The id
    stays "scanner" so old #scanner deep links keep landing (as do
-   #power-trend / #divergences). #conviction-events is gone with its book.
+   #power-trend). #conviction-events is gone with its book; #divergences went
+   with the RSI-divergence scan (retired 2026-10-13).
 
    Untouched: §01 Macro + the Engine, §04 Data (freshness contract +
    manifest-derived vendor table; the stale dead-pipeline rows in the jobs
@@ -380,25 +381,6 @@ export default function MethodologyPage() {
               <b>Published results of the list should be expected to run below the simulation, and single
               months can be brutal — the same rule would have lost roughly 20% in the first half of
               July 2026.</b>
-            </p>
-
-            {/* ── Divergences ──────────────────────────────────────────── */}
-            <h3 className="me-h3" id="divergences" style={{ scrollMarginTop: 120 }}>
-              RSI Divergences — a screen, not a signal
-            </h3>
-            <p className="me-body-p">
-              <b>RSI Divergences</b> is a separate daily screen; its result appears as a signal on a
-              ticker&rsquo;s own page. It does <b>not</b>{' '}
-              feed the Paper book, which never trades on it. It compares price and
-              14-day RSI (simple-average method) at the two most recent confirmed pivots — a pivot needs
-              5 bars on each side, which is why the newest possible pivot is always 5 days old. A{' '}
-              <b>bullish regular divergence</b> is a lower price low with a higher RSI low; a{' '}
-              <b>bearish regular divergence</b> is a higher price high with a lower RSI high. Only fresh
-              setups surface (newer pivot within 15 trading days, pivots 5–30 days apart) across the
-              same liquid US common-stock universe the Power Trend list uses (last close ≥ $2, 45-day
-              average dollar volume ≥ $50M). Split-like price jumps and close-versus-VWAP disagreements
-              are filtered out as data artifacts. A divergence flags a possible reversal — it is a
-              screen to investigate, not a trade signal, and it carries no timing claim.
             </p>
           </div>
         </article>

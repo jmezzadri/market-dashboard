@@ -12,7 +12,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'supabase/migrations/20261013_auto_close_disk_io_budget.sql'
+      - 'supabase/migrations/20261013_retire_rsi_divergence_scan.sql'
   workflow_dispatch:
     inputs:
       filename:
@@ -29,7 +29,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          MIGRATION_FILENAME: ${{ inputs.filename || '20261013_auto_close_disk_io_budget.sql' }}
+          MIGRATION_FILENAME: ${{ inputs.filename || '20261013_retire_rsi_divergence_scan.sql' }}
         run: |
           python3 - <<'PY'
           import os, json, urllib.request, pathlib, sys
