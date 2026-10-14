@@ -246,6 +246,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.22` Visual feedback is systemic: change the token, not the component, and list every page affected; never hard-code a style value in a component
 - `9.23` Every UI change is verified at 390, 820 and 1440 wide, in light and dark, before the PR is opened; a mobile failure blocks the PR
 - `9.24` A screenshot pass is not a UAT. Review every page at full size, in both themes, with every modal, drill, sheet and toggle exercised, and check settled frames — never thumbnails, never mid-animation
+- `9.25` A one-word fix is not a redesign; a page review means the whole page is rebuilt against the best in class, every retired concept is deleted from it, tiles bottom-align, and the preview link goes to Joe before anything ships
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2489,6 +2490,19 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 5. A sticky element (TOC rail, detail panel) that is also a glass card needs `position: sticky` restated after the card rule.
 
 **Applies to:** Lead Developer before every "done"; UX Designer's sign-off is on the full-size frames and the interaction shots, not the sheet.
+
+### 9.25 (2026-10-13) — A one-word fix is not a redesign; tiles bottom-align; retired concepts are deleted from every page they still haunt; the preview link goes to Joe first.
+
+**What happened:** Joe asked for a fresh-eyes review of the ticker page. The first response shipped a one-word fix ("Equity" → industry) to a pull request and asked him to merge it, then added a "Trader Card" that left the hero's left column empty. Joe: "you're proposing to fix the page by changing one word? … Redesign the page, show me a preview, and I'll tell you if it's right before you do anything to the live site." The page still read "Other names the scanner liked" two months after the scanner pages were retired, buried six headlines in a tab at the bottom, and had a scanner box top-right that said "Not in a scan" for 99% of names. The rebuilt cockpit (dense tape · chart beside Performance / Technicals / Risk · News beside Company) was accepted on the third preview, after two more notes: no duplicate rows, and no tile ending above its neighbour.
+
+**Rules:**
+1. When Joe asks for a review of a page, the deliverable is a rebuilt page on a preview link, benchmarked against the best stock-page layouts a trader uses daily — not a list of recommendations and not a minimal fix. Build it, screenshot it at 1440 / 390 and in dark, send the images AND the preview link, and wait for his verdict before merging.
+2. A retired concept (here: the scanner) is deleted from every page that still references it — pills, headers, "related names", drill-downs, tab labels — the same day it is retired. Grep the live pages for the concept's name before calling a retirement done.
+3. Tiles that share a row end on the same line. A chart beside a stack of panels is sized to the stack (measure the body and draw the chart to that height), never to a fixed number. Asymmetric tiles with blank page space below one of them are a defect.
+4. The same statistic appears once above the fold: if the tape shows it, the panel does not repeat it.
+5. Tooltips sit on an opaque surface (`--mt-tip-bg` / `--mt-tip-line`); a glass surface is unreadable over content.
+
+**Applies to:** UX Designer (lead), Lead Developer.
 
 # 10 · THE PUBLISHED BOOK — trade ideas & notes
 
