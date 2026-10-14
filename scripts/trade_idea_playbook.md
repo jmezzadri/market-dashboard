@@ -116,10 +116,13 @@ binds here:
 
 - **Market holiday:** if the NYSE is closed today, reply "Market holiday — no
   run today" and stop.
-- **One live approval at a time:** expire stale rows (`update x_pending_posts
-  set status='expired', error='auto-expired: unapproved after 36h' where
-  status in ('pending','changes_requested') and created_at < now() - interval
-  '36 hours'`), then if any row is still `pending` or `changes_requested`,
+- **One live approval at a time:** expire stale rows — anything from an
+  earlier day is dead, since the approval link itself only works same-day
+  (`update x_pending_posts set status='expired', error='auto-expired:
+  unapproved, from an earlier day' where status in
+  ('pending','changes_requested') and post_date < (now() at time zone
+  'America/New_York')::date`), then if any row is still `pending` or
+  `changes_requested`,
   reply "A note from <its post_date> is still awaiting approval — no new run
   today" and stop. A `changes_requested` row's `change_feedback` is Joe's
   instruction for the rebuild: read it, redo the idea/note/chart per his
