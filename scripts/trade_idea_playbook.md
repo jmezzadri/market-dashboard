@@ -1,16 +1,136 @@
-# Trade Idea — scheduled-session playbook
+# Trade Idea + X Chart — scheduled-session playbook
 
-**Who runs this:** the "MacroTilt Trade Idea" scheduled Cowork task, Sunday and
-Wednesday evenings ET. The model runs on Joe's Claude subscription — the
-metered Anthropic API is not used anywhere in this flow (Joe directive
+**Who runs this:** the "MacroTilt Trade Idea + X Chart" scheduled task, every
+weekday before the US open (merged 2026-10-14 from the separate Trade Idea and
+X Chart tasks — LESSONS 6.25). The model runs on Joe's Claude subscription —
+the metered Anthropic API is not used anywhere in this flow (Joe directive
 2026-08-06: no API spend on top of the subscription).
 
-**Division of labor:** the session COMPOSES the note. Everything after that is
-code in git: `scripts/build_trade_idea.py --prepare-file` validates it against
-the contract and merges it into `public/trade_ideas.json`, and the
-`ops-code-commit` edge function commits that file to `main` (Vercel deploys
-it). **The session never emails, never trades, and never pushes with its own
-git credentials.**
+**What one run produces.** One piece of research with two outputs: the Trade
+Idea note for macrotilt.com and, from the SAME idea, one branded chart plus an
+X caption. Both go to Joe in ONE approval email. Nothing publishes until he
+taps Approve: the tap commits the note to the site (the daily scorer and the
+Scorecard page follow from that automatically) and then posts the chart to X.
+Most days nothing clears the bar and the run ends in a recorded skip — that is
+the normal outcome.
+
+**Division of labor:** the session COMPOSES the note and DRAWS the chart.
+Everything after that is code: `scripts/build_trade_idea.py --prepare-file`
+validates the note against the contract and merges it into
+`public/trade_ideas.json`; the session queues the prepared file, the chart and
+the caption in `x_pending_posts`; the `X-CHART-EMAIL` workflow on the
+`x-charts` branch sends the approval email; the `x-post-approval` edge
+function commits the note through `ops-code-commit` and posts to X on Joe's
+tap. **The session never emails, never trades, never posts, never commits the
+note itself, and never pushes with its own git credentials.**
+
+## THE RESEARCH FAN-OUT — before the sweep, every run (Joe, 2026-10-14)
+
+Joe: *"The whole point of these are to do hardcore deep macro, sector, and
+single name research and come up with a trade idea and depict it in a chart
+that I can post on X. I really want sub-agents doing a lot of research,
+looking at other research analyst info/research, looking at market and
+positioning data, and coming up with the best trade ideas."*
+
+So the run opens with at least FOUR research subagents launched in parallel
+(the Agent tool), before any candidate is named. Each returns a dated,
+numbered fact sheet with URLs and at least five "tensions" — two facts that
+contradict each other, or an obvious second-order consequence that has not
+shown up in prices:
+
+1. **Energy, commodities, agriculture, shipping and geopolitics.**
+2. **Rates, central banks, fiscal, FX and the rest of the world** (Japan,
+   Europe, China, EM; policy calendars and what policymakers said this week).
+3. **Equities, flows, positioning, supply of new stock and debt, credit,
+   metals and crypto** — including single names in the news, insider-buying
+   clusters, 13D/G activism, 8-K events, earnings calls and guidance.
+4. **The street and the independents.** Read the last 7 days of research and
+   market newsletters in Joe's Gmail (search by sender and keywords; read the
+   full text), sell-side notes and strategist pieces on the open web (dated
+   pages only), and report the CONSENSUS view on the week's live questions.
+   This is the raw material for the `variant` field and for the outside-
+   research challenge log — it is never the source of the idea, and no
+   publication is ever named in the note, the chart, the caption or the reply
+   (Joe: an independent analyst, not a repackager).
+
+Read all four as raw material. Then run the sweep below exactly as written —
+outward-first, theme sweep, MacroTilt data as validator, backtest with a
+baseline and a regime match, the book test. The fan-out widens where ideas
+COME FROM; the contract decides what survives.
+
+## THE CHART — the same idea, drawn for X (folded in 2026-10-14)
+
+When a note passes `--prepare-file`, the run also builds ONE 1600x900 PNG and
+a caption for @WeTheSheeple46. The chart depicts the note's idea; it never
+carries an idea of its own. Everything the old X Chart task learned still
+binds here:
+
+- **Forward view (Joe, 2026-10-09).** The chart title states what happens
+  NEXT — a call with a number and, where possible, a date — never what already
+  happened. Test: if the title could be written from yesterday's closes,
+  rewrite it. Failing: "$6 diesel is clearing out trucking. The market sold the
+  survivors." Passing: "Truckers are about to get a 20% raise. The stocks are
+  priced for the fuel bill." No lagging confirmation signals ("wait until X
+  flips") — by then the trade is gone. The subtitle carries the mechanism in
+  plain words; the caption ends on the forward call and the catalyst date.
+- **"So what" rule (2026-07-23).** Observation → what it means (which market
+  is right or wrong, what is being priced) → what to watch or what follows,
+  with a number. The caption's last line IS the so-what.
+- **Voice rule (2026-10-07).** One market person talking to another. Name the
+  assets ("WTI vs Brent", never "the US discount to world oil"); say
+  mechanisms the way a trader says them aloud ("If Hormuz reopens, Brent
+  falls to meet WTI"). Standard shorthand (WTI, Brent, breakevens, bps, 2s10s)
+  is correct on charts and captions. Plain-English translation is for what
+  Joe reads in chat and email only.
+- **Framing rule (2026-07-22).** A broken model is a repricing or a premium,
+  never a fair-value call or a price target; say what stopped driving the
+  asset and what drives it now.
+- **Plain words (2026-10-09).** No invented shorthand a reader has to decode
+  (banned: "rates don't buy dollars"). At most three ideas in a caption. ASCII
+  hyphen for minus signs — X counts the typographic minus as two characters.
+- **Consistency (2026-08-18).** Read the captions of the last ~10 rows of
+  `x_pending_posts`. Never recommend a take that contradicts a recent one
+  without acknowledging and reconciling the change of view in the copy.
+- **Numbers.** Every figure on the chart is computed in Python from data
+  pulled this run and hand-verified once by plugging the inputs into the
+  formula. Check maxima and minima before "record" or "first time". Data
+  providers found in research are credited in small print on the chart (a
+  data credit is not an idea credit).
+- **Brand recipe (light mode).** Background #fafaf7, ink #0e1115, secondary
+  ink #2a2a2e, muted #5e5e63, dim #98989f, gold #B7975C (fills #CBB27A at
+  ~20% alpha), blue #0071e3, green #2f9d6a, red #c84658. Fonts: IBM Plex Serif
+  700 + 700-italic and IBM Plex Sans 400/600/700 — download static TTFs from
+  Google Fonts css2 (reachable) and register each with
+  `matplotlib.font_manager.addfont`. Set `text.parse_math` to False. Layout:
+  top-left wordmark "Macro" (Serif 700, ink) + "Tilt" (Serif 700 italic, gold,
+  placed off the measured extent of "Macro"); top-right "Trade Idea · <Month
+  D, YYYY>"; hairline rule #d9d9d2; Serif 700 title.
+- **Verify by looking.** View the rendered PNG with the Read tool. Check every
+  label for collisions and clipping and every number against the computed
+  values. Fix and re-render until clean.
+- **Caption.** Under 280 characters, lead with the most startling number,
+  short lines, NO URL anywhere (X spam label, 2026-08-07 — the link lives in
+  the bio) until Joe says the label cleared.
+
+## THE GATES — before any research, in this order
+
+- **Market holiday:** if the NYSE is closed today, reply "Market holiday — no
+  run today" and stop.
+- **One live approval at a time:** expire stale rows (`update x_pending_posts
+  set status='expired', error='auto-expired: unapproved after 36h' where
+  status in ('pending','changes_requested') and created_at < now() - interval
+  '36 hours'`), then if any row is still `pending` or `changes_requested`,
+  reply "A note from <its post_date> is still awaiting approval — no new run
+  today" and stop. A `changes_requested` row's `change_feedback` is Joe's
+  instruction for the rebuild: read it, redo the idea/note/chart per his
+  words, and queue a fresh row (mark the old one `cancelled`).
+- **X monthly cap (X's limit on automated posts, 10 per calendar month):**
+  `select count(*) from x_pending_posts where status='posted' and
+  date_trunc('month', post_date) = date_trunc('month', current_date)`. If 10
+  or more, the run still proceeds — the note is the product — but queues the
+  row with `post_to_x = false`, and the email says the chart will not go to X
+  this month. The contract's two-notes-per-rolling-week rule keeps the task
+  under the cap in a normal month.
 
 **Canonical contract:** `scripts/build_trade_idea.py` is canonical. If this
 file and that script ever disagree, the script wins — update this file in the
@@ -563,11 +683,15 @@ open in `trade_idea_scores.json`: a stopped or thesis-broken call is not a
 position, whatever its original horizon said (until 2026-10-07 the stopped
 Aug 24 ten-year call was still blocking every duration idea).
 
-**0d. Incremental to the book, and the book calmer than the market
-(2026-10-07).** Taking the open calls equal-weight over the same 126 sessions,
-adding the candidate must (1) RAISE the book's expected return over the S&P
-per unit of volatility, and (2) leave the book's volatility at or below the
-S&P's. Each open call counts at the annual pace it called for (an older note
+**0d. Incremental to the book: a higher risk-adjusted expected return
+(2026-10-07, revised 2026-10-14).** Taking the open calls equal-weight over the
+same 126 sessions, adding the candidate must RAISE the book's expected return
+over the S&P per unit of volatility. That is the only book-level test. The
+2026-10-07 cap on book volatility ("at or below the S&P's") was withdrawn on
+2026-10-14 — Joe: *"the book doesn't need to be calmer, per se. So long as
+risk-adjusted expected return is higher it's OK."* A book running hotter than
+the S&P is fine if every addition earns its volatility; the prepare step still
+prints book volatility against the S&P's so the stance can say it. Each open call counts at the annual pace it called for (an older note
 that stated none counts at the 20% bar, and the output says so). The prepare
 step prints the before-and-after line — quote it in `book.stance`. Listed
 funds are measured on the series they track (`TICKER_PROXIES` in the
@@ -915,13 +1039,49 @@ scorecard added once the outcome is visible is not a record of a call, it is a
 record of a preference. `scripts/score_trade_ideas.py` marks from this and
 nothing else; `/scorecard` renders the result and computes nothing.
 
-**5. Submit** the prepared `public/trade_ideas.json` to `ops-code-commit`
-(bearer token is in the scheduled task's instructions — it is NOT in this repo),
-branch `idea/<date>`, `merge: true`.
+**5. Queue for Joe's approval — never commit the note yourself (2026-10-14).**
 
-**6. Verify.** Load `https://macrotilt.com/` and read the Trade Idea tile.
-Confirm the plain-English line, the position badge, the fact columns and the
-tile chart render, and that "Read the full note" opens the note with every chart
-drawn. **Look at the charts** — the validator checks the data, not the layout,
-and a label that collides with another label is invisible to every assertion.
-Markup containing the string is not verification.
+a. Build the chart and caption (THE CHART, above).
+b. In Python: `import secrets; token = secrets.token_hex(16)`; base64-encode
+   the prepared `public/trade_ideas.json` (the WHOLE file, after
+   `--prepare-file`, pulled live first so the merge is against today's main).
+c. Insert the queue row via Supabase MCP `execute_sql` (project
+   yqaqqzseepebrocgibcw), doubling any single quotes:
+   `insert into x_pending_posts (post_date, caption, approval_token, note_b64,
+   note_title, note_id, post_to_x) values ('<today ET>', '<caption>',
+   '<token>', '<base64>', '<note title>', '<note id>', <true|false>) returning
+   id;`
+d. Write `meta.json` as one line: `{"post_date":"<today ET>",
+   "approve_url":"https://macrotilt.com/api/xapprove?id=<id>&t=<token>&a=approve",
+   "changes_url":"https://macrotilt.com/api/xapprove?id=<id>&t=<token>&a=changes",
+   "post_to_x":<true|false>, "note_title":"<title>",
+   "note_lines":["<the call, one sentence>", "<the trade: buy / sell / short
+   legs in the tile's short form>", "<expected return and horizon>", "<what
+   kills it: the stop and the critical review condition>", "<the other
+   side, one sentence>"]}` — plain English, these lines are what Joe reads
+   before he taps.
+e. Push `chart.png`, `caption.txt` and `meta.json` in ONE commit through the
+   `gh-push` function (branch `x-charts`; bearer token from `ops_secrets`
+   `gh_push_token` via `execute_sql`, never echoed). The response is
+   `{"ok":true,"commit_sha":"..."}`; if not, report the error field and stop.
+f. Pin the chart: `update x_pending_posts set chart_sha='<commit_sha>' where
+   id='<id>';`
+g. Record the outcome with `select * from ops_record_publish('trade_ideas')`
+   ONLY after Joe's approval lands the note (the next run checks: a row from a
+   prior day with `note_committed_at` set and `pipeline_health.last_good_at`
+   older than it means the publish was never recorded — record it then). On a
+   day nothing was queued, record the skip as before.
+
+**6. Verify delivery.** Wait ~90 seconds, then search Joe's Gmail
+(`search_threads`, query: `subject:"Approve today's Trade Idea" newer_than:1d`)
+for today's email. If it has not arrived after two checks, say so plainly in
+the reply. The site is verified AFTER approval by the next run (step 0 of the
+next day reads `trade_ideas.json` and the homepage tile) — a note that is not
+yet approved is not on the site and must not be "verified" there.
+
+**7. Reply to Joe** in at most six lines: the call in one sentence, why now,
+what proves it wrong, and whether the chart goes to X this month. Deliver the
+PNG in-chat with `SendUserFile` at status "normal". The approval email IS the
+notification: do not call PushNotification or SendUserMessage on a successful
+run, and never end the reply by telling Joe to tap Approve. Call
+PushNotification only when something failed or needs him.
