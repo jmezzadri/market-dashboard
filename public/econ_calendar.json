@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-13T23:47:14Z",
+  "generated_at": "2026-10-14T14:35:53Z",
   "window": {
-    "from": "2026-10-06",
-    "to": "2026-12-22"
+    "from": "2026-10-07",
+    "to": "2026-12-23"
   },
   "counts": {
-    "total": 116,
-    "tier1": 33
+    "total": 120,
+    "tier1": 35
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -28,17 +28,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-10-06",
-      "time_et": "8:30 AM",
-      "name": "Trade balance",
-      "short": "Trade",
-      "tier": 2,
-      "category": "Trade",
-      "blurb": "Goods and services imports versus exports.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-07",
       "time_et": "3:00 PM",
@@ -1301,6 +1290,61 @@
       "tier": 3,
       "category": "Surveys",
       "blurb": "Philadelphia Fed non-manufacturing outlook survey.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-23",
+      "time_et": "8:30 AM",
+      "name": "Personal income & PCE prices",
+      "short": "PCE",
+      "tier": 1,
+      "category": "Inflation",
+      "blurb": "Household income and spending with the PCE price index, the Fed's preferred inflation gauge.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-23",
+      "time_et": "8:30 AM",
+      "name": "GDP",
+      "short": "GDP",
+      "tier": 1,
+      "category": "Growth",
+      "blurb": "Quarterly economic growth, in three successive estimates.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-23",
+      "time_et": "8:30 AM",
+      "name": "Durable goods / factory orders",
+      "short": "M3",
+      "tier": 3,
+      "category": "Growth",
+      "blurb": "Census M3 survey of manufacturers' shipments, inventories and orders.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-23",
+      "time_et": "8:30 AM",
+      "name": "Building permits (final)",
+      "short": "Permits",
+      "tier": 3,
+      "category": "Housing",
+      "blurb": "Final building-permit counts for the prior month.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-23",
+      "time_et": "10:00 AM",
+      "name": "New home sales",
+      "short": "New homes",
+      "tier": 2,
+      "category": "Housing",
+      "blurb": "Contracts signed on newly built homes \u2014 the rate-sensitive edge of housing.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
