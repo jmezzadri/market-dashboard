@@ -305,6 +305,13 @@ VOICE (Joe, 2026-09-01 - "I have worked in finance and markets for 25 years and 
  EXAMPLE. WRONG (52 words): "The tell was not the yield, it was what the market paid for optionality around a meeting fifteen days out while the front end sat perfectly still. Equities deferred their reaction by a session and are taking it before the open, into the first data the new stance has to survive."
  RIGHT (26 words, four bullets): "Rate vol repriced Monday. Front end unchanged." / "The bid is for FOMC, Sep 16." / "Equities flat Monday, lower pre-market." / "First test today: ISM, 10:00."
 
+WHERE THINGS LIVE (Joe, 2026-10-14 — enforce_sections REJECTS a brief that breaks this):
+ - news[] (Headlines) = COMPANIES. Earnings, fines, deals, guidance, a single stock's move. A company is named here or nowhere. No Fed, no CPI, no Hormuz, no yields in a headline — those are section bullets.
+ - "Macro & Rates" = rates, central banks, FX, commodities, and the geopolitics that moves them. Hormuz is an oil story: it lives here.
+ - "Equity Markets" = indices, sectors, factors, futures, vol. Earnings only as a market read-through ("banks beat, stocks fell") — no company names, no tickers.
+ - "Credit & Liquidity" = IG/HY OAS, CP, SOFR-OIS, funding, dealer inventory, BDCs, bank lending data. No oil, no FX, no single names.
+ - Each company, instrument and story appears in ONE block. Nothing from a headline is repeated in a section.
+
 BANNED WORDS - never output these in ANY field: "washed out", "crowded". For a low COT percentile write "extended short"; for a high percentile write "extended long".
 
 DATA (source of truth for current values + positioning). EVERY value in here is a PRIOR CASH CLOSE. The 30y and 20y now HAVE a feed (Treasury.gov, same as the 2y/10y) and are in the snapshot table — do not restate them. The feed still carries NO equity-futures level, so any futures figure is rule-1 material: source it this run with a timestamp or leave it out.
@@ -331,7 +338,7 @@ OUTPUT: return ONLY a single JSON object (no prose, no markdown fence) with EXAC
  ],
  "movers": {movers}
 }}
-Do NOT emit "metrics" or "ideas" — the prepare step builds both from the feeds and will overwrite anything you put there.
+Do NOT emit "metrics", "ideas" or "qt_book" — the prepare step builds all three from the feeds and will overwrite anything you put there.
 Rules: a "single_name" only when a setups[] name fits that section's theme. You may wrap tickers as <a class="tklink" href="/ticker/SYM" data-route="/ticker/SYM">Name</a> and indicators as href="/indicators?ind=KEY". Return ONLY the JSON object — compact, strictly valid JSON: escape any double quotes inside string values, never put a raw newline inside a string, no trailing commas, no markdown fences, no text before or after."""
 
 def call_model(feeds, movers, today):
@@ -470,6 +477,142 @@ def validate(brief, today):
     # Outside research sharpens our own work; it is never published as someone
     # else's view (Joe, 2026-10-02). Not a length rule, so not behind the switch.
     enforce_no_outside_research(brief)
+    # Where things live (Joe, 2026-10-14). Structural, not length, so not behind
+    # the switch either.
+    enforce_sections(brief)
+    return brief
+
+
+# ---- Section structure (Joe, 2026-10-14) -------------------------------------
+# "Why is the Brent bullet in Credit and Liquidity? Credit and liquidity should
+# be all around spreads: IG, HY, commercial paper, funding rates. We have random
+# single-name data points buried in each of these sections: J&J in equity
+# markets, JPM in credit. Macro & Rates should be all about rates, FX and
+# commodities. Why do we have ASML in two different sections?"
+#
+# The taxonomy, enforced here so no generator path can drift from it:
+#   Headlines (news[])   — COMPANIES. Earnings, fines, deals, guidance. A company
+#                          is named here or nowhere. No Fed, no CPI, no Hormuz.
+#   Macro & Rates        — rates, central banks, FX, commodities, geopolitics
+#                          that moves them (Hormuz is an oil story: it lives here).
+#   Equity Markets       — indices, sectors, factors, futures, vol. Earnings only
+#                          as a market read-through ("banks beat, stocks fell").
+#   Credit & Liquidity   — IG/HY OAS, CP, SOFR-OIS, funding, dealer inventory,
+#                          BDCs, bank lending. No oil, no FX, no single names.
+# Each rule below is a REJECT with the fix named, same pattern as enforce_voice.
+SECTION_TITLES = ["Macro & Rates", "Equity Markets", "Credit & Liquidity"]
+_RE = __import__("re")
+_CMDTY_FX = _RE.compile(
+    r"\b(?:brent|wti|crude|oil|gold|silver|copper|platinum|uranium|nat(?:ural)? gas|ttf|diesel|"
+    r"gasoline|wheat|corn|soybeans?|dxy|the dollar|dollar index|eur/usd|usd/jpy|gbp/usd|"
+    r"yen|euro|sterling|peso|franc|hormuz|opec)\b", _RE.I)
+_CREDIT = _RE.compile(
+    r"\b(?:ig oas|hy oas|oas|sofr[- ]ois|fra[- ]ois|commercial paper|cp spread|repo|bdcs?|"
+    r"dealer inventory|charge[- ]offs?|provisions?|hyg|lqd)\b", _RE.I)
+_MACRO_IN_NEWS = _RE.compile(
+    r"\b(?:fed|fomc|cpi|ppi|pce|payrolls|ism|treasur(?:y|ies)|yields?|ecb|boj|boe|hormuz|opec|"
+    r"brent|wti|crude)\b", _RE.I)
+# Tokens that LOOK like tickers but are market vocabulary, not companies.
+_NOT_A_COMPANY = set("""
+CPI PPI PCE GDP ISM ADP JOLTS NFP NFIB FOMC FED ECB BOJ BOE BOC PBOC RBA RBNZ OPEC IEA EIA
+COT CFTC SEC OCC FDIC FINCEN OFAC DOJ FTC NY NYSE CME ICE LSEG MSCI
+VIX VXN VIX3M MOVE SKEW CAPE GVZ OVX DXY WTI TTF ULSD RBOB LNG
+OAS HY IG CP RRP TGA SOFR OIS FRA TIPS UST BDC BDCS ETF ETFS
+SPX NDX DJIA DJI SOX RUT KBW SPY QQQ IWM DIA XLE XLF XLK XLV XLI XLU XLP XLY XLB XLRE XLC
+SMH HYG LQD TLT IEF SHY UNG USO GLD SLV WEAT CORN FXY FXE UUP TTF
+EUR USD JPY GBP CHF CAD AUD NZD MXN CNY CNH KRW BTC ETH
+AI US USA EU UK EM DM G7 G10 APAC EMEA ET AM PM EST EDT GMT UTC
+Q1 Q2 Q3 Q4 H1 H2 FY YTD YOY QOQ MOM EPS NII NIM ROE ROTCE AML BSA CET1 AUM NAV
+CEO CFO CIO COO IPO M&A IRGC UKMTO OK TBD TTM ADR ADRS S&P P&L R&D
+""".split())
+_TICKERISH = _RE.compile(r"(?<![\w/$])[A-Z][A-Z&]{1,4}(?![\w/])")
+_PROPER = _RE.compile(r"\b[A-Z][a-zA-Z&'\.]{2,}\b")
+_PROPER_STOP = set("""
+The This That These Those Watch First Second Third Fourth Fifth Monday Tuesday Wednesday Thursday
+Friday Saturday Sunday Jan Feb Mar Apr May Jun Jul Aug Sep Sept Oct Nov Dec January February
+March April June July August September October November December Treasury Treasuries Fed
+Federal Reserve Chair Governor President Bank Banks Wall Street Europe European Asia Asian China
+Chinese Japan Japanese Korea Korean Taiwan India Iran Iranian Israel Israeli Saudi Arabia Houthi
+Houthis Russia Russian Ukraine Gulf Middle East Hormuz Strait Dutch London Tokyo Seoul Beijing
+Washington Congress White House Senate Brent Crude Gold Copper Silver Nasdaq Dow Russell Kospi
+Nikkei Stoxx FTSE DAX Topix Hang Seng Shanghai Equities Rates Credit Liquidity Macro Vol Front
+Long Short Core Headline Consensus Odds December October November Oil Dollar Euro Yen Sterling
+Futures Open Close Pre Overnight Williams Waller Collins Barkin Goolsbee Hammack Jefferson Powell
+Bessent Trump Netanyahu Biden Beige Book Dealer Memory Energy Tech Financials Staples Utilities
+Materials Industrials Chips Semis
+""".split())
+
+def _sec_texts(sec):
+    t = list(sec.get("bullets") or [])
+    if sec.get("positioning"):
+        t.append(sec["positioning"])
+    sn = sec.get("single_name")
+    if isinstance(sn, dict) and sn.get("note"):
+        t.append(sn["note"])
+    return [_plain(x) for x in t if x]
+
+def enforce_sections(brief):
+    bad = []
+    secs = brief.get("sections") or []
+    titles = [str(s.get("title", "")).strip() for s in secs if isinstance(s, dict)]
+    if titles != SECTION_TITLES:
+        bad.append(f"sections must be exactly {SECTION_TITLES} in that order — got {titles}")
+    news = [n for n in (brief.get("news") or []) if isinstance(n, dict)]
+    # 1. Headlines are for companies — a macro story is a section bullet.
+    for n in news:
+        h = _plain(n.get("head", ""))
+        m = _MACRO_IN_NEWS.search(h)
+        if m:
+            bad.append(f'headline "{h}" is a macro story ("{m.group(0)}") — move it to the section it belongs to')
+    # 2. Commodities / FX / oil-geopolitics live in Macro & Rates only.
+    # 3. Credit vocabulary lives in Credit & Liquidity only.
+    for sec in secs:
+        if not isinstance(sec, dict):
+            continue
+        title = str(sec.get("title", ""))
+        for t in _sec_texts(sec):
+            if title != "Macro & Rates":
+                m = _CMDTY_FX.search(t)
+                if m:
+                    bad.append(f'{title}: "{t[:70]}…" names {m.group(0)} — commodities, FX and oil geopolitics go in Macro & Rates')
+            if title != "Credit & Liquidity":
+                m = _CREDIT.search(t)
+                if m:
+                    bad.append(f'{title}: "{t[:70]}…" names {m.group(0)} — spreads, funding and credit data go in Credit & Liquidity')
+    # 4. A company is named in Headlines or nowhere: no tickers / company names
+    #    in any section, and nothing from a headline reappears in a section.
+    news_names = set()
+    for n in news:
+        for w in _PROPER.findall(_plain(f'{n.get("head","")} {n.get("body","")}')):
+            if w not in _PROPER_STOP:
+                news_names.add(w)
+    for sec in secs:
+        if not isinstance(sec, dict):
+            continue
+        title = str(sec.get("title", ""))
+        for t in _sec_texts(sec):
+            for tk in _TICKERISH.findall(t):
+                if tk not in _NOT_A_COMPANY:
+                    bad.append(f'{title}: "{t[:70]}…" names {tk} — single names live in Headlines, not in a section')
+                    break
+            hit = [w for w in _PROPER.findall(t) if w in news_names]
+            if hit:
+                bad.append(f'{title}: "{t[:70]}…" repeats {hit[0]} from Headlines — a company appears in one block only')
+    # 5. The same company in two headlines is also two blocks.
+    seen = {}
+    for n in news:
+        h = _plain(n.get("head", ""))
+        for w in _PROPER.findall(h):
+            if w in _PROPER_STOP:
+                continue
+            if w in seen and seen[w] != h:
+                bad.append(f'headlines "{seen[w]}" and "{h}" both name {w} — one headline per company')
+            seen.setdefault(w, h)
+    if bad:
+        raise ValueError("section structure — each item lives in one block, and the blocks have jobs "
+                         "(Headlines = companies; Macro & Rates = rates/FX/commodities; Equity Markets = "
+                         "indices/sectors/factors; Credit & Liquidity = spreads/funding):\n  - "
+                         + "\n  - ".join(dict.fromkeys(bad)))
     return brief
 
 # ---- outside research is an input to OUR analysis, never a line in the brief --
@@ -796,43 +939,143 @@ def _load_scores():
 def _pp(v, unit="%"):
     return None if v is None else f"{float(v):+.2f}{unit}"
 
+def _mdy(iso):
+    """'2026-08-13' -> 'Aug 13' for the reader; falls back to the input."""
+    try:
+        return datetime.date.fromisoformat(str(iso)[:10]).strftime("%b %-d")
+    except Exception:
+        return str(iso or "")
+
 def build_ideas(scores):
-    """{open:[...], closed:[...], line:'...'} — compact enough for one email band."""
+    """The Macro Portfolio band: {open:[...], book:{...}, line:'...'}.
+
+    Joe, 2026-10-14: "We should just have open calls. And overall performance of
+    the Macro Book. Showing a running list of closed calls is stupid." So:
+    OPEN calls only, and ONE performance line for the whole book — the
+    equal-weight model portfolio the scorer already computes (summary.portfolio:
+    since-inception return vs the S&P over the same days). Closed calls live on
+    the scorecard page, not in the morning email."""
     if not scores:
         return None
     summ = scores.get("summary") or {}
-    out_open, out_closed = [], []
-    for s in (scores.get("scores") or []):
+    out_open = []
+    for sc in (scores.get("scores") or []):
+        if (sc.get("status") or "").lower() != "open":
+            continue
         row = {
-            "trade": s.get("trade_label") or s.get("instrument") or s.get("title", "")[:60],
-            "date": s.get("date"),
-            "kind": s.get("kind"),
-            "held": s.get("sessions_held"),
-            "pnl": _pp(s.get("mark") if s.get("mark") is not None else s.get("position_pct")),
+            "trade": sc.get("trade_label") or sc.get("instrument") or sc.get("title", "")[:60],
+            "date": sc.get("date"),
+            "kind": sc.get("kind"),
+            "held": sc.get("sessions_held"),
+            "pnl": _pp(sc.get("mark") if sc.get("mark") is not None else sc.get("position_pct")),
             "vs": None,
-            "bench": (s.get("benchmark") or {}).get("label"),
-            "horizon": s.get("horizon_months"),
+            "bench": (sc.get("benchmark") or {}).get("label"),
+            "horizon": sc.get("horizon_months"),
         }
-        bm = s.get("benchmark") or {}
+        bm = sc.get("benchmark") or {}
         if bm.get("difference") is not None:
             row["vs"] = f"{float(bm['difference']):+.2f}pp"
-        if (s.get("status") or "").lower() == "closed" or s.get("result"):
-            row["result"] = s.get("result")
-            out_closed.append(row)
-        else:
-            out_open.append(row)
+        out_open.append(row)
     out_open.sort(key=lambda r: r.get("date") or "", reverse=True)
-    out_closed.sort(key=lambda r: r.get("date") or "", reverse=True)
-    n_open, n_closed = len(out_open), len(out_closed)
-    if summ.get("stats_withheld"):
-        need = summ.get("min_closed_for_stats", 10)
-        record = (f"{n_closed} closed — no hit rate until {need} "
-                  f"(too few to mean anything)")
+    pf = summ.get("portfolio") or {}
+    book = None
+    if pf.get("total_return_pct") is not None:
+        book = {
+            "since": pf.get("inception"),
+            "as_of": pf.get("as_of"),
+            "ret": _pp(pf.get("total_return_pct")),
+            "bench": pf.get("benchmark_label") or "S&P 500",
+            "bench_ret": _pp(pf.get("benchmark_total_pct")),
+            "excess": (f"{float(pf['excess_total_pct']):+.2f}pp"
+                       if pf.get("excess_total_pct") is not None else None),
+            "closed": pf.get("positions_closed"),
+        }
+    n_open = len(out_open)
+    if book:
+        line = (f"{book['ret']} since {_mdy(book['since'])} vs {book['bench']} "
+                f"{book['bench_ret']} · {n_open} open")
     else:
-        record = summ.get("headline") or f"{n_closed} closed"
-    return {"open": out_open, "closed": out_closed[:3],
-            "as_of": scores.get("as_of"),
-            "line": f"{n_open} open · {record}"}
+        line = f"{n_open} open"
+    return {"open": out_open, "book": book, "as_of": scores.get("as_of"), "line": line}
+
+# ---- The Quality Trend Portfolio: the single-name paper book -------------------
+# Joe, 2026-10-14: "I want to add a section of the paper portfolio to show the
+# reader that we have two books — a macro and single name stock." The book is
+# the 20-name Quality Trend paper account (paper_portfolio/qt/). Read from the
+# same public table the /paper page reads (qt_nav_daily, RLS public), with the
+# same rules that page learned the hard way: ONE account (the newest that ever
+# held stock), the record starts the first day the account HELD stock, and the
+# S&P is measured from the close BEFORE that day — never from a same-day quote.
+QT_SB_URL = "https://yqaqqzseepebrocgibcw.supabase.co"
+QT_SB_KEY = os.environ.get("SUPABASE_ANON_KEY") or "sb_publishable__q_l32rEdPZlC4Bxs6dFnA__NqouiGk"
+QT_START_CAPITAL = 1_000_000.0
+
+def _load_qt_nav():
+    url = (f"{QT_SB_URL}/rest/v1/qt_nav_daily?select=d,equity,n_positions,spy_close,"
+           f"account_number&order=d.asc&limit=2000")
+    try:
+        req = urllib.request.Request(url, headers={"apikey": QT_SB_KEY,
+                                                  "Authorization": f"Bearer {QT_SB_KEY}",
+                                                  "User-Agent": "macrotilt-brief"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read().decode())
+    except Exception as e:
+        print(f"WARN: qt_nav_daily unreachable: {e}", file=sys.stderr)
+        return []
+
+def build_qt_book(rows):
+    """{equity, day, since, bench, bench_since, excess, names, since_date, as_of, line}
+    or None. Every number is arithmetic on qt_nav_daily; nothing is written by
+    the model."""
+    if not rows:
+        return None
+    def num(v):
+        try:
+            v = float(v)
+            return v if v > 0 else None
+        except (TypeError, ValueError):
+            return None
+    held_accts = {r["account_number"] for r in rows if (r.get("n_positions") or 0) > 0}
+    src = [r for r in rows if r.get("account_number") in held_accts] or rows
+    if not src:
+        return None
+    acct = src[-1].get("account_number")
+    nav = [r for r in src if r.get("account_number") == acct]
+    i0 = next((i for i, r in enumerate(nav) if (r.get("n_positions") or 0) > 0), None)
+    if i0 is None:
+        return None
+    held = nav[i0:]
+    last = held[-1]
+    eq = num(last.get("equity"))
+    if eq is None:
+        return None
+    spy_base = None
+    for i in range(i0 - 1, -1, -1):
+        spy_base = num(nav[i].get("spy_close"))
+        if spy_base is not None:
+            break
+    if spy_base is None and len(held) >= 2:
+        spy_base = num(held[0].get("spy_close"))
+    spy_last = num(last.get("spy_close"))
+    since = eq / QT_START_CAPITAL - 1
+    bench = (spy_last / spy_base - 1) if (spy_base and spy_last) else None
+    prev_eq = num(held[-2].get("equity")) if len(held) >= 2 else None
+    day = (eq / prev_eq - 1) if prev_eq else None
+    out = {
+        "equity": eq,
+        "day": None if day is None else f"{day*100:+.2f}%",
+        "since": f"{since*100:+.2f}%",
+        "since_date": held[0].get("d"),
+        "as_of": last.get("d"),
+        "bench": "S&P 500",
+        "bench_since": None if bench is None else f"{bench*100:+.2f}%",
+        "excess": None if bench is None else f"{(since-bench)*100:+.2f}pp",
+        "names": last.get("n_positions"),
+    }
+    out["line"] = (f"{out['since']} since {_mdy(out['since_date'])}"
+                   + (f" vs {out['bench']} {out['bench_since']}" if out["bench_since"] else "")
+                   + f" · {out['names']} names")
+    return out
 
 # ---- hard length caps (2026-08-19) ------------------------------------------
 # Joe, 2026-08-19: "I am very busy and dont have time to read thousands of words
@@ -1195,31 +1438,62 @@ def render_metrics_html(groups, recap):
     out.append('</table>')
     return "".join(out)
 
+def _book_line_html(label, value, color):
+    return (f'<tr><td style="font-family:{SANS};font-size:12px;color:{BODY};padding:2px 6px 2px 0">{label}</td>'
+            f'<td align="right" style="font-family:{MONO};font-size:12px;font-weight:700;color:{color};'
+            f'padding:2px 0;white-space:nowrap">{value}</td></tr>')
+
+def _pnl_color(v):
+    v = str(v or "")
+    return UP if v.startswith("+") else DOWN if v.startswith("-") else MUTE
+
 def render_ideas_html(ideas):
-    if not ideas or not (ideas.get("open") or ideas.get("closed")):
+    """The Macro Portfolio: one book line, then the OPEN calls. No closed calls
+    (Joe, 2026-10-14) — those live on the scorecard page."""
+    if not ideas or not (ideas.get("open") or ideas.get("book")):
         return ""
-    out = [_band("MacroTilt calls", ideas.get("line", ""))]
+    book = ideas.get("book") or {}
+    out = [_band("The Macro Portfolio", ideas.get("line", ""))]
     out.append('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">')
-    def row(r, closed=False):
-        col = UP if (r.get("pnl") or "").startswith("+") else DOWN if (r.get("pnl") or "").startswith("-") else MUTE
+    if book:
+        bl = (f'Book since {_mdy(book.get("since"))}'
+              + (f' <span style="font-family:{SANS};font-size:11px;color:{MUTE}">vs {book.get("bench")} '
+                 f'{book.get("bench_ret")}</span>' if book.get("bench_ret") else ""))
+        out.append(_book_line_html(bl, book.get("ret") or "&#8212;", _pnl_color(book.get("ret"))))
+    for r in ideas.get("open", []):
         vs = (f'<span style="font-family:{SANS};font-size:11px;color:{MUTE}"> vs '
               f'{r.get("bench") or "benchmark"} {r["vs"]}</span>') if r.get("vs") else ""
         held = f'{r["held"]}d' if r.get("held") is not None else ""
-        tail = r.get("result") if closed else held
-        return (f'<tr><td style="font-family:{SANS};font-size:12px;color:{BODY};'
-                f'padding:2px 6px 2px 0">{r["trade"]}{vs}</td>'
-                f'<td align="right" style="font-family:{MONO};font-size:12px;font-weight:700;'
-                f'color:{col};padding:2px 8px 2px 0;white-space:nowrap">{r.get("pnl") or "&#8212;"}</td>'
-                f'<td align="right" style="font-family:{SANS};font-size:11px;color:{MUTE};'
-                f'padding:2px 0;white-space:nowrap">{tail}</td></tr>')
-    for r in ideas.get("open", []):
-        out.append(row(r))
-    for r in ideas.get("closed", []):
-        out.append(row(r, closed=True))
+        out.append(f'<tr><td style="font-family:{SANS};font-size:12px;color:{BODY};'
+                   f'padding:2px 6px 2px 0">{r["trade"]}{vs}</td>'
+                   f'<td align="right" style="font-family:{MONO};font-size:12px;font-weight:700;'
+                   f'color:{_pnl_color(r.get("pnl"))};padding:2px 8px 2px 0;white-space:nowrap">{r.get("pnl") or "&#8212;"}</td>'
+                   f'<td align="right" style="font-family:{SANS};font-size:11px;color:{MUTE};'
+                   f'padding:2px 0;white-space:nowrap">{held}</td></tr>')
     out.append('</table>')
     out.append(f'<div style="margin-top:5px;font-family:{SANS};font-size:10px;color:{MUTE}">'
-               f'Marked from the close that existed when each note published; price only, no costs. '
-               f'Full notes at macrotilt.com.</div>')
+               f'Open calls, marked from the close that existed when each note published; '
+               f'book is equal-weight across open calls, price only, no costs. Closed calls and the full record at macrotilt.com.</div>')
+    return "".join(out)
+
+def render_qt_html(qt):
+    """The Quality Trend Portfolio: the 20-name single-stock paper book."""
+    if not qt or not qt.get("since"):
+        return ""
+    out = [_band("The Quality Trend Portfolio", qt.get("line", ""))]
+    out.append('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">')
+    eq = qt.get("equity")
+    out.append(_book_line_html(f'Equity <span style="font-family:{SANS};font-size:11px;color:{MUTE}">on $1,000,000, {_mdy(qt.get("as_of"))}</span>',
+                               f'${eq:,.0f}' if eq else "&#8212;", INK))
+    out.append(_book_line_html("Day", qt.get("day") or "&#8212;", _pnl_color(qt.get("day"))))
+    bl = (f'Since {_mdy(qt.get("since_date"))}'
+          + (f' <span style="font-family:{SANS};font-size:11px;color:{MUTE}">vs {qt.get("bench")} '
+             f'{qt.get("bench_since")}</span>' if qt.get("bench_since") else ""))
+    out.append(_book_line_html(bl, qt.get("since") or "&#8212;", _pnl_color(qt.get("since"))))
+    out.append('</table>')
+    out.append(f'<div style="margin-top:5px;font-family:{SANS};font-size:10px;color:{MUTE}">'
+               f'{qt.get("names")} US stocks, equal weight, rebalanced monthly on trend and profitability. '
+               f'Paper account; price returns, not the returns of any client. Holdings at macrotilt.com/paper.</div>')
     return "".join(out)
 
 def render_email_html(b):
@@ -1235,6 +1509,7 @@ def render_email_html(b):
         out.append(f'<div style="font-family:{SANS};font-size:13px;line-height:1.5;color:{BODY}">{b["stance"]}</div>')
     out.append(render_metrics_html(b.get("metrics") or [], b.get("recap_session")))
     out.append(render_ideas_html(b.get("ideas")))
+    out.append(render_qt_html(b.get("qt_book")))
     # numbered sections 1-3 (from sections[]), 4 News, 5 Implications, 6 Watch
     secs = b.get("sections", [])
     titles = ["Macro & Rates", "Equity Markets", "Credit & Liquidity"]
@@ -1291,13 +1566,19 @@ def render_email_text(b):
             stale = f"  ({r['as_of']})" if r.get("as_of") else ""
             L.append(f"  {r['label']:<10} {r['level']:>11} {(r.get('chg') or '-'):>9}{stale}")
     ideas = b.get("ideas")
-    if ideas and (ideas.get("open") or ideas.get("closed")):
+    if ideas and (ideas.get("open") or ideas.get("book")):
         L.append("")
-        L.append(f"MACROTILT CALLS — {ideas.get('line','')}")
-        for r in ideas.get("open", []) + ideas.get("closed", []):
+        L.append(f"THE MACRO PORTFOLIO — {ideas.get('line','')}")
+        for r in ideas.get("open", []):
             vs = f" vs {r.get('bench') or 'benchmark'} {r['vs']}" if r.get("vs") else ""
-            tail = r.get("result") or (f"{r['held']}d" if r.get("held") is not None else "")
-            L.append(f"  {r['trade']}: {r.get('pnl') or '-'}{vs}  {tail}")
+            held = f"{r['held']}d" if r.get("held") is not None else ""
+            L.append(f"  {r['trade']}: {r.get('pnl') or '-'}{vs}  {held}")
+    qt = b.get("qt_book")
+    if qt and qt.get("since"):
+        L.append("")
+        L.append(f"THE QUALITY TREND PORTFOLIO — {qt.get('line','')}")
+        eq = qt.get("equity")
+        L.append(f"  Equity ${eq:,.0f} on $1,000,000 ({_mdy(qt.get('as_of'))})  day {qt.get('day') or '-'}")
     L.append("")
     titles = ["Macro & Rates", "Equity Markets", "Credit & Liquidity"]
     for i, t in enumerate(titles):
@@ -1382,6 +1663,7 @@ def attach_data_blocks(brief, today):
     recap_iso = prev_trading_day(datetime.date.fromisoformat(today)).isoformat()
     brief["metrics"] = build_metrics(_fetch_indicator_history(), recap_iso)
     brief["ideas"] = build_ideas(_load_scores())
+    brief["qt_book"] = build_qt_book(_load_qt_nav())
     return brief
 
 def main():
@@ -1509,7 +1791,7 @@ def prepare_file(path):
     _open = len((brief.get("ideas") or {}).get("open") or [])
     print(f"prepared OK — {today} · recap {brief['recap_session']} · "
           f"~{count_words(brief)} words · {_rows} snapshot rows · "
-          f"{_open} open calls · {len(brief['sections'])} sections · "
+          f"{_open} open calls · QT book {'ok' if brief.get('qt_book') else 'MISSING'} · {len(brief['sections'])} sections · "
           f"{len(brief['news'])} news · {len(brief['movers'])} movers\n"
           f"headline: {brief['headline']}")
 
