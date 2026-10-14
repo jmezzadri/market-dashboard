@@ -1475,6 +1475,11 @@
    ═══════════════════════════════════════════════════════════════════════ */
 :root {
   --lg-ground: #E9EEF6;
+  /* Tooltip surface — OPAQUE on purpose. Tooltips float over whatever is
+     under the cursor, so a glass panel (58% white) is unreadable there
+     (Joe 2026-10-13). */
+  --mt-tip-bg: #FFFFFF;
+  --mt-tip-line: rgba(11,18,32,0.18);
   --lg-fg: #0B1220;
   --lg-fg2: #445069;
   --lg-link: #1D4ED8;
@@ -1533,6 +1538,8 @@
 }
 [data-mt-theme='navy'], [data-mt-theme='dark'] {
   --lg-ground: #060A14;
+  --mt-tip-bg: #141A26;
+  --mt-tip-line: rgba(255,255,255,0.22);
   --lg-fg: #FFFFFF;
   --lg-fg2: rgba(255,255,255,0.76);
   --lg-link: #BFD4FF;

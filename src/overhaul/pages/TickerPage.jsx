@@ -621,7 +621,7 @@ export default function TickerPage() {
             </div>
           </div>
           {chartMode === 'tv' ? (
-            <TradingViewChart symbol={tvSymbolFor(sym, exchange)} height={620} />
+            <TradingViewChart symbol={tvSymbolFor(sym, exchange)} height={500} />
           ) : (
           <>
           {histAll.loading ? (
@@ -632,7 +632,7 @@ export default function TickerPage() {
             <BigHistoryChart
               points={series}
               accent={chgPct >= 0 ? 'var(--mt-up)' : 'var(--mt-down)'}
-              height={showRsi ? 640 : 540}
+              height={showRsi ? 480 : 400}
               freq="D"
               overlays={overlays}
               volume={showVol ? volumeWin : null}
@@ -740,8 +740,6 @@ export default function TickerPage() {
               <KvRow label="Volume vs 30d avg" tip="Last session's volume divided by the trailing 30-day average."
                 value={tech?.vol_surge != null ? `${tech.vol_surge.toFixed(2)}×` : '—'}
                 note={tech?.vol_surge == null ? null : tech.vol_surge >= 1.5 ? 'heavy' : tech.vol_surge <= 0.7 ? 'quiet' : 'normal'} />
-              <KvRow label="52-week position" tip="Where the price sits inside its 52-week range: 0% at the low, 100% at the high."
-                value={rangePos != null ? `${rangePos.toFixed(0)}%` : '—'} />
             </dl>
           </article>
 
@@ -762,9 +760,6 @@ export default function TickerPage() {
                 value={risk.mdd1y != null ? `${(risk.mdd1y * 100).toFixed(1)}%` : '—'} tone={risk.mdd1y != null ? 'down' : ''} />
               <KvRow label="Avg daily move · 1y" tip="Mean absolute daily return over the last 252 sessions."
                 value={risk.avgAbs1y != null ? `${(risk.avgAbs1y * 100).toFixed(2)}%` : '—'} />
-              <KvRow label="Short interest" tip="FINRA settlement short interest ÷ shares outstanding. Published twice a month with a settlement lag."
-                value={finra?.short_interest_float_pct != null ? `${Number(finra.short_interest_float_pct).toFixed(1)}%` : '—'}
-                note={finra?.days_to_cover != null ? `${Number(finra.days_to_cover).toFixed(1)} days to cover` : null} />
             </dl>
           </article>
         </div>
