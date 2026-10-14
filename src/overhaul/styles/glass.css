@@ -134,6 +134,14 @@ html, body, #root { background: var(--lg-ground); }
 
 /* ── chrome: pill nav + status bar ──────────────────────────────────── */
 .mt-overhaul .mt-topnav, .mt-overhaul .mt-header { position: static; top: auto; height: auto; }
+/* The status bar must be `relative`, not `static`, or its z-index (40, set
+   with the v12 chrome) is ignored and the ticker-search dropdown — absolute,
+   inside the bar — paints underneath the market tape: both the bar and the
+   tape are glass (backdrop-filter), so each is its own stacking context and
+   the tape, later in the DOM, simply wins. Joe, 2026-10-14: "Im trying to
+   look up a stock and its covered by the banner." `relative` with top:auto
+   changes no layout; it only lets the bar's z-index count. */
+.mt-overhaul .mt-header { position: relative; }
 .mt-overhaul .mt-main, .v13.home-v12, .mt-overhaul .mt-main-wrap { padding-top: 0; }
 .mt-overhaul .mt-topnav {
   border-radius: var(--r-pill); margin: var(--sp-18) auto 0; max-width: 1400px; width: calc(100% - var(--sp-48));
