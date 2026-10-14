@@ -212,3 +212,13 @@
   .home-v12.ticker-v12 .tk-deskgrid--3 { grid-template-columns: repeat(3, 1fr); }
   .home-v12.ticker-v12 .tk-deskcell b { font-size: var(--v13-t3); }
 }
+
+/* session + reference stats inside the hero's left column (2026-10-13) */
+.home-v12.ticker-v12 .tk-sessgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-6); margin-top: var(--sp-22); }
+.home-v12.ticker-v12 .tk-sessgrid .tk-kvcell { background: var(--bg2); border-radius: var(--r-14); padding: var(--sp-9) var(--sp-12); gap: var(--sp-2); }
+.home-v12.ticker-v12 .tk-sessgrid .tk-kvcell b { font-size: var(--v13-t4); font-weight: var(--fw-500); }
+.home-v12.ticker-v12 .tk-sessfoot { margin-top: var(--sp-10); font-size: var(--v13-t1); color: var(--mut); line-height: 1.5; }
+.home-v12.ticker-v12 .tk-hero > div:first-child { min-width: 0; }
+@media (max-width: 640px) {
+  .home-v12.ticker-v12 .tk-sessgrid { grid-template-columns: repeat(2, 1fr); }
+}

@@ -655,8 +655,6 @@ export default function TickerPage() {
                     <span className="lm-flowfootsep" />
                   </>
                 )}
-                <span>Mkt cap <b className="num">{fmtMcap(marketcap)}</b></span>
-                <span className="lm-flowfootsep" />
                 <span>Vol <b className="num">{fmtVol(stockVol ?? lastBar?.volume)}</b></span>
               </div>
             </div>
@@ -733,6 +731,44 @@ export default function TickerPage() {
             )}
               </>
             )}
+          </div>
+
+          {/* Session + reference stats, under the price (was a separate
+              "Key stats" section below the chart — the hero's left column
+              sat empty beside the Trader Card). Same values, same tips. */}
+          <div className="tk-sessgrid">
+            <KvCell label="Open"      tip={`Opening price of the last completed session${priceAsOf ? ` (${fmtDateShort(priceAsOf)})` : ''}.`} value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
+            <KvCell label="Day high"  tip="Intraday high of the last completed session." value={lastBar?.high != null ? `$${fmt(lastBar.high, 2)}` : '—'} />
+            <KvCell label="Day low"   tip="Intraday low of the last completed session." value={lastBar?.low  != null ? `$${fmt(lastBar.low, 2)}`  : '—'} />
+            <KvCell label="Prev close" tip="Closing price of the session before the one shown." value={prevClose != null ? `$${fmt(prevClose, 2)}` : '—'} />
+            <KvCell label="Mkt cap"   tip="Market value — share price times shares outstanding. From the daily reference feed." value={fmtMcap(marketcap)} />
+            <KvCell
+              label="Shares out"
+              tip="Weighted shares outstanding, from the daily reference feed."
+              value={fmtVol(deep?.ref?.weighted_shares_outstanding ?? deep?.ref?.share_class_shares_outstanding ?? null)}
+            />
+            <KvCell
+              label="Div yield"
+              tip={divYield.note === 'none'
+                ? 'No dividends on record in the corporate-actions pipeline.'
+                : divYield.note === 'stale'
+                  ? 'Last recorded dividend was over a year ago — no current yield.'
+                  : 'Latest regular cash dividend annualized by its declared frequency, divided by the last close. From the corporate-actions pipeline.'}
+              value={divYield.value != null
+                ? `${(divYield.value * 100).toFixed(2)}%`
+                : divYield.note === 'none' ? 'None' : '—'}
+            />
+            <KvCell
+              label="Listed"
+              tip="Year this ticker first listed on its exchange."
+              value={deep?.ref?.list_date ? String(deep.ref.list_date).slice(0, 4) : '—'}
+            />
+          </div>
+          <div className="tk-sessfoot">
+            {priceAsOf ? `${isIntraday ? 'Intraday' : 'Prior close'} ${fmtDateShort(priceAsOf)} · ` : ''}
+            open, high, low and average volume from the daily price history; market cap and
+            shares from the daily reference feed; dividend yield from the corporate-actions
+            pipeline. Hover ⓘ for a definition.
           </div>
         </div>
         {/* Trader Card (Joe 2026-10-13): the top-right slot used to hold the
@@ -886,60 +922,6 @@ export default function TickerPage() {
           </>
           )}
         </article>
-      </Reveal>
-
-      {/* Key stats grid */}
-      <Reveal as="section" className="mt-pagesection">
-        <div className="mt-sectionhead-tight">
-          <div className="mt-eyebrow">
-            Key stats{priceAsOf ? ` · ${isIntraday ? 'intraday' : 'prior close'} ${fmtDateShort(priceAsOf)}` : ''}
-          </div>
-          <FreshnessChip elementId="market-prices_eod-daily" variant="label" />
-        </div>
-        <div className="tk-keygrid">
-          <KvCell label="Open"      tip={`Opening price of the last completed session${priceAsOf ? ` (${fmtDateShort(priceAsOf)})` : ''}.`} value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
-          <KvCell label="Prev close" tip="Closing price of the session before the one shown." value={prevClose != null ? `$${fmt(prevClose, 2)}` : '—'} />
-          <KvCell label="Day high"  tip="Intraday high of the last completed session — not the 52-week high below." value={lastBar?.high != null ? `$${fmt(lastBar.high, 2)}` : (snap?.high != null ? `$${fmt(snap.high, 2)}` : '—')} />
-          <KvCell label="Day low"   tip="Intraday low of the last completed session — not the 52-week low below." value={lastBar?.low  != null ? `$${fmt(lastBar.low, 2)}`  : (snap?.low  != null ? `$${fmt(snap.low, 2)}`  : '—')} />
-          <KvCell label="52w high"  tip="Highest intraday price over the trailing ~252 trading days (about one year)." value={hi52 != null ? `$${fmt(hi52, 2)}` : '—'} />
-          <KvCell label="52w low"   tip="Lowest intraday price over the trailing ~252 trading days (about one year)." value={lo52 != null ? `$${fmt(lo52, 2)}` : '—'} />
-          <KvCell label="Avg vol"   tip="Average daily share volume over the last 30 trading sessions." value={fmtVol(avgVol)} />
-          <KvCell label="Mkt cap"   tip="Market value — share price times shares outstanding. From the daily reference feed." value={fmtMcap(marketcap)} />
-          <KvCell
-            label="Div yield"
-            tip={divYield.note === 'none'
-              ? 'No dividends on record in the corporate-actions pipeline.'
-              : divYield.note === 'stale'
-                ? 'Last recorded dividend was over a year ago — no current yield.'
-                : 'Latest regular cash dividend annualized by its declared frequency, divided by the last close. From the corporate-actions pipeline.'}
-            value={divYield.value != null
-              ? `${(divYield.value * 100).toFixed(2)}%`
-              : divYield.note === 'none' ? 'None' : '—'}
-          />
-          <KvCell
-            label="Beta · 1y"
-            tip="Sensitivity to the S&P 500: covariance of daily returns vs SPY over variance of SPY, trailing year of daily closes. Dash when under six months of overlapping history."
-            value={beta1y != null ? beta1y.toFixed(2) : '—'}
-          />
-          <KvCell
-            label="Shares out"
-            tip="Weighted shares outstanding, from the daily reference feed."
-            value={fmtVol(deep?.ref?.weighted_shares_outstanding ?? deep?.ref?.share_class_shares_outstanding ?? null)}
-          />
-          <KvCell
-            label="Listed"
-            tip="Year this ticker first listed on its exchange."
-            value={deep?.ref?.list_date ? String(deep.ref.list_date).slice(0, 4) : '—'}
-          />
-        </div>
-
-        <div className="tk-emptyfoot">
-          Open, day high/low, average volume, and beta come from the daily price
-          history; market cap from the daily reference feed; dividend yield from the
-          corporate-actions pipeline. The setup, returns and positioning on the card
-          up top are computed from the same daily history. Hover the ⓘ on any tile
-          for its definition.
-        </div>
       </Reveal>
 
       {/* Company overview — restored from the old detail view */}
