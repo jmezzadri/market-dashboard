@@ -1137,16 +1137,6 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer, Data Steward — every producer of a daily market series.
 
-### 4.42 (2026-10-14, health sweep) — A rule that spots the "live quote" by its timestamp must know when the session has ENDED; otherwise a finished overseas close is thrown away every evening
-
-**What happened:** The header read "1 feed stale" — `n225_index` red since 02:00 UTC, data_as_of Oct 9 on Oct 14. The 2026-10-09 `daily_bars()` rule (4.41) drops the entry stamped at `regularMarketTime` off the series' usual stamp as "the live quote". Yahoo keeps a finished Nikkei/DAX session stamped at its close time (15:30 Tokyo, 17:30 Frankfurt) for hours, so the evening run dropped it as live — git history shows every evening commit since Oct 9 carrying ^RUT for the day but ^N225/^GDAXI one session behind, with no completed-session-guard line in the log. Only the next morning pass caught them up. A Tokyo holiday (Mon Oct 12) on top of that one-session lag pushed n225 past its 54h window.
-
-**Rule:** A "live quote" test must be gated on the session clock, not just the stamp (the same principle as 4.32). For instrumentType INDEX, the entry at `regularMarketTime` is kept as that date's close once `currentTradingPeriod.regular` has ended — or Yahoo has already rolled the period to a later local day — and a real bar for the date still wins. FX and futures are untouched. The producer logs `closed-index session kept:` each time it uses this path.
-
-**Verify (next sweep):** the first evening MARKET-INDICATORS-EOD run after this ships should print `closed-index session kept: ^N225 …` and `^GDAXI …` with that day's date, and its commit should carry n225/dax for the same session as ^RUT. Yahoo is not reachable from the cloud sweep (gateway 429), so the vendor check is that run log.
-
-**Applies to:** Lead Developer, Data Steward — every producer of a daily series from a vendor that appends a live entry.
-
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.
@@ -1904,6 +1894,19 @@ Two things went wrong on the way to shipping it that are worth keeping. (1) The 
 **Rule:** a yardstick is read on or BEFORE the date it is compared at, never on or after, and its own date is recorded beside it (`benchmark.as_of`). A lag longer than a long weekend (`BENCHMARK_MAX_LAG_DAYS`) is a stale yardstick: blank, on purpose. Any "first on or after" lookup at the END of a window is a bug until proven otherwise — it is right only for choosing a start. Tests: `test_benchmark_uses_the_index_last_close_when_the_call_is_marked_later`, `test_benchmark_stays_blank_when_the_index_is_stale`.
 
 **Applies to:** Senior Quant, Lead Developer — every comparison between two series with different publication clocks.
+
+### 6.25 (2026-10-14) — The book test is risk-adjusted return, not a volatility cap; and the Trade Idea and the X Chart are one piece of research with two outputs, both behind Joe's approval
+
+**What happened:** Two things on the same morning. (1) The 2026-10-07 book rule had two halves — raise the book's excess return per unit of risk AND keep the book's volatility at or below the S&P's. The second half deadlocked on 2026-10-09 (the open book already ran hotter than the index, so no addition could pass) and Joe corrected the objective: *"the book doesn't need to be calmer, per se. So long as RISK ADJUSTED EXPECTED RETURN IS HIGHER it's OK."* (2) Joe asked what was spending his cloud-session credit; the answer was two scheduled tasks doing the same market sweep twice a morning without talking to each other — the Trade Idea note publishing straight to the site with no approval and no chart, and the X Chart inventing a second idea from scratch in a 42-minute run. He wants one research engine, sub-agents reading widely (other analysts' research, positioning, flows, filings, single names), one original idea, and the note AND the chart reviewed by email before either goes anywhere.
+
+**Rule:**
+
+1. The only book-level test is that adding the call raises the book's expected return over the S&P per unit of volatility (`build_trade_idea.py` rule 3i). Book volatility above the S&P's is reported, never rejected.
+2. One scheduled task produces the Trade Idea and its X chart. The chart depicts the note's idea; it never carries an idea of its own. The research fan-out (parallel sub-agents by domain, the newsletter read, the street's consensus) runs before the sweep, every run.
+3. Nothing publishes without Joe's tap. The approval row (`x_pending_posts`) carries the prepared note; Approve commits the note to the site (the scorer and the Scorecard follow from that automatically) and posts the chart to X. Request-changes feeds the next run. The X monthly cap (10) is X's own limit on automated posts and stays; the note's 2-per-7-days contract keeps the task under it.
+4. The weekly thesis review is unchanged and reads the same `review_conditions[]`.
+
+**Applies to:** the Trade Idea + X Chart session, Senior Quant, Lead Developer, the weekly thesis review.
 
 # 7 · CODE & RELEASE DISCIPLINE
 ### 7.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component

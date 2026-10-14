@@ -95,8 +95,9 @@ MIN_EXPECTED_RETURN_PCT = 15.0
 #       12 months 20%, 18 months 30%);
 #   (b) still pay at least twice its loss at the stop;
 #   (c) be INCREMENTAL to the open book: adding it must raise the book's
-#       expected return over the S&P per unit of risk, and leave the book's
-#       volatility at or below the S&P's over the same sessions.
+#       expected return over the S&P per unit of risk (risk-adjusted expected
+#       return). The 2026-10-07 cap on book volatility was withdrawn
+#       2026-10-14 (Joe: a higher risk-adjusted return is the only test).
 # The open book is the calls the scorer marks open — a stopped or broken call
 # is not a position, whatever its original horizon said.
 BOOK_RULES_FROM = "2026-10-07"
@@ -1243,23 +1244,18 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                 exp_new = (sum(paces) + my_pace) / (n + 1)
                 if vol_new is None or vol_spx is None:
                     raise ContractError("book test: volatility could not be computed")
-                # 2026-10-09 — the test deadlocked. The open book (natural gas,
-                # short wheat, yen) already ran at 17.3% against the S&P's
-                # 11.5%, so NO single addition could pass, including one that
-                # lowered the book's volatility (energy stocks: 17.3% -> 14.7%).
-                # When the book is already above the market, a candidate passes
-                # this test only if it brings the book's volatility DOWN; the
-                # shortfall is reported, not hidden.
-                vol_before = _ann_vol([sum(r[d] for _, r in book_rets) / n for d in common]) if n else None
-                calmer = (vol_before is not None and vol_before > vol_spx and vol_new < vol_before)
-                if vol_new > vol_spx and calmer:
+                # 2026-10-14 (Joe): "the book doesn't need to be calmer, per
+                # se. So long as RISK ADJUSTED EXPECTED RETURN IS HIGHER it's
+                # OK." The volatility cap (book vol <= S&P vol, 2026-10-07) is
+                # withdrawn: it deadlocked on 2026-10-09 and it was never the
+                # point. The one test that remains is the ratio below — adding
+                # the call must RAISE the book's excess return per unit of
+                # volatility. Book volatility against the S&P's is still
+                # reported in the line so the stance can quote it.
+                if vol_new > vol_spx:
                     warnings.append(
-                        f"book volatility is above the S&P's ({vol_spx:.1f}%) before and after this call, but the call "
-                        f"lowers it: {vol_before:.1f}% -> {vol_new:.1f}% over {len(common)} sessions")
-                if vol_new > vol_spx and not calmer:
-                    raise ContractError(
-                        f"with this call the book's volatility would be {vol_new:.1f}% a year against the S&P's "
-                        f"{vol_spx:.1f}% over the same {len(common)} sessions — the book must stay calmer than the market")
+                        f"book volatility with this call is {vol_new:.1f}% a year against the S&P's {vol_spx:.1f}% "
+                        f"over {len(common)} sessions — allowed; the risk-adjusted test below is the one that binds")
                 ratio_new = (exp_new - MARKET_ANNUAL_PCT) / vol_new
                 line = (f"book test: {n} open call(s) + this one — expected {exp_new:.1f}% a year vs the S&P's "
                         f"{MARKET_ANNUAL_PCT:g}%, volatility {vol_new:.1f}% vs the S&P's {vol_spx:.1f}%")

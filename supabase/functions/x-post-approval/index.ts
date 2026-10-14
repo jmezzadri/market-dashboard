@@ -19,6 +19,13 @@
 // same-day-ET expiry, one-shot claim via conditional UPDATE. Service-role DB access.
 // Posting routes: (1) X API OAuth1 creds in ops_secrets; (2) fallback: typefully_api_key.
 // Chart bytes fetched from the x-charts branch at the row's pinned chart_sha via github_pat.
+// v6 (2026-10-14): the row may carry the Trade Idea NOTE (note_b64 = prepared public/trade_ideas.json).
+// Approve then does two things in order: (1) commit the note to main through ops-code-commit (the
+// scorer and the Scorecard follow automatically), (2) post the chart to X — unless post_to_x is false
+// (X monthly cap reached), in which case the row ends as 'published' (note live, nothing on X; that
+// status does NOT count toward the 10/month automation cap, which counts 'posted' only).
+// If the note commit fails nothing posts to X: a chart on X for a note that is not on the site is
+// exactly the inconsistency the one-approval design exists to prevent.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -58,7 +65,7 @@ textarea{width:100%;box-sizing:border-box;min-height:120px;font-size:16px;paddin
 </style></head><body><div class="wrap">
 <div class="brand">Macro<em>Tilt</em></div>
 <div class="card">${body}</div>
-<div class="foot">macrotilt.com &middot; Daily X Chart approval</div>
+<div class="foot">macrotilt.com &middot; Trade Idea &amp; X Chart approval</div>
 </div></body></html>`;
   return new Response(html, {
     status: ok ? 200 : 400,
@@ -245,10 +252,48 @@ async function backfillTweetUrl(setId: string, draftId: string, apiKey: string, 
   }
 }
 
+// ---------- note commit (v6) ----------
+const OPS_COMMIT = "https://yqaqqzseepebrocgibcw.supabase.co/functions/v1/ops-code-commit";
+async function commitNote(row: any, pushToken: string): Promise<string> {
+  const body = {
+    branch: `idea/${row.post_date}`,
+    commit_message: `Trade idea — ${row.post_date}${row.note_title ? ": " + String(row.note_title).slice(0, 80) : ""}`,
+    pr_title: `Trade idea — ${row.post_date}`,
+    pr_body: "Approved by Joe from the approval email (x-post-approval v6). Validated by build_trade_idea.py --prepare-file before it was queued.",
+    merge: true,
+    files: [{ path: "public/trade_ideas.json", content_b64: row.note_b64 }],
+  };
+  const r = await fetch(OPS_COMMIT, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${pushToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const txt = await r.text();
+  let j: any = {};
+  try { j = JSON.parse(txt); } catch (_) { /* fallthrough */ }
+  if (!r.ok || !j?.ok) throw new Error(`note commit failed ${r.status}: ${(j?.error || txt).toString().slice(0, 300)}`);
+  if (!j.merge_sha) throw new Error(`note PR opened but not merged (${j.pr_url || "no url"})`);
+  return String(j.merge_sha);
+}
+
 // ---------- background publish flow (runs via EdgeRuntime.waitUntil after instant ack) ----------
 async function publishFlow(row: any): Promise<void> {
-  const s = await getSecrets(["x_api_key", "x_api_secret", "x_access_token", "x_access_token_secret", "github_pat", "typefully_api_key"]);
+  const s = await getSecrets(["x_api_key", "x_api_secret", "x_access_token", "x_access_token_secret", "github_pat", "typefully_api_key", "gh_push_token"]);
   try {
+    // v6 — the note goes to the site FIRST. If it cannot, nothing goes to X.
+    if (row.note_b64 && !row.note_committed_at) {
+      if (!s.gh_push_token) throw new Error("note commit: gh_push_token missing");
+      const sha = await commitNote(row, s.gh_push_token);
+      const stamp = new Date().toISOString();
+      await supabase.from(TABLE).update({ note_commit_sha: sha || null, note_committed_at: stamp, updated_at: stamp }).eq("id", row.id);
+      row.note_committed_at = stamp;
+    }
+    if (row.note_b64 && row.post_to_x === false) {
+      await supabase.from(TABLE).update({
+        status: "published", posted_at: new Date().toISOString(), updated_at: new Date().toISOString(), error: null,
+      }).eq("id", row.id);
+      return;
+    }
     if (s.x_api_key && s.x_api_secret && s.x_access_token && s.x_access_token_secret) {
       const creds = { key: s.x_api_key, secret: s.x_api_secret, token: s.x_access_token, tokenSecret: s.x_access_token_secret };
       const png = await fetchChartPng(row.chart_sha, s.github_pat);
@@ -301,7 +346,11 @@ Deno.serve(async (req: Request) => {
     // Terminal states
     if (row.status === "posted") {
       const btn = row.tweet_url ? `<a class="btn gold" href="${row.tweet_url}">View the post on X</a>` : "";
-      return page("Posted", `<h1 class="ok">Posted &#10003;</h1><p>This chart is live on @WeTheSheeple46.</p>${btn}`);
+      const noteLine = row.note_b64 ? " The note is live on macrotilt.com." : "";
+      return page("Posted", `<h1 class="ok">Posted &#10003;</h1><p>This chart is live on @WeTheSheeple46.${noteLine}</p>${btn}`);
+    }
+    if (row.status === "published") {
+      return page("Published", `<h1 class="ok">Published &#10003;</h1><p>The note is live on macrotilt.com and the Scorecard will pick it up at the afternoon mark. Nothing went to X: this month's automated-post allowance is used up.</p><a class="btn gold" href="https://macrotilt.com/">Open the site</a>`);
     }
     if (row.status === "cancelled" || row.status === "expired") {
       return page("Expired", `<h1 class="bad">This one's closed</h1><p>This chart ${row.status === "expired" ? "expired unposted" : "was cancelled"}. Tomorrow's chart will come with fresh buttons.</p>`, false);
@@ -310,12 +359,15 @@ Deno.serve(async (req: Request) => {
     // ----- live status page (safe to hit any time; auto-refreshes while in flight) -----
     if (a === "status") {
       if (row.status === "approved") {
-        return page("Posting", `<h1><span class="spin"></span>Posting to X&hellip;</h1>
-          <p>Approved &#10003; &mdash; the post goes out within ~2 minutes (X requires queued publishing for posts with links). This page updates itself; you can close it, it posts either way.</p>`,
+        const what = row.note_b64 ? "Publishing the note, then posting to X" : "Posting to X";
+        return page("Posting", `<h1><span class="spin"></span>${what}&hellip;</h1>
+          <p>Approved &#10003; &mdash; ${row.note_b64 ? "the note goes to macrotilt.com first, then " : ""}the post goes out within ~2 minutes (X requires queued publishing). This page updates itself; you can close it, it finishes either way.</p>`,
           true, statusUrl(u, id, t), 5);
       }
       if (row.status === "failed") {
-        return page("Failed", `<h1 class="bad">Posting failed</h1><p>Nothing went out. Tap Approve in the email again to retry &mdash; the hourly checker has flagged it too.</p>`, false);
+        const why = row.error ? `<div class="cap">${escapeHtml(String(row.error)).slice(0, 300)}</div>` : "";
+        const stage = row.note_b64 && !row.note_committed_at ? "The note did not reach the site, so nothing was posted to X." : "Nothing went out.";
+        return page("Failed", `<h1 class="bad">It did not go through</h1><p>${stage} Tap Approve in the email again to retry.</p>${why}`, false);
       }
       // pending / changes_requested
       return page("Waiting", `<h1>Not approved yet</h1><p>This chart is still waiting on your Approve tap in the email.</p>`);
@@ -331,7 +383,7 @@ Deno.serve(async (req: Request) => {
     // ----- request-changes form -----
     if (a === "changes") {
       return page("Request changes", `<h1>What should change?</h1>
-        <p>Plain English is fine — the morning run will rebuild the chart and email you a fresh approval.</p>
+        <p>Plain English is fine — the next run reads this, redoes the ${row.note_b64 ? "idea, the note and the chart" : "chart"}, and emails you a fresh approval.</p>
         <div class="cap">${escapeHtml(row.caption)}</div>
         <form method="POST" action="${PUBLIC_BASE}">
           <input type="hidden" name="id" value="${id}"><input type="hidden" name="t" value="${t}">
@@ -345,7 +397,7 @@ Deno.serve(async (req: Request) => {
       await supabase.from(TABLE).update({
         status: "changes_requested", change_feedback: feedback, updated_at: new Date().toISOString(),
       }).eq("id", id).in("status", ["pending", "failed", "changes_requested"]);
-      return page("Got it", `<h1 class="ok">Got it &#10003;</h1><p>A revised chart and caption will land in your inbox shortly (checker runs hourly through early afternoon). Nothing posts until you approve.</p>`);
+      return page("Got it", `<h1 class="ok">Got it &#10003;</h1><p>Your note is saved for the next run, which will redo it and email a fresh approval. Nothing publishes until you approve.</p>`);
     }
 
     // ----- approve: claim, ack instantly, publish in background -----
@@ -367,8 +419,13 @@ Deno.serve(async (req: Request) => {
       if (rt?.waitUntil) rt.waitUntil(bg);
       else await bg; // fallback: synchronous (v3 behavior)
 
+      const ack = claimed.note_b64
+        ? (claimed.post_to_x === false
+          ? "Publishing the note to macrotilt.com now. X is skipped this time (monthly allowance used)."
+          : "Publishing the note to macrotilt.com, then posting the chart to X &mdash; live within ~2 minutes.")
+        : "Posting to X now &mdash; live within ~2 minutes (X requires queued publishing for posts with links).";
       return page("Approved", `<h1 class="ok">Approved &#10003;</h1>
-        <p><span class="spin"></span>Posting to X now &mdash; live within ~2 minutes (X requires queued publishing for posts with links). This page updates itself; you can close it, it posts either way.</p>`,
+        <p><span class="spin"></span>${ack} This page updates itself; you can close it, it finishes either way.</p>`,
         true, statusUrl(u, id, t), 6);
     }
 
