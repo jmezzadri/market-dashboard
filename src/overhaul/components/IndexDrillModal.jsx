@@ -75,6 +75,7 @@ export const INDEX_DRILLS = {
     key: 'dax_index',
     name: 'DAX',
     eyebrow: 'German equities',
+    returnNote: 'The DAX is a total-return index (dividends reinvested), so these are total returns, not price returns.',
     blurb: 'Germany\'s 40 largest listed companies, total-return (dividends reinvested). Export- and industry-heavy — autos, chemicals, machinery — so it is the cleanest equity read on European energy costs, Chinese demand and the euro.',
     source: 'Yahoo Finance ^GDAXI daily closes (Frankfurt session, CET date).',
   },
@@ -83,6 +84,7 @@ export const INDEX_DRILLS = {
     name: 'Bitcoin',
     eyebrow: 'Crypto — risk appetite',
     blurb: 'Bitcoin in US dollars, traded around the clock. On a macro desk it is read as a high-beta risk-appetite and dollar-liquidity gauge: it leads or exaggerates the Nasdaq when liquidity is easing and sells off hardest when it tightens.',
+    returnNote: 'Bitcoin pays nothing, so these price returns are its total returns.',
     source: 'Yahoo Finance BTC-USD daily closes (UTC date; the market never closes, so each point is the day\'s last price).',
   },
 };
@@ -239,9 +241,8 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
               ))}
             </div>
             <div style={{ marginTop: 'var(--sp-10)', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>
-              Price return on the index level — no dividends, so it understates a total-return benchmark
-              by roughly the index's dividend yield per year. Windows are calendar-anchored and measured
-              from the last stored close; the live quote above is not mixed into them.
+              {def.returnNote || 'Price return on the index level — no dividends, so it understates a total-return benchmark by roughly the index\'s dividend yield per year.'}{' '}
+              Windows are calendar-anchored and measured from the last stored close; the live quote above is not mixed into them.
             </div>
           </>
         ) : (
