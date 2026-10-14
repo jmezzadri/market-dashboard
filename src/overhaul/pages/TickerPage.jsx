@@ -902,6 +902,11 @@ function riskStats(rows) {
   return { vol30, vol1y, mdd1y: rows.length >= 120 ? mdd : null, avgAbs1y };
 }
 
+function freqLabel(f) {
+  const m = { 12: 'monthly', 4: 'quarterly', 2: 'semi-annual', 1: 'annual', 0: 'one-time' };
+  return f == null ? '' : (m[Number(f)] || String(f));
+}
+
 function toneOf(v) { return v == null ? '' : v >= 0 ? 'up' : 'down'; }
 
 /* ---------- cockpit pieces ---------- */
@@ -1004,7 +1009,7 @@ function CompanyPanel({ deep, sector, exchange, sharesOut }) {
           {dividends.length === 0 ? <div className="tk-tape-s">None on file.</div> : (
             <ul className="tk-corplist num">
               {dividends.map((d) => (
-                <li key={d.ex_dividend_date}><span>{fmtDateShort(d.ex_dividend_date)}</span><b>{d.cash_amount != null ? `$${Number(d.cash_amount).toFixed(2)}` : '—'}</b><span>{d.frequency || ''}</span></li>
+                <li key={d.ex_dividend_date}><span>{fmtDateShort(d.ex_dividend_date)}</span><b>{d.cash_amount != null ? `$${Number(d.cash_amount).toFixed(2)}` : '—'}</b><span>{freqLabel(d.frequency)}</span></li>
               ))}
             </ul>
           )}
