@@ -17,8 +17,8 @@
    Conviction Events content is deleted, not archived (LESSONS 0.10).
 
    §02 relabels from "Scanner" to "Idea feeds" — the Scanner PAGE left the
-   nav on 2026-08-11, but Power Trend and RSI Divergences still render on
-   Home and Ticker pages, so their rules still need a home here. The id
+   nav on 2026-08-11; the Power Trend list is still published monthly, so
+   its rule still needs a home here. The id
    stays "scanner" so old #scanner deep links keep landing (as do
    #power-trend). #conviction-events is gone with its book; #divergences went
    with the RSI-divergence scan (retired 2026-10-13).
@@ -306,13 +306,10 @@ export default function MethodologyPage() {
           <div className="me-num">02</div>
           <div>
             <div className="mt-eyebrow">Idea feeds</div>
-            <h2 className="me-h2">Two idea screens · neither is traded</h2>
+            <h2 className="me-h2">One idea screen</h2>
             <p className="me-body-p">
-              Two screens run on their own schedules and surface ideas — <b>neither feeds the
-              Paper book</b> (section 03), which trades its own strategy. <b>Power Trend
-              Momentum</b> is a monthly momentum list shown on the home page and on a
-              ticker&rsquo;s own page. <b>RSI Divergences</b> is a daily screen shown on a
-              ticker&rsquo;s own page. Everything below is the rule each one actually runs,
+              One screen runs on its own schedule and surfaces ideas. <b>Power Trend
+              Momentum</b> is a monthly momentum list. Below is the rule it actually runs,
               including the exact thresholds.
             </p>
 
