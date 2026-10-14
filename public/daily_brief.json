@@ -5,23 +5,23 @@
   "news": [
     {
       "head": "ASML: customers asking for 2029-30 slots",
-      "body": "Q3 EPS EUR12.93 vs 10.96 est. 2026 sales guide EUR44-45bn. Sees 2027-28 supply short of demand."
+      "body": "Q3 EPS EUR12.93 vs 10.96 est. 2026 sales guide EUR44-45bn. Stock +2.2% in Amsterdam (~5:30am ET)."
     },
     {
-      "head": "Banks beat, stocks fell Tuesday",
-      "body": "Citi -5.6%, Wells -3.1%, JPMorgan -0.9%, Goldman -0.2%. Goldman equities trading +72% y/y."
+      "head": "Goldman +72% equities trading, JPMorgan misses",
+      "body": "Citi -5.6%, Wells -3.1%, JPMorgan -0.9%, Goldman -0.2% Tuesday. JPMorgan provision $2.74bn, 19% lower y/y."
     },
     {
       "head": "BofA fined $1.2bn on AML failures",
       "body": "OCC's $750m is its largest ever. About 17c a share hit. Stock -1.5% pre-market (~4:45am ET)."
     },
     {
-      "head": "Iran changes Hormuz tactics",
-      "body": "Two vessels struck Tuesday. Houthis hit Aramco's Dhahran headquarters. Iranian officials say goal is high oil into the midterms."
+      "head": "J&J -5.7% Tuesday on guidance",
+      "body": "Raised full-year outlook, midpoint below estimates. Worst Dow stock."
     }
   ],
   "implications": [
-    "ASML's order visibility cuts against the AI capex scare. Memory weakness looks like a China competition story.",
+    "Order visibility into 2030 at the lithography bellwether cuts against the AI capex scare. Memory weakness looks like a China competition story.",
     "Fed speakers lean to December, not October. A 0.3% core month reopens October."
   ],
   "watch": [
@@ -31,7 +31,7 @@
     },
     {
       "head": "BofA, Morgan Stanley, BlackRock report today",
-      "body": "BofA carries the $1.2bn charge. Equities trading is the line to watch after Goldman."
+      "body": "Equities trading is the line to watch after Tuesday's prints."
     },
     {
       "head": "Beige Book, 2pm today",
@@ -48,7 +48,7 @@
       "bullets": [
         "10y 5.198% (~5am ET), falling a second session. 30y 5.550%, lower four straight sessions.",
         "Oct 28 hold odds 78%, December hike 88% (~5am ET). Williams: one more hike this year, none in 2027.",
-        "Waller: AI demand already in prices, hikes need not be consecutive. Collins and Barkin back more tightening."
+        "Brent $105.92, +0.2% (~5:45am ET). Two vessels struck in Hormuz Tuesday; Houthis hit Aramco's Dhahran headquarters."
       ],
       "positioning": "COT, Oct 6: Ultra Bond specs extended long at the 88th percentile, new this week, up 25 points.",
       "single_name": null
@@ -56,9 +56,9 @@
     {
       "title": "Equity Markets",
       "bullets": [
-        "Futures (~4:45am ET): Dow +0.22%, S&P +0.10%, Nasdaq 100 +0.19%. ASML +2.2% in Amsterdam (~5:30am ET).",
+        "Futures (~4:45am ET): Dow +0.22%, S&P +0.10%, Nasdaq 100 +0.19%.",
         "SOX fell a fifth straight session Tuesday. Kospi -0.4% Wednesday after a 2% early bounce.",
-        "J&J -5.7% Tuesday on a guidance midpoint below estimates. Worst Dow stock."
+        "Banks beat and fell Tuesday. Equities trading carried the quarter; fixed income flat to down."
       ],
       "positioning": "COT, Oct 6: VIX specs extended short at the 10th percentile, new this week, down 8 points.",
       "single_name": null
@@ -66,9 +66,8 @@
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "JPMorgan Q3 provision $2.74bn, 19% lower y/y. Net charge-offs $2.2bn, down over $300m.",
-        "Dimon says JPMorgan is tightening underwriting. Wells flags rates and inflation pressure on borrowers the longer they last.",
-        "Brent $105.92, +0.2% (~5:45am ET). Brent-WTI spread near $13, widest in over a decade."
+        "Big-bank provisions fell y/y and charge-offs ran below last year. No credit stress in Tuesday's prints.",
+        "Bank CEOs flag tightening underwriting and rate pressure on borrowers the longer 5% yields last."
       ],
       "positioning": "Listed BDCs trade at a median 0.85x reported NAV as of Oct 12.",
       "single_name": null
@@ -292,8 +291,8 @@
         },
         {
           "label": "DXY",
-          "level": "102.17",
-          "chg": "-0.40%",
+          "level": "102.18",
+          "chg": "-0.39%",
           "dir": "down"
         },
         {
@@ -354,42 +353,28 @@
         "horizon": 2
       }
     ],
-    "closed": [
-      {
-        "trade": "Long 10-year Treasury",
-        "date": "2026-08-24",
-        "kind": "rates",
-        "held": 18,
-        "pnl": "-2.93%",
-        "vs": "-2.58pp",
-        "bench": "S&P 500",
-        "horizon": 12,
-        "result": -2.9336
-      },
-      {
-        "trade": "Long KBW / Short NASDAQ",
-        "date": "2026-08-17",
-        "kind": "equity",
-        "held": 33,
-        "pnl": "-12.23%",
-        "vs": "-10.50pp",
-        "bench": "S&P 500",
-        "horizon": 6,
-        "result": -12.226
-      },
-      {
-        "trade": "Long 10y TIPS / Short 10y UST",
-        "date": "2026-08-16",
-        "kind": "rates",
-        "held": 33,
-        "pnl": "+0.23%",
-        "vs": "+1.95pp",
-        "bench": "S&P 500",
-        "horizon": 6,
-        "result": 0.2309
-      }
-    ],
+    "book": {
+      "since": "2026-08-13",
+      "as_of": "2026-10-13",
+      "ret": "-0.53%",
+      "bench": "S&P 500",
+      "bench_ret": "+0.08%",
+      "excess": "-0.61pp",
+      "closed": 4
+    },
     "as_of": "2026-10-14",
-    "line": "4 open · 4 closed — no hit rate until 10 (too few to mean anything)"
+    "line": "-0.53% since 2026-08-13 vs S&P 500 +0.08% · 4 open"
+  },
+  "qt_book": {
+    "equity": 1093440.44,
+    "day": "+0.02%",
+    "since": "+9.34%",
+    "since_date": "2026-09-01",
+    "as_of": "2026-10-13",
+    "bench": "S&P 500",
+    "bench_since": "+1.43%",
+    "excess": "+7.92pp",
+    "names": 20,
+    "line": "+9.34% since 2026-09-01 vs S&P 500 +1.43% · 20 names"
   }
 }
