@@ -1066,11 +1066,11 @@ e. Push `chart.png`, `caption.txt` and `meta.json` in ONE commit through the
    `{"ok":true,"commit_sha":"..."}`; if not, report the error field and stop.
 f. Pin the chart: `update x_pending_posts set chart_sha='<commit_sha>' where
    id='<id>';`
-g. Record the outcome with `select * from ops_record_publish('trade_ideas')`
-   ONLY after Joe's approval lands the note (the next run checks: a row from a
-   prior day with `note_committed_at` set and `pipeline_health.last_good_at`
-   older than it means the publish was never recorded — record it then). On a
-   day nothing was queued, record the skip as before.
+g. Record the outcome: `select * from ops_record_publish('trade_ideas')` on
+   a day a note was queued for approval (it only resets the skip counter —
+   a note cleared the bar; whether it goes live is Joe's call and the site's
+   own freshness stamp follows the commit). On a day nothing was queued,
+   `select * from ops_record_skip('trade_ideas', '<one sentence why>')`.
 
 **6. Verify delivery.** Wait ~90 seconds, then search Joe's Gmail
 (`search_threads`, query: `subject:"Approve today's Trade Idea" newer_than:1d`)
