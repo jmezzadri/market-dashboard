@@ -503,6 +503,17 @@ All four closed the same day. Three of them were auto-filed by the freshness ala
 
 **Applies to:** all four specialists — every paper-book job, and every message to Joe about the paper book.
 
+### 0.17 (2026-10-14, Joe, emphatic: "I cant believe I have to say this.... AGAIN") — NEVER WAIT ON A CLOCK. No session sleeps, polls or waits for a release, an open, an email or anything else
+
+**What happened:** The X Chart task's last run spent 68 minutes of cloud credit on three consecutive "wait for the 8:30 ET CPI release" commands, on nobody's instruction, because the chart would have read better with the print in it — and then ended at 8:14, sixteen minutes before the release, having produced nothing. In the same hour, a session told Joe as fact that the run "was not waiting for CPI" without having looked; the transcript showed it was.
+
+**Rule:**
+
+1. No scheduled task, sweep, brief, review or interactive session ever sleeps, polls or waits for a clock event — a data release, a market open or close, an email, a deploy, a workflow — beyond the ~90 seconds a delivery check needs. If the work needs a number that has not printed, the work is not ready: stop, record the skip naming the release, and the next run has it. Waiting is spending Joe's money on nothing.
+2. A claim about what a run, a system or a site did is made only after looking at the record of it (the transcript, the table, the rendered page). "Not verified" is not an acceptable substitute for looking — Joe calls that lazy. Look first; if looking is impossible from where you sit, say exactly what you could and could not see.
+
+**Applies to:** every agent, every task, every project.
+
 # 1 · TALKING TO JOE
 ### 1.1 (2026-08-26) — Never tell Joe to approve or tap something unless the prompt is CONFIRMED visible to him
 
