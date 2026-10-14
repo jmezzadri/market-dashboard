@@ -52,6 +52,39 @@ export const INDEX_DRILLS = {
     blurb: 'Thirty large US companies, PRICE weighted rather than market-cap weighted — a high-priced share moves it more than a large company does, which is why it can diverge from the S&P on days a single name gaps.',
     source: 'Yahoo Finance ^DJI daily closes, live quote via the site price feed.',
   },
+  // Added 2026-10-14 (Joe: "why cant I click and open a modal?"). Same rule as
+  // the three above — these are levels that trend, so they get the level
+  // panel, not a percentile pill. Nikkei, DAX and Bitcoin have no live quote
+  // on the site price feed; the panel shows the last stored close.
+  rut_index: {
+    key: 'rut_index',
+    live: '^RUT',
+    name: 'Russell 2000',
+    eyebrow: 'US small-cap equities',
+    blurb: 'Two thousand US small-cap names — more domestic, more leveraged and more rate-sensitive than the S&P 500, so it is the index that moves first when the Fed path or credit conditions change, and the one that lags when only the mega-caps are working.',
+    source: 'Yahoo Finance ^RUT daily closes, live quote via the site price feed.',
+  },
+  n225_index: {
+    key: 'n225_index',
+    name: 'Nikkei 225',
+    eyebrow: 'Japanese equities',
+    blurb: 'Japan\'s benchmark 225 names, price weighted. Trades on the yen (a weaker yen lifts exporter earnings), on Bank of Japan policy and on global risk appetite — it tends to amplify US moves overnight and is the first read on how Asia took the US session.',
+    source: 'Yahoo Finance ^N225 daily closes (Tokyo session, JST date).',
+  },
+  dax_index: {
+    key: 'dax_index',
+    name: 'DAX',
+    eyebrow: 'German equities',
+    blurb: 'Germany\'s 40 largest listed companies, total-return (dividends reinvested). Export- and industry-heavy — autos, chemicals, machinery — so it is the cleanest equity read on European energy costs, Chinese demand and the euro.',
+    source: 'Yahoo Finance ^GDAXI daily closes (Frankfurt session, CET date).',
+  },
+  crypto_btc: {
+    key: 'crypto_btc',
+    name: 'Bitcoin',
+    eyebrow: 'Crypto — risk appetite',
+    blurb: 'Bitcoin in US dollars, traded around the clock. On a macro desk it is read as a high-beta risk-appetite and dollar-liquidity gauge: it leads or exaggerates the Nasdaq when liquidity is easing and sells off hardest when it tightens.',
+    source: 'Yahoo Finance BTC-USD daily closes (UTC date; the market never closes, so each point is the day\'s last price).',
+  },
 };
 
 function sliceByTimeframe(points, tf) {
@@ -103,7 +136,7 @@ function ytdReturn(points) {
 export default function IndexDrillModal({ indexKey, hist, onClose }) {
   const [tf, setTf] = useState('5Y');
   const def = indexKey ? INDEX_DRILLS[indexKey] : null;
-  const live = useLseLive(def ? [def.live] : []);
+  const live = useLseLive(def?.live ? [def.live] : []);
 
   const points = useMemo(() => {
     const p = hist?.[indexKey]?.points;

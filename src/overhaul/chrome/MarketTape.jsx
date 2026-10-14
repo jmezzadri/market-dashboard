@@ -22,7 +22,13 @@
                   page the reader is on (LESSONS 9.16). A tile with no
                   indicator behind it is a quote, not a button, and does not
                   look clickable.
-   `idx`        — the equity indexes open their own level panel.
+   `idx`        — the equity indexes (and Bitcoin, which is also a price
+                  level that trends) open their own level panel.
+
+   Every tile opens something (Joe, 2026-10-14: "why cant I click and open a
+   modal?" on TTF and Gasoline). The eight series added on 2026-10-09 were
+   quotes with no drill behind them; the four commodities are now registered
+   Macro indicators and the four levels have their own panel.
 
    The "live" stamp is a claim about the SESSION, not the feed (LESSONS 4.32):
    gated on marketOpen === true, exactly as before the move from HomePage. */
@@ -42,11 +48,11 @@ export const TAPE = [
     { key: 'spx_index', label: 'S&P', dec: 0, live: '^GSPC', pct: true, idx: 'spx_index' },
     { key: 'ndx_index', label: 'NASDAQ', dec: 0, live: '^IXIC', pct: true, idx: 'ndx_index' },
     { key: 'dji_index', label: 'DOW', dec: 0, live: '^DJI', pct: true, idx: 'dji_index' },
-    { key: 'rut_index', label: 'Russell 2K', dec: 0, live: '^RUT', pct: true },
+    { key: 'rut_index', label: 'Russell 2K', dec: 0, live: '^RUT', pct: true, idx: 'rut_index' },
   ] },
   { group: 'Overseas equities', items: [
-    { key: 'n225_index', label: 'Nikkei', dec: 0, pct: true },
-    { key: 'dax_index', label: 'DAX', dec: 0, pct: true },
+    { key: 'n225_index', label: 'Nikkei', dec: 0, pct: true, idx: 'n225_index' },
+    { key: 'dax_index', label: 'DAX', dec: 0, pct: true, idx: 'dax_index' },
   ] },
   { group: 'Volatility', items: [
     { key: 'vix', label: 'VIX', dec: 1, ind: 'vix' },
@@ -72,14 +78,14 @@ export const TAPE = [
     { key: 'cmdty_oil', label: 'WTI', dec: 2, pct: true, ind: 'cmdty_oil' },
     { key: 'cmdty_brent', label: 'Brent', dec: 2, pct: true, ind: 'cmdty_brent' },
     { key: 'cmdty_natgas', label: 'Nat Gas', dec: 3, pct: true, ind: 'cmdty_natgas' },
-    { key: 'cmdty_ttf', label: 'TTF', dec: 2, pct: true },
-    { key: 'cmdty_gasoline', label: 'Gasoline', dec: 3, pct: true },
-    { key: 'cmdty_heatoil', label: 'Diesel', dec: 3, pct: true },
+    { key: 'cmdty_ttf', label: 'TTF', dec: 2, pct: true, ind: 'cmdty_ttf' },
+    { key: 'cmdty_gasoline', label: 'Gasoline', dec: 3, pct: true, ind: 'cmdty_gasoline' },
+    { key: 'cmdty_heatoil', label: 'Diesel', dec: 3, pct: true, ind: 'cmdty_heatoil' },
   ] },
   { group: 'Metals', items: [
     { key: 'cmdty_gold', label: 'Gold', dec: 0, pct: true, ind: 'cmdty_gold' },
     { key: 'cmdty_silver', label: 'Silver', dec: 2, pct: true, ind: 'cmdty_silver' },
-    { key: 'cmdty_platinum', label: 'Platinum', dec: 0, pct: true },
+    { key: 'cmdty_platinum', label: 'Platinum', dec: 0, pct: true, ind: 'cmdty_platinum' },
     { key: 'cmdty_copper', label: 'Copper', dec: 2, pct: true, ind: 'cmdty_copper' },
     { key: 'cmdty_uranium', label: 'Uranium', dec: 2, pct: true, ind: 'cmdty_uranium' },
   ] },
@@ -89,7 +95,7 @@ export const TAPE = [
     { key: 'cmdty_soybeans', label: 'Soybeans', dec: 0, pct: true, ind: 'cmdty_soybeans' },
   ] },
   { group: 'Crypto', items: [
-    { key: 'crypto_btc', label: 'Bitcoin', dec: 0, pct: true },
+    { key: 'crypto_btc', label: 'Bitcoin', dec: 0, pct: true, idx: 'crypto_btc' },
   ] },
 ];
 export const TAPE_ITEMS = TAPE.flatMap((g) => g.items);

@@ -24,6 +24,18 @@ cmdty_brent:["Brent Crude","Commodity price","commodities",2,"$/bbl",1,null,null
 cmdty_natgas:["Natural Gas","Commodity price","commodities",2,"$/MMBtu",2,null,null,null,null,null,false,
 "Front-month Henry Hub futures price — the US gas benchmark. Weather-driven heating and cooling demand plus LNG export capacity dominate; among the most volatile major commodities.",
 "Front-month NYMEX Henry Hub natural gas futures (NG), daily settlement. Source: Yahoo Finance NG=F. Pill state: trailing 3-year percentile, two-sided (75th/25th amber, 85th/15th red)."],
+cmdty_ttf:["Dutch TTF Gas","Commodity price","commodities",2,"€/MWh",2,null,null,null,null,null,false,
+"Front-month Dutch TTF futures price — the European gas benchmark, quoted in euros per megawatt-hour. Europe lost its pipeline gas in 2022 and now buys LNG on the open market, so TTF sets European power prices and industrial margins, and it is the price US LNG exporters sell against: a wide TTF-over-Henry Hub gap pulls US gas abroad. Both tails of the 3-year range flag a stretched level.",
+"Front-month ICE Endex Dutch TTF natural gas futures, daily settlement, euros per MWh. Source: Yahoo Finance TTF=F. Pill state: trailing 3-year percentile, two-sided (75th/25th amber, 85th/15th red)."],
+cmdty_gasoline:["Gasoline (RBOB)","Commodity price","commodities",2,"$/gal",3,null,null,null,null,null,false,
+"Front-month RBOB gasoline futures price, dollars per gallon, wholesale at New York Harbor — the number the pump price follows with a two- to three-week lag. It is crude plus the refining margin, so it moves on refinery outages, the seasonal summer-blend switch and hurricanes, not only on oil. Gasoline is the energy line consumers feel first, so it leads headline CPI and consumer sentiment.",
+"Front-month NYMEX RBOB gasoline futures (RB), daily settlement, $/gal. Source: Yahoo Finance RB=F. Pill state: trailing 3-year percentile, two-sided (75th/25th amber, 85th/15th red)."],
+cmdty_heatoil:["Diesel (ULSD)","Commodity price","commodities",2,"$/gal",3,null,null,null,null,null,false,
+"Front-month New York Harbor ultra-low-sulfur diesel futures price, dollars per gallon — the same contract that prices heating oil and jet fuel. Diesel is the freight-and-industry fuel: trucking, rail, farming and construction run on it, so a spike feeds straight into goods prices and squeezes transport and airline margins. Both tails of the 3-year range flag a stretched level.",
+"Front-month NYMEX NY Harbor ULSD futures (HO), daily settlement, $/gal. Source: Yahoo Finance HO=F. Pill state: trailing 3-year percentile, two-sided (75th/25th amber, 85th/15th red)."],
+cmdty_platinum:["Platinum","Commodity price","commodities",2,"$/oz",0,null,null,null,null,null,false,
+"Front-month NYMEX platinum futures price. Mostly an industrial metal — about 40% of demand is auto catalysts, the rest jewellery and chemicals — with a South African supply base that is power-constrained. It trades at a deep discount to gold; that gap closing is the trade when precious-metal demand broadens beyond gold. Both tails of the 3-year range flag a stretched level.",
+"Front-month NYMEX platinum futures (PL), daily settlement. Source: Yahoo Finance PL=F. Pill state: trailing 3-year percentile, two-sided (75th/25th amber, 85th/15th red)."],
 cmdty_corn:["Corn","Commodity price","commodities",2,"c/bu",0,null,null,null,null,null,false,
 "Front-month CBOT corn futures (cents/bushel). Planting and harvest cycles, weather, and export demand drive price; the most acreage-heavy US row crop.",
 "Front-month CBOT corn futures (ZC), daily settlement, cents per bushel. Source: Yahoo Finance ZC=F. Pill state: trailing 3-year percentile, two-sided (75th/25th amber, 85th/15th red)."],
@@ -228,6 +240,7 @@ export const DIRECTION = {
   // ── prices: both tails are a stretched level ──
   cmdty_gold:'bw', cmdty_silver:'bw', cmdty_copper:'bw', cmdty_uranium:'bw',
   cmdty_oil:'bw', cmdty_brent:'bw', cmdty_natgas:'bw',
+  cmdty_ttf:'bw', cmdty_gasoline:'bw', cmdty_heatoil:'bw', cmdty_platinum:'bw',
   cmdty_corn:'bw', cmdty_soybeans:'bw', cmdty_wheat:'bw',
   fx_eur:'bw', fx_jpy:'bw', fx_gbp:'bw', usd:'bw',
 
@@ -297,6 +310,8 @@ export const TAILS = {
   cmdty_copper:['cheap','expensive'], cmdty_uranium:['cheap','expensive'],
   cmdty_oil:['cheap','expensive'], cmdty_brent:['cheap','expensive'],
   cmdty_natgas:['cheap','expensive'], cmdty_corn:['cheap','expensive'],
+  cmdty_ttf:['cheap','expensive'], cmdty_gasoline:['cheap','expensive'],
+  cmdty_heatoil:['cheap','expensive'], cmdty_platinum:['cheap','expensive'],
   cmdty_soybeans:['cheap','expensive'], cmdty_wheat:['cheap','expensive'],
 
   // ── rates: a yield is not "expensive", it is high or low ──

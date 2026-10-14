@@ -247,6 +247,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.23` Every UI change is verified at 390, 820 and 1440 wide, in light and dark, before the PR is opened; a mobile failure blocks the PR
 - `9.24` A screenshot pass is not a UAT. Review every page at full size, in both themes, with every modal, drill, sheet and toggle exercised, and check settled frames — never thumbnails, never mid-animation
 - `9.25` A one-word fix is not a redesign; a page review means the whole page is rebuilt against the best in class, every retired concept is deleted from it, tiles bottom-align, and the preview link goes to Joe before anything ships
+- `9.26` Every tile on the market banner opens a detail panel. A series added to the banner is registered as a Macro indicator (a price that mean-reverts) or given a level panel (an index or asset that trends) in the same change — a quote with nothing behind it is a bug Joe finds on the first click
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2529,6 +2530,11 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 **Applies to:** UX Designer (lead), Lead Developer.
 
 # 10 · THE PUBLISHED BOOK — trade ideas & notes
+
+### 9.26 (2026-10-14) — Every banner tile opens a detail panel; a series is never added to the banner as a bare quote
+**What happened:** The banner was widened to 33 series on 2026-10-09. Eight of the new ones (Russell 2000, Nikkei, DAX, Bitcoin, Dutch TTF, gasoline, diesel, platinum) were added as display-only quotes — no Macro indicator behind them, no level panel — on the reasoning in the tape file's own comments that "a tile with no indicator behind it is a quote, not a button". Five days later Joe clicked TTF, then Gasoline: "why cant I click and open a modal?" The reader does not see a distinction between tiles; the banner is one surface and he expects one behaviour across it.
+**Rule:** Every tile on the market banner opens something. A series joins the banner only together with its drill, in the same change: a price that mean-reverts (commodity, FX rate, spread, vol) is registered as a Macro indicator — registry entry, DIRECTION, TAILS, manifest consumer surface — so its tile opens the indicator detail; an index or asset that trends (an equity index, Bitcoin) gets an entry in the index level panel instead, because a percentile of a trending level is not a statistic (see the panel's own header note). "Shown only on the banner" is not a valid state for a series.
+**Applies to:** UX Designer, Lead Developer, Data Steward.
 
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 

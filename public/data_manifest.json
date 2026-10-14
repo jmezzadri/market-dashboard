@@ -77,7 +77,8 @@
   "v_2026_08_17c": "Retired portfolio.ce-events-daily (Conviction Events decision ledger): the book it fed was retired 2026-08-13 and its producer workflows are disabled, so the element could never be tracked again \u2014 it was showing as 'registered but no health record' in the header rollup. The upstream inputs it derived from (insider_history_edgar, prices_eod) remain registered; the ce_events table keeps its historical rows.",
   "v_2026_08_28": "Quality Trend retired (Joe, 2026-08-26; superseded by paper_portfolio/TACTICAL_BOOK_SPEC.md, which is design-only). Deregistered both of its feeds \u2014 qt-target-book (producer QT-REBALANCE) and qt-nav-daily (producer QT-EOD-DAILY) \u2014 and deleted their pipeline_health rows, closing the standing \"1 feed stale\" site header. The producers were deleted in the same change (QT-EOD-DAILY, QT-REBALANCE, QT-FUNDAMENTALS-REFRESH, QT-PLACE-ORDERS) along with the pg_cron job qt-live-sync-10min, which was still snapshotting a funded-but-never-traded account every ten minutes. The closed book's data (qt_nav_daily, qt_target_book, qt_orders) is kept \u2014 /paper renders it as a finished record. Per LESSONS 0.10, retired means deleted, everywhere, in the same change.",
   "v_2026_10_09": "Market banner moved from Home to the top of every page and widened from 9 series to 27 (Joe, 2026-10-09). No new feed: every series was already produced and registered; each one now lists the banner as a consumer surface. Gasoline and heating oil (diesel) are displayed on the site for the first time. Same change: MARKET-INDICATORS-EOD stored a bar from the next, still-open futures/FX session as the newest daily point every evening (the job runs after the 18:00 ET reopen); the producer now keeps only sessions that have settled.",
-  "v_2026_10_09b": "Market banner widened to 33 series (Joe, 2026-10-09): six new daily feeds registered, all Yahoo Finance, all produced by MARKET-INDICATORS-EOD and shown only on the banner \u2014 Russell 2000, Nikkei 225, DAX, Bitcoin, platinum, Dutch TTF gas. MARKET-INDICATORS-EOD now also runs Tue-Sat 05:30 ET. Producer dating corrected twice the same day (exchange-timezone dates; live quote never stored; half-session closes kept) \u2014 LESSONS 4.41."
+  "v_2026_10_09b": "Market banner widened to 33 series (Joe, 2026-10-09): six new daily feeds registered, all Yahoo Finance, all produced by MARKET-INDICATORS-EOD and shown only on the banner \u2014 Russell 2000, Nikkei 225, DAX, Bitcoin, platinum, Dutch TTF gas. MARKET-INDICATORS-EOD now also runs Tue-Sat 05:30 ET. Producer dating corrected twice the same day (exchange-timezone dates; live quote never stored; half-session closes kept) \u2014 LESSONS 4.41.",
+  "v_2026_10_14": "Four banner commodities (Dutch TTF gas, RBOB gasoline, ULSD diesel, platinum) registered as Macro indicators so their banner tiles open a detail panel (Joe, 2026-10-14: TTF and Gasoline would not open a modal). No new feed; each gains the Macro Landscape row as a consumer surface. Russell 2000, Nikkei, DAX and Bitcoin open the index level panel instead; their manifest entries are unchanged."
  },
  "elements": [
   {
@@ -2965,6 +2966,13 @@
    "producer_script": "scripts/fetch_market_indicators.py",
    "consumer_surfaces": [
     {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket \u2014 indicator"
+    },
+    {
+     "tab": "indicators"
+    },
+    {
      "tab": "research",
      "tile": "Daily X chart research"
     },
@@ -3002,6 +3010,13 @@
    "output_destination": "public/indicator_history.json[cmdty_gasoline]",
    "producer_script": "scripts/fetch_market_indicators.py",
    "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket \u2014 indicator"
+    },
+    {
+     "tab": "indicators"
+    },
     {
      "tab": "research",
      "tile": "Daily X chart research"
@@ -4683,6 +4698,13 @@
    "producer_script": "scripts/fetch_market_indicators.py",
    "consumer_surfaces": [
     {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket \u2014 indicator"
+    },
+    {
+     "tab": "indicators"
+    },
+    {
      "tab": "home",
      "tile": "Market banner \u2014 top of every page"
     }
@@ -4717,6 +4739,13 @@
    "output_destination": "public/indicator_history.json[cmdty_ttf]",
    "producer_script": "scripts/fetch_market_indicators.py",
    "consumer_surfaces": [
+    {
+     "tab": "overview",
+     "tile": "Commodities/FX bucket \u2014 indicator"
+    },
+    {
+     "tab": "indicators"
+    },
     {
      "tab": "home",
      "tile": "Market banner \u2014 top of every page"
