@@ -22,7 +22,7 @@
 .v13.home-v12.sc-wrap.sc-pro .sc-head { padding: var(--v13-s5) 0 0; }
 .v13.home-v12.sc-wrap.sc-pro .sc-head h1 { font-family: var(--mt-type-sans); font-size: var(--v13-t6); font-weight: var(--fw-600); letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 var(--v13-s1); color: var(--v13-ink); }
 .v13.home-v12.sc-wrap.sc-pro .sc-sub { margin: 0; font-size: var(--v13-t3); line-height: 1.55; color: var(--v13-ink-2); }
-.v13.home-v12.sc-wrap.sc-pro .sc-keyfacts { display: grid; grid-template-columns: repeat(4, auto); justify-content: start; gap: 0 var(--v13-s6); margin: var(--v13-s4) 0 0; padding: var(--v13-s3) 0 0; border-top: 1px solid var(--v13-rule-2); }
+.v13.home-v12.sc-wrap.sc-pro .sc-keyfacts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 var(--v13-s6); margin: var(--v13-s4) 0 0; padding: var(--v13-s3) 0 0; border-top: 1px solid var(--v13-rule-2); }
 .v13.home-v12.sc-wrap.sc-pro .sc-keyfacts div { min-width: 0; }
 .v13.home-v12.sc-wrap.sc-pro .sc-keyfacts dt { font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.09em; text-transform: uppercase; color: var(--v13-ink-3); }
 .v13.home-v12.sc-wrap.sc-pro .sc-keyfacts dd { margin: 2px 0 0; font-size: var(--v13-t3); font-weight: var(--fw-600); color: var(--v13-ink); }
@@ -59,7 +59,7 @@
 .v13.home-v12.sc-wrap.sc-pro .sc-tip .d { color: var(--v13-ink-3); font-size: var(--v13-t2); margin-bottom: 2px; }
 .v13.home-v12.sc-wrap.sc-pro .sc-tip .r { display: grid; grid-template-columns: 14px 1fr auto; gap: var(--v13-s2); align-items: center; }
 .v13.home-v12.sc-wrap.sc-pro .sc-tip .r b { font-family: var(--mt-type-mono); font-weight: var(--fw-600); text-align: right; }
-.v13.home-v12.sc-wrap.sc-pro .sc-legend { display: flex; gap: var(--v13-s5); flex-wrap: wrap; margin-top: var(--v13-s3); font-size: var(--v13-t3); color: var(--v13-ink-2); }
+.v13.home-v12.sc-wrap.sc-pro .sc-legend { display: flex; gap: var(--v13-s5); flex-wrap: wrap; justify-content: space-between; margin-top: var(--v13-s3); font-size: var(--v13-t3); color: var(--v13-ink-2); }
 .v13.home-v12.sc-wrap.sc-pro .sc-legend span { display: inline-flex; align-items: center; gap: 7px; }
 .v13.home-v12.sc-wrap.sc-pro .sc-key { display: inline-block; width: 16px; height: 3px; border-radius: 2px; flex: none; }
 .v13.home-v12.sc-wrap.sc-pro .sc-key--port { background: var(--gold-deep); }
