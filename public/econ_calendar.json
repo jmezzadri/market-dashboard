@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-14T23:20:25Z",
+  "generated_at": "2026-10-15T11:08:35Z",
   "window": {
-    "from": "2026-10-07",
-    "to": "2026-12-23"
+    "from": "2026-10-08",
+    "to": "2026-12-24"
   },
   "counts": {
-    "total": 120,
-    "tier1": 35
+    "total": 119,
+    "tier1": 33
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -19,26 +19,18 @@
     "Bank of England MPC dates (bankofengland.co.uk) \u2014 decision dates",
     "Bank of Japan MPM schedule (boj.or.jp) \u2014 decision dates",
     "USDA NASS release calendar (nass.usda.gov) \u2014 quarterly Grain Stocks",
-    "USDA OCE WASDE schedule (usda.gov) \u2014 monthly WASDE dates"
+    "USDA OCE WASDE schedule (usda.gov) \u2014 monthly WASDE dates",
+    "US federal election day \u2014 Tuesday after the first Monday in November, even years (2 U.S.C. section 7), computed"
   ],
   "notes": [
     "Times are US Eastern and come from each agency's standing release policy, not from the wire.",
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [],
+  "problems": [
+    "WASDE page fetch failed: HTTP Error 403: Forbidden"
+  ],
   "events": [
-    {
-      "date": "2026-10-07",
-      "time_et": "3:00 PM",
-      "name": "Consumer credit",
-      "short": "Credit",
-      "tier": 3,
-      "category": "Consumer",
-      "blurb": "Revolving and non-revolving household borrowing.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-08",
       "time_et": "8:30 AM",
@@ -81,17 +73,6 @@
       "category": "Surveys",
       "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
       "source": "UMich release schedule (computed: two Fridays before the final)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-09",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
@@ -469,6 +450,17 @@
       "time_source": "published release policy"
     },
     {
+      "date": "2026-11-03",
+      "time_et": "6:00 PM",
+      "name": "US midterm elections",
+      "short": "Midterms",
+      "tier": 1,
+      "category": "Politics",
+      "blurb": "All 435 House seats and about a third of the Senate. First polls close at 6:00 PM ET (Indiana, Kentucky) and most of the East by 8:00 PM; results arrive overnight, so markets price the outcome at the next session's open.",
+      "source": "US federal election day (2 U.S.C. section 7, computed)",
+      "time_source": "published poll-closing time (first states, ET)"
+    },
+    {
       "date": "2026-11-04",
       "time_et": "8:30 AM",
       "name": "Trade balance",
@@ -598,17 +590,6 @@
       "category": "Inflation",
       "blurb": "Headline and core consumer inflation.",
       "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-10",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
@@ -1086,17 +1067,6 @@
     },
     {
       "date": "2026-12-10",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-10",
       "time_et": "4:30 PM",
       "name": "Fed balance sheet (H.4.1)",
       "short": "H.4.1",
@@ -1345,6 +1315,28 @@
       "tier": 2,
       "category": "Housing",
       "blurb": "Contracts signed on newly built homes \u2014 the rate-sensitive edge of housing.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-24",
+      "time_et": "8:30 AM",
+      "name": "Jobless claims",
+      "short": "Claims",
+      "tier": 2,
+      "category": "Labor",
+      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-24",
+      "time_et": "4:30 PM",
+      "name": "Fed balance sheet (H.4.1)",
+      "short": "H.4.1",
+      "tier": 3,
+      "category": "Liquidity",
+      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
