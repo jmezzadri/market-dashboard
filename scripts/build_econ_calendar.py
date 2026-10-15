@@ -788,6 +788,43 @@ def build_usda_events(start: dt.date, end: dt.date):
     return events, problems
 
 
+# ── source 7: US federal general election, computed by statute (bug #1268) ──
+# The date is fixed by federal law (2 U.S.C. section 7 for the House, 3 U.S.C.
+# section 1 for presidential electors): the Tuesday after the first Monday in
+# November of every even-numbered year. Like ISM, the schedule is a rule, not
+# a feed, so it is computed — the statute is the authority. Presidential
+# years are the even years divisible by four; the rest are midterms.
+def us_general_election_date(year: int) -> dt.date:
+    d = dt.date(year, 11, 1)
+    first_monday = d + dt.timedelta(days=(0 - d.weekday()) % 7)
+    return first_monday + dt.timedelta(days=1)
+
+
+def build_us_election_events(start: dt.date, end: dt.date):
+    events = []
+    for year in range(start.year, end.year + 1):
+        if year % 2:
+            continue
+        d = us_general_election_date(year)
+        if not (start <= d <= end):
+            continue
+        presidential = year % 4 == 0
+        events.append(dict(
+            date=d.isoformat(), time_et="6:00 PM",
+            name="US presidential election" if presidential else "US midterm elections",
+            short="Election" if presidential else "Midterms",
+            tier=1, category="Politics",
+            blurb=("Presidential, House and Senate races. First polls close at 6:00 PM ET (Indiana, Kentucky) and most of the East by 8:00 PM; "
+                   "results arrive overnight, so markets price the outcome at the next session's open."
+                   if presidential else
+                   "All 435 House seats and about a third of the Senate. First polls close at 6:00 PM ET (Indiana, Kentucky) and most of the East by 8:00 PM; "
+                   "results arrive overnight, so markets price the outcome at the next session's open."),
+            source="US federal election day (2 U.S.C. section 7, computed)",
+            time_source="published poll-closing time (first states, ET)",
+        ))
+    return events
+
+
 # ── assemble ───────────────────────────────────────────────────────────────
 def build(today: dt.date | None = None, key: str | None = None):
     today = today or dt.datetime.now(dt.timezone.utc).date()
@@ -813,6 +850,7 @@ def build(today: dt.date | None = None, key: str | None = None):
     usda, usda_problems = build_usda_events(start, end)
     events += usda
     problems += usda_problems
+    events += build_us_election_events(start, end)
 
     # De-dupe on (date, name); sort by date then time then tier.
     seen, out = set(), []
@@ -846,6 +884,7 @@ def build(today: dt.date | None = None, key: str | None = None):
             "Bank of Japan MPM schedule (boj.or.jp) — decision dates",
             "USDA NASS release calendar (nass.usda.gov) — quarterly Grain Stocks",
             "USDA OCE WASDE schedule (usda.gov) — monthly WASDE dates",
+            "US federal election day — Tuesday after the first Monday in November, even years (2 U.S.C. section 7), computed",
         ],
         "notes": [
             "Times are US Eastern and come from each agency's standing release policy, not from the wire.",
