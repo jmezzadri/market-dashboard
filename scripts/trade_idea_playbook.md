@@ -1108,6 +1108,8 @@ baseline, pass condition) so Joe can challenge the design ("This cant be a
 black box") — cases, average, median, volatility of outcomes, best, worst, win rate, the
 baseline over the same holding period, the edge and its annualized pace
 against the 20%-a-year bar, both sample halves, and a one-clause verdict.
+Every holding period tested (1 week to 6 months) is shown with its pro-rated
+bar, and a regime split that kills a passing horizon is shown beside it.
 Candidates that could not be tested get a row that says what was missing.
 Under the table, at most three sentences: the row that came closest and the
 number that killed it. Deliver the
