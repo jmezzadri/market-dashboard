@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-15T23:09:18Z",
+  "generated_at": "2026-10-16T11:13:08Z",
   "window": {
-    "from": "2026-10-08",
-    "to": "2026-12-24"
+    "from": "2026-10-09",
+    "to": "2026-12-25"
   },
   "counts": {
-    "total": 122,
+    "total": 119,
     "tier1": 36
   },
   "sources": [
@@ -20,48 +20,18 @@
     "Bank of Japan MPM schedule (boj.or.jp) \u2014 decision dates",
     "USDA NASS release calendar (nass.usda.gov) \u2014 quarterly Grain Stocks",
     "USDA OCE WASDE schedule (usda.gov) \u2014 monthly WASDE dates",
-    "US federal election day \u2014 Tuesday after the first Monday in November, even years (2 U.S.C. section 7), computed"
+    "US federal election day \u2014 Tuesday after the first Monday in November, even years (2 U.S.C. section 7), computed",
+    "US Treasury quarterly refunding documents (home.treasury.gov) \u2014 next refunding announcement date"
   ],
   "notes": [
     "Times are US Eastern and come from each agency's standing release policy, not from the wire.",
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [],
+  "problems": [
+    "Treasury refunding: next announcement date not found on the statement or documents page"
+  ],
   "events": [
-    {
-      "date": "2026-10-08",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-08",
-      "time_et": "10:00 AM",
-      "name": "Wholesale inventories",
-      "short": "Wholesale",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Wholesale-level sales and inventories \u2014 an input to the GDP inventory line.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-08",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-09",
       "time_et": "10:00 AM",
