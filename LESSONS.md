@@ -80,7 +80,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `1.3` Questions to Joe go through the popup, with the impact of each option stated
 - `1.4` Specialists don't bounce specialist calls back to Joe
 - `1.5` Write to Joe in full sentences with standard finance terms. No shorthand, and no dumbed-down substitutes either
-- `1.6` A skip day is reported as a STATISTICS TABLE — one row per candidate, the trade named in plain English, the numbers not the words
+- `1.6` A skip day is reported as a STATISTICS TABLE — one row per candidate, the trade named in plain English, why and how it was tested, the numbers not the words. Never a black box
 
 **2 · SCOPE & TURN DISCIPLINE**
 
@@ -583,15 +583,16 @@ credential-questioning anti-pattern wearing a new hat.
 
 **Applies to:** all four specialists — every message to Joe, every label, chart and table on the site.
 
-### 1.6 (2026-10-16, Joe, emphatic: "I dont want to ask you for this again") — A skip day is reported as a STATISTICS TABLE: one row per candidate, the trade named in plain English, the numbers not the words
+### 1.6 (2026-10-16, Joe, emphatic: "I dont want to ask you for this again" / "This cant be a black box!!!!") — A skip day is reported as a STATISTICS TABLE: one row per candidate, the trade named in plain English, WHY it was tested and how, the numbers not the words
 
-**What happened:** the merged Trade Idea + X Chart run tested four candidates, killed all four correctly, and replied with the playbook's "one line with the reason" — a 90-word paragraph. Joe, three turns in a row: *"Didn't I ask you to lay it out in a table for me of the idea, what we tested, the returns, why it failed or succeeded? I hate a runon paragraph of garbage."* Then, on the table: *"I want to see what was the expected return, expected vol, average, max/min returns, etc. I dont need all the words."* Then, on the numbers table: *"Some you BORR/GME insider... NO CLUE WHAT BORR AND GME ARE. Others you say staples + healthcare, which is clear. Be consistent and clear."* The same preference had been stated on 2026-10-15 ("This summary sucks... show your work") and was in the playbook as prose about the skip REASON written to the database, not about what Joe reads. A rule written where Joe cannot see it does not govern what Joe sees.
+**What happened:** the merged Trade Idea + X Chart run tested four candidates, killed all four correctly, and replied with the playbook's "one line with the reason" — a 90-word paragraph. Joe, three turns in a row: *"Didn't I ask you to lay it out in a table for me of the idea, what we tested, the returns, why it failed or succeeded? I hate a runon paragraph of garbage."* Then, on the table: *"I want to see what was the expected return, expected vol, average, max/min returns, etc. I dont need all the words."* Then, on the numbers table: *"Some you BORR/GME insider... NO CLUE WHAT BORR AND GME ARE. Others you say staples + healthcare, which is clear. Be consistent and clear."* Then, on the table with the trades named: *"I want to know why we tested it. I need to be able to know enough about your work to challenge it. This cant be a black box!!!!"* The same preference had been stated on 2026-10-15 ("This summary sucks... show your work") and was in the playbook as prose about the skip REASON written to the database, not about what Joe reads. A rule written where Joe cannot see it does not govern what Joe sees.
 
 **Rule — the skip-day reply to Joe is a table, every time, in this shape:**
 
 | column | what goes in it |
 |---|---|
 | Idea | the trade in plain English, the same way for every row — "buy semiconductor stocks after an 8-day losing streak", "short refiners against the broad energy sector", "buy Borr Drilling (an offshore oil-rig company) on insider buying". A ticker may FOLLOW the name in parentheses; it never replaces it. "BORR/GME" is not an idea, it is two codes |
+| Why we tested it | three things, every row: (a) the dated fact that put it on the list ("Oct 15: chip stocks lost $2tn in six sessions, hedge funds sold AI names five days running"); (b) the claim being tested, as a mechanism ("forced selling exhausts itself, so a long streak is followed by a better-than-normal quarter"); (c) how the test is built — the signal definition, the sample and its dates, the holding period, the baseline, and what would have made it pass. Joe must be able to argue with the design, not just read the verdict |
 | Cases | number of independent historical episodes |
 | Avg · Median | mean and median return over the holding period |
 | Vol | standard deviation of the outcomes across cases |
@@ -602,11 +603,12 @@ credential-questioning anti-pattern wearing a new hat.
 | Halves | mean in the first and second half of the sample |
 | Verdict | one clause: why it failed or passed (below baseline / one half only / fewer than N cases / loses money / untestable because X) |
 
-1. Every candidate the run tested gets a row, including the ones it could not test — those rows say what was missing (the data, the history) in the Verdict column, with dashes elsewhere.
-2. The holding period is stated once above the table; a row at a different horizon says so in the Idea cell.
-3. Below the table: at most three sentences — which row came closest and the one number that killed it. No paragraph restating the rows.
-4. The long skip reason still goes to `pipeline_health` via `ops_record_skip` as before (that is the audit record, 6.16); this rule is about what JOE reads in the reply and in any email.
-5. 1.5 applies inside the table: standard finance terms, no desk shorthand, no field names; and 0.1 applies to the Idea cell — a reader who has never seen MacroTilt must know what the trade is.
+1. **No black box.** A row whose "why" is missing is not a row; the reader has to be able to say "your signal definition is wrong" or "your sample excludes the regime we are in" from the table alone. Where the table gets wide, split it: one table for the design (idea, why, how), one for the numbers, same row numbers in both.
+2. Every candidate the run tested gets a row, including the ones it could not test — those rows say what was missing (the data, the history) in the Verdict column, with dashes elsewhere.
+3. The holding period is stated once above the table; a row at a different horizon says so in the Idea cell.
+4. Below the table: at most three sentences — which row came closest and the one number that killed it. No paragraph restating the rows.
+5. The long skip reason still goes to `pipeline_health` via `ops_record_skip` as before (that is the audit record, 6.16); this rule is about what JOE reads in the reply and in any email.
+6. 1.5 applies inside the table: standard finance terms, no desk shorthand, no field names; and 0.1 applies to the Idea cell — a reader who has never seen MacroTilt must know what the trade is.
 
 **Applies to:** the Trade Idea + X Chart session (every skip day), the weekly thesis review, the health sweep — any report to Joe that compares several tested things.
 

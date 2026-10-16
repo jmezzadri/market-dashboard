@@ -1102,7 +1102,10 @@ goes to X this month. **On a skip day: a statistics table, never a paragraph
 (LESSONS 1.6, Joe 2026-10-16: "I hate a runon paragraph of garbage").** One
 row per candidate tested — the trade named in plain English and the same way
 on every row (a ticker may follow the name in parentheses, never replace it),
-cases, average, median, volatility of outcomes, best, worst, win rate, the
+WHY it was tested — the dated fact that put it on the list, the claim as a
+mechanism, and how the test is built (signal, sample, holding period,
+baseline, pass condition) so Joe can challenge the design ("This cant be a
+black box") — cases, average, median, volatility of outcomes, best, worst, win rate, the
 baseline over the same holding period, the edge and its annualized pace
 against the 20%-a-year bar, both sample halves, and a one-clause verdict.
 Candidates that could not be tested get a row that says what was missing.
