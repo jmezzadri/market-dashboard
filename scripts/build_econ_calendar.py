@@ -837,19 +837,19 @@ def build_us_election_events(start: dt.date, end: dt.date):
 #   1. The current Policy Statement (the refunding statement) ends with
 #      "The next quarterly refunding announcement will take place on
 #      Wednesday, November 4, 2026." (sb0590, 2026-08-05, verified 2026-10-16)
-#   2. The "Most Recent Quarterly Refunding Documents" page lists, under the
-#      8:30 AM release block that carries the Policy Statement, "The next
-#      release is scheduled for November 4, 2026." (verified 2026-10-16)
-# (1) is primary; (2) is the fallback when the press release will not parse.
+#   2. The "Most Recent Quarterly Refunding Documents" page links that
+#      statement (and the quarter's other press releases). Its own "next
+#      release is scheduled for" lines are per-block and were NOT used: on
+#      2026-10-16 a block parse latched onto Nov 2 (financing estimates) and
+#      then Oct 16 (dealer agenda). The builder opens each linked press
+#      release and takes the date only from the statement sentence (1), and
+#      rejects any date that is not a Wednesday.
 TREASURY_QR_LATEST_URL = ("https://home.treasury.gov/policy-issues/financing-the-government/"
                           "quarterly-refunding/most-recent-quarterly-refunding-documents")
 _QR_NEXT_RE = re.compile(
     r"next quarterly refunding announcement will take place on\s+"
     r"(?:[A-Z][a-z]+,\s*)?([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})")
-_QR_BLOCK_NEXT_RE = re.compile(
-    r"(?<!Economic )Policy Statement(?!s).{0,800}?next release is scheduled for\s+([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})", re.S)
-_QR_ANCHOR_RE = re.compile(r'<a\b[^>]*href=["\']([^"\']*press-releases/[^"\']+)["\'][^>]*>(.*?)</a>', re.S | re.I)
-_QR_POLICY_RE = re.compile(r"(?<!Economic )Policy Statement(?!s)")
+_QR_PR_RE = re.compile(r"(?:https://home\.treasury\.gov)?/news/press-releases/([a-z]{1,3}\d+)", re.I)
 
 
 def _qr_date(month_name: str, day: str, year: str):
@@ -868,44 +868,40 @@ def build_treasury_refunding_events(start: dt.date, end: dt.date):
         html = _get_browser_text(TREASURY_QR_LATEST_URL)
     except Exception as exc:  # noqa: BLE001
         return [], [f"Treasury refunding documents page fetch failed: {exc}"]
-    d, source = None, None
-    stmt_url = None
-    for am in _QR_ANCHOR_RE.finditer(html):
-        if _QR_POLICY_RE.search(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", am.group(2)))):
-            stmt_url = am.group(1)
+    # Markup-independent: the documents page's markup did not match two
+    # anchor/text parses in a row (2026-10-16 — the converted text verified
+    # in-session differs from the raw HTML the runner sees), and a "next
+    # release" date on that page belongs to whichever block it sits in. So
+    # every press release the page links is opened, and only the refunding
+    # statement carries the sentence below — it identifies itself.
+    d, source, checked = None, None, []
+    for pr_id in dict.fromkeys(m.group(1).lower() for m in _QR_PR_RE.finditer(html)):
+        if len(checked) >= 10:
             break
-    if stmt_url:
-        url = stmt_url
-        if url.startswith("/"):
-            url = "https://home.treasury.gov" + url
+        url = f"https://home.treasury.gov/news/press-releases/{pr_id}"
+        checked.append(pr_id)
         try:
             ptxt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", _get_browser_text(url)))
-            pm = _QR_NEXT_RE.search(ptxt)
-            if pm:
-                d = _qr_date(*pm.groups())
-                source = "US Treasury quarterly refunding statement (home.treasury.gov)"
-            else:
-                problems.append(f"Treasury refunding statement {url}: next-date sentence not found ({len(ptxt)} chars)")
         except Exception as exc:  # noqa: BLE001
-            problems.append(f"Treasury refunding statement fetch failed: {exc}")
+            problems.append(f"Treasury press release {pr_id} fetch failed: {exc}")
+            continue
+        pm = _QR_NEXT_RE.search(ptxt)
+        if pm:
+            d = _qr_date(*pm.groups())
+            source = "US Treasury quarterly refunding statement (home.treasury.gov)"
+            break
     if d is None:
         txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
-        bm = _QR_BLOCK_NEXT_RE.search(txt)
-        if bm:
-            d = _qr_date(*bm.groups())
-            source = "US Treasury most recent quarterly refunding documents (home.treasury.gov)"
-    if d is None:
-        txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
-        problems.append("Treasury refunding: next announcement date not found on the statement or documents page "
-                        f"(page {len(html)} bytes, 'Policy Statement' {'present' if 'Policy Statement' in txt else 'absent'}, "
-                        f"statement link {'found' if stmt_url else 'not found'}, starts: {txt[:120]!r})")
+        problems.append("Treasury refunding: next announcement date not found in any linked press release "
+                        f"(page {len(html)} bytes, press releases checked: {', '.join(checked) or 'none linked'}, "
+                        f"starts: {txt[:120]!r})")
         return events, problems
     if d.weekday() != 2:
         # Every refunding announcement is a Wednesday. Any other weekday means
         # the parse latched onto a sibling release (the Monday financing
         # estimates block carries its own "next release" date) — refuse it.
         problems.append(f"Treasury refunding: parsed {d.isoformat()} is not a Wednesday — rejected "
-                        f"(source: {source}; statement link {'found' if stmt_url else 'not found'})")
+                        f"(source: {source})")
         return events, problems
     if start <= d <= end:
         events.append(dict(
