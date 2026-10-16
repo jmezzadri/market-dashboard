@@ -847,8 +847,8 @@ _QR_NEXT_RE = re.compile(
     r"next quarterly refunding announcement will take place on\s+"
     r"(?:[A-Z][a-z]+,\s*)?([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})")
 _QR_BLOCK_NEXT_RE = re.compile(
-    r"Released\s+8:30\s*AM[^R]{0,80}?Policy Statement.*?"
-    r"next release is scheduled for\s+([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})", re.S)
+    r"Policy Statement.{0,800}?next release is scheduled for\s+([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})", re.S)
+_QR_ANCHOR_RE = re.compile(r'<a\b[^>]*href="([^"]*/news/press-releases/[a-z]{1,3}\d+)"[^>]*>(.*?)</a>', re.S | re.I)
 
 
 def _qr_date(month_name: str, day: str, year: str):
@@ -868,9 +868,13 @@ def build_treasury_refunding_events(start: dt.date, end: dt.date):
     except Exception as exc:  # noqa: BLE001
         return [], [f"Treasury refunding documents page fetch failed: {exc}"]
     d, source = None, None
-    m = re.search(r'href="([^"]*/news/press-releases/[a-z]{1,3}\d+)"[^>]*>\s*Policy Statement', html)
-    if m:
-        url = m.group(1)
+    stmt_url = None
+    for am in _QR_ANCHOR_RE.finditer(html):
+        if "Policy Statement" in re.sub(r"<[^>]+>", " ", am.group(2)):
+            stmt_url = am.group(1)
+            break
+    if stmt_url:
+        url = stmt_url
         if url.startswith("/"):
             url = "https://home.treasury.gov" + url
         try:
@@ -879,6 +883,8 @@ def build_treasury_refunding_events(start: dt.date, end: dt.date):
             if pm:
                 d = _qr_date(*pm.groups())
                 source = "US Treasury quarterly refunding statement (home.treasury.gov)"
+            else:
+                problems.append(f"Treasury refunding statement {url}: next-date sentence not found ({len(ptxt)} chars)")
         except Exception as exc:  # noqa: BLE001
             problems.append(f"Treasury refunding statement fetch failed: {exc}")
     if d is None:
@@ -888,7 +894,10 @@ def build_treasury_refunding_events(start: dt.date, end: dt.date):
             d = _qr_date(*bm.groups())
             source = "US Treasury most recent quarterly refunding documents (home.treasury.gov)"
     if d is None:
-        problems.append("Treasury refunding: next announcement date not found on the statement or documents page")
+        txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
+        problems.append("Treasury refunding: next announcement date not found on the statement or documents page "
+                        f"(page {len(html)} bytes, 'Policy Statement' {'present' if 'Policy Statement' in txt else 'absent'}, "
+                        f"statement link {'found' if stmt_url else 'not found'}, starts: {txt[:120]!r})")
         return events, problems
     if start <= d <= end:
         events.append(dict(
