@@ -1096,8 +1096,18 @@ the reply. The site is verified AFTER approval by the next run (step 0 of the
 next day reads `trade_ideas.json` and the homepage tile) — a note that is not
 yet approved is not on the site and must not be "verified" there.
 
-**7. Reply to Joe** in at most six lines: the call in one sentence, why now,
-what proves it wrong, and whether the chart goes to X this month. Deliver the
+**7. Reply to Joe.** On a day a note was queued: at most six lines — the
+call in one sentence, why now, what proves it wrong, and whether the chart
+goes to X this month. **On a skip day: a statistics table, never a paragraph
+(LESSONS 1.6, Joe 2026-10-16: "I hate a runon paragraph of garbage").** One
+row per candidate tested — the trade named in plain English and the same way
+on every row (a ticker may follow the name in parentheses, never replace it),
+cases, average, median, volatility of outcomes, best, worst, win rate, the
+baseline over the same holding period, the edge and its annualized pace
+against the 20%-a-year bar, both sample halves, and a one-clause verdict.
+Candidates that could not be tested get a row that says what was missing.
+Under the table, at most three sentences: the row that came closest and the
+number that killed it. Deliver the
 PNG in-chat with `SendUserFile` at status "normal". The approval email IS the
 notification: do not call PushNotification or SendUserMessage on a successful
 run, and never end the reply by telling Joe to tap Approve. Call
