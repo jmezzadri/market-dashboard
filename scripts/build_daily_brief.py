@@ -524,6 +524,7 @@ EUR USD JPY GBP CHF CAD AUD NZD MXN CNY CNH KRW BTC ETH
 AI US USA EU UK EM DM G7 G10 APAC EMEA ET AM PM EST EDT GMT UTC
 Q1 Q2 Q3 Q4 H1 H2 FY YTD YOY QOQ MOM EPS NII NIM ROE ROTCE AML BSA CET1 AUM NAV
 CEO CFO CIO COO IPO M&A IRGC UKMTO OK TBD TTM ADR ADRS S&P P&L R&D
+CDS CDX CMBS CLO CLOS ABS MBS RMBS TLAC LCR NSFR FICC
 """.split())
 _TICKERISH = _RE.compile(r"(?<![\w/$])[A-Z][A-Z&]{1,4}(?![\w/])")
 _PROPER = _RE.compile(r"\b[A-Z][a-zA-Z&'\.]{2,}\b")
@@ -584,7 +585,10 @@ def enforce_sections(brief):
     news_names = set()
     for n in news:
         for w in _PROPER.findall(_plain(f'{n.get("head","")} {n.get("body","")}')):
-            if w not in _PROPER_STOP:
+            # 2026-10-16: market vocabulary ("EPS", "NII", "CDS") is not a
+            # company. A headline saying "beat on EPS" must not make the word
+            # EPS a banned name in every section below it.
+            if w not in _PROPER_STOP and w not in _NOT_A_COMPANY:
                 news_names.add(w)
     for sec in secs:
         if not isinstance(sec, dict):
