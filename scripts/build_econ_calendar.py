@@ -847,8 +847,9 @@ _QR_NEXT_RE = re.compile(
     r"next quarterly refunding announcement will take place on\s+"
     r"(?:[A-Z][a-z]+,\s*)?([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})")
 _QR_BLOCK_NEXT_RE = re.compile(
-    r"Policy Statement.{0,800}?next release is scheduled for\s+([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})", re.S)
-_QR_ANCHOR_RE = re.compile(r'<a\b[^>]*href="([^"]*/news/press-releases/[a-z]{1,3}\d+)"[^>]*>(.*?)</a>', re.S | re.I)
+    r"(?<!Economic )Policy Statement(?!s).{0,800}?next release is scheduled for\s+([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})", re.S)
+_QR_ANCHOR_RE = re.compile(r'<a\b[^>]*href=["\']([^"\']*press-releases/[^"\']+)["\'][^>]*>(.*?)</a>', re.S | re.I)
+_QR_POLICY_RE = re.compile(r"(?<!Economic )Policy Statement(?!s)")
 
 
 def _qr_date(month_name: str, day: str, year: str):
@@ -870,7 +871,7 @@ def build_treasury_refunding_events(start: dt.date, end: dt.date):
     d, source = None, None
     stmt_url = None
     for am in _QR_ANCHOR_RE.finditer(html):
-        if "Policy Statement" in re.sub(r"<[^>]+>", " ", am.group(2)):
+        if _QR_POLICY_RE.search(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", am.group(2)))):
             stmt_url = am.group(1)
             break
     if stmt_url:
@@ -898,6 +899,13 @@ def build_treasury_refunding_events(start: dt.date, end: dt.date):
         problems.append("Treasury refunding: next announcement date not found on the statement or documents page "
                         f"(page {len(html)} bytes, 'Policy Statement' {'present' if 'Policy Statement' in txt else 'absent'}, "
                         f"statement link {'found' if stmt_url else 'not found'}, starts: {txt[:120]!r})")
+        return events, problems
+    if d.weekday() != 2:
+        # Every refunding announcement is a Wednesday. Any other weekday means
+        # the parse latched onto a sibling release (the Monday financing
+        # estimates block carries its own "next release" date) — refuse it.
+        problems.append(f"Treasury refunding: parsed {d.isoformat()} is not a Wednesday — rejected "
+                        f"(source: {source}; statement link {'found' if stmt_url else 'not found'})")
         return events, problems
     if start <= d <= end:
         events.append(dict(
