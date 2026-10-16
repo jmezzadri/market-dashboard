@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-15T23:41:37Z",
-  "as_of": "2026-10-15",
+  "generated_at": "2026-10-16T00:55:15Z",
+  "as_of": "2026-10-16",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
@@ -37,16 +37,16 @@
     "stats_withheld_reason": "4 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless.",
     "portfolio": {
       "inception": "2026-08-13",
-      "as_of": "2026-10-14",
-      "calendar_days": 62,
+      "as_of": "2026-10-15",
+      "calendar_days": 63,
       "history_weeks": 9,
       "benchmark_label": "S&P 500",
       "total_return_pct": 0.8721,
-      "benchmark_total_pct": -1.0264,
-      "excess_total_pct": 1.8985,
-      "annualized_pct": 5.2448,
-      "benchmark_annualized_pct": -5.8931,
-      "excess_annualized_pct": 11.1379,
+      "benchmark_total_pct": -0.7043,
+      "excess_total_pct": 1.5764,
+      "annualized_pct": 5.1594,
+      "benchmark_annualized_pct": -4.0123,
+      "excess_annualized_pct": 9.1718,
       "annualized_withheld_reason": null,
       "realized_contribution_pct": -3.5469,
       "unrealized_contribution_pct": 4.419,
@@ -321,6 +321,12 @@
       0.8721,
       -1.0264,
       4
+    ],
+    [
+      "2026-10-15",
+      0.8721,
+      -0.7043,
+      4
     ]
   ],
   "scores": [
@@ -396,12 +402,12 @@
       "close_reason": null,
       "days_held": 6,
       "book": {
-        "as_of": "2026-10-14",
+        "as_of": "2026-10-15",
         "return_pct": 3.6634,
-        "benchmark_pct": -0.5978,
-        "excess_pct": 4.2612,
+        "benchmark_pct": -0.2743,
+        "excess_pct": 3.9377,
         "contribution_pct": 0.9049,
-        "days_held": 6
+        "days_held": 7
       }
     },
     {
@@ -476,12 +482,12 @@
       "close_reason": null,
       "days_held": 23,
       "book": {
-        "as_of": "2026-10-14",
+        "as_of": "2026-10-15",
         "return_pct": -0.5498,
-        "benchmark_pct": -0.5893,
-        "excess_pct": 0.0395,
+        "benchmark_pct": -0.2658,
+        "excess_pct": -0.284,
         "contribution_pct": -0.1378,
-        "days_held": 23
+        "days_held": 24
       }
     },
     {
@@ -558,12 +564,12 @@
       "close_reason": null,
       "days_held": 33,
       "book": {
-        "as_of": "2026-10-14",
+        "as_of": "2026-10-15",
         "return_pct": 10.3245,
-        "benchmark_pct": 0.8092,
-        "excess_pct": 9.5153,
+        "benchmark_pct": 1.1373,
+        "excess_pct": 9.1872,
         "contribution_pct": 2.3418,
-        "days_held": 33
+        "days_held": 34
       }
     },
     {
@@ -638,12 +644,12 @@
       "close_reason": null,
       "days_held": 40,
       "book": {
-        "as_of": "2026-10-14",
+        "as_of": "2026-10-15",
         "return_pct": 7.8898,
-        "benchmark_pct": 0.0044,
-        "excess_pct": 7.8854,
+        "benchmark_pct": 0.3299,
+        "excess_pct": 7.5599,
         "contribution_pct": 1.3102,
-        "days_held": 40
+        "days_held": 41
       }
     },
     {
