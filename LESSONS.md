@@ -470,6 +470,8 @@ All four closed the same day. Three of them were auto-filed by the freshness ala
 
 **2026-10-08 addendum (Joe: "Bug queue is waiting for who, what, when? Who is going to fix those?"):** two reports (#1261, #1262) sat at `triaged` for three days with the note "queued for a dev session". No such session was scheduled, so nobody owned them. Both turned out to be fixable from the sweep in the same run. **The sweep is the owner.** A report only leaves the sweep unfixed if the fix truly needs Joe (money, an account he alone holds, a product decision). Then the closing table names that decision in bold. "Waiting for a dev session" is not a status.
 
+**2026-10-16 addendum (health sweep, #1272) — a counter that only resets when a session remembers to reset it is not a counter.** `trade_ideas.consecutive_skips` read 8 (alarm at 7) although a note went live Oct 9 and another was queued Oct 14: neither run called `ops_record_publish`, so a working week was about to escalate. `ops_record_skip` now derives the reset from the record itself — a skip recorded after a successful publish (`last_good_at` newer than the previous skip) starts a fresh streak at 1 — and the counter was corrected once to 2 in the same migration. General form: any streak/escalation counter must reset from the success signal the system already writes, never only from a second call the producer has to remember.
+
 **Applies to:** Lead Developer — every weekday sweep, and any future automated filer.
 
 

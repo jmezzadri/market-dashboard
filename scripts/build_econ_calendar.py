@@ -27,6 +27,8 @@ SOURCES (all free, no vendor, no key beyond the FRED key we already hold)
    FINAL dates (bug #1251 found the Sep 11 2026 prelim missing). The prelim
    lands two Fridays before its final, 10:00 AM ET — computed off the FRED
    final dates; see build_umich_prelim_events for the seam proof.
+(Later sources — ECB/BoE/BoJ, USDA, the US election and the Treasury
+ quarterly refunding — are documented at their own blocks below.)
 
 RULES THIS SCRIPT OBEYS (LESSONS 4.21 — sourced-or-omitted)
 -----------------------------------------------------------
@@ -825,6 +827,79 @@ def build_us_election_events(start: dt.date, end: dt.date):
     return events
 
 
+# ── source 8: US Treasury quarterly refunding announcement (bug #1271) ─────
+# The refunding announcement (8:30 AM ET, Wednesday, early Feb/May/Aug/Nov)
+# sets coupon auction sizes and the forward guidance on them — direct event
+# risk for the 10- and 30-year. The date is NOT a clean rule (it shifts around
+# the FOMC: Jul 31 2024, Feb 5 2025, Apr 30 2025, Aug 5 2026, Nov 4 2026), so
+# it is sourced, never computed: Treasury itself states the next date in two
+# places, and the authority pattern is the same as the FOMC block.
+#   1. The current Policy Statement (the refunding statement) ends with
+#      "The next quarterly refunding announcement will take place on
+#      Wednesday, November 4, 2026." (sb0590, 2026-08-05, verified 2026-10-16)
+#   2. The "Most Recent Quarterly Refunding Documents" page lists, under the
+#      8:30 AM release block that carries the Policy Statement, "The next
+#      release is scheduled for November 4, 2026." (verified 2026-10-16)
+# (1) is primary; (2) is the fallback when the press release will not parse.
+TREASURY_QR_LATEST_URL = ("https://home.treasury.gov/policy-issues/financing-the-government/"
+                          "quarterly-refunding/most-recent-quarterly-refunding-documents")
+_QR_NEXT_RE = re.compile(
+    r"next quarterly refunding announcement will take place on\s+"
+    r"(?:[A-Z][a-z]+,\s*)?([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})")
+_QR_BLOCK_NEXT_RE = re.compile(
+    r"Released\s+8:30\s*AM[^R]{0,80}?Policy Statement.*?"
+    r"next release is scheduled for\s+([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})", re.S)
+
+
+def _qr_date(month_name: str, day: str, year: str):
+    month = MONTHS.get(month_name)
+    if not month:
+        return None
+    try:
+        return dt.date(int(year), month, int(day))
+    except ValueError:
+        return None
+
+
+def build_treasury_refunding_events(start: dt.date, end: dt.date):
+    events, problems = [], []
+    try:
+        html = _get_browser_text(TREASURY_QR_LATEST_URL)
+    except Exception as exc:  # noqa: BLE001
+        return [], [f"Treasury refunding documents page fetch failed: {exc}"]
+    d, source = None, None
+    m = re.search(r'href="([^"]*/news/press-releases/[a-z]{1,3}\d+)"[^>]*>\s*Policy Statement', html)
+    if m:
+        url = m.group(1)
+        if url.startswith("/"):
+            url = "https://home.treasury.gov" + url
+        try:
+            ptxt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", _get_browser_text(url)))
+            pm = _QR_NEXT_RE.search(ptxt)
+            if pm:
+                d = _qr_date(*pm.groups())
+                source = "US Treasury quarterly refunding statement (home.treasury.gov)"
+        except Exception as exc:  # noqa: BLE001
+            problems.append(f"Treasury refunding statement fetch failed: {exc}")
+    if d is None:
+        txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
+        bm = _QR_BLOCK_NEXT_RE.search(txt)
+        if bm:
+            d = _qr_date(*bm.groups())
+            source = "US Treasury most recent quarterly refunding documents (home.treasury.gov)"
+    if d is None:
+        problems.append("Treasury refunding: next announcement date not found on the statement or documents page")
+        return events, problems
+    if start <= d <= end:
+        events.append(dict(
+            date=d.isoformat(), time_et="8:30 AM", name="Treasury quarterly refunding", short="Refunding",
+            tier=2, category="Rates",
+            blurb="Treasury's quarterly statement of coupon auction sizes and its guidance on future sizes — direct event risk for the 10- and 30-year yields.",
+            source=source, time_source="published release policy",
+        ))
+    return events, problems
+
+
 # ── assemble ───────────────────────────────────────────────────────────────
 def build(today: dt.date | None = None, key: str | None = None):
     today = today or dt.datetime.now(dt.timezone.utc).date()
@@ -851,6 +926,9 @@ def build(today: dt.date | None = None, key: str | None = None):
     events += usda
     problems += usda_problems
     events += build_us_election_events(start, end)
+    qr, qr_problems = build_treasury_refunding_events(start, end)
+    events += qr
+    problems += qr_problems
 
     # De-dupe on (date, name); sort by date then time then tier.
     seen, out = set(), []
@@ -885,6 +963,7 @@ def build(today: dt.date | None = None, key: str | None = None):
             "USDA NASS release calendar (nass.usda.gov) — quarterly Grain Stocks",
             "USDA OCE WASDE schedule (usda.gov) — monthly WASDE dates",
             "US federal election day — Tuesday after the first Monday in November, even years (2 U.S.C. section 7), computed",
+            "US Treasury quarterly refunding documents (home.treasury.gov) — next refunding announcement date",
         ],
         "notes": [
             "Times are US Eastern and come from each agency's standing release policy, not from the wire.",
