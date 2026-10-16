@@ -605,7 +605,7 @@ credential-questioning anti-pattern wearing a new hat.
 
 1. **No black box.** A row whose "why" is missing is not a row; the reader has to be able to say "your signal definition is wrong" or "your sample excludes the regime we are in" from the table alone. Where the table gets wide, split it: one table for the design (idea, why, how), one for the numbers, same row numbers in both.
 2. Every candidate the run tested gets a row, including the ones it could not test — those rows say what was missing (the data, the history) in the Verdict column, with dashes elsewhere.
-3. The holding period is stated once above the table; a row at a different horizon says so in the Idea cell.
+3. **Every holding period tested is shown** — 1 week, 2 weeks, 1 month, 3 months, 6 months — as rows or sub-rows, with the pro-rated bar beside each (0.38% / 0.77% / 1.67% / 5% / 10%). Joe, 2026-10-16: *"If we have a trade thats winning over the next 5 days why wouldnt we recommend that?"* — a table that only shows 3 and 6 months cannot answer him. When a short horizon passes on the whole sample and fails on the regime split, BOTH rows are shown, so the reason it did not publish is visible.
 4. Below the table: at most three sentences — which row came closest and the one number that killed it. No paragraph restating the rows.
 5. The long skip reason still goes to `pipeline_health` via `ops_record_skip` as before (that is the audit record, 6.16); this rule is about what JOE reads in the reply and in any email.
 6. 1.5 applies inside the table: standard finance terms, no desk shorthand, no field names; and 0.1 applies to the Idea cell — a reader who has never seen MacroTilt must know what the trade is.
