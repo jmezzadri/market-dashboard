@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-16T11:13:08Z",
+  "generated_at": "2026-10-16T11:19:17Z",
   "window": {
     "from": "2026-10-09",
     "to": "2026-12-25"
   },
   "counts": {
-    "total": 119,
+    "total": 120,
     "tier1": 36
   },
   "sources": [
@@ -28,9 +28,7 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [
-    "Treasury refunding: next announcement date not found on the statement or documents page"
-  ],
+  "problems": [],
   "events": [
     {
       "date": "2026-10-09",
@@ -382,6 +380,17 @@
       "category": "Policy",
       "blurb": "Bank of Japan rate decision, released around midday Tokyo on the meeting's final day \u2014 overnight for US markets.",
       "source": "Bank of Japan MPM schedule (boj.or.jp)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-02",
+      "time_et": "8:30 AM",
+      "name": "Treasury quarterly refunding",
+      "short": "Refunding",
+      "tier": 2,
+      "category": "Rates",
+      "blurb": "Treasury's quarterly statement of coupon auction sizes and its guidance on future sizes \u2014 direct event risk for the 10- and 30-year yields.",
+      "source": "US Treasury most recent quarterly refunding documents (home.treasury.gov)",
       "time_source": "published release policy"
     },
     {
