@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-16T22:55:49Z",
+  "generated_at": "2026-10-17T13:04:54Z",
   "window": {
-    "from": "2026-10-09",
-    "to": "2026-12-25"
+    "from": "2026-10-10",
+    "to": "2026-12-26"
   },
   "counts": {
-    "total": 117,
-    "tier1": 33
+    "total": 118,
+    "tier1": 35
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -28,21 +28,8 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [
-    "WASDE page fetch failed: HTTP Error 403: Forbidden"
-  ],
+  "problems": [],
   "events": [
-    {
-      "date": "2026-10-09",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan, preliminary)",
-      "short": "UMich prelim",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
-      "source": "UMich release schedule (computed: two Fridays before the final)",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-13",
       "time_et": "6:00 AM",
@@ -572,6 +559,17 @@
       "time_source": "published release policy"
     },
     {
+      "date": "2026-11-10",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
+      "time_source": "published release policy"
+    },
+    {
       "date": "2026-11-12",
       "time_et": "8:30 AM",
       "name": "Jobless claims",
@@ -1042,6 +1040,17 @@
       "category": "Labor",
       "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-10",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
