@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-18T22:30:56Z",
+  "generated_at": "2026-10-19T16:34:29Z",
   "window": {
-    "from": "2026-10-11",
-    "to": "2026-12-27"
+    "from": "2026-10-12",
+    "to": "2026-12-28"
   },
   "counts": {
-    "total": 118,
+    "total": 119,
     "tier1": 35
   },
   "sources": [
@@ -28,12 +28,7 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [
-    "NASS calendar fetch failed (2026-10): HTTP Error 403: Forbidden",
-    "NASS calendar fetch failed (2026-11): HTTP Error 403: Forbidden",
-    "NASS calendar fetch failed (2026-12): HTTP Error 403: Forbidden",
-    "NASS calendar parsed to zero rows across the window"
-  ],
+  "problems": [],
   "events": [
     {
       "date": "2026-10-13",
@@ -1330,6 +1325,17 @@
       "tier": 3,
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-28",
+      "time_et": "8:30 AM",
+      "name": "Advance goods trade & inventories",
+      "short": "Adv Econ",
+      "tier": 3,
+      "category": "Trade",
+      "blurb": "Early estimate of the goods trade gap and retail/wholesale inventories.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     }
