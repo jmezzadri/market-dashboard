@@ -525,7 +525,12 @@ AI US USA EU UK EM DM G7 G10 APAC EMEA ET AM PM EST EDT GMT UTC
 Q1 Q2 Q3 Q4 H1 H2 FY YTD YOY QOQ MOM EPS NII NIM ROE ROTCE AML BSA CET1 AUM NAV
 CEO CFO CIO COO IPO M&A IRGC UKMTO OK TBD TTM ADR ADRS S&P P&L R&D
 CDS CDX CMBS CLO CLOS ABS MBS RMBS TLAC LCR NSFR FICC
+DAX CAC AEX SMI MIB IBEX FTSE SOXX SOXL TAIEX TWSE KOSPI TOPIX N225 HSI HSCEI CSI ASX SENSEX
+NIFTY OAT OATS BTP BTPS BUND BUNDS JGB JGBS GILT GILTS LPR MLF IORB SRF API UKMTO PGSA
 """.split())
+# 2026-10-20: DAX tripped the single-name check in an Equity Markets bullet
+# ("Stoxx 600 -0.6%, DAX -0.9%"). Index and sovereign-bond shorthand is market
+# vocabulary, not a company — the two rows above cover the ones the brief uses.
 _TICKERISH = _RE.compile(r"(?<![\w/$])[A-Z][A-Z&]{1,4}(?![\w/])")
 _PROPER = _RE.compile(r"\b[A-Z][a-zA-Z&'\.]{2,}\b")
 _PROPER_STOP = set("""
