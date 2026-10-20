@@ -404,10 +404,31 @@ function liveStats(nav, spyBase = null) {
     pctUp: n >= 2 ? ret.filter((r) => r > 0).length / n : null,
     ddFromPeak: last / peak - 1,
     maxdd: mdd,
-    vol: null, beta: null, te: null, sharpe: null,
+    vol: null, beta: null, te: null, sharpe: null, sortino: null,
+    // S&P over the SAME held window, same gates as the book — the benchmark
+    // row of the comparison table reads these so the two live rows are
+    // measured identically (Joe, 2026-10-20: the S&P row was return-only).
+    spxVol: null, spxSharpe: null, spxSortino: null, spxMaxdd: null,
+  };
+  // S&P max drawdown over the window, walked from the same pre-launch close
+  // the return uses so the first held day can itself be a drawdown day.
+  if (spx0 != null && spxNz.length) {
+    let sp = spx0, sdd = 0;
+    [spx0, ...spxNz].forEach((v) => { sp = Math.max(sp, v); sdd = Math.min(sdd, v / sp - 1); });
+    out.spxMaxdd = sdd;
+  }
+  const sretNz = sret.filter((v) => v != null);
+  const rf = 0.04 / 252;
+  // Sortino: excess return over the downside deviation (root mean square of
+  // the negative excess returns, full-sample denominator), annualized.
+  const sortino = (a) => {
+    const ex = a.map((v) => v - rf);
+    const dd = Math.sqrt(ex.reduce((s, v) => s + (v < 0 ? v * v : 0), 0) / ex.length);
+    return dd > 0 ? mean(ex) / dd * Math.sqrt(252) : null;
   };
   if (n >= 20) {
     out.vol = sd(ret) * Math.sqrt(252);
+    if (sretNz.length >= 20) out.spxVol = sd(sretNz) * Math.sqrt(252);
     const pairs = ret.map((r, i) => [r, sret[i]]).filter(([, s]) => s != null);
     if (pairs.length >= 20) {
       const a = pairs.map((p) => p[0]), b = pairs.map((p) => p[1]);
@@ -419,8 +440,12 @@ function liveStats(nav, spyBase = null) {
     }
   }
   if (n >= 60) {
-    const rf = 0.04 / 252;
     out.sharpe = (mean(ret) - rf) / sd(ret) * Math.sqrt(252);
+    out.sortino = sortino(ret);
+    if (sretNz.length >= 60) {
+      out.spxSharpe = (mean(sretNz) - rf) / sd(sretNz) * Math.sqrt(252);
+      out.spxSortino = sortino(sretNz);
+    }
   }
   return out;
 }
@@ -1195,7 +1220,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   <td style={{ ...td, color: upDown(ls?.since) }}>{ls ? fmtPct(ls.since, 2) : '—'}</td>
                   <td style={td}>{ls?.vol != null ? fmtPctPlain(ls.vol) : '—'}</td>
                   <td style={td}>{ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—'}</td>
-                  <td style={td}>—</td>
+                  <td style={td}>{ls?.sortino != null ? ls.sortino.toFixed(2) : '—'}</td>
                   <td style={td}>{ls ? fmtPctPlain(ls.maxdd) : '—'}</td>
                   <td style={td}>—</td>
                 </tr>
@@ -1205,7 +1230,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                     S&P 500 — <span style={{ color: INK3 }}>same window</span>
                   </td>
                   <td style={td}>{ls?.spxSince != null ? fmtPct(ls.spxSince, 2) : '—'}</td>
-                  <td style={td}>—</td><td style={td}>—</td><td style={td}>—</td><td style={td}>—</td><td style={td}>—</td>
+                  <td style={td}>{ls?.spxVol != null ? fmtPctPlain(ls.spxVol) : '—'}</td>
+                  <td style={td}>{ls?.spxSharpe != null ? ls.spxSharpe.toFixed(2) : '—'}</td>
+                  <td style={td}>{ls?.spxSortino != null ? ls.spxSortino.toFixed(2) : '—'}</td>
+                  <td style={td}>{ls?.spxMaxdd != null ? fmtPctPlain(ls.spxMaxdd) : '—'}</td>
+                  <td style={td}>—</td>
                 </tr>
                 <tr className="qtt-row" style={{ borderBottom: `1px solid ${HAIR}` }}>
                   <td style={{ ...td, textAlign: 'left', fontWeight: 'var(--fw-700)' }}>
@@ -1223,8 +1252,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             </table>
           </div>
           <div style={{ fontSize: 'var(--v13-t2)', color: INK3, marginTop: 'var(--sp-10)' }}>
-            <Term tip={TIPS.ir}>Information ratio</Term> (backtest): {BT_STATS.ir}. Live Sharpe appears after
-            60 trading days — a ratio annualized from a few days is noise. Hover any dotted term for a
+            <Term tip={TIPS.ir}>Information ratio</Term> (backtest): {BT_STATS.ir}. Live Sharpe and Sortino appear after
+            60 trading days — a ratio annualized from a few days is noise; worst year needs a full calendar year. Hover any dotted term for a
             plain-English definition.
           </div>
         </Card>
