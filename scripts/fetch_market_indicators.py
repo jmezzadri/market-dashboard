@@ -168,13 +168,33 @@ def fetch(ticker):
     # data to monthly; period1/period2 with interval=1d returns true daily bars
     # all the way back to the contract's Yahoo inception (~2000 for futures).
     params = {"period1": 788918400, "period2": int(_t.time()) + 86400, "interval": "1d"}
-    r = requests.get(f"{YH}/{ticker}", params=params,
-                     headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
-    r.raise_for_status()
-    res = r.json()["chart"]["result"]
-    if not res:
-        raise RuntimeError("no result")
-    return daily_bars(res[0])
+    # 2026-10-20 (bug #1274): Monday's EOD run left Nikkei, DAX and TTF at
+    # Friday's close while every other series advanced, and the same script
+    # produced the right bars the next morning with no code change. One
+    # transient Yahoo failure (429 / timeout / empty result) used to be one
+    # WARNING line and a stale tile under a green "All feeds current" chip.
+    # Retry with backoff before giving up on a ticker.
+    last_err = None
+    for attempt, pause in enumerate((0, 3, 8, 20)):
+        if pause:
+            _t.sleep(pause)
+        try:
+            r = requests.get(f"{YH}/{ticker}", params=params,
+                             headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+            r.raise_for_status()
+            res = r.json()["chart"]["result"]
+            if not res:
+                raise RuntimeError("no result")
+            bars = daily_bars(res[0])
+            if not bars:
+                raise RuntimeError("no completed bars in the vendor payload")
+            if attempt:
+                print(f"  retry {attempt} succeeded for {ticker}")
+            return bars
+        except Exception as e:          # noqa: BLE001 — every failure is retried the same way
+            last_err = e
+            print(f"  attempt {attempt + 1} failed for {ticker}: {e}")
+    raise RuntimeError(f"gave up after 4 attempts: {last_err}")
 
 
 def daily_bars(q, now_ts=None):
@@ -394,6 +414,7 @@ def fetch_uranium_history_cameco():
 
 def run():
     updates = {}
+    failed = []            # tickers whose series will ship STALE this run (bug #1274)
     hist0 = _load_hist()
     for key, ticker, name, bucket, unit in TARGETS:
         try:
@@ -450,6 +471,7 @@ def run():
             print(f"  {bucket:11s} {name:16s} {ticker:10s} pts={len(allpts):>5} {allpts[0][0]}->{allpts[-1][0]} last={allpts[-1][1]:>10}  {pctxt}")
         except Exception as e:
             print(f"  WARNING {name} ({ticker}): {e}")
+            failed.append(f"{name} ({ticker})")
 
     for key, leg, name in CRACKS:
         try:
@@ -529,6 +551,15 @@ def run():
     _ = total
     print(f"\nMerged {len(updates)} market indicators ({total} keys total).")
     _sync_pipeline_health(updates)
+    if failed:
+        # Loud, at the very end where a log reader lands, and in the Actions
+        # job summary so a stale series is visible without opening the log.
+        msg = f"STALE THIS RUN ({len(failed)}): " + ", ".join(failed)
+        print("\n" + msg)
+        summary = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary:
+            with open(summary, "a") as fh:
+                fh.write(f"### fetch_market_indicators\n{msg}\n")
 
 
 def selftest():
