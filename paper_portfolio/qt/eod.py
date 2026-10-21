@@ -108,6 +108,11 @@ def snapshot() -> dict | None:
                 "mv": float(p["market_value"]),
                 "upl": float(p["unrealized_pl"]),
                 "uplpc": float(p.get("unrealized_plpc") or 0),
+                # Session P&L too — the 10-minute live sync writes it and this
+                # snapshot upserts over the same row; without it the page's
+                # session movers vanished at the close (2026-10-21).
+                "upl_day": float(p["unrealized_intraday_pl"]) if p.get("unrealized_intraday_pl") is not None else None,
+                "upl_day_pc": float(p["unrealized_intraday_plpc"]) if p.get("unrealized_intraday_plpc") is not None else None,
             }
             for p in pos
         ],

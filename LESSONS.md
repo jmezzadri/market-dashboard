@@ -252,6 +252,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.26` Every tile on the market banner opens a detail panel. A series added to the banner is registered as a Macro indicator (a price that mean-reverts) or given a level panel (an index or asset that trends) in the same change — a quote with nothing behind it is a bug Joe finds on the first click
 - `9.27` A site-wide phone rule can quietly break a shared control: the table head/body split in mobile-v12 misaligned every DataTable column on a phone, and a risk figure typed into a prompt is an example, never a value — compute it or dash it
 - `9.28` A page never computes a risk figure on load — a nightly producer stores it; a tile is judged by its OWN edge (no overhang, no inner scroll) at every desktop width, and a column's slack goes into a chart, never a blank band
+- `9.29` A dashboard is a tear sheet — Performance · Risk · Composition, one row of primary tiles per chapter, secondary tiles folded; every figure has exactly one home on the page, the ribbon included
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2592,6 +2593,17 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 5. (2026-10-21, same day) An alert threshold is set at the size that matters to a portfolio manager, never at zero: a −$341 margin debit on a $1.09M book was flagged as a risk ("a rounding error you're highlighting as a risk. That's insane"). The cash rule is now a leverage rule — gross exposure above 105% of equity.
 
 **Applies to:** UX Designer (lead), Lead Developer, Senior Quant.
+
+### 9.29 (2026-10-21) — A dashboard is a tear sheet: three chapters, one home per number, secondary tiles folded
+
+**What happened:** The cockpit shipped as three columns of twelve tiles. Joe: "The tiles are all over the place … Like on the Net Monthly Return tile we have YTD 9.5%, then again Performance Tile we have 9.47%, then again on the Risk & Return Tile we have Return 9.47%. Literally the same number, three different tiles … We really need to think about this critically. You're not doing a great job." He also could not find a tile by eye — every title was the same 11px muted caption.
+
+**Rules:**
+1. A portfolio page reads top to bottom as a tear sheet: PERFORMANCE · RISK · PORTFOLIO COMPOSITION. Each chapter has one row of equal-height primary tiles; everything secondary (monthly table, backtest, style tilts, industry detail) is a full-width folded bar under its chapter that opens on click (native details/summary, closed by default). A chapter title is the largest label on the page after the ribbon; tile titles sit one step below it.
+2. Every figure has exactly ONE home. Before a tile is added, list the numbers it shows and strike any that already print elsewhere on the page — the ribbon counts. A comparison table that re-states the ribbon and the returns table is deleted, not re-titled. Two measures that share a name (realised beta from marks vs one-year beta at today's weights) are not both shown; pick the better-estimated one and say which it is.
+3. The `check_layout` spilled-bar rule skips the hidden body of a closed `<details>`; the per-tile overflow audit (9.28 rule 2) opens every fold before it measures.
+
+**Applies to:** UX Designer (lead), Senior Quant, Lead Developer.
 
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 
