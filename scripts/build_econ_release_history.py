@@ -240,10 +240,25 @@ def _get_json(url: str, timeout: int = 40):
     (series observations, series metadata, three years of release dates), all
     back to back. FRED calls are also paced below its published limit."""
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json,*/*"})
+    host = urllib.parse.urlsplit(url).netloc
     for attempt in range(len(_RETRY_SLEEPS) + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                data = json.loads(r.read().decode("utf-8"))
+                body = r.read().decode("utf-8")
+            # 2026-10-21: both runs that day died on "Expecting value: line 1
+            # column 1" — a 200 with an EMPTY or non-JSON body from one of the
+            # three sources, and the message did not say which. An empty body
+            # is a transient the same way a 503 is: retry it, and if it keeps
+            # happening fail with the host named so the sweep can look at the
+            # right source.
+            try:
+                data = json.loads(body)
+            except ValueError as e:
+                if attempt < len(_RETRY_SLEEPS):
+                    time.sleep(_RETRY_SLEEPS[attempt])
+                    continue
+                raise RuntimeError(f"{host} answered 200 with a body that is not JSON "
+                                   f"({len(body)} bytes: {body[:80]!r}) — {e}") from e
             if FRED_BASE in url:
                 time.sleep(FRED_PACE_SECONDS)
             return data
@@ -251,7 +266,7 @@ def _get_json(url: str, timeout: int = 40):
             if e.code in (429, 500, 502, 503, 504) and attempt < len(_RETRY_SLEEPS):
                 time.sleep(_RETRY_SLEEPS[attempt])
                 continue
-            raise
+            raise RuntimeError(f"{host} answered HTTP {e.code}") from e
 
 
 def fred_observations(series_id: str, start: dt.date, key: str):
