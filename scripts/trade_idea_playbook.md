@@ -44,14 +44,34 @@ shown up in prices:
 3. **Equities, flows, positioning, supply of new stock and debt, credit,
    metals and crypto** — including single names in the news, insider-buying
    clusters, 13D/G activism, 8-K events, earnings calls and guidance.
-4. **The street and the independents.** Read the last 7 days of research and
-   market newsletters in Joe's Gmail (search by sender and keywords; read the
-   full text), sell-side notes and strategist pieces on the open web (dated
-   pages only), and report the CONSENSUS view on the week's live questions.
-   This is the raw material for the `variant` field and for the outside-
-   research challenge log — it is never the source of the idea, and no
-   publication is ever named in the note, the chart, the caption or the reply
-   (Joe: an independent analyst, not a repackager).
+4. **The street and the independents — the READING LIST (Decision 7,
+   2026-10-21).** Joe: *"I really want this agent to be researching and
+   learning from other professional money managers."* The list of managers
+   and newsletters lives in `scripts/research/reading_list.json`, not in a
+   prompt, so every run searches the same names. For each entry: search
+   Joe's Gmail BY SENDER over the last **14 days** (not 7 — a letter arriving
+   after a run is caught by the next several), open every letter not yet in
+   `scripts/research/letters_read.json`, and read it IN FULL — the PDF
+   included. Where the email link is a tracking redirect the fetcher
+   rejects, resolve the publisher's direct PDF (the list gives the pattern;
+   for Praetorian it is
+   `go.pracap.com/hubfs/Quarterly Letters/<year>/<year> Q<n> Investor Letter - Approved.pdf`).
+   Log each letter read (sender, date, subject, link, what it fed) in
+   `letters_read.json` so it is never read twice, and show Joe one line in
+   the reply: "Read today: Praetorian Q3 letter (Oct 21), Macro Ops Oct 19."
+   What is read feeds two places: the fan-out's fact base (dated facts and
+   the week's consensus) and the outside-research challenge log (one method
+   per read, tested on our data — `processed_posts.json` now covers letters
+   as well as posts). Each manager's current positions and exits are
+   recorded in the fact base as DATED FACTS and used as a challenge to our
+   candidates: when a manager has just exited a trade we are about to
+   publish, the note's `other_side` must answer it — without naming them.
+   Then the open web: sell-side notes and strategist pieces (dated pages
+   only), for the CONSENSUS view on the week's live questions. All of it is
+   raw material for the `variant` field; none of it is the source of the
+   idea, and no publication is ever named in the note, the chart, the
+   caption or the reply (Joe: an independent analyst, not a repackager).
+   Joe adds names in chat; the run adds them to the list the same day.
 
 Read all four as raw material. Then run the sweep below exactly as written —
 outward-first, theme sweep, MacroTilt data as validator, backtest with a
@@ -275,8 +295,10 @@ Two consequences of the daily cadence:
   is a GATE, not background reading: it runs every day, whether or not
   anything publishes, and it completes BEFORE the publish/skip decision
   (LESSONS 4.57). A skip recorded without it is invalid; the skip reason
-  written to `pipeline_health` must name the day's dominant scheduled event
-  (or state plainly that there is none), so the record shows the sweep ran.
+  written to `pipeline_health` must name the day's biggest scheduled
+  market-moving event (or state plainly that there is none), so the record
+  shows the sweep ran. That is the AUDIT record; in anything Joe reads it is
+  written as "the big market-moving event on the calendar today" (step 7).
   What it finds also feeds the next day's judgment of "best of the week",
   and any dated event it finds that `econ_calendar.json` missed is a data
   ticket filed the same run.
@@ -416,7 +438,9 @@ commodity / equity), `title`, `dek`, `position_type`, `call`,
 `charts[]` (2–5), `levels{trigger, invalidation, target}`, `sections[]` (each
 `{title, prose}` or `{title, bullets[]}`), `other_side`, `risks[]`, `so_what`,
 and — for every note dated 2026-10-01 or later — `expected_return{pct, basis,
-instrument}` (a pace of 20% a year, see "The bar") and `review_conditions[]` (below).
+instrument}` (a pace of 20% a year, see "The bar") and `review_conditions[]` (below);
+and from 2026-10-21 `sizing{weight}` on every note (10 / 5 / 1–2, see the book
+section) and, for `kind: event`, the `event{}` block (see "Event notes").
 
 ### Review conditions — the claims the weekly review will re-measure (2026-09-30)
 
@@ -513,6 +537,102 @@ Enforced by the contract:
   metals GLD / SLV · energy USO / UNG · rates TLT / IEF / TIP · credit LQD /
   HYG · dollar & euro UUP / FXE · banks KBE.
 
+### Shorts are not restricted; lagging is not falling (Decision 3, 2026-10-21)
+
+Joe: *"I don't want to restrict shorts. I just need to be able to express it
+as a retail trader. And there's a difference between an asset lagging but
+still going higher (e.g., regional banks) — it can lag the overall market but
+go higher — and a short here will still drag on performance."*
+
+Any short may publish if a retail account can hold it. The Aug 25 rule
+("shorts live inside relative-value trades") is narrowed to what it was about:
+do not publish a multi-quarter outright short of an asset in a strong uptrend
+(gold in 2026). Otherwise an outright short is a normal note, and
+`edge.vs_market` is still required for any short-containing note.
+
+**Retail expressions, in order of preference:**
+
+| expression | when | what the Scorecard marks |
+|---|---|---|
+| puts or a put spread on a listed fund or stock | headline or gap risk is real; borrow is doubtful; the thesis has a date | the underlying, with the premium stated as the most the trade can lose |
+| pair: short fund A, long fund B (or long SPY) | the edge is relative — A lags B | both legs, no benchmark (the pair is already relative) |
+| short the fund or stock outright | liquid, borrowable, the edge is an absolute decline | the fund or stock, against the S&P |
+| inverse fund | only when no put market exists; `horizon_weeks` ≤ 4 (daily-reset drift) — the contract refuses longer | the inverse fund itself |
+
+Futures, swaps and CFDs remain rejected as the named vehicle (Joe, Sep 9).
+
+**Two tests, both shown, for every short-side candidate:**
+
+1. **Relative test** — the candidate against the S&P (or the paired asset)
+   over the hold. Passing supports the PAIR expression only, and the pair's
+   return is the gap. Regional banks lagging by 6 points over six months is a
+   6-point pair trade, nothing more. A `long/short spread` carries
+   `edge.backtest.relative{median, win_rate}`.
+2. **Absolute test** — the candidate's OWN price over the hold against its
+   own unconditional return. Passing (median below zero, below baseline)
+   supports an outright short or puts. An `outright short` carries
+   `edge.backtest.absolute{median, win_rate}` and the contract refuses it if
+   the median is positive. If the asset rose in most past cases while
+   lagging, the skip table says so in words: "lagged the market but rose in
+   11 of 17 cases — pair only."
+
+Why the pair rows keep failing the bar, and why that is correct: a pair at
+10 of 100 earning a 6-point gap over six months contributes 0.6 to the book;
+the bar for six months is 10 points on the position. Those edges are real and
+small; they stay in the table as context and are never forced into a note.
+
+### Event notes — paying premium for a regime change (Decision 4, 2026-10-21)
+
+Joe: *"I like the regime change binary event ideas where you pay premium for
+the event."* In this market the big moves are binary: if a Hormuz deal drops
+oil $20, the December hike odds, the 10-year, the dollar, gold, duration,
+small caps, discretionary and the yen all reverse at once, and no backtest can
+see it because nothing like it is in the sample.
+
+An event note is `kind: event`, `edge.source: event`. It names ONE event with
+a date or window by which it resolves, states the odds the market is charging,
+names the instrument that reprices most if it happens, and buys a DEFINED
+spread on a listed fund or stock so the loss is capped at the premium. It has
+no backtest and is not scored like a standard note. Required fields:
+
+```json
+"event": {
+  "name": "US-Iran agreement that reopens the Strait of Hormuz",
+  "resolves_by": "2026-12-18",
+  "resolution": "what observably counts as happened / not happened",
+  "implied_odds": {"pct": 35, "source": "prediction market", "as_of": "2026-10-20"},
+  "transmission": [{"step": "oil falls", "figure": "-$20", "source": "...", "as_of": "..."},
+                   {"step": "Dec hike odds", "figure": "90% to under 40%", "source": "...", "as_of": "..."}]
+},
+"the_trade": {"structure": "call_spread", "underlying": "TLT", "strikes": [80, 86],
+              "expiry": "2026-12-18", "premium_pct_of_width": 0.22,
+              "buy": "...", "buy_line": "TLT 80/86 call spread, Dec 18; premium is the max loss"},
+"expected_return": {"payoff_ratio": 3.5, "breakeven_odds": 22, "edge_odds": 40,
+                    "edge_odds_basis": "dated facts, not conviction", "loss_at_stop_pct": 100},
+"sizing": {"weight": 1.5}
+```
+
+The three tests, contract-enforced, replace the pace bar and the 2×-stop
+rule: **(1) odds gap** — our odds at least 1.5× the breakeven the premium
+implies (premium share of width = breakeven), argued with dated facts; both
+sets of odds appear in the note; **(2) transmission is measured** — each link
+carries a number from a dated source or our own data; **(3) defined risk,
+listed, liquid** — a spread or single option on an underlying with rows in
+the price store, the premium stated as the maximum loss in `buy_line`.
+`resolves_by` is at most six months out; if the case would survive the event
+NOT happening it is a standard note. The scorecard block is DERIVED by the
+contract (the underlying, the strikes, the expiry); there is no price stop.
+Scored at expiry from the underlying's close against the strikes (return from
+−100% to the payoff ratio); before expiry the Scorecard shows "open — resolves
+<date>" and the distance to the long strike; closed early only on the weekly
+review when a critical condition breaks, at intrinsic value. The X chart shows
+the transmission (the asset against the event's driver), titled as the forward
+call with the payoff and the date: "A Hormuz deal is 35% priced. TLT pays 3.5
+to 1 on it by Dec 18." The approval email's `note_lines` carry structure,
+strikes, expiry, premium as the maximum loss, payoff ratio and both sets of
+odds, in plain English. **Every sweep names at least one event candidate with
+its implied odds when a binary catalyst is live.**
+
 ### A relative edge you cannot short (2026-08-23)
 
 Joe, on the gold note: *"you just assume people have gold. 'Sell a slice of
@@ -570,6 +690,28 @@ previous calls. We need to be giving ideas on how to structure portfolios,
 rebalance, etc."* The reader this product serves is not choosing a headline —
 they are running money, and to them four disconnected notes are four questions,
 not four answers.
+
+**The book has a capital base of 100 (Decision 5, 2026-10-21).** Joe: *"There
+is no overall capital number on this book, it's just a series of trades sized
+equally, right?"* — it was, and "add 2% of the book in premium" had no
+meaning. Now every note carries `sizing.weight`, a number out of 100, fixed
+at publication and never edited (a correction republish keeps the original;
+the contract refuses a change):
+
+| note type | weight |
+|---|---|
+| standard long, pair or short | 10 |
+| standard idea published under the five-case fallback (0a) | 5 |
+| event idea (premium at risk; the most it can lose) | 1 to 2 |
+| cash | the remainder — earns nothing in the record |
+
+The Scorecard shows, per call, its own return AND its contribution = return ×
+weight / 100 in points of the book; at book level the sum for open calls, the
+sum for closed calls by year, and the book against the S&P held at the same
+total weight. `book.stance` quotes the weights in words: "the book is 32 of
+100 invested: energy 10, natural gas 10, yen 10, wheat short 10, with 1.5 of
+premium on the Hormuz call." Calls published before 2026-10-21 were
+backfilled to 10 in one migration and say so in `scorecard.note`.
 
 So, from 2026-08-26, every note carries a `book` block, contract-enforced:
 
@@ -687,6 +829,56 @@ underlying series; the weekly review compares the mark against
 `expected_return.pct`, so the two must be stated on the same basis (say so in
 `basis`).
 
+**0a. "Today's conditions" — the five-case rule, with a fallback (Decision 1,
+2026-10-21).** Every note names, in `edge.backtest.regime_match`, the ONE
+factor it says is driving the move (with today's reading), how many backtest
+cases share today's state on it, and the result inside them. The field is an
+object from 2026-10-21:
+
+```json
+"regime_match": {
+  "factor": "the 10-year real yield, 2.4% today, a 20-year high",
+  "matching_cases": 1,
+  "result": "(five or more cases) the outcome inside those cases, with numbers; it must clear the baseline on its own",
+  "dependence": {"correlation": 0.12,
+                 "method": "(fewer than five) correlation across ALL cases between each case's forward return and the factor's change over the hold"}
+}
+```
+
+Five or more matching cases: nothing changes — the edge must clear the
+baseline inside those cases alone. Fewer than five: the idea may STILL
+publish, if the correlation between each case's forward return and the
+factor's change over the holding period, computed across all cases, is under
+0.30 in absolute value (the sample's returns did not ride the factor) — and
+the note then carries all three of: a plain sentence in `other_side` AND in
+`edge.summary` saying no (or only N) past cases had today's condition; a stop
+at most ONE THIRD of `expected_return.pct` (the normal rule is one half); and
+`sizing.weight` 5, half the standard idea. Why: today's state — a Fed raising
+rates into an oil shock, the 10-year above 5%, record-tight spreads — matches
+one or two cases in twenty years for almost any factor, so the old automatic
+veto shut the product. The Oct 7 banks note would still die under the
+fallback (+0.73 correlation: its history was a different world). A mismatch
+on conditions is disclosed and sized down; it is a veto only when the history
+actually depended on the condition.
+
+**0a-ii. Positioning: ten years, OR the full history plus a threshold scan
+(Decision 2, 2026-10-21).** The 6.21 rules stand (ten independent episodes,
+expanding percentiles, baseline, trend split). The ten-year minimum is
+satisfied by ten years of data OR — when the contract or the trader category
+is younger than ten years (volatility-ETF issuers' VIX short is a 2020-on
+phenomenon) — the instrument's full history from the first CFTC report
+(`full_history: true`, `first_report`), provided the signal survives
+`threshold_scan[]`: one row `{threshold, cases, avg, baseline, edge}` per
+percentile from the published one (`threshold`) to twice it, at the published
+hold, and the edge keeps its sign at every row. One sign flip and the note is
+refused. Long volatility on Oct 21 failed exactly here: +10.6 at the 2nd,
++7.7 at the 3rd, then −0.8 at the 4th — the signal did not survive moving the
+threshold, which is a better reason than the calendar. **Volatility vehicles:**
+the VIX is not tradeable; a fund holding VIX futures loses value every month
+from the roll, so a volatility note states its vehicle and the expected roll
+cost over the hold in `expected_return.basis`, and the Scorecard marks the
+fund, not the index.
+
 **0b. Downside stated, and the call pays at least twice it.**
 `expected_return.loss_at_stop_pct` is what the position loses if the stop
 prints, on the same basis as `pct`; the contract requires `pct` to be at least
@@ -701,9 +893,18 @@ position, whatever its original horizon said (until 2026-10-07 the stopped
 Aug 24 ten-year call was still blocking every duration idea).
 
 **0d. Incremental to the book: a higher risk-adjusted expected return
-(2026-10-07, revised 2026-10-14).** Taking the open calls equal-weight over the
-same 126 sessions, adding the candidate must RAISE the book's expected return
-over the S&P per unit of volatility. That is the only book-level test. The
+(2026-10-07, revised 2026-10-14; real weights from 2026-10-21).** Taking the
+open calls at their REAL weights out of 100 (Decision 5 — equal weights are
+gone) over the same 126 sessions, adding the candidate at its proposed weight
+must RAISE the book's expected excess return over the S&P per unit of
+volatility. An event idea enters as a position worth its premium with the
+payoff distribution the note states (lose 100% with probability 1 − our odds,
+earn the payoff ratio otherwise), uncorrelated with the open calls; because a
+binary payoff is dispersed by construction, for an EVENT idea the ratio is
+reported, not enforced — the binding tests are positive expected value at the
+note's own odds, the premium band, and the 0.60 correlation cap on the
+underlying (settled in the script on 2026-10-21; the spec had expected the
+ratio to rise and it cannot for a 3.5-to-1 payoff). That is the only book-level test. The
 2026-10-07 cap on book volatility ("at or below the S&P's") was withdrawn on
 2026-10-14 — Joe: *"the book doesn't need to be calmer, per se. So long as
 risk-adjusted expected return is higher it's OK."* A book running hotter than
@@ -1003,6 +1204,22 @@ rejects one that is missing or too short.
     research state.
 11. **Every chart's series must exist in `indicator_history.json`** and the note
     may not plot the same series twice.
+12. **`sizing.weight` on every note (2026-10-21):** 10 standard, 5 under the
+    five-case fallback, 1–2 for an event idea; refused outside its band; never
+    changed on republish.
+13. **`regime_match` is an object** `{factor, matching_cases, result |
+    dependence}`; fewer than five matching cases requires |correlation| < 0.30,
+    the disclosure sentence in `other_side` AND `edge.summary`, a one-third
+    stop and weight 5.
+14. **Positioning under ten years** needs `full_history: true`, `first_report`,
+    `threshold`, and a `threshold_scan[]` with no sign flip.
+15. **An outright short** needs `edge.backtest.absolute` with a negative
+    median; a pair needs `edge.backtest.relative`; an inverse fund needs
+    `horizon_weeks` ≤ 4.
+16. **An event note** needs the `event{}` block, a spread or single option on
+    a listed underlying, `edge_odds` ≥ 1.5× breakeven, measured transmission,
+    `resolves_by` ≤ 6 months, no price stop; it is exempt from the pace bar
+    and the 2×-stop rule.
 
 **4. Validate through the versioned contract.**
 
@@ -1096,23 +1313,66 @@ the reply. The site is verified AFTER approval by the next run (step 0 of the
 next day reads `trade_ideas.json` and the homepage tile) — a note that is not
 yet approved is not on the site and must not be "verified" there.
 
-**7. Reply to Joe.** On a day a note was queued: at most six lines — the
-call in one sentence, why now, what proves it wrong, and whether the chart
-goes to X this month. **On a skip day: a statistics table, never a paragraph
-(LESSONS 1.6, Joe 2026-10-16: "I hate a runon paragraph of garbage").** One
-row per candidate tested — the trade named in plain English and the same way
-on every row (a ticker may follow the name in parentheses, never replace it),
-WHY it was tested — the dated fact that put it on the list, the claim as a
-mechanism, and how the test is built (signal, sample, holding period,
-baseline, pass condition) so Joe can challenge the design ("This cant be a
-black box") — cases, average, median, volatility of outcomes, best, worst, win rate, the
-baseline over the same holding period, the edge and its annualized pace
-against the 20%-a-year bar, both sample halves, and a one-clause verdict.
-Every holding period tested (1 week to 6 months) is shown with its pro-rated
-bar, and a regime split that kills a passing horizon is shown beside it.
-Candidates that could not be tested get a row that says what was missing.
-Under the table, at most three sentences: the row that came closest and the
-number that killed it. Deliver the
+**7. Reply to Joe (rewritten 2026-10-21, Decision 6; LESSONS 1.6).** On a
+day a note was queued: at most six lines — the call in one sentence, why now,
+what proves it wrong, and whether the chart goes to X this month. **On a skip
+day: two tables, never a paragraph.** Everything Joe reads is written for
+someone who has never seen MacroTilt.
+
+1. **No internal labels reach Joe.** Checklist terms ("dominant scheduled
+   event", "regime match", "expanding percentile", "sessions", field names,
+   file names) never appear in the reply, the email or the chart. The day's
+   big market-moving event is written as "the big market-moving event on the
+   calendar today"; measurement mechanics (percentile basis, session counts,
+   de-overlap rules) go in ONE footnote under the table, or nowhere. Joe,
+   Oct 21: *"NO ONE HAS A FUCKING CLUE WHAT YOURE SAYING."*
+2. **Table 1 — Idea, then Backdrop / Thesis.** Columns: `# | Idea | Why we
+   tested it`. The idea named in plain English, the same way on every row
+   (a ticker may follow in parentheses, never replace the name). The second
+   cell is exactly two labelled lines: *Backdrop:* the facts in words, no
+   dates-and-percentiles string; *Thesis:* the mechanism and the forward call
+   with the horizon in months. Joe's own example: "Backdrop: Real-money funds
+   heavily short VIX and 1-month implied correlations lowest since 2006.
+   Thesis: a record short-vol book gets squeezed. VIX higher over the next
+   1–2 months." Never the compressed form ("Oct 13 CFTC: ... at the 0.2nd
+   percentile of 1,021 weeks; ... over the next 5–63 sessions vs any start").
+3. **Table 2 — the five tests, explicit.** One row per idea per holding
+   period tested (1 week, 2 weeks, 1 month, 3 months, 6 months, as
+   applicable), same row numbers as Table 1. Columns: `# | Hold | Bar (the
+   minimum return for that hold: 0.38% / 0.77% / 1.67% / 5% / 10%) | Expected
+   return (the median past case — the number we would publish) | Gap | Pass? |
+   Beats baseline (average vs any start; both halves?) | Enough history
+   (cases / years) | Today's conditions (matching cases, or the dependence
+   check: "only 1 of 7 cases; returns ran at +0.12 with the factor — passes
+   at half size") | Risk (worst case vs the stop; book overlap) | Killed by
+   (the one test and the one number)`. Shorts show the relative and the
+   absolute test as two rows. Every kill test gets its own visible pass or
+   fail with the gap, so Joe can see how close a near-miss was and decide to
+   go ahead anyway (Oct 21: *"its not clear what we're comparing ... what
+   we're comparing to say go / no-go"*).
+4. **One horizon is enough.** The idea is cleared at the hold it works at and
+   published at that hold; the other holds are shown so the shape of the edge
+   is visible. A pass at one hold with nothing or the opposite at the
+   neighbours is marked as a warning in "Killed by", not a fail by itself.
+5. **Under the tables, at most three sentences:** the closest call, the one
+   number that killed it, and whether a different weight or hold would have
+   passed it. Then one line: "Read today: <letters from the reading list>."
+6. **Standard finance vocabulary stays** (annualized, realized, breakevens,
+   bps, 2s10s); plain English is for internal and code terms, never a
+   paraphrase of a finance word Joe uses daily (1.5).
+7. **Any claim about who is positioned how names the data source and the
+   actual number when asked** — report, date, long and short contracts, open
+   interest, where it ranks in the report's history. The Oct 21 VIX claim was
+   CFTC Traders in Financial Futures, Oct 13: asset managers 47,336 long,
+   124,631 short, 448,469 open contracts, net short 17%, second-lowest in
+   1,021 weeks. "Real-money" was a loose gloss for the CFTC's "Asset Manager /
+   Institutional" group, which in VIX futures is mostly volatility-ETF
+   issuers; use the accurate wording.
+8. Candidates that could not be tested get a row that says what was missing.
+   Every row's "why" must let Joe argue with the design ("This cant be a
+   black box"). The long skip reason still goes to `pipeline_health` via
+   `ops_record_skip` (the audit record, 6.16); this rule is about what Joe
+   reads. Deliver the
 PNG in-chat with `SendUserFile` at status "normal". The approval email IS the
 notification: do not call PushNotification or SendUserMessage on a successful
 run, and never end the reply by telling Joe to tap Approve. Call

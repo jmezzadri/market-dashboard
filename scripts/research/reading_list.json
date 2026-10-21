@@ -1,0 +1,43 @@
+{
+  "_doc": "Decision 7 (2026-10-21, LESSONS 6.26). The professional managers and newsletters the Trade Idea run reads every morning, by SENDER, over a 14-day window of Joe's Gmail. Internal working file: nothing here is ever named in a note, chart, caption or reply. The list is where ideas are challenged and learned from, not credited. Joe adds names in chat; the run adds them here.",
+  "window_days": 14,
+  "log": "scripts/research/letters_read.json",
+  "sources": [
+    {
+      "name": "Praetorian Capital (Harris Kupperman)",
+      "what": "quarterly investor letter; Kuppy's Korner posts",
+      "senders": ["pracap.com", "go.pracap.com"],
+      "arrives": "email with a link to a PDF behind a tracking redirect; blog posts on pracap.com",
+      "direct_pdf": "https://go.pracap.com/hubfs/Quarterly Letters/<year>/<year> Q<n> Investor Letter - Approved.pdf",
+      "cadence": "quarterly letter; posts irregular",
+      "read_full": true
+    },
+    {
+      "name": "Greenhaven Road Capital",
+      "what": "quarterly investor letter",
+      "senders": ["greenhavenroad.com"],
+      "arrives": "email, PDF attached or linked",
+      "direct_pdf": null,
+      "cadence": "quarterly",
+      "read_full": true
+    },
+    {
+      "name": "Macro Ops",
+      "what": "research notes, the Vol Street Journal, the weekly",
+      "senders": ["macro-ops.com"],
+      "arrives": "email, full text",
+      "direct_pdf": null,
+      "cadence": "several a week",
+      "read_full": true
+    },
+    {
+      "name": "The Daily Upside",
+      "what": "daily markets newsletter",
+      "senders": ["thedailyupside.com"],
+      "arrives": "email, full text",
+      "direct_pdf": null,
+      "cadence": "daily",
+      "read_full": true
+    }
+  ]
+}

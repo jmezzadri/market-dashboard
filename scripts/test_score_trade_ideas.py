@@ -412,46 +412,63 @@ class TestRealFile(unittest.TestCase):
 
 
 class TestPortfolio(unittest.TestCase):
-    """The portfolio view (Joe, 2026-10-09): one total return, an annualized
-    figure, and a realized / unrealized split that adds up to the total."""
+    """The book view (Joe, 2026-10-09): one total return, an annualized
+    figure, and a realized / unrealized split that adds up to the total.
+    2026-10-21 (Decision 5): the book is a notional 100, each call held at the
+    weight its note stated; contribution = weight x return / 100, exactly."""
 
     SPX = days("2026-01-05", [100, 101, 102, 103, 104, 105, 106, 107, 108, 109])
 
     def _rows(self, ideas, h, today):
-        return [S.score_one(i, h, today) for i in ideas]
+        return [S.score_row(i, h, today) for i in ideas]
 
-    def test_single_open_call_portfolio_equals_the_call(self):
+    def test_single_open_call_at_weight_10_contributes_a_tenth_of_its_return(self):
         h = hist(px=days("2026-01-05", [100, 110, 121]), spx_index=self.SPX[:3])
-        rows = self._rows([idea()], h, "2026-01-07")
+        rows = self._rows([idea(sizing={"weight": 10})], h, "2026-01-07")
         p = S.portfolio(rows, h)
-        self.assertAlmostEqual(p["summary"]["total_return_pct"], 21.0, places=4)
-        self.assertAlmostEqual(p["summary"]["unrealized_contribution_pct"], 21.0, places=4)
+        self.assertAlmostEqual(rows[0]["book"]["return_pct"], 21.0, places=4)
+        self.assertAlmostEqual(rows[0]["book"]["contribution_pct"], 2.1, places=4)
+        self.assertAlmostEqual(rows[0]["contribution_pct"], 2.1, places=4)
+        self.assertAlmostEqual(p["summary"]["total_return_pct"], 2.1, places=4)
+        self.assertAlmostEqual(p["summary"]["unrealized_contribution_pct"], 2.1, places=4)
         self.assertEqual(p["summary"]["realized_contribution_pct"], 0.0)
         self.assertEqual(p["summary"]["positions_closed"], 0)
-        self.assertAlmostEqual(rows[0]["book"]["contribution_pct"], 21.0, places=4)
+        self.assertEqual(p["summary"]["invested_now"], 10.0)
+        self.assertEqual(p["summary"]["cash_now"], 90.0)
         self.assertEqual(p["line"][0][1:], [0.0, 0.0, 0])        # inception row is zero
+        # Benchmark held at the same 10 of 100: the index's daily moves, each
+        # at a tenth (session 1: +1.00%, session 2: +0.99%).
+        self.assertAlmostEqual(p["summary"]["benchmark_total_pct"], 0.1 * (1.0 + (102 / 101 - 1) * 100), places=3)
 
-    def test_two_calls_split_the_money_and_contributions_add_up(self):
-        """Day 1: both open, +10% and -10% -> flat. Day 2: +10% and 0% -> +5%."""
+    def test_a_note_without_a_weight_is_counted_at_ten_and_says_so(self):
+        h = hist(px=days("2026-01-05", [100, 110, 121]), spx_index=self.SPX[:3])
+        rows = self._rows([idea()], h, "2026-01-07")
+        self.assertEqual(rows[0]["weight"], 10.0)
+        self.assertFalse(rows[0]["weight_stated"])
+        self.assertIn("counted at the standard", rows[0]["weight_note"])
+
+    def test_two_calls_at_their_own_weights_and_contributions_add_up(self):
+        """a at 10 of 100: +21% -> 2.1 points. b at 5 of 100: -10% -> -0.5. Total +1.6."""
         h = hist(a=days("2026-01-05", [100, 110, 121]), b=days("2026-01-05", [100, 90, 90]),
                  spx_index=self.SPX[:3])
-        ideas = [idea(id="a", scorecard={"legs": [{"series": "a", "side": "long", "measure": "pct_change"}]}),
-                 idea(id="b", scorecard={"legs": [{"series": "b", "side": "long", "measure": "pct_change"}]})]
+        ideas = [idea(id="a", sizing={"weight": 10}, scorecard={"legs": [{"series": "a", "side": "long", "measure": "pct_change"}]}),
+                 idea(id="b", sizing={"weight": 5}, scorecard={"legs": [{"series": "b", "side": "long", "measure": "pct_change"}]})]
         rows = self._rows(ideas, h, "2026-01-07")
         p = S.portfolio(rows, h)["summary"]
-        self.assertAlmostEqual(p["total_return_pct"], 5.0, places=4)
+        self.assertAlmostEqual(p["total_return_pct"], 1.6, places=4)
         total = sum(r["book"]["contribution_pct"] for r in rows)
         self.assertAlmostEqual(total, p["total_return_pct"], places=3)
         self.assertEqual((p["min_positions_held"], p["max_positions_held"]), (2, 2))
+        self.assertEqual((p["min_invested"], p["max_invested"]), (15.0, 15.0))
 
     def test_realized_plus_unrealized_is_the_total_and_a_stop_stays_at_the_stop(self):
-        """Call a is stopped on day 2 at -20% and then rallies; the portfolio
+        """Call a is stopped on day 2 at -20% and then rallies; the book
         must keep the stopped loss and take nothing from the rally."""
         h = hist(a=days("2026-01-05", [100, 95, 80, 200, 300]), b=days("2026-01-05", [100, 100, 100, 110, 110]),
                  spx_index=self.SPX[:5])
-        ideas = [idea(id="a", scorecard={"legs": [{"series": "a", "side": "long", "measure": "pct_change"}],
+        ideas = [idea(id="a", sizing={"weight": 10}, scorecard={"legs": [{"series": "a", "side": "long", "measure": "pct_change"}],
                                         "invalidation": {"series": "a", "op": "<=", "level": 80, "basis": "close"}}),
-                 idea(id="b", scorecard={"legs": [{"series": "b", "side": "long", "measure": "pct_change"}]})]
+                 idea(id="b", sizing={"weight": 10}, scorecard={"legs": [{"series": "b", "side": "long", "measure": "pct_change"}]})]
         rows = self._rows(ideas, h, "2026-01-09")
         a = next(r for r in rows if r["id"] == "a")
         self.assertEqual(a["status"], "closed_invalidated")
@@ -459,31 +476,31 @@ class TestPortfolio(unittest.TestCase):
         self.assertEqual(a["close_date"], "2026-01-07")
         p = S.portfolio(rows, h)["summary"]
         self.assertAlmostEqual(a["book"]["return_pct"], -20.0, places=4)
-        self.assertLess(p["realized_contribution_pct"], 0)
+        self.assertAlmostEqual(a["book"]["contribution_pct"], -2.0, places=4)
+        self.assertAlmostEqual(p["realized_contribution_pct"], -2.0, places=4)
+        self.assertAlmostEqual(p["unrealized_contribution_pct"], 1.0, places=4)
         self.assertAlmostEqual(p["realized_contribution_pct"] + p["unrealized_contribution_pct"],
                                p["total_return_pct"], places=3)
-        # day1 (-5+0)/2=-2.5%; day2 (-15.79+0)/2; day3 b alone +10%; day4 flat
-        v = 1.0 * (1 - 0.025) * (1 + (80 / 95 - 1) / 2) * 1.10
-        self.assertAlmostEqual(p["total_return_pct"], (v - 1) * 100, places=3)
+        self.assertEqual(p["realized_by_year"], {"2026": -2.0})
 
     def test_everything_is_cut_at_the_benchmarks_last_close(self):
         """The call has printed a session the index has not (LESSONS 6.24):
-        the portfolio and the row's book figures stop at the index's date."""
+        the book and the row's book figures stop at the index's date."""
         h = hist(px=days("2026-01-05", [100, 110, 150]), spx_index=self.SPX[:2])
-        rows = self._rows([idea()], h, "2026-01-07")
+        rows = self._rows([idea(sizing={"weight": 10})], h, "2026-01-07")
         p = S.portfolio(rows, h)
         self.assertEqual(p["summary"]["as_of"], "2026-01-06")
-        self.assertAlmostEqual(p["summary"]["total_return_pct"], 10.0, places=4)
+        self.assertAlmostEqual(p["summary"]["total_return_pct"], 1.0, places=4)
         self.assertAlmostEqual(rows[0]["book"]["return_pct"], 10.0, places=4)
         self.assertAlmostEqual(rows[0]["mark"], 50.0, places=4)     # the row's own mark is untouched
 
     def test_a_missing_print_carries_the_last_value(self):
         px = [("2026-01-05", 100.0), ("2026-01-06", 110.0), ("2026-01-08", 121.0)]   # no 01-07 print
         h = hist(px=px, spx_index=self.SPX[:4])
-        rows = self._rows([idea()], h, "2026-01-08")
+        rows = self._rows([idea(sizing={"weight": 10})], h, "2026-01-08")
         line = S.portfolio(rows, h)["line"]
-        self.assertAlmostEqual(line[2][1], 10.0, places=4)     # 01-07 carried
-        self.assertAlmostEqual(line[3][1], 21.0, places=4)
+        self.assertAlmostEqual(line[2][1], 1.0, places=4)     # 01-07 carried
+        self.assertAlmostEqual(line[3][1], 2.1, places=4)
 
     def test_annualized_is_withheld_on_a_short_record_and_compounded_on_a_long_one(self):
         h = hist(px=days("2026-01-05", [100, 110, 121]), spx_index=self.SPX[:3])
@@ -508,6 +525,79 @@ class TestPortfolio(unittest.TestCase):
         self.assertEqual(p["positions_open"], 1)
         self.assertNotIn("book", next(r for r in rows if r["id"] == "bad"))
 
+class TestEventNotes(unittest.TestCase):
+    """Decision 4 (2026-10-21): an event note is marked at expiry from the
+    underlying's close against the strikes; the premium is the most it can
+    lose; an early close on a broken critical review condition is marked at
+    intrinsic value."""
+
+    SPX = days("2026-01-05", [100] * 12)
+
+    def _event(self, **kw):
+        ev = {"structure": "call_spread", "underlying": "TLT", "strikes": [80, 86], "width": 6.0,
+              "premium": 1.32, "premium_pct_of_width": 0.22, "expiry": "2026-01-16", "resolves_by": "2026-01-16",
+              "payoff_ratio": (6 - 1.32) / 1.32, "breakeven_odds_pct": 22.0, "edge_odds_pct": 40.0, "implied_odds_pct": 35.0}
+        ev.update(kw)
+        return idea(kind="event", sizing={"weight": 1.5},
+                    event={"name": "US-Iran agreement that reopens the Strait of Hormuz"},
+                    scorecard={"legs": [{"series": "ticker:TLT", "side": "long", "measure": "pct_change", "short_label": "TLT"}],
+                               "horizon_months": 1, "event": ev})
+
+    def test_call_spread_paid_off_in_full_at_expiry(self):
+        h = hist(**{"ticker:TLT": days("2026-01-05", [78, 79, 81, 84, 87, 90, 91, 92, 92, 93]), "spx_index": self.SPX})
+        r = S.score_row(self._event(), h, "2026-01-16")
+        self.assertEqual(r["status"], "closed_horizon")
+        self.assertEqual(r["close_date"], "2026-01-16")
+        self.assertAlmostEqual(r["mark"], 100.0 * (6.0 / 1.32 - 1.0), places=3)   # +354.5%: the payoff ratio
+        self.assertAlmostEqual(r["result"], r["mark"], places=6)
+        self.assertEqual(r["event"]["state"], "settled at expiry from the underlying's close")
+        self.assertAlmostEqual(r["contribution_pct"], 1.5 / 100 * r["mark"], places=4)   # 1.5 x 354.5% = +5.3 points
+
+    def test_call_spread_expiring_worthless_loses_exactly_the_premium(self):
+        h = hist(**{"ticker:TLT": days("2026-01-05", [78, 77, 76, 75, 74, 73, 72, 71, 70, 70]), "spx_index": self.SPX})
+        r = S.score_row(self._event(), h, "2026-01-16")
+        self.assertEqual(r["status"], "closed_horizon")
+        self.assertAlmostEqual(r["mark"], -100.0, places=6)
+        self.assertAlmostEqual(r["max_adverse"]["value"], -100.0, places=6)
+        self.assertAlmostEqual(r["contribution_pct"], -1.5, places=6)   # weight 1.5: the most it can lose
+
+    def test_before_expiry_the_position_is_open_and_shows_the_distance_to_the_long_strike(self):
+        h = hist(**{"ticker:TLT": days("2026-01-05", [78, 79, 76]), "spx_index": self.SPX[:3]})
+        r = S.score_row(self._event(), h, "2026-01-07")
+        self.assertEqual(r["status"], "open")
+        self.assertIsNone(r["result"])
+        self.assertEqual(r["event"]["state"], "open — resolves 2026-01-16")
+        self.assertAlmostEqual(r["event"]["distance_to_long_strike_pct"], 100 * (80 / 76 - 1), places=2)
+        self.assertAlmostEqual(r["mark"], -100.0, places=6)         # no intrinsic value yet
+        self.assertIsNone(r["invalidation"])                       # the premium is the stop
+
+    def test_a_broken_critical_condition_closes_early_at_intrinsic_value(self):
+        # Day 4 close 84: intrinsic 4 on a 1.32 premium -> +203%; the review
+        # dated day 4 closes it there, and the later rally to 92 is ignored.
+        h = hist(**{"ticker:TLT": days("2026-01-05", [78, 79, 81, 84, 87, 90, 91, 92, 92, 93]), "spx_index": self.SPX})
+        r = S.score_row(self._event(), h, "2026-01-16", review_closes={"x": "2026-01-08"})
+        self.assertEqual(r["status"], "closed_thesis")
+        self.assertEqual(r["close_date"], "2026-01-08")
+        self.assertAlmostEqual(r["mark"], 100.0 * (4.0 / 1.32 - 1.0), places=3)
+        self.assertEqual(r["event"]["state"], "closed early at intrinsic value on the weekly review")
+
+    def test_put_spread_mirrors_the_call_spread(self):
+        h = hist(**{"ticker:TLT": days("2026-01-05", [78, 79, 76, 74, 70, 60, 60, 60, 60, 60]), "spx_index": self.SPX})
+        r = S.score_row(self._event(structure="put_spread", strikes=[76, 70]), h, "2026-01-16")
+        self.assertAlmostEqual(r["mark"], 100.0 * (6.0 / 1.32 - 1.0), places=3)
+
+    def test_event_rows_sit_in_the_book_at_their_premium_weight(self):
+        h = hist(**{"ticker:TLT": days("2026-01-05", [78, 79, 81, 84, 87, 90, 91, 92, 92, 93]),
+                    "px": days("2026-01-05", [100] * 10), "spx_index": self.SPX})
+        rows = [S.score_row(self._event(), h, "2026-01-16"), S.score_row(idea(id="s", sizing={"weight": 10}), h, "2026-01-16")]
+        p = S.portfolio(rows, h)["summary"]
+        self.assertAlmostEqual(p["realized_contribution_pct"], 1.5 / 100 * 100.0 * (6.0 / 1.32 - 1.0), places=3)
+        self.assertAlmostEqual(p["unrealized_contribution_pct"], 0.0, places=6)
+        self.assertAlmostEqual(p["total_return_pct"], p["realized_contribution_pct"], places=3)
+
+
+class TestMain(unittest.TestCase):
+    SPX = TestPortfolio.SPX
     def test_main_writes_the_portfolio_and_drops_the_working_path(self):
         with tempfile.TemporaryDirectory() as td:
             ip, hp, op = (os.path.join(td, n) for n in ("i.json", "h.json", "o.json"))

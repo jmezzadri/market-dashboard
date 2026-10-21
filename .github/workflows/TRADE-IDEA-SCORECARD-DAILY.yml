@@ -74,7 +74,11 @@ jobs:
         env:
           SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python scripts/test_score_trade_ideas.py
+        run: |
+          python scripts/test_score_trade_ideas.py
+          # Contract v2 fixtures (2026-10-21, LESSONS 6.26): the contract that
+          # writes the notes the scorer marks is tested in the same run.
+          python scripts/test_build_trade_idea.py
 
       # Fail loudly on a note that cannot be marked. `pending_entry` (a note
       # whose entry close has not printed yet) is NOT a failure and does not

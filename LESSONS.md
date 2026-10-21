@@ -80,7 +80,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `1.3` Questions to Joe go through the popup, with the impact of each option stated
 - `1.4` Specialists don't bounce specialist calls back to Joe
 - `1.5` Write to Joe in full sentences with standard finance terms. No shorthand, and no dumbed-down substitutes either
-- `1.6` A skip day is reported as a STATISTICS TABLE — one row per candidate, the trade named in plain English, why and how it was tested, the numbers not the words. Never a black box
+- `1.6` A skip day is reported as a STATISTICS TABLE — one row per candidate, the trade named in plain English, why and how it was tested, the numbers not the words. Never a black box. (2026-10-21: two tables, Backdrop / Thesis cells, five tests with gaps, no internal labels — 6.26)
 
 **2 · SCOPE & TURN DISCIPLINE**
 
@@ -194,6 +194,8 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `6.22` A return hurdle that ignores time is wrong at both ends; the bar is a pace, and a call must add to the BOOK, not just clear a number
 - `6.23` A backtest must cover the regime of the factor the note itself names as the cause; same direction as a call just closed for a broken thesis is the same bet re-expressed
 - `6.24` Two series compared "over the same days" rarely end on the same day; ask for the yardstick on or BEFORE the mark, never on or after
+- `6.25` The book test is risk-adjusted return, not a volatility cap; and the Trade Idea and the X Chart are one piece of research with two outputs, both behind Joe's approval
+- `6.26` Contract v2 (Oct 21): the conditions test gets a fallback, the ten-year rule gives way to full history plus a threshold scan, shorts are unrestricted but lagging is not falling, event notes pay premium for a regime change, the book is a notional 100, Joe reads two plain-English tables, and the run reads a named list of managers every morning
 
 **7 · CODE & RELEASE DISCIPLINE**
 
@@ -614,6 +616,8 @@ credential-questioning anti-pattern wearing a new hat.
 6. 1.5 applies inside the table: standard finance terms, no desk shorthand, no field names; and 0.1 applies to the Idea cell — a reader who has never seen MacroTilt must know what the trade is.
 
 **Applies to:** the Trade Idea + X Chart session (every skip day), the weekly thesis review, the health sweep — any report to Joe that compares several tested things.
+
+**Amended 2026-10-21 (6.26, Decision 6; Joe: "NO ONE HAS A FUCKING CLUE WHAT YOURE SAYING").** The reply had opened with "Dominant scheduled event: none tier-1" — a label copied from the run's internal checklist — and the "why" cell read as a dates-and-percentiles string. Five rules, binding on the run and on the playbook text (step 7): (1) no internal label reaches Joe — "the big market-moving event on the calendar today", never "dominant scheduled event"; mechanics go in one footnote or nowhere; (2) Table 1 is `Idea | Why we tested it`, the second cell exactly two labelled lines — *Backdrop:* the facts in words; *Thesis:* the mechanism and the forward call with the horizon in months; (3) Table 2 is the five tests, one row per idea per hold, each test a visible pass/fail with the gap to the bar (bar · expected return = the median case · gap · pass? · beats baseline · enough history · today's conditions · risk · killed by), shorts as two rows (relative, absolute); (4) one horizon is enough — the neighbours are shown, a lone pass is a warning not a fail; (5) at most three sentences under the tables: the closest call, the number that killed it, and whether another weight or hold would have passed it. Any positioning claim names the report, the date, the contracts, the open interest and the rank when asked.
 
 # 2 · SCOPE & TURN DISCIPLINE
 
@@ -1910,6 +1914,8 @@ Two things went wrong on the way to shipping it that are worth keeping. (1) The 
 
 **Applies to:** Senior Quant, the Trade Idea session, the Morning Brief session, the weekly thesis review.
 
+**Amended 2026-10-21 (6.26, Decision 2).** The ten-year floor permanently barred any instrument that has existed at scale for less than ten years (the volatility-ETF issuers' VIX short is a 2020-on phenomenon; all 14 episodes at the Oct 13 extreme are 2020 or later). Rule 1's ten-year minimum is now satisfied by ten years of data OR the instrument's full history from the first CFTC report, when the contract or trader category is younger than ten years, PROVIDED the signal passes a threshold-stability check the contract runs: the edge (average minus baseline) keeps its sign at every threshold from the published percentile to twice it, at the published hold (`edge.backtest.threshold_scan[]`). One sign flip and the note is refused. Long volatility on Oct 21 failed exactly here (+10.6 at the 2nd, +7.7 at the 3rd, −0.8 at the 4th) — a better reason than the calendar. Everything else in this rule stands.
+
 ### 6.22 (2026-10-07) — A return hurdle that ignores time is wrong at both ends; the bar is a pace, and a call must add to the BOOK, not just clear a number
 
 **What happened:** The contract required 15% over the note's horizon, whatever the horizon. It refused a trade expected to make 14% in a week and passed one making 15% over 18 months — about 10% a year, the index return Joe had said he did not want. The Trade Idea run then skipped an insider-buy candidate because its one-month edge was "only" about 1% a month without asking what that is per year, and it called a duration idea "already in the book" because the contract counted the stopped Aug 24 ten-year call as live by its original horizon. Joe: *"I am looking to beat the market by a healthy margin with lower overall portfolio vol than the market... take into account the current calls that are on the books and see if this is incremental alpha."*
@@ -1923,6 +1929,8 @@ Two things went wrong on the way to shipping it that are worth keeping. (1) The 
 
 **Applies to:** the Trade Idea session, Senior Quant, the weekly thesis review.
 
+**Amended 2026-10-21 (6.26, Decision 5).** Rule 3's book test treated the open calls as equal-weight because the book had no capital number. The book is now a notional 100 and every note carries `sizing.weight` (10 standard, 5 under the 6.23 fallback, 1–2 of premium for an event idea), fixed at publication; the incremental test uses the REAL weights and the candidate at its proposed weight. An event idea enters as a position worth its premium with the payoff distribution the note states; because a binary payoff is dispersed by construction, for an event idea the ratio is reported rather than enforced and the binding tests are positive expected value at the note's odds, the premium band and the correlation cap on the underlying. Event notes are exempt from the pace bar (rule 1) — a premium trade is −100% or several hundred per cent, and a pace has no meaning for it.
+
 ### 6.23 (2026-10-07) — A backtest must cover the regime of the factor the note itself names as the cause of the move; and a call in the same direction as one just closed for a broken thesis is the same bet re-expressed
 
 **What happened:** The Trade Idea session published a long-banks note (KBE) on the banks-to-S&P ratio sitting at the 0.5th percentile of twenty years: 19 prior episodes, KBE higher six months later 17 times, median +17.6% against +3.4% unconditional. The note's own prose said the selloff was driven by the 10-year at 5.27%, a 20-year high, and the "other side" admitted no episode in the sample had yields there — and it published anyway. Joe, within the hour: *"Are you taking into account where interest rates are or other macro factors? or simply just looking at KBW relative to S&P? This is terrible analysis."* The conditioning test he asked for took five minutes: 18 of the 19 episodes entered with the 10-year flat or falling over the prior quarter; today's followed a 71bp rise. Unconditionally, banks six months after a +50bp quarter in the 10-year are a coin flip (21 episodes, median +1.3%, 13 up). Inside the sample, bank returns ran at +0.73 correlation with the forward yield change — the episodes were reflation recoveries, the opposite mechanism to a long-end selloff on supply and inflation. The edge was real and irrelevant: measured in a regime that does not contain today. The note was withdrawn the same morning. A week earlier the Aug 17 long-banks call had been closed as thesis-broken at −12%; the new note was a different signal but the same direction, and a reader cannot tell the difference.
@@ -1935,6 +1943,8 @@ Two things went wrong on the way to shipping it that are worth keeping. (1) The 
 4. **Withdraw the same session.** A published call its author no longer stands behind comes down that morning with the reason logged here and in the skip record; it does not wait for Monday's review.
 
 **Applies to:** the Trade Idea session, Senior Quant, the weekly thesis review. Contract: `scripts/build_trade_idea.py` (regime_match required from 2026-10-08).
+
+**Amended 2026-10-21 (6.26, Decision 1).** Rule 1's "fewer than five such episodes means no note" failed nearly everything by construction once today's state (a Fed raising into an oil shock, the 10-year above 5%, record-tight spreads) had at most one or two matches in twenty years for almost any factor — platinum had one of six; refiners, the insider stock and consumer discretionary died the same way. From 2026-10-21 `regime_match` is three fields — `factor`, `matching_cases`, and `dependence` — and with fewer than five matching cases the idea may still publish if the correlation across ALL cases between each case's forward return and the factor's change over the hold is under 0.30 in absolute value (the history did not ride the factor), AND the note says plainly in `other_side` and `edge.summary` that no (or only N) past cases had today's condition, with the stop at most one third of the expected return and `sizing.weight` 5. The banks note would still have died (+0.73). Rule 2 is unchanged and is now what the dependence number measures.
 
 ### 6.24 (2026-10-08) — Two series compared "over the same days" rarely end on the same day
 
@@ -1956,6 +1966,24 @@ Two things went wrong on the way to shipping it that are worth keeping. (1) The 
 4. The weekly thesis review is unchanged and reads the same `review_conditions[]`.
 
 **Applies to:** the Trade Idea + X Chart session, Senior Quant, Lead Developer, the weekly thesis review.
+
+### 6.26 (2026-10-21) — Contract v2: a rule that kills every candidate in a regime the data has never seen is measuring the regime, not the ideas; and a premium-paid bet on a binary event is a kind of note a backtest cannot write
+
+**What happened:** No note had published since Oct 9. Five straight sweeps ended in a skip, and the 20%-a-year bar killed almost nothing on its own: soybeans, long volatility, platinum and refiners all cleared it at the hold we would have published. What killed them was two other tests applied in a market that looks like nothing in the data — the "today's conditions" test (6.23) failed nearly everything by construction (platinum: one matching case of six), and the ten-years rule (6.21) permanently barred the volatility-ETF short in VIX futures, a six-year phenomenon. The same review found: shorts had been confined to pairs when Joe only wanted a retail expression; a lagging asset had been treated as a falling one (every measured short edge is relative and pays only as a pair, 8–12% a year); the book had no capital number, so a 6-point pair looked the same size as a 30% commodity call and "add 2% of the book in premium" meant nothing; Joe wanted a defined-risk, premium-paid bet on a regime change (a Hormuz deal that drops oil $20 and reverses the hike odds, the 10-year, the dollar, gold and the yen together) and the contract could not express one; and the reply he read opened with an internal checklist label. The spec is `Trade Idea Contract v2 — Spec` (Joe's doc, Oct 21); the contract is canonical where the two disagree.
+
+**Rule — seven decisions, all built into `build_trade_idea.py`, `score_trade_ideas.py`, the Scorecard page, `thesis_review.py` and the playbook in one change (2026-10-21):**
+
+1. **The conditions test has a fallback** (6.23 amended): fewer than five matching cases publishes only if |correlation(case return, factor change)| < 0.30, disclosed in plain words, at a one-third stop and weight 5.
+2. **Ten years OR full instrument history plus a threshold scan** (6.21 amended): the edge keeps its sign from the published percentile to twice it, or the note is refused. A volatility note names its fund and the roll cost; the Scorecard marks the fund.
+3. **Shorts are not restricted; lagging is not falling** (10.4 amended): an outright short carries the absolute test and is refused on a positive median; a pair carries the relative test; inverse funds four weeks at most; both tests shown in the skip table.
+4. **Event notes** (`kind: event`): one named event with a resolve date within six months, the market's implied odds, a measured transmission, a defined spread on a listed underlying with the premium as the maximum loss; our odds at least 1.5× the breakeven the premium implies (Joe's number); exempt from the pace bar and the 2×-stop rule; scored at expiry from the underlying's close against the strikes, "open — resolves <date>" before it, closed early only on a broken critical review condition at intrinsic value. If the case would survive the event not happening it is a standard note.
+5. **The book is a notional 100** (6.22 amended): `sizing.weight` on every note — 10 standard, 5 fallback, 1–2 of premium for an event idea (Joe's numbers) — fixed at publication; contribution = return × weight / 100; the Scorecard shows weight and contribution per call, realized by year, and the book against the S&P at the same total weight; earlier notes backfilled to 10 with a line saying so.
+6. **Joe reads two plain-English tables** (1.6 amended): Idea + Backdrop / Thesis; the five tests with visible pass/fail and gaps; no internal labels; three sentences under.
+7. **A named reading list, read every run:** `scripts/research/reading_list.json` (Praetorian, Greenhaven Road, Macro Ops, The Daily Upside, and whoever Joe names) searched by sender over 14 days, letters read in full (direct PDF where the email link is a tracking redirect), logged in `letters_read.json`, fed to the fact base and the challenge log, never named in anything published.
+
+Settled in the script where the spec was wrong: an event idea cannot raise the book's excess-return-per-unit-of-volatility (a 3.5-to-1 binary payoff is dispersed by construction), so for an event idea that ratio is reported and the binding tests are positive expected value, the premium band and the correlation cap. Tests: `scripts/test_build_trade_idea.py`, `scripts/test_score_trade_ideas.py` (event fixtures, contribution arithmetic).
+
+**Applies to:** the Trade Idea + X Chart session, Senior Quant, Lead Developer, the weekly thesis review, the Scorecard.
 
 # 7 · CODE & RELEASE DISCIPLINE
 ### 7.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component
@@ -2705,6 +2733,8 @@ supersedes the strict long-only rule of 2026-08-24, which was the
 over-correction from the gold episode.
 
 **Applies to:** every Trade Idea.
+
+**Amended 2026-10-21 (6.26, Decision 3).** Joe: *"I don't want to restrict shorts. I just need to be able to express it as a retail trader. And there's a difference between an asset lagging but still going higher — a short here will still drag on performance."* Line (1) is narrowed to what it was about: no multi-quarter outright short of an asset in a strong uptrend. Otherwise any short may publish if a retail account can hold it (puts or a put spread; a pair; an outright short of a liquid, borrowable fund; an inverse fund held four weeks at most). A relative edge supports a PAIR only; an outright short needs its own absolute test (the asset's own forward median below zero, `edge.backtest.absolute`, contract-enforced) and the skip table shows both tests. Line (3) stands.
 
 ### 10.5 (2026-08-26) — Research daily, publish selectively; and never show the same time in two clocks
 

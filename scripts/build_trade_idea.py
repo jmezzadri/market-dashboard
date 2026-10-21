@@ -43,6 +43,32 @@ THE CONTRACT (mirrors the daily brief's, adapted for a position note)
 7.  No performance claim. The note never states or implies a track record;
     there is no verified one, and inventing one is the worst failure available
     to this surface.
+
+CONTRACT v2 (notes dated from 2026-10-21; LESSONS 6.26)
+-------------------------------------------------------
+8.  `edge.backtest.regime_match` is {factor, matching_cases, result|dependence}.
+    Five or more matching cases: the edge must clear the baseline inside
+    them. Fewer: the note may still publish if |correlation(case return,
+    factor change)| < 0.30, disclosed in `other_side` and `edge.summary`,
+    with the stop at most one third of the expected return and
+    `sizing.weight` 5 (half size).
+9.  A positioning edge needs ten years of data OR the instrument's full CFTC
+    history plus `threshold_scan[]` with the edge's sign unchanged from the
+    published percentile to twice it.
+10. An outright short carries `edge.backtest.absolute` (the asset's own
+    median forward return must be negative); a long/short spread carries
+    `edge.backtest.relative`; an inverse fund is held four weeks at most.
+11. `kind: event` — a defined-risk options spread on a named event. Required:
+    `event{name, resolves_by (<= 6 months), resolution, implied_odds,
+    transmission[]}`, `the_trade{structure, underlying, strikes, expiry,
+    premium_pct_of_width | premium, buy_line stating the premium as the
+    maximum loss}`, `expected_return{payoff_ratio, breakeven_odds,
+    edge_odds >= 1.5 x breakeven, edge_odds_basis, loss_at_stop_pct 100}`.
+    Exempt from the pace bar and the 2x-stop rule; the scorecard block is
+    derived from the trade.
+12. `sizing.weight` on every note: 10 standard, 5 under the rule-8 fallback,
+    1–2 for an event idea. Fixed at publication; the book test uses the real
+    weights.
 """
 
 from __future__ import annotations
@@ -61,6 +87,7 @@ NOVELTY_WINDOW_DAYS = 21
 VALID_KINDS = {
     "macro", "cross-asset", "single-name", "rates", "credit",
     "fx", "commodity", "equity",
+    "event",     # 2026-10-21 — a premium-paid bet on a named binary event (Decision 4)
 }
 
 # Notes dated from here carry machine-checkable review_conditions (see 3f-bis)
@@ -104,6 +131,67 @@ BOOK_RULES_FROM = "2026-10-07"
 REGIME_MATCH_FROM = "2026-10-08"      # LESSONS 6.23 — the sample has to contain today
 MIN_REGIME_MATCH_EPISODES = 5
 MIN_REGIME_MATCH_CHARS = 80
+
+# ── CONTRACT v2 (2026-10-21, LESSONS 6.26) ──────────────────────────────────
+# Six decisions from the October 21 review. No note had published since Oct 9;
+# five straight sweeps ended in a skip, and the 20%-a-year bar killed almost
+# nothing on its own. What killed the candidates was two other tests applied
+# in a market that looks like nothing in the data (a Fed raising rates into an
+# oil shock, the 10-year at a 20-year high, record-tight spreads):
+#
+#   1. The "today's conditions" test (6.23) failed nearly everything by
+#      construction. It now has a FALLBACK: with fewer than five matching
+#      cases, the idea may still publish if the correlation between the cases'
+#      forward return and the named factor's change over the hold is under
+#      0.30 in absolute value (the history did not ride the factor) — and the
+#      note then carries a plain-English disclosure, a one-third stop and half
+#      the standard size. The Oct 7 banks note would still have died (+0.73).
+#   2. The ten-years rule for positioning (6.21) permanently barred anything
+#      younger than ten years (the volatility-ETF short in VIX futures is a
+#      2020-on phenomenon). It gives way when the FULL CFTC history is used
+#      AND the edge keeps its sign at every threshold from the published one
+#      to twice it (`threshold_scan[]`). One sign flip and the note is refused.
+#   3. Shorts are not restricted (Joe: "I just need to be able to express it
+#      as a retail trader"). A lagging asset is not a falling asset: an
+#      outright short needs its own ABSOLUTE test (the asset's own forward
+#      return, median below zero); a relative edge supports a pair only.
+#      Inverse funds are held a month at most (daily-reset drift).
+#   4. A second kind of note — `kind: event` — a defined-risk, premium-paid
+#      options spread on a named binary event. No backtest; three tests
+#      instead: our odds at least EVENT_MIN_ODDS_MULTIPLE x the breakeven odds
+#      the premium implies, a measured transmission, and defined risk on a
+#      listed underlying with rows in the price store. Resolves within six
+#      months. Exempt from the pace bar and the 2x-stop rule: the premium IS
+#      the stop (loss at stop is 100% of it).
+#   5. The book gets a capital base of 100. Every note carries
+#      `sizing.weight`: 10 for a standard idea, 5 under the Decision-1
+#      fallback, EVENT_WEIGHT_MIN–EVENT_WEIGHT_MAX of premium for an event
+#      idea (Joe, 2026-10-21). The book test uses these weights, not equal
+#      weights. The weight is fixed at publication and never changes.
+#   6. Everything Joe reads is plain English (playbook step 7; LESSONS 1.6).
+CONTRACT_V2_FROM = "2026-10-21"
+STANDARD_WEIGHT = 10.0
+FALLBACK_WEIGHT = 5.0                  # half size: the price of publishing out of regime
+EVENT_WEIGHT_MIN, EVENT_WEIGHT_MAX = 1.0, 2.0
+MAX_DEPENDENCE_CORRELATION = 0.30
+FALLBACK_STOP_FRACTION = 3.0           # loss at stop <= pct / 3 under the fallback (normal rule: /2)
+EVENT_MIN_ODDS_MULTIPLE = 1.5          # our odds >= 1.5 x the breakeven the premium implies
+EVENT_MAX_RESOLVE_MONTHS = 6
+EVENT_STRUCTURES = {"call_spread", "put_spread", "call", "put"}
+MAX_INVERSE_FUND_WEEKS = 4
+# Listed inverse funds a retail account can hold. Matched as whole words in
+# the_trade's buy legs; the word "inverse" matches too.
+INVERSE_FUNDS = {
+    "SH", "PSQ", "DOG", "RWM", "SDS", "QID", "DXD", "TWM", "SPXS", "SPXU", "SQQQ", "TZA", "SRTY",
+    "TBF", "TBT", "TMV", "TTT", "SJB", "DUG", "SCO", "GLL", "ZSL", "EUO", "YCS", "UDN", "EFZ",
+    "EUM", "SEF", "SKF", "FAZ", "ERY", "DRIP", "SOXS", "LABD", "SARK", "SVXY", "SVIX",
+}
+# The plain-English disclosure the Decision-1 fallback requires, in both
+# `other_side` and `edge.summary`: "no (or only N) past cases had today's
+# condition". Matched loosely so wording can vary; the playbook gives the form.
+FALLBACK_DISCLOSURE_RE = re.compile(
+    r"\b(no|none|only\s+\w+|\w+\s+of\s+(?:the\s+)?\w+|fewer\s+than\s+\w+)\b[^.]{0,80}?"
+    r"\b(cases?|episodes?)\b[^.]{0,160}?\b(today|current|this|present)\b", re.I)
 MARKET_ANNUAL_PCT = 10.0      # S&P 500 long-run total return, the bar to beat
 MARGIN_ANNUAL_PCT = 10.0      # the "healthy margin" over it (Joe, 2026-10-07: "make it 20% a year")
 HURDLE_ANNUAL_PCT = MARKET_ANNUAL_PCT + MARGIN_ANNUAL_PCT
@@ -202,6 +290,7 @@ SCORE_BASES = {"close", "weekly_close"}
 EDGE_SOURCES = {
     "positioning", "cross-asset divergence", "technicals", "volatility structure",
     "flows", "relative value", "calendar mechanics", "credit", "market structure",
+    "event",     # 2026-10-21 — only for kind: event; the edge is the odds gap, not a backtest
 }
 # Ratios that are famous, slow, and say the same thing for years.
 TRUISM_SIGNALS = [
@@ -683,21 +772,393 @@ def _ann_vol(xs):
     return (sum((x - m) ** 2 for x in xs) / (len(xs) - 1)) ** 0.5 * (252 ** 0.5)
 
 
+# ── contract v2 helpers (2026-10-21) ───────────────────────────────────────
+def is_event(idea: dict) -> bool:
+    return str(idea.get("kind", "")) == "event"
+
+
+def is_v2(idea: dict) -> bool:
+    return str(idea.get("date", "")) >= CONTRACT_V2_FROM
+
+
+def _num(x, default=None):
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return default
+
+
+def _months_between(d0: dt.date, d1: dt.date) -> float:
+    return (d1 - d0).days / DAYS_PER_MONTH
+
+
+def event_payoff(structure: str, strikes, premium_pct_of_width=None, premium=None):
+    """The arithmetic of a defined-risk event trade, shared with the scorer.
+
+    Spread: width = |long strike - short strike|, premium = premium_pct_of_width
+    x width, max payoff = width, payoff ratio = (width - premium) / premium.
+    Single option: premium is absolute (per share); the payoff is uncapped, so
+    the ratio is None and the breakeven odds cannot be read from the price
+    alone (the note states them from the market, and the contract requires a
+    spread when it wants a payoff ratio).
+    Returns {width, premium, payoff_ratio, breakeven_odds_pct} or raises
+    ContractError.
+    """
+    if structure not in EVENT_STRUCTURES:
+        raise ContractError(f"the_trade.structure must be one of {sorted(EVENT_STRUCTURES)}, got {structure!r}")
+    if structure.endswith("_spread"):
+        if not (isinstance(strikes, (list, tuple)) and len(strikes) == 2):
+            raise ContractError("the_trade.strikes must be [long strike, short strike] for a spread")
+        k_long, k_short = _num(strikes[0]), _num(strikes[1])
+        if k_long is None or k_short is None or k_long == k_short:
+            raise ContractError("the_trade.strikes must be two different numbers")
+        if structure == "call_spread" and not k_short > k_long:
+            raise ContractError("a call spread's short strike must be ABOVE its long strike")
+        if structure == "put_spread" and not k_short < k_long:
+            raise ContractError("a put spread's short strike must be BELOW its long strike")
+        width = abs(k_short - k_long)
+        p = _num(premium_pct_of_width)
+        if p is None or not (0.0 < p < 1.0):
+            raise ContractError("the_trade.premium_pct_of_width must be a share of the width between 0 and 1 "
+                                "(0.22 means the spread cost 22% of its width)")
+        prem = p * width
+        return {"width": width, "premium": prem, "payoff_ratio": (width - prem) / prem,
+                "breakeven_odds_pct": 100.0 * p}
+    if not (isinstance(strikes, (list, tuple)) and len(strikes) == 1 and _num(strikes[0]) is not None):
+        raise ContractError("the_trade.strikes must be [strike] for a single option")
+    prem = _num(premium)
+    if prem is None or prem <= 0:
+        raise ContractError("the_trade.premium (per share, absolute) is required for a single option")
+    return {"width": None, "premium": prem, "payoff_ratio": None, "breakeven_odds_pct": None}
+
+
+def _validate_event(idea: dict, idea_date: dt.date, warnings: list) -> None:
+    """Decision 4 — the three event tests, plus shape. Raises ContractError."""
+    ev = idea.get("event")
+    if not isinstance(ev, dict):
+        raise ContractError("kind is event, so `event{name, resolves_by, implied_odds, transmission[]}` is required")
+    if len(str(ev.get("name") or "").strip()) < 20:
+        raise ContractError("event.name must state the event in one plain sentence (min 20 chars)")
+    try:
+        resolves = dt.date.fromisoformat(str(ev.get("resolves_by")))
+    except (TypeError, ValueError):
+        raise ContractError("event.resolves_by must be an ISO date — the day or window by which the event is decided")
+    if resolves <= idea_date:
+        raise ContractError("event.resolves_by must be after the note's date")
+    if _months_between(idea_date, resolves) > EVENT_MAX_RESOLVE_MONTHS + 0.05:
+        raise ContractError(
+            f"event.resolves_by is {_months_between(idea_date, resolves):.1f} months out — an event note resolves "
+            f"within {EVENT_MAX_RESOLVE_MONTHS} months, or it is a directional bet dressed as an event")
+    if len(str(ev.get("resolution") or "").strip()) < 30:
+        raise ContractError("event.resolution must say, observably, what counts as the event happening and not "
+                            "happening (min 30 chars) — an event with no observable resolution cannot be scored")
+    io = ev.get("implied_odds")
+    if not isinstance(io, dict):
+        raise ContractError("event.implied_odds{pct, source, as_of} is required — the probability the market is charging")
+    implied = _num(io.get("pct"))
+    if implied is None or not (0.0 < implied < 100.0):
+        raise ContractError("event.implied_odds.pct must be a percentage between 0 and 100")
+    for k in ("source", "as_of"):
+        if not str(io.get(k) or "").strip():
+            raise ContractError(f"event.implied_odds.{k} is required — the odds come from a dated source")
+    tr = ev.get("transmission")
+    if not isinstance(tr, list) or len(tr) < 2:
+        raise ContractError("event.transmission[] needs at least two links — what reprices, by how much, if it happens")
+    for i, link in enumerate(tr):
+        if not isinstance(link, dict):
+            raise ContractError(f"event.transmission[{i}] must be an object {{step, figure, source, as_of}}")
+        for k in ("step", "figure", "source", "as_of"):
+            if not str(link.get(k) or "").strip():
+                raise ContractError(f"event.transmission[{i}].{k} is required — transmission is measured, not asserted")
+        if not re.search(r"\d", str(link.get("figure"))):
+            raise ContractError(f"event.transmission[{i}].figure must carry a number (how much, per what)")
+        try:
+            dt.date.fromisoformat(str(link.get("as_of")))
+        except ValueError:
+            raise ContractError(f"event.transmission[{i}].as_of must be ISO yyyy-mm-dd")
+
+    tt = idea.get("the_trade") or {}
+    if not isinstance(tt, dict):
+        raise ContractError("the_trade must be an object")
+    pay = event_payoff(tt.get("structure"), tt.get("strikes"), tt.get("premium_pct_of_width"), tt.get("premium"))
+    und = str(tt.get("underlying") or "").strip().upper()
+    if not re.fullmatch(r"[A-Z][A-Z0-9.\-]{0,9}", und):
+        raise ContractError("the_trade.underlying must be a listed ticker (the fund or stock the options are on)")
+    err = _ticker_exists_error(f"ticker:{und}")
+    if err:
+        raise ContractError(f"the_trade.underlying: {err}")
+    try:
+        expiry = dt.date.fromisoformat(str(tt.get("expiry")))
+    except (TypeError, ValueError):
+        raise ContractError("the_trade.expiry must be the listed expiry as an ISO date")
+    if expiry < resolves:
+        raise ContractError(f"the_trade.expiry ({expiry}) is before event.resolves_by ({resolves}) — the option must outlive the event")
+    if _months_between(idea_date, expiry) > EVENT_MAX_RESOLVE_MONTHS + 1.05:
+        raise ContractError("the_trade.expiry is more than a month past the six-month resolution limit")
+    bl = str(tt.get("buy_line") or "").strip()
+    if not re.search(r"\b(most|maximum|max)\b[^.]{0,40}\b(lose|loss)\b|\b(lose|loss)\b[^.]{0,40}\b(most|maximum|max)\b", bl, re.I) \
+            and not re.search(r"premium[^.]{0,40}\b(is|=)\b[^.]{0,20}\b(the\s+)?(most|maximum|max)", bl, re.I):
+        raise ContractError("the_trade.buy_line must state the premium as the most the trade can lose "
+                            "(e.g. 'TLT 80/86 call spread to Dec 18; premium is the most you can lose')")
+
+    er = idea.get("expected_return")
+    if not isinstance(er, dict):
+        raise ContractError("expected_return{payoff_ratio, breakeven_odds, edge_odds, loss_at_stop_pct} is required")
+    if pay["payoff_ratio"] is None:
+        # A single option has no cap, so the note states the ratio it is
+        # underwriting and the market odds it reads from the price.
+        ratio = _num(er.get("payoff_ratio"))
+        be = _num(er.get("breakeven_odds"))
+        if ratio is None or ratio <= 0 or be is None or not (0 < be < 100):
+            raise ContractError("a single option has no payoff cap: state expected_return.payoff_ratio (the payoff "
+                                "underwritten per unit of premium) and breakeven_odds (= 100 / (ratio + 1)) explicitly")
+        if abs(be - 100.0 / (ratio + 1.0)) > 1.0:
+            raise ContractError(f"expected_return.breakeven_odds {be:g}% does not match the payoff ratio "
+                                f"({100.0 / (ratio + 1.0):.1f}% for {ratio:g} to 1)")
+    else:
+        ratio, be = pay["payoff_ratio"], pay["breakeven_odds_pct"]
+        for k, want in (("payoff_ratio", ratio), ("breakeven_odds", be)):
+            got = _num(er.get(k))
+            if got is None or abs(got - want) > 0.05 * max(1.0, abs(want)):
+                raise ContractError(f"expected_return.{k} is {er.get(k)!r}; from the strikes and premium it is {want:.2f}")
+    edge_odds = _num(er.get("edge_odds"))
+    if edge_odds is None or not (0 < edge_odds < 100):
+        raise ContractError("expected_return.edge_odds must be the note's own probability of the event, in per cent")
+    if edge_odds < EVENT_MIN_ODDS_MULTIPLE * be:
+        raise ContractError(
+            f"odds gap: our odds {edge_odds:g}% are less than {EVENT_MIN_ODDS_MULTIPLE:g}x the breakeven {be:.1f}% the "
+            f"premium implies — the trade is not mispriced enough to pay for")
+    if len(str(er.get("edge_odds_basis") or "").strip()) < 60:
+        raise ContractError("expected_return.edge_odds_basis must argue the gap with dated facts, not conviction (min 60 chars)")
+    loss = _num(er.get("loss_at_stop_pct"))
+    if loss is None or abs(abs(loss) - 100.0) > 1e-9:
+        raise ContractError("expected_return.loss_at_stop_pct is always 100 for an event note — the premium is the stop")
+    # The headline return the note calls for: the full payoff, in per cent of
+    # premium. Written here so the weekly review and the scorer grade one number.
+    er["pct"] = round(ratio * 100.0, 1)
+    if len(str(er.get("basis") or "").strip()) < 20:
+        er["basis"] = (f"the spread paying off in full at expiry: {ratio:.2f} to 1 on the premium paid "
+                       f"({be:.0f}% breakeven odds against our {edge_odds:g}%)")
+    er.setdefault("instrument", f"{und} {str(tt.get('structure')).replace('_', ' ')}, expiry {expiry.isoformat()}")
+
+    # The scorecard block is derived, not authored: the scorer marks the
+    # underlying's close against the strikes at expiry (Decision 4), and the
+    # book / correlation tests measure the underlying (Decision 5).
+    sc = idea.get("scorecard")
+    if not isinstance(sc, dict) or not sc.get("legs"):
+        sc = {"legs": [{"series": f"ticker:{und}", "side": "long" if str(tt.get("structure")).startswith("call") else "short",
+                        "measure": "pct_change", "label": f"{und} ({str(tt.get('structure')).replace('_', ' ')})",
+                        "short_label": f"{und} {str(tt.get('structure')).replace('_', ' ')}"}]}
+        idea["scorecard"] = sc
+    hm = max(1, int(round(_months_between(idea_date, expiry))))
+    sc["horizon_months"] = min(hm, MAX_HORIZON_MONTHS)
+    sc.pop("horizon_weeks", None)
+    sc["event"] = {"structure": tt.get("structure"), "underlying": und, "strikes": list(tt.get("strikes")),
+                   "expiry": expiry.isoformat(), "resolves_by": resolves.isoformat(),
+                   "width": pay["width"], "premium": round(pay["premium"], 4),
+                   "premium_pct_of_width": _num(tt.get("premium_pct_of_width")),
+                   "payoff_ratio": round(ratio, 4), "breakeven_odds_pct": round(be, 2),
+                   "edge_odds_pct": edge_odds, "implied_odds_pct": implied}
+    if sc.get("invalidation"):
+        raise ContractError("an event note has no price stop — the premium is the stop; remove scorecard.invalidation")
+    if not str(sc.get("note") or "").strip():
+        sc["note"] = ("Event note: scored at expiry from the underlying's close against the strikes; the premium is the "
+                      "maximum loss and there is no price stop. Closes early only on a broken critical review condition.")
+    idea["sizing"] = idea.get("sizing") if isinstance(idea.get("sizing"), dict) else {}
+
+
+def _validate_weight(idea: dict, fallback: bool, warnings: list) -> None:
+    """Decision 5 — every note carries sizing.weight, banded by its type."""
+    sz = idea.get("sizing")
+    if not isinstance(sz, dict):
+        raise ContractError("sizing{weight} is required — the book is a notional 100 and every call is sized against it")
+    w = _num(sz.get("weight"))
+    if w is None:
+        raise ContractError("sizing.weight must be a number out of 100 (standard idea 10; Decision-1 fallback 5; "
+                            f"event idea {EVENT_WEIGHT_MIN:g} to {EVENT_WEIGHT_MAX:g} of premium)")
+    if is_event(idea):
+        if not (EVENT_WEIGHT_MIN - 1e-9 <= w <= EVENT_WEIGHT_MAX + 1e-9):
+            raise ContractError(f"sizing.weight is {w:g} — an event idea is sized by premium at risk, "
+                                f"{EVENT_WEIGHT_MIN:g} to {EVENT_WEIGHT_MAX:g} of the book's 100")
+    elif fallback:
+        if abs(w - FALLBACK_WEIGHT) > 1e-9:
+            raise ContractError(f"sizing.weight is {w:g} — a note published under the fewer-than-five-cases fallback "
+                                f"is sized at {FALLBACK_WEIGHT:g} of 100, half the standard idea")
+    elif abs(w - STANDARD_WEIGHT) > 1e-9:
+        raise ContractError(f"sizing.weight is {w:g} — a standard idea is sized at {STANDARD_WEIGHT:g} of 100")
+    sz["weight"] = w
+    sz.setdefault("basis", "of a notional book of 100; fixed at publication and never changed")
+
+
+def _validate_regime_match_v2(idea: dict, bt: dict, er: dict, warnings: list) -> bool:
+    """Decision 1 — the three-field regime match. Returns True if the note
+    publishes under the fewer-than-five-cases fallback."""
+    rm = bt.get("regime_match")
+    if not isinstance(rm, dict):
+        raise ContractError(
+            "edge.backtest.regime_match must be an object {factor, matching_cases, result, dependence}: the factor "
+            "the note says is driving the move (with today's reading), how many backtest cases share today's state on "
+            "it, the result inside them, and the correlation of every case's forward return with the factor's change "
+            "over the hold")
+    factor = str(rm.get("factor") or "").strip()
+    if len(factor) < 20 or not re.search(r"\d", factor):
+        raise ContractError("regime_match.factor must name the one thing driving the move, with today's reading "
+                            "(e.g. 'the 10-year yield, 5.12% today, a 20-year high')")
+    try:
+        mc = int(rm.get("matching_cases"))
+    except (TypeError, ValueError):
+        raise ContractError("regime_match.matching_cases must be a whole number — how many backtest cases share today's state")
+    if mc < 0:
+        raise ContractError("regime_match.matching_cases cannot be negative")
+    if mc >= MIN_REGIME_MATCH_EPISODES:
+        res = str(rm.get("result") or "").strip()
+        if len(res) < 40 or not re.search(r"\d", res):
+            raise ContractError(f"regime_match.result must state the outcome inside the {mc} matching cases, with the "
+                                "numbers, and it must clear the baseline on its own (min 40 chars)")
+        if re.search(r"\b(below|under|fails?|did not clear|does not clear|worse than)\b[^.]{0,40}\bbaseline\b", res, re.I):
+            raise ContractError("regime_match.result says the edge does not clear the baseline inside the matching cases "
+                                "— the edge is out of sample for the one thing the note says matters; no note")
+        return False
+    # Fewer than five: the dependence check.
+    dep = rm.get("dependence")
+    if not isinstance(dep, dict):
+        raise ContractError(
+            f"regime_match.matching_cases is {mc} (fewer than {MIN_REGIME_MATCH_EPISODES}), so regime_match.dependence"
+            "{correlation, method} is required: the correlation across ALL backtest cases between each case's forward "
+            "return and the factor's change over the holding period, and how it was computed")
+    corr = _num(dep.get("correlation"))
+    if corr is None or not (-1.0 <= corr <= 1.0):
+        raise ContractError("regime_match.dependence.correlation must be a number between -1 and 1")
+    if len(str(dep.get("method") or "").strip()) < 40:
+        raise ContractError("regime_match.dependence.method must say how the correlation was computed (series, window, "
+                            "cases; min 40 chars)")
+    if abs(corr) >= MAX_DEPENDENCE_CORRELATION:
+        raise ContractError(
+            f"fallback refused: only {mc} past case(s) share today's state on the named factor, and the cases' forward "
+            f"returns ran at {corr:+.2f} correlation with the factor's change — the history depended on the condition "
+            f"(limit {MAX_DEPENDENCE_CORRELATION:.2f} in absolute value). The sample is from a different world.")
+    for k, txt in (("other_side", str(idea.get("other_side") or "")),
+                   ("edge.summary", str((idea.get("edge") or {}).get("summary") or ""))):
+        if not FALLBACK_DISCLOSURE_RE.search(txt):
+            raise ContractError(
+                f"fallback disclosure missing in {k}: say plainly that no (or only {mc}) past cases had today's "
+                "condition on the named factor — e.g. 'Only one of the seven past cases had the Fed raising rates as "
+                "it is today.'")
+    pct, loss = _num(er.get("pct")), _num(er.get("loss_at_stop_pct"))
+    if pct is not None and loss is not None and loss > pct / FALLBACK_STOP_FRACTION + 1e-9:
+        raise ContractError(
+            f"fallback stop: loss at the stop is {loss:g}% against an expected {pct:g}% — under the fewer-than-five-cases "
+            f"fallback the stop may be at most one third of the expected return ({pct / FALLBACK_STOP_FRACTION:.2f}%)")
+    warnings.append(f"published under the Decision-1 fallback: {mc} matching case(s), dependence correlation {corr:+.2f}, "
+                    f"weight {FALLBACK_WEIGHT:g}, one-third stop")
+    return True
+
+
+def _validate_threshold_scan(bt: dict, yrs: float) -> None:
+    """Decision 2 — the ten-year minimum gives way to full instrument history
+    plus a threshold-stability check."""
+    if yrs >= MIN_POSITIONING_WINDOW_YEARS:
+        return
+    if bt.get("full_history") is not True or not str(bt.get("first_report") or "").strip():
+        raise ContractError(
+            f"edge.backtest.window_years is {yrs:g} — a positioning edge is measured on at least "
+            f"{MIN_POSITIONING_WINDOW_YEARS} years, OR on the instrument's FULL history from the first CFTC report "
+            "(set edge.backtest.full_history: true and first_report: <date>) when the contract or trader category is "
+            "younger than ten years. The Aug 14 euro edge existed only inside a 3-year window; over 22 years it lost.")
+    scan = bt.get("threshold_scan")
+    pub = _num(bt.get("threshold"))
+    if pub is None or pub <= 0:
+        raise ContractError("edge.backtest.threshold (the published percentile, e.g. 2 for the 2nd percentile) is "
+                            "required with full_history")
+    if not isinstance(scan, list) or len(scan) < 3:
+        raise ContractError(
+            "edge.backtest.threshold_scan[] is required with full_history: one row {threshold, cases, avg, baseline, "
+            "edge} per threshold from the published percentile to twice it (e.g. 2nd, 3rd, 4th, 5th), at the published hold")
+    rows = []
+    for i, r in enumerate(scan):
+        if not isinstance(r, dict):
+            raise ContractError(f"threshold_scan[{i}] must be an object")
+        t, e = _num(r.get("threshold")), _num(r.get("edge"))
+        if t is None or e is None:
+            raise ContractError(f"threshold_scan[{i}] needs numeric threshold and edge (average minus baseline)")
+        rows.append((t, e))
+    rows.sort()
+    ts = [t for t, _ in rows]
+    if min(ts) > pub + 1e-9 or max(ts) < 2 * pub - 1e-9:
+        raise ContractError(f"threshold_scan must run from the published threshold ({pub:g}) to twice it ({2 * pub:g}); "
+                            f"it covers {min(ts):g} to {max(ts):g}")
+    base_sign = 1 if rows[0][1] > 0 else -1 if rows[0][1] < 0 else 0
+    if base_sign == 0:
+        raise ContractError("threshold_scan: the edge at the published threshold is zero — there is no edge to publish")
+    for t, e in rows:
+        if (e > 0) - (e < 0) != base_sign:
+            raise ContractError(
+                f"threshold-stability check failed: the edge is {rows[0][1]:+.1f} at the {rows[0][0]:g}th percentile but "
+                f"{e:+.1f} at the {t:g}th — a sign flip. The signal does not survive moving the threshold; refused.")
+
+
+def _validate_short_tests(idea: dict, bt: dict) -> None:
+    """Decision 3 — lagging is not falling."""
+    pt = idea.get("position_type")
+    if pt == "outright short":
+        ab = bt.get("absolute")
+        if not isinstance(ab, dict):
+            raise ContractError(
+                "an outright short needs edge.backtest.absolute{median, win_rate} — the asset's OWN forward return "
+                "over the hold against its own unconditional return. A relative edge (A lags the market) supports a "
+                "pair only; an asset can lag and still rise, and the short then drags.")
+        med, wr = _num(ab.get("median")), _num(ab.get("win_rate"))
+        if med is None or wr is None:
+            raise ContractError("edge.backtest.absolute.median and .win_rate must be numbers (median % return of the asset "
+                                "itself; share of cases in which it fell)")
+        if med >= 0:
+            raise ContractError(
+                f"outright short refused: the asset's own median forward return in the backtest is {med:+.1f}% — it "
+                "lagged the market but did not fall. Express this as a pair (long/short spread) or drop it.")
+    if pt == "long/short spread":
+        rel = bt.get("relative")
+        if not isinstance(rel, dict) or _num(rel.get("median")) is None or _num(rel.get("win_rate")) is None:
+            raise ContractError(
+                "a long/short spread needs edge.backtest.relative{median, win_rate} — the gap between the two legs "
+                "over the hold (median, share of cases positive). The pair's return IS the gap.")
+
+
+def _inverse_fund_named(tt: dict) -> str | None:
+    for k in ("buy", "buy_line"):
+        txt = str(tt.get(k) or "")
+        if re.search(r"\binverse\b", txt, re.I):
+            return "inverse"
+        for sym in re.findall(r"\b[A-Z]{2,5}\b", txt):
+            if sym in INVERSE_FUNDS:
+                return sym
+    return None
+
+
 # ── the contract ───────────────────────────────────────────────────────────
 def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     """Raise ContractError on anything that must not ship. Return warnings."""
     warnings: list[str] = []
     published = published or []
+    v2 = is_v2(idea)
+    event = is_event(idea)
+    fallback = False
+
+    # 0 — shape
+    try:
+        idea_date = dt.date.fromisoformat(str(idea.get("date")))
+    except (ValueError, TypeError):
+        raise ContractError(f"date must be ISO yyyy-mm-dd, got {idea.get('date')!r}")
+    if event:
+        if not v2:
+            raise ContractError(f"kind: event is accepted on notes dated from {CONTRACT_V2_FROM}")
+        # Decision 4 — the event block, the odds gap, the transmission and the
+        # defined-risk structure; also derives the scorecard block.
+        _validate_event(idea, idea_date, warnings)
 
     missing = [k for k in REQUIRED if not idea.get(k)]
     if missing:
         raise ContractError(f"missing required field(s): {', '.join(missing)}")
 
-    # 0 — shape
-    try:
-        idea_date = dt.date.fromisoformat(idea["date"])
-    except (ValueError, TypeError):
-        raise ContractError(f"date must be ISO yyyy-mm-dd, got {idea['date']!r}")
     if idea["kind"] not in VALID_KINDS:
         raise ContractError(f"kind must be one of {sorted(VALID_KINDS)}, got {idea['kind']!r}")
     for key in ("thesis", "risks", "evidence"):
@@ -774,19 +1235,30 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
         raise ContractError("edge must be an object")
     if edge.get("source") not in EDGE_SOURCES:
         raise ContractError(f"edge.source must be one of {sorted(EDGE_SOURCES)}, got {edge.get('source')!r}")
+    if (edge.get("source") == "event") != event:
+        raise ContractError("edge.source 'event' is for kind: event, and an event note's edge.source is 'event' — "
+                            "the edge is the gap between our odds and the market's, not a backtest")
     bt = edge.get("backtest")
-    if not isinstance(bt, dict):
+    if event:
+        # Decision 4 — an event note has no backtest; the three event tests ran
+        # in _validate_event. If the case for the trade would survive the event
+        # NOT happening it is a standard note, and the playbook says so.
+        bt = bt if isinstance(bt, dict) else {}
+        if len(str(edge.get("summary") or "").strip()) < 80:
+            raise ContractError("edge.summary for an event note states the odds gap in words (market odds, our odds, why) — min 80 chars")
+    if not event and not isinstance(bt, dict):
         raise ContractError("edge.backtest is required — an idea with no measured base rate is an opinion")
-    for k in ("window", "n", "result", "baseline"):
+    for k in (() if event else ("window", "n", "result", "baseline")):
         if not str(bt.get(k, "")).strip():
             raise ContractError(
                 f"edge.backtest is missing {k}. Every field is load-bearing: `baseline` is the UNCONDITIONAL "
                 "outcome over the same horizon, and without it a hit rate means nothing.")
-    try:
-        if int(bt["n"]) < 3:
-            raise ContractError(f"edge.backtest.n is {bt['n']} — too few observations to claim an edge")
-    except (TypeError, ValueError):
-        raise ContractError(f"edge.backtest.n must be a number, got {bt['n']!r}")
+    if not event:
+        try:
+            if int(bt["n"]) < 3:
+                raise ContractError(f"edge.backtest.n is {bt['n']} — too few observations to claim an edge")
+        except (TypeError, ValueError):
+            raise ContractError(f"edge.backtest.n must be a number, got {bt['n']!r}")
     if edge["source"] == "positioning" and str(idea.get("date", "")) >= POSITIONING_RIGOUR_FROM:
         try:
             eps = int(bt.get("episodes"))
@@ -799,7 +1271,11 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             raise ContractError(
                 f"edge.backtest.episodes is {eps} — a positioning edge needs at least {MIN_POSITIONING_EPISODES} "
                 "independent episodes (13 clear weeks apart). Fewer is an anecdote; do not publish it.")
-        if yrs < MIN_POSITIONING_WINDOW_YEARS:
+        if v2:
+            # Decision 2 — ten years, OR the full instrument history plus a
+            # threshold-stability check (one sign flip refuses the note).
+            _validate_threshold_scan(bt, yrs)
+        elif yrs < MIN_POSITIONING_WINDOW_YEARS:
             raise ContractError(
                 f"edge.backtest.window_years is {yrs:g} — a positioning edge is measured on at least "
                 f"{MIN_POSITIONING_WINDOW_YEARS} years. The Aug 14 euro edge (+3.18% in three months) existed only "
@@ -823,7 +1299,14 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     # So every note names the factor it says caused the move, counts the
     # episodes that share today's state on it, and reports the result in
     # those alone — as a field, so the question cannot be skipped.
-    if str(idea.get("date", "")) >= REGIME_MATCH_FROM:
+    if v2 and not event:
+        # Decision 1 (2026-10-21) — {factor, matching_cases, result | dependence}.
+        # Fewer than five matching cases is no longer an automatic veto: the
+        # note may publish if the history did not ride the factor, disclosed,
+        # at half size, with a one-third stop. `fallback` feeds the weight and
+        # stop checks below.
+        fallback = _validate_regime_match_v2(idea, bt, idea.get("expected_return") or {}, warnings)
+    elif str(idea.get("date", "")) >= REGIME_MATCH_FROM and not event:
         rm = str(bt.get("regime_match") or "").strip()
         if len(rm) < MIN_REGIME_MATCH_CHARS or not re.search(r"\d", rm):
             raise ContractError(
@@ -870,6 +1353,22 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
         raise ContractError(f"position_type {idea['position_type']!r} requires the_trade.short — say what is sold short")
     if idea["position_type"] not in ("outright short", "long/short spread") and str(tt.get("short", "")).strip():
         raise ContractError("the_trade.short is set but position_type says nothing is sold short — pick one")
+    if v2 and not event:
+        # Decision 3 — an outright short carries the absolute test; a pair
+        # carries the relative test; an inverse fund is held a month at most.
+        _validate_short_tests(idea, bt)
+        inv_fund = _inverse_fund_named(tt)
+        if inv_fund:
+            wk = idea.get("scorecard", {}).get("horizon_weeks") if isinstance(idea.get("scorecard"), dict) else None
+            try:
+                wk = int(wk)
+            except (TypeError, ValueError):
+                wk = None
+            if wk is None or wk > MAX_INVERSE_FUND_WEEKS:
+                raise ContractError(
+                    f"the_trade names an inverse fund ({inv_fund}); an inverse fund resets daily and drifts, so it is "
+                    f"held at most {MAX_INVERSE_FUND_WEEKS} weeks — state scorecard.horizon_weeks (1 to "
+                    f"{MAX_INVERSE_FUND_WEEKS}) or use puts / a pair instead")
 
     # 3e-ter — TILE LINES (Joe, 2026-09-14): "I want the home page trade idea
     # tile to be more succinct... Its too much writing." The homepage tile
@@ -1108,7 +1607,12 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             er_pct = float(er.get("pct"))
         except (TypeError, ValueError):
             raise ContractError("expected_return.pct must be a number (per cent of the position over the horizon)")
-        if str(idea.get("date", "")) >= BOOK_RULES_FROM:
+        if event:
+            # Decision 4 — a premium trade is -100% or several hundred per cent;
+            # the pace bar and the 2x-stop rule have no meaning for it. Its
+            # three tests ran in _validate_event.
+            pass
+        elif str(idea.get("date", "")) >= BOOK_RULES_FROM:
             hm = _scored_months(idea.get("scorecard") or {})
             if not hm:
                 raise ContractError("the hurdle is a pace — scorecard must state horizon_months or horizon_weeks")
@@ -1129,13 +1633,13 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
         # Downside protection: what the position loses if the stop prints, on
         # the same basis, and the call must pay at least twice that.
         try:
-            loss = float(er.get("loss_at_stop_pct"))
+            loss = abs(float(er.get("loss_at_stop_pct")))
         except (TypeError, ValueError):
             raise ContractError("expected_return.loss_at_stop_pct is required — the loss on the position if the stop prints, "
                                 "on the same basis as pct (a positive number)")
         if loss <= 0:
             raise ContractError("expected_return.loss_at_stop_pct must be a positive number")
-        if er_pct < MIN_REWARD_TO_RISK * loss:
+        if not event and er_pct < MIN_REWARD_TO_RISK * loss:
             # 2026-10-09 — Joe can waive the 2x rule for one named note. He was
             # shown that the energy call's history supports a 10% gain against
             # a 10% stop (no stop level gave 2x: a tighter stop was hit in 7 of
@@ -1156,6 +1660,13 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             warnings.append(
                 f"reward-to-risk waiver used: {er_pct:g}% expected against {loss:g}% at the stop "
                 f"(approved by Joe {wv.get('approved_on')})")
+
+    # 3h-pre — Decision 5 (2026-10-21): the book is a notional 100 and every
+    # note states its weight, banded by type. Fixed at publication (main()
+    # refuses a republish that changes it).
+    if v2:
+        _validate_weight(idea, fallback, warnings)
+    my_weight = _num((idea.get("sizing") or {}).get("weight"), STANDARD_WEIGHT) if isinstance(idea.get("sizing"), dict) else STANDARD_WEIGHT
 
     # 3h — not an overly correlated book (2026-09-30). A candidate whose
     # position returns have run at |correlation| above MAX_BOOK_CORRELATION
@@ -1228,7 +1739,7 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                 if len(common) < 40 or not spx:
                     raise ContractError("book test: fewer than 40 sessions common to the candidate, the open calls "
                                         "and the S&P — cannot show the book stays calmer than the market")
-                paces = []
+                paces, weights = [], []
                 for prev, _ in book_rets:
                     pace = _annual_pace(prev)
                     if pace is None:
@@ -1236,41 +1747,115 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                         warnings.append(f"open call {prev.get('date')} stated no expected return — counted at the "
                                         f"{HURDLE_ANNUAL_PCT:g}%-a-year bar in the book test")
                     paces.append(pace)
+                    # Decision 5 (2026-10-21): the REAL weight of every open
+                    # call, out of 100. A call published before weights existed
+                    # was backfilled to the standard 10 by the migration.
+                    pw = _num(((prev.get("sizing") or {}) if isinstance(prev.get("sizing"), dict) else {}).get("weight"))
+                    weights.append(pw if pw is not None else STANDARD_WEIGHT)
                 my_pace = _annual_pace(idea)
                 n = len(book_rets)
-                new_book = [(mine[d] + sum(r[d] for _, r in book_rets)) / (n + 1) for d in common]
-                vol_new = _ann_vol(new_book)
                 vol_spx = _ann_vol([spx_ret[d] for d in common])
-                exp_new = (sum(paces) + my_pace) / (n + 1)
-                if vol_new is None or vol_spx is None:
+                if vol_spx is None:
                     raise ContractError("book test: volatility could not be computed")
-                # 2026-10-14 (Joe): "the book doesn't need to be calmer, per
-                # se. So long as RISK ADJUSTED EXPECTED RETURN IS HIGHER it's
-                # OK." The volatility cap (book vol <= S&P vol, 2026-10-07) is
-                # withdrawn: it deadlocked on 2026-10-09 and it was never the
-                # point. The one test that remains is the ratio below — adding
-                # the call must RAISE the book's excess return per unit of
-                # volatility. Book volatility against the S&P's is still
-                # reported in the line so the stance can quote it.
-                if vol_new > vol_spx:
-                    warnings.append(
-                        f"book volatility with this call is {vol_new:.1f}% a year against the S&P's {vol_spx:.1f}% "
-                        f"over {len(common)} sessions — allowed; the risk-adjusted test below is the one that binds")
-                ratio_new = (exp_new - MARKET_ANNUAL_PCT) / vol_new
-                line = (f"book test: {n} open call(s) + this one — expected {exp_new:.1f}% a year vs the S&P's "
-                        f"{MARKET_ANNUAL_PCT:g}%, volatility {vol_new:.1f}% vs the S&P's {vol_spx:.1f}%")
-                if n:
-                    old_book = [sum(r[d] for _, r in book_rets) / n for d in common]
-                    vol_old = _ann_vol(old_book)
-                    exp_old = sum(paces) / n
-                    ratio_old = (exp_old - MARKET_ANNUAL_PCT) / vol_old if vol_old else None
-                    if ratio_old is not None and ratio_new <= ratio_old:
+                if v2:
+                    # ── weighted book, in points of a notional 100 ──
+                    # Each call contributes weight/100 x its daily return;
+                    # expected excess over the S&P = Σ w (pace - 10%) / 100; an
+                    # event idea enters as a position worth its premium with
+                    # the payoff distribution the note states (lose 100% with
+                    # probability 1 - edge odds, earn the payoff ratio
+                    # otherwise), uncorrelated with the open calls.
+                    old_book = [sum(w / 100.0 * r[d] for w, (_, r) in zip(weights, book_rets)) for d in common]
+                    exc_old = sum(w / 100.0 * (p - MARKET_ANNUAL_PCT) for w, p in zip(weights, paces))
+                    vol_old = _ann_vol(old_book) if n else None
+                    if event:
+                        ev = (idea.get("scorecard") or {}).get("event") or {}
+                        p_win = _num(ev.get("edge_odds_pct"), 0.0) / 100.0
+                        ratio = _num(ev.get("payoff_ratio"), 0.0)
+                        hm = _scored_months(idea.get("scorecard") or {}) or 1.0
+                        exp_ret = 100.0 * (p_win * ratio - (1.0 - p_win))            # % of premium over the hold
+                        sd_ret = 100.0 * (ratio + 1.0) * (p_win * (1.0 - p_win)) ** 0.5
+                        my_exc = my_weight / 100.0 * (exp_ret * 12.0 / hm - MARKET_ANNUAL_PCT)
+                        my_var_ann = (my_weight / 100.0 * sd_ret) ** 2 * 12.0 / hm
+                        base_var = (vol_old ** 2) if vol_old else 0.0
+                        vol_new = (base_var + my_var_ann) ** 0.5
+                        new_desc = (f"event idea at weight {my_weight:g}: {p_win * 100:.0f}% chance of {ratio:.1f} to 1, "
+                                    f"else -100% of premium")
+                    else:
+                        new_book = [o + my_weight / 100.0 * mine[d] for o, d in zip(old_book, common)]
+                        vol_new = _ann_vol(new_book)
+                        my_exc = my_weight / 100.0 * (my_pace - MARKET_ANNUAL_PCT)
+                        new_desc = f"this call at weight {my_weight:g}"
+                    exc_new = exc_old + my_exc
+                    if vol_new is None or vol_new <= 0:
+                        raise ContractError("book test: volatility could not be computed")
+                    total_w = sum(weights) + my_weight
+                    ratio_new = exc_new / vol_new
+                    line = (f"book test (weights): {n} open call(s) at {sum(weights):g} of 100 + {new_desc} — expected "
+                            f"excess over the S&P {exc_new:+.2f} points of the book a year, volatility "
+                            f"{vol_new:.2f} points vs the S&P's {vol_spx * total_w / 100.0:.2f} at the same {total_w:g} of 100")
+                    if event and my_exc <= 0:
                         raise ContractError(
-                            f"not incremental: adding this call takes the book's excess return per unit of risk from "
-                            f"{ratio_old:.2f} to {ratio_new:.2f} (expected {exp_old:.1f}% → {exp_new:.1f}% a year, "
-                            f"volatility {vol_old:.1f}% → {vol_new:.1f}%) — it must raise it")
-                    line += f"; excess return per unit of risk {ratio_old:.2f} → {ratio_new:.2f}"
-                warnings.append(line)
+                            f"event idea has no positive expected value at the note's own odds: {new_desc} gives "
+                            f"{my_exc:+.2f} points of expected excess a year — the odds gap is not large enough")
+                    if n and vol_old:
+                        ratio_old = exc_old / vol_old
+                        if event and ratio_new <= ratio_old:
+                            # A binary payoff's dispersion (lose 1.5 or earn 5)
+                            # lowers excess-return-per-unit-of-volatility
+                            # mechanically even though the loss is capped at
+                            # the premium — the ratio penalises the upside.
+                            # So for an event idea the ratio is REPORTED and
+                            # the binding tests are positive expected value
+                            # (above), the premium band (Decision 5) and the
+                            # correlation cap on the underlying. Settled in the
+                            # script 2026-10-21 (the spec expected the ratio
+                            # to rise; it cannot for a 3.5-to-1 payoff).
+                            warnings.append(
+                                f"event idea lowers the book's excess return per unit of volatility ({ratio_old:.2f} → "
+                                f"{ratio_new:.2f}) because a binary payoff is dispersed by construction; allowed — the "
+                                f"loss is capped at {my_weight:g} of 100 and the expected excess rises {exc_old:+.2f} → {exc_new:+.2f}")
+                        elif ratio_new <= ratio_old:
+                            raise ContractError(
+                                f"not incremental: adding this call at weight {my_weight:g} takes the book's excess "
+                                f"return per unit of risk from {ratio_old:.2f} to {ratio_new:.2f} (expected excess "
+                                f"{exc_old:+.2f} → {exc_new:+.2f} points a year, volatility {vol_old:.2f} → {vol_new:.2f} "
+                                "points) — it must raise it")
+                        line += f"; excess return per unit of risk {ratio_old:.2f} → {ratio_new:.2f}"
+                    warnings.append(line)
+                else:
+                    new_book = [(mine[d] + sum(r[d] for _, r in book_rets)) / (n + 1) for d in common]
+                    vol_new = _ann_vol(new_book)
+                    exp_new = (sum(paces) + my_pace) / (n + 1)
+                    if vol_new is None:
+                        raise ContractError("book test: volatility could not be computed")
+                    # 2026-10-14 (Joe): "the book doesn't need to be calmer, per
+                    # se. So long as RISK ADJUSTED EXPECTED RETURN IS HIGHER it's
+                    # OK." The volatility cap (book vol <= S&P vol, 2026-10-07) is
+                    # withdrawn: it deadlocked on 2026-10-09 and it was never the
+                    # point. The one test that remains is the ratio below — adding
+                    # the call must RAISE the book's excess return per unit of
+                    # volatility. Book volatility against the S&P's is still
+                    # reported in the line so the stance can quote it.
+                    if vol_new > vol_spx:
+                        warnings.append(
+                            f"book volatility with this call is {vol_new:.1f}% a year against the S&P's {vol_spx:.1f}% "
+                            f"over {len(common)} sessions — allowed; the risk-adjusted test below is the one that binds")
+                    ratio_new = (exp_new - MARKET_ANNUAL_PCT) / vol_new
+                    line = (f"book test: {n} open call(s) + this one — expected {exp_new:.1f}% a year vs the S&P's "
+                            f"{MARKET_ANNUAL_PCT:g}%, volatility {vol_new:.1f}% vs the S&P's {vol_spx:.1f}%")
+                    if n:
+                        old_book = [sum(r[d] for _, r in book_rets) / n for d in common]
+                        vol_old = _ann_vol(old_book)
+                        exp_old = sum(paces) / n
+                        ratio_old = (exp_old - MARKET_ANNUAL_PCT) / vol_old if vol_old else None
+                        if ratio_old is not None and ratio_new <= ratio_old:
+                            raise ContractError(
+                                f"not incremental: adding this call takes the book's excess return per unit of risk from "
+                                f"{ratio_old:.2f} to {ratio_new:.2f} (expected {exp_old:.1f}% → {exp_new:.1f}% a year, "
+                                f"volatility {vol_old:.1f}% → {vol_new:.1f}%) — it must raise it")
+                        line += f"; excess return per unit of risk {ratio_old:.2f} → {ratio_new:.2f}"
+                    warnings.append(line)
 
     # 3g — the live book is ONE book (2026-08-24). Joe: "You realize we already
     # have a call to buy tips and short treasuries?" The Aug 16 breakeven note
@@ -1507,6 +2092,15 @@ def main(argv=None) -> int:
                              explicit_pa, idea["published_at"]) if c]
         idea["published_at"] = min(cands)
         idea["corrected_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # Decision 5 (2026-10-21): the weight is never edited after
+        # publication, same rule as the scorecard block (LESSONS 6.13). A
+        # correction keeps the original.
+        pw = _num(((prev.get("sizing") or {}) if isinstance(prev.get("sizing"), dict) else {}).get("weight"))
+        nw = _num(((idea.get("sizing") or {}) if isinstance(idea.get("sizing"), dict) else {}).get("weight"))
+        if pw is not None and nw is not None and abs(pw - nw) > 1e-9:
+            print(f"FATAL: contract violation — sizing.weight was {pw:g} at publication and may not change "
+                  f"(the correction asked for {nw:g}); a republish keeps the original weight", file=sys.stderr)
+            return 1
     ideas = [x for x in ideas if x.get("id") != idea["id"]]
     ideas.insert(0, idea)
     ideas.sort(key=lambda x: x.get("date", ""), reverse=True)

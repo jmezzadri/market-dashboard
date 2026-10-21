@@ -311,6 +311,31 @@ def quant_one(row: dict, idea: dict, hist: dict, called_for_pct: float | None, u
     if mark is None or not mark_date or not target:
         out["note"] = "no mark yet"
         return out
+    ev = row.get("event")
+    if isinstance(ev, dict):
+        # 2026-10-21 (Decision 4): an event note is a premium-paid spread. A
+        # driftless price range on the underlying says nothing about a
+        # binary payoff, so the review reports what decides it instead: the
+        # underlying's distance to the long strike, the spread's value today,
+        # the sessions to expiry, and the odds the note underwrote. The
+        # premium is the stop; there is no price stop to measure. A broken
+        # critical condition closes it at that day's intrinsic value.
+        left = sessions_between(mark_date, target)
+        out.update({
+            "sessions_left": left,
+            "horizon_elapsed_pct": None,
+            "event": {k: ev.get(k) for k in ("name", "structure", "underlying", "strikes", "expiry", "resolves_by",
+                                             "premium", "premium_pct_of_width", "payoff_ratio", "breakeven_odds_pct",
+                                             "edge_odds_pct", "implied_odds_pct", "underlying_close", "underlying_as_of",
+                                             "distance_to_long_strike_pct", "intrinsic_per_share", "state")},
+            "range_at_horizon": None,
+            "stop": None,
+            "note": "event idea: the premium is the stop; marked at expiry from the underlying's close against the strikes",
+        })
+        if called_for_pct is not None:
+            out["called_for_pct"] = called_for_pct
+            out["remaining_to_called_for_pct"] = round(called_for_pct - mark, 2)
+        return out
     left = sessions_between(mark_date, target)
     total = sessions_between(entry, target) if entry else None
     out["sessions_left"] = left
@@ -771,7 +796,15 @@ def render_email_html(doc: dict) -> str:
             ("What the note called for", f'{_pct(call.get("called_for_pct"))} over {call.get("horizon_label") or str(call.get("horizon_months")) + " months"} <span style="color:{MUTE}">— {e(call.get("called_for_basis") or "")}</span>'),
             ("Still needed to get there", _pct(q.get("remaining_to_called_for_pct"))),
         ]
-        if rng:
+        qe = q.get("event") or {}
+        if qe:
+            # Event idea (2026-10-21): what decides it, in plain words.
+            st = qe.get("strikes") or []
+            rows.append(("The bet", f'{e(qe.get("underlying") or "")} {"/".join(str(x) for x in st)} {e(str(qe.get("structure") or "").replace("_", " "))}, expiry {e(qe.get("expiry") or "")} '
+                                    f'<span style="color:{MUTE}">— premium is the most it can lose; pays {qe.get("payoff_ratio") if qe.get("payoff_ratio") is None else round(float(qe["payoff_ratio"]), 1)} to 1 in full</span>'))
+            rows.append(("Where the underlying sits", f'{qe.get("underlying_close")} on {e(qe.get("underlying_as_of") or "")} — {_pct(qe.get("distance_to_long_strike_pct"))} from the long strike; the spread is worth {qe.get("intrinsic_per_share")} a share today'))
+            rows.append(("The odds", f'market {qe.get("implied_odds_pct")}% at publication, breakeven {qe.get("breakeven_odds_pct")}%, ours {qe.get("edge_odds_pct")}% <span style="color:{MUTE}">— {q.get("sessions_left")} sessions to expiry</span>'))
+        elif rng:
             rows.append(("Where it can finish (no view)",
                          f'10th {_pct(rng.get("p10"))} · median {_pct(rng.get("p50"))} · 90th {_pct(rng.get("p90"))} '
                          f'<span style="color:{MUTE}">— from the position\'s own volatility, {vol.get("annualised_pct", "—")}% a year now vs {vol.get("at_entry_annualised_pct") if vol.get("at_entry_annualised_pct") is not None else "—"}% at entry</span>'))

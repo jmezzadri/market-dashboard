@@ -120,6 +120,19 @@ export function ThesisReview({ review }) {
   );
 }
 
+/* The conditions test, in the reader's words. Before 2026-10-21 the field was
+   a sentence; from then it is {factor, matching_cases, result | dependence}. */
+function regimeMatchTxt(rm) {
+  if (!rm) return null;
+  if (typeof rm === 'string') return rm;
+  const n = rm.matching_cases;
+  if (rm.dependence) {
+    const c = Number(rm.dependence.correlation);
+    return `Only ${n} past case${n === 1 ? '' : 's'} had today's condition on ${rm.factor}. Across all the cases the returns ran at ${c >= 0 ? '+' : ''}${c.toFixed(2)} correlation with that factor's move, so the history did not depend on it. Published at half size with a tighter stop.`;
+  }
+  return `${n} past cases shared today's condition on ${rm.factor}. ${rm.result || ''}`.trim();
+}
+
 export function TradeIdeaNoteBody({ idea, chartSeries, review }) {
   if (!idea) return null;
   return (
@@ -138,11 +151,30 @@ export function TradeIdeaNoteBody({ idea, chartSeries, review }) {
       )}
       {idea.dek && <p className="idea-modal-dek">{idea.dek}</p>}
 
+      {/* 2026-10-21 (Decision 4): an event idea names its event, the date it
+          resolves by, what the market is charging against our odds, and the
+          defined-risk structure with the premium as the most it can lose. */}
+      {idea.kind === 'event' && idea.event && (
+        <p className="idea-modal-pos">
+          <span className="idea-pos">Event idea</span>
+          <span>A defined-risk options spread on one event. The premium paid is the most it can lose.</span>
+        </p>
+      )}
       <div className="idea-modal-facts">
-        {[['Buy', idea.the_trade?.buy], ['Sell to pay for it', idea.the_trade?.sell],
+        {[...(idea.kind === 'event' && idea.event ? [
+          ['The event', idea.event.name],
+          ['Resolves by', idea.event.resolves_by],
+          ['What the market is charging', idea.event.implied_odds?.pct != null ? `${idea.event.implied_odds.pct}% (${idea.event.implied_odds.source}, ${idea.event.implied_odds.as_of})` : null],
+          ['Our odds, and the breakeven', idea.expected_return?.edge_odds != null ? `${idea.expected_return.edge_odds}% against a ${Number(idea.expected_return.breakeven_odds).toFixed(0)}% breakeven` : null],
+          ['The structure', idea.the_trade?.structure ? `${idea.the_trade.underlying} ${String(idea.the_trade.structure).replace('_', ' ')}, strikes ${(idea.the_trade.strikes || []).join(' / ')}, expiry ${idea.the_trade.expiry}` : null],
+          ['Premium, the most it can lose', idea.the_trade?.premium_pct_of_width != null ? `${Math.round(idea.the_trade.premium_pct_of_width * 100)}% of the width between the strikes` : (idea.the_trade?.premium != null ? `$${idea.the_trade.premium} a share` : null)],
+          ['Pays, if it happens', idea.expected_return?.payoff_ratio != null ? `${Number(idea.expected_return.payoff_ratio).toFixed(1)} to 1 on the premium` : null],
+        ] : []),
+          ['Buy', idea.the_trade?.buy], ['Sell to pay for it', idea.the_trade?.sell],
           ['Sell short', idea.the_trade?.short],
           ['What would make it a position', idea.the_trade?.what_would_make_it_a_position],
           ['How much', idea.the_trade?.sizing],
+          ['Weight in the book', idea.sizing?.weight != null ? `${idea.sizing.weight} of 100${idea.scorecard?.note && /backfill/i.test(idea.scorecard.note) ? ' (assigned October 21, 2026, when the book gained its capital base)' : ''}` : null],
           ['The technical version', idea.instrument], ['Horizon', idea.horizon],
           ['Why now', idea.levels?.trigger], ['What proves it wrong', idea.levels?.invalidation],
           ['Where it goes if it works', idea.levels?.target]]
@@ -168,15 +200,28 @@ export function TradeIdeaNoteBody({ idea, chartSeries, review }) {
           <p className="briefmodal-sec">The edge, and how it was measured</p>
           {idea.edge.summary && <p><Html html={idea.edge.summary} /></p>}
           <div className="idea-backtest">
-            {[['Signal', idea.edge.source], ['Sample', idea.edge.backtest?.window],
+            {[['Signal', idea.edge.source === 'event' ? 'The odds the market is charging against ours' : idea.edge.source],
+              ['Sample', idea.edge.backtest?.window],
               ['Observations', idea.edge.backtest?.n],
               ['What followed', idea.edge.backtest?.result],
               ['Versus doing nothing', idea.edge.backtest?.baseline],
+              // 2026-10-21: the asset's OWN move for a short (Decision 3) and
+              // the conditions test in plain words (Decision 1).
+              ['The asset itself', idea.edge.backtest?.absolute ? `median ${idea.edge.backtest.absolute.median}%, fell in ${idea.edge.backtest.absolute.win_rate}% of cases` : null],
+              ['The gap between the legs', idea.edge.backtest?.relative ? `median ${idea.edge.backtest.relative.median} points, positive in ${idea.edge.backtest.relative.win_rate}% of cases` : null],
+              ["Today's conditions", regimeMatchTxt(idea.edge.backtest?.regime_match)],
               ['Robustness', idea.edge.backtest?.robustness]]
               .filter(([, v]) => v || v === 0).map(([k, v]) => (
                 <div className="idea-fact" key={k}><span className="k">{k}</span><span className="v">{v}</span></div>
               ))}
           </div>
+        </>
+      )}
+
+      {idea.kind === 'event' && Array.isArray(idea.event?.transmission) && idea.event.transmission.length > 0 && (
+        <>
+          <p className="briefmodal-sec">What reprices if it happens</p>
+          <ul>{idea.event.transmission.map((t, i) => <li key={i}>{t.step}: {t.figure} ({t.source}, {t.as_of})</li>)}</ul>
         </>
       )}
 

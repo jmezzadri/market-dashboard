@@ -18,6 +18,12 @@
      4. cumulative performance chart
      5. open positions, 6. closed positions, 7. methodology
 
+   2026-10-21 (Decision 5, LESSONS 6.26): the book is a notional 100. Every
+   row shows its weight and its contribution (weight x return / 100); the
+   key facts show how much of the 100 is invested; realized is split by the
+   year it closed. Event ideas (Decision 4) show their structure, strikes,
+   expiry, premium as the maximum loss, payoff ratio and both sets of odds.
+
    WORDS (Joe, same day): standard finance terms, used exactly — Total return,
    Annualized, Since inception, Realized, Unrealized, Benchmark, Excess return.
    Not paraphrases of them ("at a yearly pace"), and not internal shorthand
@@ -72,6 +78,7 @@ function tone(v) {
 const KIND_LABEL = {
   equity: 'Equities', 'single-name': 'Equities', rates: 'Fixed income', credit: 'Credit',
   fx: 'Currencies', commodity: 'Commodities', macro: 'Macro', 'cross-asset': 'Cross-asset',
+  event: 'Event',
 };
 /* The weekly review's verdict, in the reader's words. */
 const VERDICT_LABEL = { intact: 'On track', weakened: 'Weakened', broken: 'No longer holds' };
@@ -188,12 +195,36 @@ function PerformanceChart({ line, benchmarkLabel }) {
 
 /* One position, one row. On a phone the row keeps trade / return / benchmark /
    excess and folds everything else into the line under the trade name. */
+/* Weight out of a book of 100 (2026-10-21). A weight assigned by the October
+   2026 backfill, rather than written in the note, carries a dagger that
+   points at the footnote under the table. */
+function weightTxt(r) {
+  const w = r.book?.weight ?? r.weight;
+  if (w === null || w === undefined) return '—';
+  const n = Number(w);
+  return `${Number.isInteger(n) ? n : n.toFixed(1)}${r.weight_stated === false ? '†' : ''}`;
+}
+
+/* The event-idea line: structure, strikes, expiry, the premium as the most it
+   can lose, the payoff ratio, and the market's odds against ours. */
+function eventTxt(ev) {
+  if (!ev) return null;
+  const strikes = Array.isArray(ev.strikes) ? ev.strikes.join('/') : '';
+  const struct = String(ev.structure || '').replace('_', ' ');
+  const prem = ev.premium_pct_of_width != null ? `${Math.round(ev.premium_pct_of_width * 100)}% of the width` : (ev.premium != null ? `$${Number(ev.premium).toFixed(2)} a share` : '');
+  const ratio = ev.payoff_ratio != null ? `${Number(ev.payoff_ratio).toFixed(1)} to 1` : '';
+  const odds = ev.implied_odds_pct != null && ev.edge_odds_pct != null
+    ? `market odds ${Math.round(ev.implied_odds_pct)}%, ours ${Math.round(ev.edge_odds_pct)}%` : '';
+  return [`${ev.underlying || ''} ${strikes} ${struct}, expiry ${dShort(ev.expiry)}`.trim(),
+    prem ? `premium ${prem} is the most it can lose` : '', ratio ? `pays ${ratio}` : '', odds].filter(Boolean).join(' · ');
+}
+
 function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
   const b = r.book || {};
   const ret = b.return_pct ?? r.mark;
   const bench = b.benchmark_pct ?? r.benchmark?.move ?? null;
   const exc = b.excess_pct ?? r.benchmark?.difference ?? null;
-  const ctb = b.contribution_pct ?? null;
+  const ctb = b.contribution_pct ?? r.contribution_pct ?? null;
   const days = b.days_held ?? r.days_held ?? null;
   const second = isOpen ? r.target_date : (r.close_date || r.mark_date);
   const kind = KIND_LABEL[r.kind] || r.kind || '—';
@@ -201,14 +232,20 @@ function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
     ? `${VERDICT_LABEL[review.verdict] || review.verdict} · ${dShort(review.review_date)}`
     : 'Not yet reviewed';
   const why = isOpen ? reviewTxt : (r.close_reason || '—');
+  const ev = r.event ? eventTxt(r.event) : null;
+  const evState = r.event?.state;
   const open = () => { if (idea) onOpenNote(idea); };
   return (
     <tr className="sc-trow" onClick={open}>
-      <td className="sc-tradecell">{r.trade_label || r.instrument || '—'}</td>
+      <td className="sc-tradecell">
+        {r.trade_label || r.instrument || '—'}
+        {ev && <span className="sc-evline hide-sm">{ev}{isOpen && evState ? ` · ${evState}` : ''}</span>}
+      </td>
       <td className="sc-class hide-sm hide-md">{kind}</td>
       <td className="sc-date hide-sm">{dShort(r.entry_date)}</td>
       <td className="sc-date hide-sm">{dShort(second)}</td>
       <td className="num hide-sm hide-md">{days ?? '—'}</td>
+      <td className="num sc-wt hide-sm">{weightTxt(r)}</td>
       <td className={`num ${tone(ret)}`}>{pct(ret)}</td>
       <td className="num sc-bench">{pct(bench)}</td>
       <td className={`num ${tone(exc)}`}>{pct(exc)}</td>
@@ -221,7 +258,8 @@ function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
       </td>
       <td className="sc-mcell">
         {kind} · {dShort(r.entry_date)} to {dShort(second)} · {days ?? '—'} days held<br />
-        Contribution <span className={`num ${tone(ctb)}`}>{pct(ctb)}</span> · {isOpen ? `Last review: ${reviewTxt}` : `Reason closed: ${String(why).toLowerCase()}`}
+        Weight {weightTxt(r)} of 100 · Contribution <span className={`num ${tone(ctb)}`}>{pct(ctb)}</span> · {isOpen ? `Last review: ${reviewTxt}` : `Reason closed: ${String(why).toLowerCase()}`}
+        {ev && (<><br />{ev}{isOpen && evState ? ` · ${evState}` : ''}</>)}
         {idea && (<><br /><a href="#note" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenNote(idea); }}>View note</a></>)}
       </td>
     </tr>
@@ -229,7 +267,9 @@ function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
 }
 
 function PositionsTable({ rows, isOpen, noteById, reviewById, onOpenNote }) {
+  const backfilled = rows.some((r) => r.weight_stated === false);
   return (
+    <>
     <table className="sc-table">
       <thead>
         <tr>
@@ -238,6 +278,7 @@ function PositionsTable({ rows, isOpen, noteById, reviewById, onOpenNote }) {
           <th className="c-date hide-sm">Opened</th>
           <th className="c-date hide-sm">{isOpen ? 'Planned close' : 'Closed'}</th>
           <th className="num c-days hide-sm hide-md">Days held</th>
+          <th className="num c-wt hide-sm">Weight</th>
           <th className="num c-num">Return</th>
           <th className="num c-num">S&amp;P 500</th>
           <th className="num c-exc">Excess return</th>
@@ -259,6 +300,10 @@ function PositionsTable({ rows, isOpen, noteById, reviewById, onOpenNote }) {
         ))}
       </tbody>
     </table>
+    {backfilled && (
+      <p className="sc-fn">† Weight assigned on October 21, 2026, when the book gained its capital base of 100; the note itself did not state one. Its entry, exit level and return are unchanged.</p>
+    )}
+    </>
   );
 }
 
@@ -341,7 +386,7 @@ export default function ScorecardPage() {
             <div><dt>As of</dt><dd>{dLong(p.as_of)} close</dd></div>
             <div><dt>Inception</dt><dd>{dLong(p.inception)}</dd></div>
             <div><dt>Benchmark</dt><dd>{bench}</dd></div>
-            <div><dt>Positions</dt><dd>{p.positions_open} open, {p.positions_closed} closed</dd></div>
+            <div><dt>Positions</dt><dd>{p.positions_open} open, {p.positions_closed} closed{p.invested_now != null ? ` · ${p.invested_now} of ${p.book_base || 100} invested` : ''}</dd></div>
           </dl>
         )}
       </header>
@@ -397,6 +442,13 @@ export default function ScorecardPage() {
                   <td className="num">{p.positions_closed}</td>
                   <td className={`num ${tone(p.realized_contribution_pct)}`}>{pct(p.realized_contribution_pct)}</td>
                 </tr>
+                {Object.entries(p.realized_by_year || {}).map(([y, v]) => (
+                  <tr key={y} className="sc-year">
+                    <td><span className="q">of which closed in {y}</span></td>
+                    <td className="num" />
+                    <td className={`num ${tone(v)}`}>{pct(v)}</td>
+                  </tr>
+                ))}
                 <tr>
                   <td>Unrealized <span className="q" style={{ whiteSpace: 'nowrap' }}>(open positions)</span></td>
                   <td className="num">{p.positions_open}</td>
@@ -422,7 +474,7 @@ export default function ScorecardPage() {
                 <span><i className="sc-key sc-key--port" />Portfolio</span>
                 <span><i className="sc-key sc-key--bench" />Benchmark ({bench})</span>
               </div>
-              <p className="sc-fn">Cumulative total return since inception, in percent. The portfolio is divided equally among the positions open each day.</p>
+              <p className="sc-fn">Cumulative total return since inception, in points of a book of 100. Each position is held at the weight stated in its note; the benchmark is the {bench} held at the same total weight.</p>
             </section>
           )}
         </div>
@@ -467,7 +519,7 @@ export default function ScorecardPage() {
           <dl>
             <div>
               <dt>Portfolio</dt>
-              <dd>A model portfolio that holds every published trade call from the day it is opened until the day it is closed. Each day the portfolio is divided equally among the positions open that day, which has been between {p.min_positions_held} and {p.max_positions_held}. It is not an account and no money is invested in it.</dd>
+              <dd>A model book of 100 that holds every published trade call from the day it is opened until the day it is closed. Each call is held at the weight its note stated when it was published — 10 for a standard idea, 5 for an idea published with fewer than five matching past cases, and 1 to 2 of premium for an event idea — and the rest is cash, which earns nothing. The amount invested has been between {p.min_invested ?? '—'} and {p.max_invested ?? '—'} of 100. It is not an account and no money is invested in it.</dd>
             </div>
             <div>
               <dt>Returns</dt>
@@ -475,15 +527,19 @@ export default function ScorecardPage() {
             </div>
             <div>
               <dt>Benchmark and excess return</dt>
-              <dd>The benchmark is the {bench} price index. In the positions tables it is measured over the same days each position was held. Excess return is the return minus the benchmark return, calculated before rounding.</dd>
+              <dd>The benchmark is the {bench} price index. In the positions tables it is measured over the same days each position was held. At book level it is the {bench} held at the same total weight the book had invested each day, with the rest in cash. Excess return is the return minus the benchmark return, calculated before rounding.</dd>
             </div>
             <div>
               <dt>Realized, unrealized and contribution</dt>
-              <dd>Contribution is the part of the portfolio&rsquo;s total return that came from one position. Realized is the sum for closed positions and is final. Unrealized is the sum for open positions and will change. Contributions may not add up exactly because of rounding.</dd>
+              <dd>Contribution is a position&rsquo;s weight multiplied by its own return, in points of the book of 100: a call at weight 10 that returns 20% contributes 2 points. Realized is the sum for closed positions, shown by the year they closed, and is final. Unrealized is the sum for open positions and will change. Contributions add up to the total before rounding.</dd>
             </div>
             <div>
               <dt>Reason closed</dt>
               <dd>A position is closed when it reaches its planned close date, when the price reaches the exit level stated in the note, or when the weekly review finds that the reason for the trade no longer holds.</dd>
+            </div>
+            <div>
+              <dt>Event ideas</dt>
+              <dd>An event idea is a defined-risk options spread on a named event with a date. It is sized by the premium paid, which is the most it can lose. It is marked at expiry from the underlying&rsquo;s closing price against its strikes: the return runs from a loss of the whole premium to the stated payoff. Before expiry it is shown as open with the underlying&rsquo;s distance to the long strike. It closes early only if the weekly review finds the event has been decided, at the spread&rsquo;s value that day.</dd>
             </div>
             <div>
               <dt>Last review</dt>
