@@ -1133,6 +1133,8 @@ They are not the same series and they are nowhere near each other:
 **Applies to:** Lead Developer, Data Steward.
 
 
+**Update (2026-10-21):** the threshold was 5 points and the November WTI expiry printed a 4.98-point divergence (WTI "-5.24%" against Brent -0.26%; the real December move was -0.73%). It shipped in both the brief table and the homepage tape. A roll gap is routinely 3-5% in a backwardated market, so 5 was never a margin. Both checks now use **3 percentage points**; keep `OIL_DIVERGENCE_PP` and `OIL_PAIR_MAX_GAP_PCT` equal.
+
 ### 4.38 (2026-10-02) — A generator regenerates the WHOLE artifact; a hand-edit to generated output is a revert waiting for the next scheduled run
 
 **What happened:** The Oct 1 quarterly TRADING-OPPS-BACKTEST run opened PR #1703 as designed — and the regenerated `calibrated_config.json` silently REVERTED the Joe-approved 2026-07-07 conviction-insider rebuild: dark-pool and options points went 0 -> 2/1/2 and 0/0/0 -> 4/3/4, `scoring_version` rolled back from `2026-07-07-conviction-insider` to `2026-05-21-darkpool-options`, and the shelving notes vanished. Root cause: the 7/07 rebuild hand-edited the config file (generated output) but never touched `backtest_engine.py`, whose emitter was a dict literal frozen on 2026-05-21. The first regeneration after the hand-edit faithfully reprinted the old regime. The PR checklist item "dark-pool / options blocks and scoring_version survived regeneration" caught it at review — the gate worked; the sweep closed the hole. A second, smaller bug in the same run: the re-fire's `git push --force-with-lease` failed with "stale info" because checkout@v4 fetches only main, so a same-day re-run has no remote-tracking ref to lease against; the branch is now fetched before the push.

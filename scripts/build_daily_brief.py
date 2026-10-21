@@ -821,7 +821,13 @@ _HOLES = []
 # key with no data is DROPPED, a delta across a hole is SUPPRESSED) -- an absent
 # row is correct, a wrong one lies.
 OIL_PAIR = ("cmdty_oil", "cmdty_brent")
-OIL_DIVERGENCE_PP = 5.0   # one-session %-point gap that can only be an artifact
+# 2026-10-21: the November WTI contract expired Tuesday and the continuous
+# series printed "-5.24%" against Brent -0.26% -- a 4.98-point gap, two
+# hundredths under the old 5.0 line, so the roll shipped in the table and on
+# the homepage tape. The real December move was -0.73%. A $3 relative move
+# between the two benchmarks in one session is still an artifact; 3.0 is
+# the line, mirrored in src/overhaul/chrome/MarketTape.jsx (LESSONS 4.37).
+OIL_DIVERGENCE_PP = 3.0   # one-session %-point gap that can only be an artifact
 
 def _one_session_pct(hist, key):
     """Adjacent-day percent change for a key, or None if it cannot be trusted."""
