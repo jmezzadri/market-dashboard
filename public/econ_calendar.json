@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-20T23:16:13Z",
+  "generated_at": "2026-10-21T14:33:52Z",
   "window": {
-    "from": "2026-10-13",
-    "to": "2026-12-29"
+    "from": "2026-10-14",
+    "to": "2026-12-30"
   },
   "counts": {
-    "total": 119,
+    "total": 118,
     "tier1": 35
   },
   "sources": [
@@ -30,17 +30,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-10-13",
-      "time_et": "6:00 AM",
-      "name": "Small business optimism (NFIB)",
-      "short": "NFIB",
-      "tier": 3,
-      "category": "Surveys",
-      "blurb": "Monthly survey of small-business owners \u2014 hiring plans, prices charged and outlook.",
-      "source": "NFIB published schedule (computed)",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-14",
       "time_et": "8:30 AM",
