@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-21T14:33:52Z",
+  "generated_at": "2026-10-21T23:29:25Z",
   "window": {
     "from": "2026-10-14",
     "to": "2026-12-30"
   },
   "counts": {
-    "total": 118,
-    "tier1": 35
+    "total": 20,
+    "tier1": 15
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -28,239 +28,38 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [],
+  "problems": [
+    "release 50 (Jobs report): Expecting value: line 1 column 1 (char 0)",
+    "release 10 (Consumer prices (CPI)): Expecting value: line 1 column 1 (char 0)",
+    "release 46 (Producer prices (PPI)): Expecting value: line 1 column 1 (char 0)",
+    "release 54 (Personal income & PCE prices): Expecting value: line 1 column 1 (char 0)",
+    "release 53 (GDP): Expecting value: line 1 column 1 (char 0)",
+    "release 9 (Retail sales): Expecting value: line 1 column 1 (char 0)",
+    "release 192 (Job openings (JOLTS)): Expecting value: line 1 column 1 (char 0)",
+    "release 180 (Jobless claims): Expecting value: line 1 column 1 (char 0)",
+    "release 13 (Industrial production): Expecting value: line 1 column 1 (char 0)",
+    "release 97 (New home sales): Expecting value: line 1 column 1 (char 0)",
+    "release 51 (Trade balance): Expecting value: line 1 column 1 (char 0)",
+    "release 188 (Import & export prices): Expecting value: line 1 column 1 (char 0)",
+    "release 11 (Employment cost index): Expecting value: line 1 column 1 (char 0)",
+    "release 47 (Productivity & unit labor costs): Expecting value: line 1 column 1 (char 0)",
+    "release 229 (Construction spending): Expecting value: line 1 column 1 (char 0)",
+    "release 290 (Wholesale inventories): Expecting value: line 1 column 1 (char 0)",
+    "release 25 (Business inventories): Expecting value: line 1 column 1 (char 0)",
+    "release 14 (Consumer credit): Expecting value: line 1 column 1 (char 0)",
+    "release 219 (Chicago Fed activity index): Expecting value: line 1 column 1 (char 0)",
+    "release 321 (Empire State survey): Expecting value: line 1 column 1 (char 0)",
+    "release 351 (Philadelphia Fed survey): Expecting value: line 1 column 1 (char 0)",
+    "release 352 (Philadelphia Fed services survey): Expecting value: line 1 column 1 (char 0)",
+    "release 91 (Consumer sentiment (Michigan, final)): Expecting value: line 1 column 1 (char 0)",
+    "release 435 (Advance goods trade & inventories): Expecting value: line 1 column 1 (char 0)",
+    "release 3 (Foreign Treasury flows (TIC)): Expecting value: line 1 column 1 (char 0)",
+    "release 20 (Fed balance sheet (H.4.1)): Expecting value: line 1 column 1 (char 0)",
+    "release 95 (paired): Expecting value: line 1 column 1 (char 0)",
+    "release 27 (paired): Expecting value: line 1 column 1 (char 0)",
+    "release 91 (UMich prelim derivation): Expecting value: line 1 column 1 (char 0)"
+  ],
   "events": [
-    {
-      "date": "2026-10-14",
-      "time_et": "8:30 AM",
-      "name": "Consumer prices (CPI)",
-      "short": "CPI",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Headline and core consumer inflation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-15",
-      "time_et": "8:30 AM",
-      "name": "Producer prices (PPI)",
-      "short": "PPI",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Prices received by producers \u2014 the pipeline into consumer inflation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-15",
-      "time_et": "8:30 AM",
-      "name": "Retail sales",
-      "short": "Retail",
-      "tier": 1,
-      "category": "Consumer",
-      "blurb": "Advance monthly retail and food-service sales \u2014 the timeliest read on the consumer.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-15",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-15",
-      "time_et": "8:30 AM",
-      "name": "Empire State survey",
-      "short": "Empire",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "New York Fed manufacturing survey \u2014 the first regional read each month.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-15",
-      "time_et": "8:30 AM",
-      "name": "Philadelphia Fed survey",
-      "short": "Philly",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "Philadelphia Fed manufacturing outlook survey.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-15",
-      "time_et": "10:00 AM",
-      "name": "Business inventories",
-      "short": "Invent.",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Manufacturing and trade inventories and sales.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-15",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-16",
-      "time_et": "8:30 AM",
-      "name": "Import & export prices",
-      "short": "Imp/Exp",
-      "tier": 2,
-      "category": "Inflation",
-      "blurb": "Traded-goods prices \u2014 where a weaker dollar or a tariff shows up first.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-16",
-      "time_et": "9:15 AM",
-      "name": "Industrial production",
-      "short": "Ind Prod",
-      "tier": 2,
-      "category": "Growth",
-      "blurb": "Factory, mining and utility output plus capacity utilisation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-16",
-      "time_et": "4:00 PM",
-      "name": "Foreign Treasury flows (TIC)",
-      "short": "TIC",
-      "tier": 3,
-      "category": "Flows",
-      "blurb": "Cross-border purchases of US securities \u2014 who is funding the deficit.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-20",
-      "time_et": "8:30 AM",
-      "name": "Housing starts & permits",
-      "short": "Starts",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "New residential construction \u2014 starts, permits and completions.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-20",
-      "time_et": "8:30 AM",
-      "name": "Philadelphia Fed services survey",
-      "short": "Philly Svc",
-      "tier": 3,
-      "category": "Surveys",
-      "blurb": "Philadelphia Fed non-manufacturing outlook survey.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-22",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-22",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-23",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan, final)",
-      "short": "UMich final",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-26",
-      "time_et": "8:30 AM",
-      "name": "Chicago Fed activity index",
-      "short": "CFNAI",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "An 85-indicator composite of national economic activity.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-27",
-      "time_et": "8:30 AM",
-      "name": "Durable goods orders",
-      "short": "Durables",
-      "tier": 2,
-      "category": "Growth",
-      "blurb": "Advance report on orders for long-lived manufactured goods \u2014 a proxy for capex intent.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-27",
-      "time_et": "8:30 AM",
-      "name": "Building permits (final)",
-      "short": "Permits",
-      "tier": 3,
-      "category": "Housing",
-      "blurb": "Final building-permit counts for the prior month.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-27",
-      "time_et": "10:00 AM",
-      "name": "New home sales",
-      "short": "New homes",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "Contracts signed on newly built homes \u2014 the rate-sensitive edge of housing.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-28",
-      "time_et": "8:30 AM",
-      "name": "Advance goods trade & inventories",
-      "short": "Adv Econ",
-      "tier": 3,
-      "category": "Trade",
-      "blurb": "Early estimate of the goods trade gap and retail/wholesale inventories.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-28",
       "time_et": "2:00 PM",
@@ -281,61 +80,6 @@
       "category": "Policy",
       "blurb": "European Central Bank rate decision and statement, with a 8:45 AM ET press conference.",
       "source": "ECB Governing Council calendar (ecb.europa.eu)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-29",
-      "time_et": "8:30 AM",
-      "name": "Personal income & PCE prices",
-      "short": "PCE",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Household income and spending with the PCE price index, the Fed's preferred inflation gauge.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-29",
-      "time_et": "8:30 AM",
-      "name": "GDP",
-      "short": "GDP",
-      "tier": 1,
-      "category": "Growth",
-      "blurb": "Quarterly economic growth, in three successive estimates.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-29",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-29",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-30",
-      "time_et": "8:30 AM",
-      "name": "Employment cost index",
-      "short": "ECI",
-      "tier": 1,
-      "category": "Labor",
-      "blurb": "Wages and benefits per hour worked \u2014 the cleanest read on labor-cost inflation.",
-      "source": "FRED release calendar",
       "time_source": "published release policy"
     },
     {
@@ -361,39 +105,6 @@
       "time_source": "published release policy"
     },
     {
-      "date": "2026-11-02",
-      "time_et": "10:00 AM",
-      "name": "Construction spending",
-      "short": "Constr",
-      "tier": 3,
-      "category": "Housing",
-      "blurb": "Value of construction put in place, residential and non-residential.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-03",
-      "time_et": "10:00 AM",
-      "name": "Job openings (JOLTS)",
-      "short": "JOLTS",
-      "tier": 1,
-      "category": "Labor",
-      "blurb": "Job openings, hires, quits and layoffs \u2014 labor demand rather than headcount.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-03",
-      "time_et": "10:00 AM",
-      "name": "Factory orders",
-      "short": "Factory",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Full manufacturers' shipments, inventories and orders.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
       "date": "2026-11-03",
       "time_et": "6:00 PM",
       "name": "US midterm elections",
@@ -403,17 +114,6 @@
       "blurb": "All 435 House seats and about a third of the Senate. First polls close at 6:00 PM ET (Indiana, Kentucky) and most of the East by 8:00 PM; results arrive overnight, so markets price the outcome at the next session's open.",
       "source": "US federal election day (2 U.S.C. section 7, computed)",
       "time_source": "published poll-closing time (first states, ET)"
-    },
-    {
-      "date": "2026-11-04",
-      "time_et": "8:30 AM",
-      "name": "Trade balance",
-      "short": "Trade",
-      "tier": 2,
-      "category": "Trade",
-      "blurb": "Goods and services imports versus exports.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
     },
     {
       "date": "2026-11-04",
@@ -449,83 +149,6 @@
       "time_source": "published release policy"
     },
     {
-      "date": "2026-11-05",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-05",
-      "time_et": "8:30 AM",
-      "name": "Productivity & unit labor costs",
-      "short": "Prod",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Output per hour and what each unit of output costs in labor.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-05",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-06",
-      "time_et": "8:30 AM",
-      "name": "Jobs report",
-      "short": "Jobs",
-      "tier": 1,
-      "category": "Labor",
-      "blurb": "Nonfarm payrolls, the unemployment rate and average hourly earnings.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-06",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan, preliminary)",
-      "short": "UMich prelim",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
-      "source": "UMich release schedule (computed: two Fridays before the final)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-06",
-      "time_et": "3:00 PM",
-      "name": "Consumer credit",
-      "short": "Credit",
-      "tier": 3,
-      "category": "Consumer",
-      "blurb": "Revolving and non-revolving household borrowing.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-09",
-      "time_et": "10:00 AM",
-      "name": "Wholesale inventories",
-      "short": "Wholesale",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Wholesale-level sales and inventories \u2014 an input to the GDP inventory line.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
       "date": "2026-11-10",
       "time_et": "6:00 AM",
       "name": "Small business optimism (NFIB)",
@@ -534,17 +157,6 @@
       "category": "Surveys",
       "blurb": "Monthly survey of small-business owners \u2014 hiring plans, prices charged and outlook.",
       "source": "NFIB published schedule (computed)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-10",
-      "time_et": "8:30 AM",
-      "name": "Consumer prices (CPI)",
-      "short": "CPI",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Headline and core consumer inflation.",
-      "source": "FRED release calendar",
       "time_source": "published release policy"
     },
     {
@@ -560,17 +172,6 @@
     },
     {
       "date": "2026-11-12",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-12",
       "time_et": "10:00 AM",
       "name": "Existing home sales",
       "short": "Existing",
@@ -578,270 +179,6 @@
       "category": "Housing",
       "blurb": "Closed sales of previously owned homes \u2014 the bulk of the housing market.",
       "source": "NAR statistical news release schedule",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-12",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-13",
-      "time_et": "8:30 AM",
-      "name": "Producer prices (PPI)",
-      "short": "PPI",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Prices received by producers \u2014 the pipeline into consumer inflation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-16",
-      "time_et": "8:30 AM",
-      "name": "Empire State survey",
-      "short": "Empire",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "New York Fed manufacturing survey \u2014 the first regional read each month.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-17",
-      "time_et": "8:30 AM",
-      "name": "Retail sales",
-      "short": "Retail",
-      "tier": 1,
-      "category": "Consumer",
-      "blurb": "Advance monthly retail and food-service sales \u2014 the timeliest read on the consumer.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-17",
-      "time_et": "8:30 AM",
-      "name": "Import & export prices",
-      "short": "Imp/Exp",
-      "tier": 2,
-      "category": "Inflation",
-      "blurb": "Traded-goods prices \u2014 where a weaker dollar or a tariff shows up first.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-17",
-      "time_et": "9:15 AM",
-      "name": "Industrial production",
-      "short": "Ind Prod",
-      "tier": 2,
-      "category": "Growth",
-      "blurb": "Factory, mining and utility output plus capacity utilisation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-17",
-      "time_et": "10:00 AM",
-      "name": "Business inventories",
-      "short": "Invent.",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Manufacturing and trade inventories and sales.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-18",
-      "time_et": "8:30 AM",
-      "name": "Housing starts & permits",
-      "short": "Starts",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "New residential construction \u2014 starts, permits and completions.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-18",
-      "time_et": "4:00 PM",
-      "name": "Foreign Treasury flows (TIC)",
-      "short": "TIC",
-      "tier": 3,
-      "category": "Flows",
-      "blurb": "Cross-border purchases of US securities \u2014 who is funding the deficit.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-19",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-19",
-      "time_et": "8:30 AM",
-      "name": "Philadelphia Fed survey",
-      "short": "Philly",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "Philadelphia Fed manufacturing outlook survey.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-19",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-20",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan, final)",
-      "short": "UMich final",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-23",
-      "time_et": "8:30 AM",
-      "name": "Chicago Fed activity index",
-      "short": "CFNAI",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "An 85-indicator composite of national economic activity.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-24",
-      "time_et": "8:30 AM",
-      "name": "Philadelphia Fed services survey",
-      "short": "Philly Svc",
-      "tier": 3,
-      "category": "Surveys",
-      "blurb": "Philadelphia Fed non-manufacturing outlook survey.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-25",
-      "time_et": "8:30 AM",
-      "name": "Personal income & PCE prices",
-      "short": "PCE",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Household income and spending with the PCE price index, the Fed's preferred inflation gauge.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-25",
-      "time_et": "8:30 AM",
-      "name": "GDP",
-      "short": "GDP",
-      "tier": 1,
-      "category": "Growth",
-      "blurb": "Quarterly economic growth, in three successive estimates.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-25",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-25",
-      "time_et": "8:30 AM",
-      "name": "Durable goods orders",
-      "short": "Durables",
-      "tier": 2,
-      "category": "Growth",
-      "blurb": "Advance report on orders for long-lived manufactured goods \u2014 a proxy for capex intent.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-25",
-      "time_et": "8:30 AM",
-      "name": "Building permits (final)",
-      "short": "Permits",
-      "tier": 3,
-      "category": "Housing",
-      "blurb": "Final building-permit counts for the prior month.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-25",
-      "time_et": "10:00 AM",
-      "name": "New home sales",
-      "short": "New homes",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "Contracts signed on newly built homes \u2014 the rate-sensitive edge of housing.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-27",
-      "time_et": "8:30 AM",
-      "name": "Advance goods trade & inventories",
-      "short": "Adv Econ",
-      "tier": 3,
-      "category": "Trade",
-      "blurb": "Early estimate of the goods trade gap and retail/wholesale inventories.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-27",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-01",
-      "time_et": "10:00 AM",
-      "name": "Job openings (JOLTS)",
-      "short": "JOLTS",
-      "tier": 1,
-      "category": "Labor",
-      "blurb": "Job openings, hires, quits and layoffs \u2014 labor demand rather than headcount.",
-      "source": "FRED release calendar",
       "time_source": "published release policy"
     },
     {
@@ -856,28 +193,6 @@
       "time_source": "published release policy"
     },
     {
-      "date": "2026-12-01",
-      "time_et": "10:00 AM",
-      "name": "Construction spending",
-      "short": "Constr",
-      "tier": 3,
-      "category": "Housing",
-      "blurb": "Value of construction put in place, residential and non-residential.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-03",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
       "date": "2026-12-03",
       "time_et": "10:00 AM",
       "name": "ISM Services",
@@ -886,61 +201,6 @@
       "category": "Surveys",
       "blurb": "Services-sector survey \u2014 the larger share of the economy.",
       "source": "ISM published schedule (computed)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-03",
-      "time_et": "10:00 AM",
-      "name": "Factory orders",
-      "short": "Factory",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Full manufacturers' shipments, inventories and orders.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-03",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-04",
-      "time_et": "8:30 AM",
-      "name": "Jobs report",
-      "short": "Jobs",
-      "tier": 1,
-      "category": "Labor",
-      "blurb": "Nonfarm payrolls, the unemployment rate and average hourly earnings.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-04",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan, preliminary)",
-      "short": "UMich prelim",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
-      "source": "UMich release schedule (computed: two Fridays before the final)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-07",
-      "time_et": "3:00 PM",
-      "name": "Consumer credit",
-      "short": "Credit",
-      "tier": 3,
-      "category": "Consumer",
-      "blurb": "Revolving and non-revolving household borrowing.",
-      "source": "FRED release calendar",
       "time_source": "published release policy"
     },
     {
@@ -955,28 +215,6 @@
       "time_source": "published release policy"
     },
     {
-      "date": "2026-12-08",
-      "time_et": "8:30 AM",
-      "name": "Trade balance",
-      "short": "Trade",
-      "tier": 2,
-      "category": "Trade",
-      "blurb": "Goods and services imports versus exports.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-08",
-      "time_et": "8:30 AM",
-      "name": "Productivity & unit labor costs",
-      "short": "Prod",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Output per hour and what each unit of output costs in labor.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
       "date": "2026-12-09",
       "time_et": "10:00 AM",
       "name": "Existing home sales",
@@ -985,17 +223,6 @@
       "category": "Housing",
       "blurb": "Closed sales of previously owned homes \u2014 the bulk of the housing market.",
       "source": "NAR statistical news release schedule",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-09",
-      "time_et": "10:00 AM",
-      "name": "Wholesale inventories",
-      "short": "Wholesale",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Wholesale-level sales and inventories \u2014 an input to the GDP inventory line.",
-      "source": "FRED release calendar",
       "time_source": "published release policy"
     },
     {
@@ -1011,28 +238,6 @@
     },
     {
       "date": "2026-12-10",
-      "time_et": "8:30 AM",
-      "name": "Consumer prices (CPI)",
-      "short": "CPI",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Headline and core consumer inflation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-10",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-10",
       "time_et": "12:00 PM",
       "name": "WASDE (USDA)",
       "short": "WASDE",
@@ -1040,83 +245,6 @@
       "category": "Agriculture",
       "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
       "source": "USDA OCE WASDE schedule (usda.gov)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-10",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-15",
-      "time_et": "8:30 AM",
-      "name": "Producer prices (PPI)",
-      "short": "PPI",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Prices received by producers \u2014 the pipeline into consumer inflation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-15",
-      "time_et": "8:30 AM",
-      "name": "Empire State survey",
-      "short": "Empire",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "New York Fed manufacturing survey \u2014 the first regional read each month.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-15",
-      "time_et": "4:00 PM",
-      "name": "Foreign Treasury flows (TIC)",
-      "short": "TIC",
-      "tier": 3,
-      "category": "Flows",
-      "blurb": "Cross-border purchases of US securities \u2014 who is funding the deficit.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-16",
-      "time_et": "8:30 AM",
-      "name": "Retail sales",
-      "short": "Retail",
-      "tier": 1,
-      "category": "Consumer",
-      "blurb": "Advance monthly retail and food-service sales \u2014 the timeliest read on the consumer.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-16",
-      "time_et": "9:15 AM",
-      "name": "Industrial production",
-      "short": "Ind Prod",
-      "tier": 2,
-      "category": "Growth",
-      "blurb": "Factory, mining and utility output plus capacity utilisation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-16",
-      "time_et": "10:00 AM",
-      "name": "Business inventories",
-      "short": "Invent.",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Manufacturing and trade inventories and sales.",
-      "source": "FRED release calendar",
       "time_source": "published release policy"
     },
     {
@@ -1142,61 +270,6 @@
       "time_source": "published release policy"
     },
     {
-      "date": "2026-12-17",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-17",
-      "time_et": "8:30 AM",
-      "name": "Import & export prices",
-      "short": "Imp/Exp",
-      "tier": 2,
-      "category": "Inflation",
-      "blurb": "Traded-goods prices \u2014 where a weaker dollar or a tariff shows up first.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-17",
-      "time_et": "8:30 AM",
-      "name": "Philadelphia Fed survey",
-      "short": "Philly",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "Philadelphia Fed manufacturing outlook survey.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-17",
-      "time_et": "8:30 AM",
-      "name": "Housing starts & permits",
-      "short": "Starts",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "New residential construction \u2014 starts, permits and completions.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-17",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
       "date": "2026-12-18",
       "time_et": "overnight",
       "name": "Bank of Japan decision (MPM)",
@@ -1205,127 +278,6 @@
       "category": "Policy",
       "blurb": "Bank of Japan rate decision, released around midday Tokyo on the meeting's final day \u2014 overnight for US markets.",
       "source": "Bank of Japan MPM schedule (boj.or.jp)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-18",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan, final)",
-      "short": "UMich final",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-21",
-      "time_et": "8:30 AM",
-      "name": "Chicago Fed activity index",
-      "short": "CFNAI",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "An 85-indicator composite of national economic activity.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-22",
-      "time_et": "8:30 AM",
-      "name": "Philadelphia Fed services survey",
-      "short": "Philly Svc",
-      "tier": 3,
-      "category": "Surveys",
-      "blurb": "Philadelphia Fed non-manufacturing outlook survey.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-23",
-      "time_et": "8:30 AM",
-      "name": "Personal income & PCE prices",
-      "short": "PCE",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Household income and spending with the PCE price index, the Fed's preferred inflation gauge.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-23",
-      "time_et": "8:30 AM",
-      "name": "GDP",
-      "short": "GDP",
-      "tier": 1,
-      "category": "Growth",
-      "blurb": "Quarterly economic growth, in three successive estimates.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-23",
-      "time_et": "8:30 AM",
-      "name": "Durable goods / factory orders",
-      "short": "M3",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Census M3 survey of manufacturers' shipments, inventories and orders.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-23",
-      "time_et": "8:30 AM",
-      "name": "Building permits (final)",
-      "short": "Permits",
-      "tier": 3,
-      "category": "Housing",
-      "blurb": "Final building-permit counts for the prior month.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-23",
-      "time_et": "10:00 AM",
-      "name": "New home sales",
-      "short": "New homes",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "Contracts signed on newly built homes \u2014 the rate-sensitive edge of housing.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-24",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-24",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-28",
-      "time_et": "8:30 AM",
-      "name": "Advance goods trade & inventories",
-      "short": "Adv Econ",
-      "tier": 3,
-      "category": "Trade",
-      "blurb": "Early estimate of the goods trade gap and retail/wholesale inventories.",
-      "source": "FRED release calendar",
       "time_source": "published release policy"
     }
   ]
