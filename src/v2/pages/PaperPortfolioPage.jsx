@@ -1354,7 +1354,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                 )) : <div style={{ fontSize: 'var(--v13-t3)', color: INK2 }}>No exceptions — every name inside its risk, weight and liquidity limits; cash positive; brake off.</div>
               ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>{riskNote || 'Alerts print with the risk figures.'}</div>}
               <div className="ck-note">
-                What gets flagged: a stock whose share of the book’s risk is more than double its share of the money · a position more than 1.5× its 5% target · the book 10% below its own high · negative cash (the account is borrowing) · the crash brake switched on · a stock that would take more than a day to sell · a stock with less than a year of price history.
+                What gets flagged: a stock whose share of the book’s risk is more than double its share of the money · a position more than 1.5× its 5% target · the book 10% below its own high · the book more than 105% invested (borrowing over 5% of its equity) · the crash brake switched on · a stock that would take more than a day to sell · a stock with less than a year of price history.
               </div>
             </Card>
             <Card title="Variance risk decomposition" right={dc ? `β ${dc.beta.toFixed(2)} · 252 sessions to ${riskAsOf}` : ''}>

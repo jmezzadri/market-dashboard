@@ -28,7 +28,8 @@ in paper_portfolio/qt/research/risk_cockpit_2026-10-20/:
              fund; the residual on five style funds minus the market
   shocks     S&P 500 fund peak-to-trough in four episodes × beta
   vix        S&P fund elasticity to Δln(VIX) since 2006 × ln(40 / VIX) × beta
-  alerts     the exception rules the page prints (same thresholds)
+  alerts     the exception rules the page prints (same thresholds); leverage
+             fires at 105% gross, never on a small margin debit
 
 Names with less than a year of prices are excluded and listed, never guessed
 (LESSONS 4.9).
@@ -56,7 +57,11 @@ EPISODES = [
     ("covid", "2020 COVID crash",      "2020-02-19", "2020-03-23"),
     ("y2022", "2022 rate shock",       "2022-01-03", "2022-10-12"),
 ]
-RULES = {"concentration": 2.0, "drift": 1.5, "drawdown": -0.10, "liquidity_days": 1.0}
+# leverage: gross exposure (long market value / equity) above 105% — i.e. the
+# account is borrowing more than 5% of the book. A few hundred dollars of
+# margin debit from whole-share rounding is not a risk on a $1M book (Joe,
+# 2026-10-21: "a rounding error you're highlighting as a risk").
+RULES = {"concentration": 2.0, "drift": 1.5, "drawdown": -0.10, "liquidity_days": 1.0, "leverage": 1.05}
 
 
 def _get(q: str):
@@ -166,8 +171,10 @@ def compute(nav: dict, vix: pd.Series | None, brake: dict | None, meta: pd.DataF
     cash = float(nav["cash"])
     if brake and brake.get("stress_on"):
         alerts.append({"level": "red", "code": "BRAKE", "text": f"Crash brake is ON — the book is in cash (bond-market stress {float(brake.get('composite') or 0):.2f}; it buys back below 0.80)."})
-    if cash < 0:
-        alerts.append({"level": "amber", "code": "CASH", "text": f"Cash is −${abs(cash):,.0f}: the account is borrowing that amount and paying interest on it until the next monthly rebalance frees cash."})
+    gross = float(nav.get("long_mv") or 0) / equity if equity else 0.0
+    out["gross_exposure"] = gross
+    if gross >= RULES["leverage"]:
+        alerts.append({"level": "amber", "code": "LEVERAGE", "text": f"The book is {gross * 100:.0f}% invested — it is borrowing ${abs(cash):,.0f} ({(gross - 1) * 100:.0f}% of equity) and paying interest on it until the next monthly rebalance."})
     peak = _get(f"qt_nav_daily?select=equity&account_number=eq.{nav.get('account_number')}&n_positions=gt.0&order=equity.desc&limit=1")
     if peak:
         dd = equity / max(float(peak[0]["equity"]), 1_000_000) - 1
