@@ -148,6 +148,10 @@ for (const route of routes) {
           [...el.children].forEach((k) => {
             const kcs = getComputedStyle(k);
             if (kcs.position === 'absolute' || kcs.position === 'fixed' || kcs.display === 'none') return;
+            // A closed <details> keeps its body out of the paint (Chromium
+            // hides it with content-visibility, which still reports a box);
+            // only the summary is on screen, so only the summary can spill.
+            if (el.tagName === 'DETAILS' && !el.open && k.tagName !== 'SUMMARY') return;
             const kb = k.getBoundingClientRect();
             if (kb.height === 0) return;
             spill = Math.max(spill, kb.bottom - box.bottom);

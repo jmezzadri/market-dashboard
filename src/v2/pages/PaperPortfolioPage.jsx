@@ -291,23 +291,65 @@ const CSS = `
 .paper-v12 .ck-sub { font-size: var(--v13-t2); color: color-mix(in srgb, var(--cream-text) 72%, transparent); margin-top: var(--sp-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .paper-v12 .ck-ribbon .term-u { border-bottom-color: var(--cream-text); }
 
-/* three columns on a wide monitor; two on a tablet (the ledger spans); one on a phone */
-.paper-v12 .ck-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.55fr); gap: var(--lg-gap); align-items: stretch; }
+/* the tear sheet: three chapters, each a row of equal-height tiles plus
+   collapsed secondary tiles beneath. Rows reflow 3→2→1 (and 4→2→1). */
+.paper-v12 .ck-section { margin-top: var(--sp-28); }
+.paper-v12 .ck-section-head { display: flex; align-items: baseline; gap: var(--sp-12); margin-bottom: var(--sp-12); min-width: 0; }
+.paper-v12 .ck-section-title { font-family: var(--mt-type-sans); font-size: var(--v13-t5); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); margin: 0; line-height: 1.2; white-space: nowrap; }
+.paper-v12 .ck-section-sub { font-size: var(--v13-t2); color: var(--mut); min-width: 0; }
+.paper-v12 .ck-section-rule { flex: 1 1 24px; height: 1px; background: var(--hair); align-self: center; }
+.paper-v12 .ck-row3 { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--lg-gap); align-items: stretch; }
+.paper-v12 .ck-row4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--lg-gap); align-items: stretch; }
+.paper-v12 .ck-comp { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: var(--lg-gap); align-items: stretch; }
+.paper-v12 .ck-row3 > .qtt-card, .paper-v12 .ck-row4 > .qtt-card, .paper-v12 .ck-comp > .qtt-card { margin-bottom: 0 !important; }
 .paper-v12 .ck-col { display: flex; flex-direction: column; gap: var(--lg-gap); min-width: 0; }
 .paper-v12 .ck-col > .qtt-card { margin-bottom: 0 !important; }
 .paper-v12 .ck-col > .qtt-card.ck-fill { flex: 1 1 auto; }
+.paper-v12 .ck-fold { margin: var(--lg-gap) 0 0 !important; }
+.paper-v12 .ck-fold-sum { list-style: none; display: flex; align-items: baseline; gap: var(--sp-10); padding: var(--sp-10) var(--sp-14); cursor: pointer; min-width: 0; }
+.paper-v12 .ck-fold-sum::-webkit-details-marker { display: none; }
+.paper-v12 .ck-fold-sum::marker { content: ""; }
+.paper-v12 .ck-fold-chev { flex: none; width: 7px; height: 7px; border-right: 1.5px solid var(--mut); border-bottom: 1.5px solid var(--mut); transform: translateY(-2px) rotate(-45deg); transition: transform var(--dur-200) var(--ease); align-self: center; }
+.paper-v12 .ck-fold[open] > .ck-fold-sum .ck-fold-chev { transform: translateY(-3px) rotate(45deg); }
+.paper-v12 .ck-fold-right { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.paper-v12 .ck-fold-hint { flex: none; margin-left: auto; font-size: var(--v13-t1); font-weight: var(--fw-600); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); }
+.paper-v12 .ck-fold-hint::after { content: "Show"; }
+.paper-v12 .ck-fold[open] > .ck-fold-sum .ck-fold-hint::after { content: "Hide"; }
+.paper-v12 .ck-fold-sum:hover .ck-card-title, .paper-v12 .ck-fold-sum:hover .ck-fold-hint { color: var(--ink); }
+.paper-v12 .ck-fold-body { padding: 0 var(--sp-14) var(--sp-14); }
+.paper-v12 .ck-fold-bt { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--lg-gap); align-items: start; }
+.paper-v12 .ck-factors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--sp-28); }
+.paper-v12 .qtt-secgrid.ck-indgrid { columns: 4; }
+.paper-v12 .ck-sublabel { font-size: var(--v13-t1); font-weight: var(--fw-600); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); margin-bottom: var(--sp-4); }
+.paper-v12 .ck-narrow-only { display: none; }
 @media (max-width: 1360px) {
-  .paper-v12 .ck-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .paper-v12 .ck-col-3 { grid-column: 1 / -1; }
+  .paper-v12 .ck-row3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .paper-v12 .ck-row3 > .qtt-card:last-child { grid-column: 1 / -1; }
+  .paper-v12 .ck-row4 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .paper-v12 .ck-comp { grid-template-columns: minmax(0, 1fr); }
+  .paper-v12 .ck-compside { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .paper-v12 .ck-compside .ck-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .paper-v12 .ck-fold-bt { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .paper-v12 .ck-fold-bt > div:first-child { grid-column: 1 / -1; }
+  .paper-v12 .qtt-secgrid.ck-indgrid { columns: 3; }
 }
 @media (max-width: 780px) {
-  .paper-v12 .ck-grid { grid-template-columns: minmax(0, 1fr); }
+  .paper-v12 .ck-row3, .paper-v12 .ck-row4, .paper-v12 .ck-compside, .paper-v12 .ck-fold-bt { grid-template-columns: minmax(0, 1fr); }
+  .paper-v12 .ck-factors { grid-template-columns: minmax(0, 1fr); }
+  .paper-v12 .qtt-secgrid.ck-indgrid { columns: 2; }
+  .paper-v12 .ck-section-head { flex-wrap: wrap; }
+  .paper-v12 .ck-section-rule { display: none; }
+  .paper-v12 .ck-fold-right { display: none; }
+  .paper-v12 .ck-wide-only { display: none; }
+  .paper-v12 .ck-narrow-only { display: table; }
   .paper-v12 .ck-ribbon { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .paper-v12 .ck-hero { white-space: normal; }
+  .paper-v12 .ck-eyebrow { white-space: normal; }
   /* the cockpit's own tables are narrow by design: keep them one full-width
      grid rather than the site's phone head/body split (which left them
      hugging the left edge) */
   .mt-overhaul .paper-v12 .ck-table { display: table; width: 100%; max-width: 100%; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  .mt-overhaul .paper-v12 .ck-table.ck-wide-only { display: none; }
   .mt-overhaul .paper-v12 .ck-table thead { display: table-header-group; width: auto; min-width: 0; }
   .mt-overhaul .paper-v12 .ck-table tbody { display: table-row-group; width: auto; min-width: 0; }
   .mt-overhaul .paper-v12 .ck-table th, .mt-overhaul .paper-v12 .ck-table td { padding: var(--sp-4) var(--sp-6); }
@@ -315,10 +357,11 @@ const CSS = `
   .mt-overhaul .paper-v12 .dt-scroll { -webkit-mask-image: linear-gradient(to right, var(--c-000000) calc(100% - 18px), transparent 100%); mask-image: linear-gradient(to right, var(--c-000000) calc(100% - 18px), transparent 100%); }
   .mt-overhaul .paper-v12 .dt-table td { padding-top: var(--sp-3); padding-bottom: var(--sp-3); }
 }
+@media (max-width: 480px) { .paper-v12 .qtt-secgrid.ck-indgrid { columns: 1; } }
 
 /* density: one card anatomy, tight rows, tabular numerals */
 .paper-v12 .ck-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-10); margin-bottom: var(--sp-8); flex-wrap: wrap; }
-.paper-v12 .ck-card-title { font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: .16em; text-transform: uppercase; color: var(--mut); }
+.paper-v12 .ck-card-title { font-size: var(--v13-t2); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
 .paper-v12 .ck-card-right { font-size: var(--v13-t2); color: var(--mut); }
 .paper-v12 .ck-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .paper-v12 .ck-table th { text-align: right; padding: var(--sp-4) var(--sp-6); font-size: var(--v13-t1); font-weight: var(--fw-600); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); white-space: nowrap; border-bottom: 1px solid var(--hair); vertical-align: bottom; }
@@ -330,6 +373,8 @@ const CSS = `
 .paper-v12 .ck-table.ck-tight th, .paper-v12 .ck-table.ck-tight td { padding-left: var(--sp-3); padding-right: var(--sp-3); font-size: var(--v13-t2); }
 .paper-v12 .ck-table.ck-tight td:first-child { font-size: var(--v13-t3); }
 .paper-v12 .ck-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-8) var(--sp-10); }
+.paper-v12 .ck-stats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.paper-v12 .ck-stats.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .paper-v12 .ck-stat-k { font-size: var(--v13-t1); font-weight: var(--fw-600); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); margin-bottom: var(--sp-2); line-height: 1.2; display: flex; align-items: flex-end; min-height: 2.4em; }
 .paper-v12 .ck-stat-v { font-size: var(--v13-t4); font-weight: var(--fw-700); font-variant-numeric: tabular-nums; }
 .paper-v12 .ck-stat-s { font-size: var(--v13-t1); color: var(--mut); margin-top: var(--sp-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -356,16 +401,17 @@ const CSS = `
 .paper-v12 .ck-fill > .ck-body { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
 .paper-v12 .ck-fill > .ck-body > * { flex: none; }
 .paper-v12 .ck-fill > .ck-body > .ck-chartfill { flex: 1 1 0; min-height: 204px; }
+.paper-v12 .ck-fill > .ck-body > .ck-pin { margin-top: auto; padding-top: var(--sp-8); }
 /* the holdings ledger: the shared table control, tightened to the cockpit's row height */
 .paper-v12 .dt-table th, .paper-v12 .dt-table td { padding: var(--sp-4) var(--sp-6); font-size: var(--v13-t3); }
 .paper-v12 .dt-table th { font-size: var(--v13-t1); letter-spacing: .06em; text-transform: uppercase; }
 .paper-v12 .dt-toolbar { padding-bottom: var(--sp-6); }
 .paper-v12 .dt-colbtn { padding: var(--sp-3) var(--sp-9); font-size: var(--v13-t2); }
-.paper-v12 .qtt-secgrid { columns: 2; column-gap: var(--sp-10); }
+.paper-v12 .qtt-secgrid { columns: 2; column-gap: var(--lg-gap); }
 .paper-v12 .qtt-sectile { break-inside: avoid; -webkit-column-break-inside: avoid; background: var(--bg2); border-radius: var(--r-14); padding: var(--sp-8) var(--sp-10); margin: 0 0 var(--sp-10); }
 /* phone/tablet overrides, declared LAST so they beat the density rules above */
 @media (max-width: 1180px) { .paper-v12 .ck-sub { white-space: normal; } }
-@media (max-width: 480px) { .paper-v12 .ck-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .paper-v12 .ck-legend { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .paper-v12 .ck-stats, .paper-v12 .ck-stats.four, .paper-v12 .ck-stats.two { grid-template-columns: repeat(2, minmax(0, 1fr)); } .paper-v12 .ck-legend { grid-template-columns: 1fr; } }
 `;
 
 /* A chart that fills the height its tile has left over, so the column it sits
@@ -410,9 +456,11 @@ function Term({ children, tip, placement = 'top', alignRight = false, labelOpaci
   );
 }
 
-/* One card anatomy for every tile on the page: a 2-line header band (title
-   left, context right) and a body. `fill` lets the last card in a column
-   grow so the three columns end on the same line (LESSONS 9.25 rule 3). */
+/* One card anatomy for every tile on the page: a header band (title left,
+   context right) and a body. `fill` makes the body a flex column so a chart
+   can absorb a row's slack and a footnote can pin to the bottom; every card
+   in a row stretches to the row's height, so the row ends on one line
+   (LESSONS 9.25 rule 3, 9.28). */
 function Card({ title, right, children, style, className, fill = false }) {
   return (
     <div className={`qtt-card ${fill ? 'ck-fill' : ''} ${className || ''}`} style={{ background: CARD, borderRadius: 'var(--r-card)', padding: 'var(--sp-12) var(--sp-14)', ...style }}>
@@ -424,6 +472,40 @@ function Card({ title, right, children, style, className, fill = false }) {
       )}
       <div className="ck-body">{children}</div>
     </div>
+  );
+}
+
+/* The tear sheet's three chapters — Performance, Risk, Portfolio composition
+   (Joe, 2026-10-21). The chapter title is the page's largest label after the
+   ribbon so the eye lands on it first; tiles inside carry smaller titles. */
+function Section({ title, sub, children }) {
+  return (
+    <section className="ck-section" aria-label={title}>
+      <div className="ck-section-head">
+        <h2 className="ck-section-title">{title}</h2>
+        {sub ? <span className="ck-section-sub">{sub}</span> : null}
+        <span className="ck-section-rule" aria-hidden="true" />
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/* A secondary tile: a full-width bar that opens on click. Native
+   details/summary — keyboard and screen-reader behaviour for free, no state
+   to lose. Closed by default so a chapter shows a handful of tiles, not a
+   wall (Joe, 2026-10-21: "only a handful of select tiles on screen"). */
+function Fold({ title, right, children, open = false }) {
+  return (
+    <details className="qtt-card ck-fold" open={open || undefined} style={{ background: CARD, borderRadius: 'var(--r-card)' }}>
+      <summary className="ck-fold-sum">
+        <span className="ck-fold-chev" aria-hidden="true" />
+        <span className="ck-card-title">{title}</span>
+        {right ? <span className="ck-card-right ck-fold-right">{right}</span> : null}
+        <span className="ck-fold-hint" aria-hidden="true" />
+      </summary>
+      <div className="ck-fold-body">{children}</div>
+    </details>
   );
 }
 function Meter({ frac, color = BLUE }) {
@@ -869,17 +951,23 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const filled = Object.values(orders).filter((o) => o.status === 'filled').length;
   const working = Object.values(orders).filter((o) => !['filled', 'canceled', 'rejected', 'expired'].includes(o.status)).length;
 
-  // Contributors/detractors in bp of NAV — day figures when the broker marks
-  // carry them, else since-entry (labeled either way).
+  // Contributors/detractors in bp of NAV — two rankings, both shown: the
+  // session's movers (when the broker marks carry a day P&L) and the winners
+  // and losers since entry.
   const attribution = useMemo(() => {
-    const ps = (latestNav?.positions || []).map((p) => {
-      const day = p.upl_day != null ? Number(p.upl_day) : null;
-      const usd = day ?? Number(p.upl || 0);
-      return { s: p.symbol, usd, bp: (usd / equity) * 10000, isDay: day != null };
-    }).filter((p) => Number.isFinite(p.bp));
+    const ps = (latestNav?.positions || []).map((p) => ({
+      s: p.symbol,
+      day: p.upl_day != null && Number.isFinite(Number(p.upl_day)) ? Number(p.upl_day) : null,
+      since: Number.isFinite(Number(p.upl)) ? Number(p.upl || 0) : null,
+    }));
     if (ps.length < 8) return null;
-    const sorted = [...ps].sort((a, b) => b.bp - a.bp);
-    return { top: sorted.slice(0, 5), bottom: sorted.slice(-5).reverse(), isDay: ps[0].isDay };
+    const rank = (key) => {
+      const xs = ps.filter((p) => p[key] != null).map((p) => ({ s: p.s, usd: p[key], bp: (p[key] / equity) * 10000 }))
+        .filter((p) => Number.isFinite(p.bp)).sort((a, b) => b.bp - a.bp);
+      return xs.length >= 8 ? { top: xs.slice(0, 5), bottom: xs.slice(-5).reverse() } : null;
+    };
+    const day = rank('day'), since = rank('since');
+    return day || since ? { day, since } : null;
   }, [latestNav, equity]);
 
   // Sector / market-cap / liquidity rollups from the book + live weights.
@@ -982,7 +1070,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
   const cockpit = useRiskCockpit({ latestNav, rebalDate });
   const [growthRef, growthH] = useFillHeight(204);
-  const [btRef, btH] = useFillHeight(204);
   const riskAsOf = cockpit.asOf ? fmtDate(cockpit.asOf).replace(/, \d{4}$/, '') : null;
 
   const filteredBook = useMemo(() => {
@@ -1085,8 +1172,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         : null;
   const needsDays = (want) => `prints after ${Math.max(want - (cockpit.have || 0), 0)} more sessions of price history`;
 
-  // Monthly returns, transposed for a column: one row per month, one column
-  // per year (the book is weeks old; a 13-column row would scroll).
+  // Monthly returns: one row per year, one column per month on a wide screen;
+  // transposed (one row per month) on a phone. No year-to-date column — that
+  // figure lives once, in the Returns table (Joe, 2026-10-21: "literally the
+  // same number, three different tiles").
   const monthly = (() => {
     const months = {};
     (nav || []).forEach((r, i) => {
@@ -1102,25 +1191,67 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       months[key] = (1 + dayOne) * (1 + (months[key] ?? 0)) - 1;
     }
     const years = [...new Set(Object.keys(months).map((k) => k.slice(0, 4)))].sort();
-    const ytd = {};
-    years.forEach((y) => { let acc = 1; for (let i = 1; i <= 12; i++) { const v = months[`${y}-${String(i).padStart(2, '0')}`]; if (v != null) acc *= 1 + v; } ytd[y] = acc - 1; });
-    // Only the months since the book began (in its first year) — ten rows of
-    // dots before the first print is not a matrix, it is padding.
     const keys = Object.keys(months).sort();
     const firstMonth = keys.length && years.length === 1 ? Number(keys[0].slice(5, 7)) - 1 : null;
-    return { months, years, ytd, firstMonth };
+    return { months, years, firstMonth, n: keys.length };
   })();
   const MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthCell = (y, i) => {
+    const v = monthly.months[`${y}-${String(i + 1).padStart(2, '0')}`];
+    return <td key={`${y}-${i}`} style={{ color: v == null ? INK3 : upDown(v) }}>{v == null ? '·' : fmtPct(v, 1)}</td>;
+  };
 
-  const benchCols = [
-    { k: 'live', h: 'Book', sub: inceptionShort ? `since ${inceptionShort}` : '', v: { ret: ls ? fmtPct(ls.since, 2) : '—', vol: ls?.vol != null ? fmtPctPlain(ls.vol) : '—', sharpe: ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—', sortino: '—', maxdd: ls ? fmtPctPlain(ls.maxdd) : '—', worst: '—' }, retTone: upDown(ls?.since) },
-    { k: 'spx', h: 'S&P 500', sub: 'same days', v: { ret: ls?.spxSince != null ? fmtPct(ls.spxSince, 2) : '—', vol: '—', sharpe: '—', sortino: '—', maxdd: '—', worst: '—' } },
-    { k: 'bt', h: 'Book', sub: '40 names', v: { ret: BT_STATS.cagr, vol: BT_STATS.vol, sharpe: BT_STATS.sharpe, sortino: BT_STATS.sortino, maxdd: BT_STATS.maxdd, worst: BT_STATS.worst } },
-    { k: 'btspx', h: 'S&P 500', sub: '2017–26', v: { ret: BT_SPX.cagr, vol: BT_SPX.vol, sharpe: BT_SPX.sharpe, sortino: BT_SPX.sortino, maxdd: BT_SPX.maxdd, worst: BT_SPX.worst } },
+  // The backtest's own statistics — a different book (40 names, 2017–26), so
+  // none of these is a live figure repeated.
+  const btRows = [
+    ['ret', 'Return / yr', null, BT_STATS.cagr, BT_SPX.cagr], ['vol', 'Volatility', TIPS.vol, BT_STATS.vol, BT_SPX.vol],
+    ['sharpe', 'Sharpe', TIPS.sharpe, BT_STATS.sharpe, BT_SPX.sharpe], ['sortino', 'Sortino', TIPS.sortino, BT_STATS.sortino, BT_SPX.sortino],
+    ['maxdd', 'Max drawdown', TIPS.maxdd, BT_STATS.maxdd, BT_SPX.maxdd], ['worst', 'Worst year', TIPS.worst, BT_STATS.worst, BT_SPX.worst],
+    ['ir', 'Information ratio', TIPS.ir, BT_STATS.ir, '—'],
   ];
-  const benchRows = [
-    ['ret', 'Return', null], ['vol', 'Volatility', TIPS.vol], ['sharpe', 'Sharpe', TIPS.sharpe], ['sortino', 'Sortino', TIPS.sortino], ['maxdd', 'Max drawdown', TIPS.maxdd], ['worst', 'Worst year', TIPS.worst],
-  ];
+
+  // Concentration facts for the composition section. Effective names =
+  // 1 / Σw² — how many equal-sized positions the book behaves like.
+  const effN = weights.length ? 1 / weights.reduce((s, x) => s + x.w * x.w, 0) : null;
+  const rsSorted = Object.entries(cockpit.risk?.riskShare || {}).map(([s, v]) => ({ s, v: Number(v) })).filter((x) => Number.isFinite(x.v)).sort((a, b) => b.v - a.v);
+  const top5Risk = rsSorted.length >= 5 ? rsSorted.slice(0, 5).reduce((s, x) => s + x.v, 0) : null;
+  const topRisk = rsSorted[0] || null;
+  const bookBeta = dc?.beta ?? ls?.beta ?? null;
+  const bookBetaSub = dc?.beta != null ? '1-yr daily, today’s weights' : (ls?.beta != null ? 'daily marks' : needs(ls?.n ?? 0, 20));
+
+  const contribBlock = (label, blk) => (
+    <div key={label}>
+      <div className="ck-sublabel">{label}</div>
+      <div className="ck-twoup">
+        {[['Top 5', blk.top], ['Bottom 5', blk.bottom]].map(([lbl, rows]) => (
+          <table className="ck-table num" key={lbl}>
+            <thead><tr><th>{lbl}</th><th>bp</th><th>$</th></tr></thead>
+            <tbody>
+              {rows.map((p) => (
+                <tr key={p.s} className="qtt-row" onClick={() => onOpenTicker && onOpenTicker(p.s)} style={{ cursor: 'pointer' }}>
+                  <td style={{ fontWeight: 'var(--fw-700)', color: INK }}>{p.s}</td>
+                  <td style={{ color: upDown(p.bp) }}>{p.bp > 0 ? '+' : ''}{p.bp.toFixed(1)}</td>
+                  <td style={{ color: upDown(p.bp) }}>{fmtSignedUsd(p.usd)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ))}
+      </div>
+    </div>
+  );
+
+  const barRow = (name, weight, n, frac, color, key) => (
+    <div key={key || name} style={{ padding: 'var(--sp-3) 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--v13-t2)', marginBottom: 'var(--sp-2)', gap: 'var(--sp-8)' }}>
+        <span style={{ color: INK2 }}>{name}</span>
+        <span className="num" style={{ fontWeight: 'var(--fw-600)', whiteSpace: 'nowrap' }}>{fmtPctPlain(weight, 1)} <span style={{ color: INK3, fontWeight: 'var(--fw-400)' }}>· {n}</span></span>
+      </div>
+      <div className="ck-bar"><span style={{ left: 0, width: `${Math.min(frac * 100, 100)}%`, background: color }} /></div>
+    </div>
+  );
+
+  const empty = (text, dim = true) => <div style={{ fontSize: 'var(--v13-t3)', color: dim ? INK3 : INK2, lineHeight: 1.6 }}>{text}</div>;
 
   return (
     <div className="home-v12 v13 paper-v12">
@@ -1208,12 +1339,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           </div>
         </div>
 
-        {/* ── three columns ─────────────────────────────────────────────── */}
-        <div className="ck-grid">
-
-          {/* ════ column 1 — performance & progress ════ */}
-          <div className="ck-col ck-col-1">
-            <Card title="Performance" right={ls ? `${(ls.n ?? 0) + 1} ${(ls.n ?? 0) + 1 === 1 ? 'mark' : 'marks'}` : 'no marks yet'}>
+        {/* ══════════════════════ 1 · PERFORMANCE ══════════════════════ */}
+        <Section title="Performance" sub={ls ? `${(ls.n ?? 0) + 1} daily ${(ls.n ?? 0) + 1 === 1 ? 'mark' : 'marks'} since ${inceptionShort || 'inception'}` : 'no marks yet'}>
+          <div className="ck-row3 ck-perf">
+            <Card title="Returns" right="book vs the index funds" fill>
               <table className="ck-table num">
                 <thead>
                   <tr>
@@ -1237,13 +1366,27 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   ))}
                 </tbody>
               </table>
-              <div className="ck-note">
+              <div className="ck-stats four" style={{ borderTop: `1px solid ${HAIR}`, paddingTop: 'var(--sp-8)', marginTop: 'var(--sp-10)' }}>
+                {[
+                  [<Term key="i" tip={TIPS.ir} labelOpacity={0.9}>Information ratio</Term>, ls?.ir != null ? ls.ir.toFixed(2) : '—', ls?.ir == null ? needs(ls?.n ?? 0, 20) : 'vs S&P, annualized'],
+                  ['Best day', ls?.bestDay != null ? fmtPct(ls.bestDay, 2) : '—', ls?.bestDay == null ? needs(ls?.n ?? 0, 2) : 'close-to-close'],
+                  ['Worst day', ls?.worstDay != null ? fmtPct(ls.worstDay, 2) : '—', ls?.worstDay == null ? needs(ls?.n ?? 0, 2) : 'close-to-close'],
+                  ['% up days', ls?.pctUp != null ? fmtPctPlain(ls.pctUp, 0) : '—', ls?.pctUp == null ? needs(ls?.n ?? 0, 2) : 'of trading days'],
+                ].map(([label, value, sub], i) => (
+                  <div key={i}>
+                    <div className="ck-stat-k">{label}</div>
+                    <div className="ck-stat-v">{value}</div>
+                    <div className="ck-stat-s">{sub}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="ck-note ck-pin">
                 Index rows: $1,000,000 in each index’s fund (SPY, QQQ, DIA) at the close before the book’s first day.
                 {perf && perf.ytdFromStart ? ' The book started this year, so YTD and Inception match until January.' : ''}
               </div>
             </Card>
 
-            <Card title="Growth · indexed to 100" right={priceBasis || 'no marks yet'} fill>
+            <Card title="Growth of $1,000,000" right={priceBasis ? `indexed to 100 · ${priceBasis}` : 'indexed to 100'} fill>
               <div ref={growthRef} className="ck-chartfill">
                 {liveCurve ? (
                   <>
@@ -1258,23 +1401,136 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                     />
                     <ChartLegend items={[['Quality Trend', GOLD], ['S&P 500', BLUE]]} />
                   </>
-                ) : (
-                  <div style={{ padding: 'var(--sp-10) 0', fontSize: 'var(--v13-t3)', lineHeight: 1.6, color: INK2 }}>
-                    The live line starts drawing at the second daily mark.
-                  </div>
-                )}
+                ) : empty('The live line starts drawing at the second daily mark.', false)}
               </div>
-              <div className="ck-stats" style={{ borderTop: `1px solid ${HAIR}`, paddingTop: 'var(--sp-8)', marginTop: 'var(--sp-8)' }}>
+            </Card>
+
+            <Card title="Contributors & detractors" right={<Term tip={TIPS.contrib} labelOpacity={0.9}>bp of portfolio</Term>} fill>
+              {attribution ? (
+                <div style={{ display: 'grid', gap: 'var(--sp-12)' }}>
+                  {attribution.day ? contribBlock(daySession === 'today' ? 'Today' : `${daySession[0].toUpperCase()}${daySession.slice(1)}`, attribution.day) : null}
+                  {attribution.since ? contribBlock('Since entry', attribution.since) : null}
+                </div>
+              ) : empty('Populates from the first broker marks.')}
+              <div className="ck-note ck-pin">
+                {attribution && !attribution.day
+                  ? 'Session movers print while the market is open; the after-close snapshot carries each position’s total P&L only. '
+                  : ''}
+                Click a ticker to open it.
+              </div>
+            </Card>
+          </div>
+
+          <Fold title="Monthly returns" right={monthly.n ? `net paper returns · ${monthly.n} ${monthly.n === 1 ? 'month' : 'months'}` : ''}>
+            {monthly.years.length ? (
+              <>
+                <table className="ck-table num ck-wide-only">
+                  <thead><tr><th>Year</th>{MN.map((m) => <th key={m}>{m}</th>)}</tr></thead>
+                  <tbody>
+                    {monthly.years.map((y) => (
+                      <tr key={y}><td style={{ color: INK2, fontWeight: 'var(--fw-700)' }}>{y}</td>{MN.map((_, i) => monthCell(y, i))}</tr>
+                    ))}
+                  </tbody>
+                </table>
+                <table className="ck-table num ck-narrow-only">
+                  <thead><tr><th>Month</th>{monthly.years.map((y) => <th key={y}>{y}</th>)}</tr></thead>
+                  <tbody>
+                    {MN.map((m, i) => (monthly.firstMonth != null && i < monthly.firstMonth ? null : (
+                      <tr key={m}><td style={{ color: INK2 }}>{m}</td>{monthly.years.map((y) => monthCell(y, i))}</tr>
+                    )))}
+                  </tbody>
+                </table>
+                <div className="ck-note">Each month is the change in the paper account’s value from the last close of the prior month, after costs. The first month runs from inception.</div>
+              </>
+            ) : empty('The first month prints after the first close.')}
+          </Fold>
+
+          <Fold title="Backtest" right="40 names · Feb 2017 – Aug 2026 · 40bp costs · not a live record">
+            <div className="ck-fold-bt">
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--sp-8)', marginBottom: 'var(--sp-6)', flexWrap: 'wrap' }}>
+                  <div className="ck-sublabel" style={{ margin: 0 }}>Growth of $1,000,000 · log scale</div>
+                  <span style={{ display: 'inline-flex', gap: 'var(--sp-4)', alignItems: 'center' }}>
+                    {['1Y', '3Y', '5Y', 'All'].map((r) => (
+                      <button key={r} type="button" className={`qtt-pill${btRange === r ? ' on' : ''}`} onClick={() => setBtRange(r)}>{r}</button>
+                    ))}
+                  </span>
+                </div>
+                <LineChart
+                  log
+                  height={236}
+                  series={[
+                    { name: 'Quality Trend', color: GOLD, values: btSlice.strategy },
+                    { name: 'S&P 500', color: BLUE, values: btSlice.spx, width: 1.8, opacity: 0.9 },
+                  ]}
+                  dates={btSlice.dates}
+                />
+                <ChartLegend items={[['Quality Trend', GOLD], ['S&P 500', BLUE]]} />
+              </div>
+              <div>
+                <div className="ck-sublabel">Statistics · annualized</div>
+                <table className="ck-table">
+                  <thead><tr><th /><th>Book</th><th>S&P 500</th></tr></thead>
+                  <tbody>
+                    {btRows.map(([k, label, tip, a, b]) => (
+                      <tr key={k} className={k === 'ret' ? 'ck-strong' : ''}>
+                        <td style={{ color: INK2 }}>{tip ? <Term tip={tip} labelOpacity={0.9}>{label}</Term> : label}</td>
+                        <td className="num" style={{ color: INK }}>{a}</td>
+                        <td className="num" style={{ color: INK2 }}>{b}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div>
+                <div className="ck-sublabel">Calendar years</div>
+                <table className="ck-table num">
+                  <thead><tr><th>Year</th><th>Book</th><th>S&P 500</th></tr></thead>
+                  <tbody>
+                    {Object.entries(BT.years).map(([y, r]) => (
+                      <tr key={y}>
+                        <td style={{ color: INK2 }}>{y === '2026' ? '2026*' : y}</td>
+                        <td style={{ color: r.strategy >= 0 ? INK : BADBR, fontWeight: r.strategy >= r.spx ? 'var(--fw-700)' : 'var(--fw-400)' }}>{r.strategy > 0 ? '+' : ''}{r.strategy.toFixed(1)}%</td>
+                        <td style={{ color: r.spx >= 0 ? INK2 : BADBR }}>{r.spx > 0 ? '+' : ''}{r.spx.toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="ck-note">
+              *2026 through Aug 11. Bold = beat the index that year (7 of 10). Survivorship-free, after 40bp of costs;
+              a backtest is not a live record and the live book should be expected to run below it.
+            </div>
+          </Fold>
+        </Section>
+
+        {/* ══════════════════════ 2 · RISK ══════════════════════ */}
+        <Section title="Risk" sub={riskAsOf ? `computed after the ${riskAsOf} close · one year of daily closes at today’s weights` : (riskNote || '')}>
+          <div className="ck-row4">
+            <Card title="Exception alerts" right={cockpit.alerts ? `${cockpit.alerts.length} flagged` : ''} fill>
+              {cockpit.alerts ? (
+                cockpit.alerts.length ? cockpit.alerts.map((a, i) => (
+                  <div className={`ck-alert ${a.level}`} key={`${a.code}-${a.sym || i}`}>
+                    <span className="ck-alert-code">{a.code}</span>
+                    <span>{a.sym ? <button type="button" onClick={() => onOpenTicker && onOpenTicker(a.sym)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: INK, fontWeight: 'var(--fw-700)' }}>{a.sym}</button> : null}{a.sym ? ' — ' : ''}{a.text.replace(new RegExp(`^${a.sym} `), '')}</span>
+                  </div>
+                )) : empty('No exceptions — every name inside its risk, weight and liquidity limits; cash positive; brake off.', false)
+              ) : empty(riskNote || 'Alerts print with the risk figures.')}
+              <div className="ck-note ck-pin">
+                What gets flagged: a stock whose share of the book’s risk is more than double its share of the money · a position more than 1.5× its 5% target · the book 10% below its own high · the book more than 105% invested (borrowing over 5% of its equity) · the crash brake switched on · a stock that would take more than a day to sell · a stock with less than a year of price history.
+              </div>
+            </Card>
+
+            <Card title="Risk measures" right="live book" fill>
+              <div className="ck-stats two">
                 {[
                   [<Term key="v" tip={TIPS.vol} labelOpacity={0.9}>Volatility</Term>, ls?.vol != null ? fmtPctPlain(ls.vol) : '—', ls?.vol == null ? needs(ls?.n ?? 0, 20) : 'annualized'],
-                  [<Term key="b" tip={TIPS.beta} labelOpacity={0.9}>Beta vs S&P</Term>, ls?.beta != null ? ls.beta.toFixed(2) : '—', ls?.beta == null ? needs(ls?.n ?? 0, 20) : 'daily marks'],
+                  [<Term key="b" tip={TIPS.beta} labelOpacity={0.9}>Beta vs S&P</Term>, bookBeta != null ? bookBeta.toFixed(2) : '—', bookBetaSub],
                   [<Term key="t" tip={TIPS.te} labelOpacity={0.9}>Tracking error</Term>, ls?.te != null ? fmtPctPlain(ls.te) : '—', ls?.te == null ? needs(ls?.n ?? 0, 20) : 'ann., vs S&P'],
-                  [<Term key="i" tip={TIPS.ir} labelOpacity={0.9}>Information ratio</Term>, ls?.ir != null ? ls.ir.toFixed(2) : '—', ls?.ir == null ? needs(ls?.n ?? 0, 20) : 'vs S&P, annualized'],
                   [<Term key="d" tip={TIPS.maxdd} labelOpacity={0.9}>Max drawdown</Term>, ls ? fmtPctPlain(ls.maxdd) : '—', 'mark-to-mark'],
                   [<Term key="p" tip={TIPS.ddpeak} labelOpacity={0.9}>Off peak</Term>, ls ? fmtPctPlain(ls.ddFromPeak, 2) : '—', 'equity vs own high'],
-                  ['Best day', ls?.bestDay != null ? fmtPct(ls.bestDay, 2) : '—', ls?.bestDay == null ? needs(ls?.n ?? 0, 2) : 'close-to-close'],
-                  ['Worst day', ls?.worstDay != null ? fmtPct(ls.worstDay, 2) : '—', ls?.worstDay == null ? needs(ls?.n ?? 0, 2) : 'close-to-close'],
-                  ['% up days', ls?.pctUp != null ? fmtPctPlain(ls.pctUp, 0) : '—', ls?.pctUp == null ? needs(ls?.n ?? 0, 2) : 'of trading days'],
+                  [<Term key="r" tip={RISK_TIPS.mctr} labelOpacity={0.9}>Largest risk share</Term>, topRisk ? fmtPctPlain(topRisk.v, 1) : '—', topRisk ? `${topRisk.s} · ${fmtPctPlain(weights.find((w) => w.s === topRisk.s)?.w ?? 0, 1)} of money` : (riskNote || needsDays(250))],
                 ].map(([label, value, sub], i) => (
                   <div key={i}>
                     <div className="ck-stat-k">{label}</div>
@@ -1283,81 +1539,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   </div>
                 ))}
               </div>
+              <div className="ck-note ck-pin">Volatility, tracking error and drawdown are measured from the daily marks and need 20 of them; beta is estimated from one year of daily closes at today’s weights.</div>
             </Card>
 
-            <Card title={bookIsLive ? 'Net monthly returns' : 'Net monthly returns — closed book'} right="net paper returns">
-              {monthly.years.length ? (
-                <table className="ck-table num">
-                  <thead>
-                    <tr><th>Month</th>{monthly.years.map((y) => <th key={y}>{y}</th>)}</tr>
-                  </thead>
-                  <tbody>
-                    {MN.map((m, i) => (monthly.firstMonth != null && i < monthly.firstMonth ? null : (
-                      <tr key={m}>
-                        <td style={{ color: INK2 }}>{m}</td>
-                        {monthly.years.map((y) => {
-                          const v = monthly.months[`${y}-${String(i + 1).padStart(2, '0')}`];
-                          return <td key={y} style={{ color: v == null ? INK3 : upDown(v) }}>{v == null ? '·' : fmtPct(v, 1)}</td>;
-                        })}
-                      </tr>
-                    )))}
-                    <tr className="ck-strong">
-                      <td>YTD</td>
-                      {monthly.years.map((y) => <td key={y} style={{ color: upDown(monthly.ytd[y]) }}>{fmtPct(monthly.ytd[y], 1)}</td>)}
-                    </tr>
-                  </tbody>
-                </table>
-              ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>The first month prints after the first close.</div>}
-            </Card>
-
-            <Card title="Risk & return" right="live book vs the S&P 500 · then the backtest">
-              {[
-                { id: 'live', head: bookIsLive ? 'Live book' : 'Closed book', sub: inceptionShort ? `since ${inceptionShort}, same days` : '', a: benchCols[0], b: benchCols[1] },
-                { id: 'bt', head: 'Backtest · 40 names', sub: 'Feb 2017 – Aug 2026, annualized', a: benchCols[2], b: benchCols[3] },
-              ].map((blk, bi) => (
-                <table className="ck-table" key={blk.id} style={bi ? { marginTop: 'var(--sp-10)' } : undefined}>
-                  <thead>
-                    <tr>
-                      <th style={{ textTransform: 'none', letterSpacing: 0 }}><span style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}>{blk.head}</span><span style={{ display: 'block', fontWeight: 'var(--fw-400)' }}>{blk.sub}</span></th>
-                      <th>{blk.a.h}</th>
-                      <th>S&P 500</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {benchRows.filter(([k]) => blk.id === 'bt' || blk.a.v[k] !== '—' || blk.b.v[k] !== '—').map(([k, label, tip]) => (
-                      <tr key={k} className={k === 'ret' ? 'ck-strong' : ''}>
-                        <td style={{ color: INK2 }}>{tip ? <Term tip={tip} labelOpacity={0.9}>{label}</Term> : label}</td>
-                        <td className="num" style={{ color: k === 'ret' && blk.a.retTone ? blk.a.retTone : INK }}>{blk.a.v[k]}</td>
-                        <td className="num" style={{ color: INK2 }}>{blk.b.v[k]}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ))}
-              <div className="ck-note">
-                Live figures need 20 marks (volatility, drawdown) or 60 (Sharpe) before they print; the S&P 500 is measured over the same days.
-                Backtest <Term tip={TIPS.ir}>information ratio</Term> {BT_STATS.ir}.
-              </div>
-            </Card>
-
-          </div>
-
-          {/* ════ column 2 — style factors & variance risk budgeting ════ */}
-          <div className="ck-col ck-col-2">
-            <Card title="Risk & exception alerts" right={cockpit.alerts ? `${cockpit.alerts.length} flagged · as of ${riskAsOf || markedAt || ''}` : ''}>
-              {cockpit.alerts ? (
-                cockpit.alerts.length ? cockpit.alerts.map((a, i) => (
-                  <div className={`ck-alert ${a.level}`} key={`${a.code}-${a.sym || i}`}>
-                    <span className="ck-alert-code">{a.code}</span>
-                    <span>{a.sym ? <button type="button" onClick={() => onOpenTicker && onOpenTicker(a.sym)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: INK, fontWeight: 'var(--fw-700)' }}>{a.sym}</button> : null}{a.sym ? ' — ' : ''}{a.text.replace(new RegExp(`^${a.sym} `), '')}</span>
-                  </div>
-                )) : <div style={{ fontSize: 'var(--v13-t3)', color: INK2 }}>No exceptions — every name inside its risk, weight and liquidity limits; cash positive; brake off.</div>
-              ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>{riskNote || 'Alerts print with the risk figures.'}</div>}
-              <div className="ck-note">
-                What gets flagged: a stock whose share of the book’s risk is more than double its share of the money · a position more than 1.5× its 5% target · the book 10% below its own high · the book more than 105% invested (borrowing over 5% of its equity) · the crash brake switched on · a stock that would take more than a day to sell · a stock with less than a year of price history.
-              </div>
-            </Card>
-            <Card title="Variance risk decomposition" right={dc ? `β ${dc.beta.toFixed(2)} · 252 sessions to ${riskAsOf}` : ''}>
+            <Card title="Where the risk comes from" right={dc ? `252 sessions to ${riskAsOf}` : ''} fill>
               {dc ? (
                 <>
                   <div className="ck-stack">
@@ -1366,9 +1551,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                     <span style={{ width: `${dc.specific * 100}%`, background: 'color-mix(in srgb, var(--ink) 22%, transparent)' }} />
                   </div>
                   {[
-                    ['market', 'Systematic market risk', dc.market, GOLD],
-                    ['style', 'Style factor exposure', dc.style, BLUE],
-                    ['specific', 'Idiosyncratic selection', dc.specific, 'color-mix(in srgb, var(--ink) 22%, transparent)'],
+                    ['market', 'The whole market moving', dc.market, GOLD],
+                    ['style', 'The book’s style tilts', dc.style, BLUE],
+                    ['specific', 'Company-specific news', dc.specific, 'color-mix(in srgb, var(--ink) 22%, transparent)'],
                   ].map(([k, label, v, color]) => (
                     <div className="ck-row" key={k} style={{ gridTemplateColumns: 'auto minmax(0, 1fr) auto' }}>
                       <span style={{ width: 10, height: 10, borderRadius: 'var(--r-2)', background: color, display: 'inline-block' }} />
@@ -1376,15 +1561,14 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                       <div className="num" style={{ fontWeight: 'var(--fw-700)' }}>{fmtPctPlain(v, 1)}</div>
                     </div>
                   ))}
-                  <div className="ck-note">
-                    Book volatility {fmtPctPlain(cr.vol, 1)} annualized at today’s weights; the market explains {fmtPctPlain(dc.r2Market, 0)} of daily moves.
-                    Style funds: MTUM, QUAL, PKW, IWM, VLUE.
+                  <div className="ck-note ck-pin">
+                    Shares of the book’s day-to-day swings. The market alone explains {fmtPctPlain(dc.r2Market, 0)} of its daily moves; the style tilts are measured against the momentum, quality, buyback, small-cap and value index funds.
                   </div>
                 </>
-              ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>{riskNote || needsDays(250)}</div>}
+              ) : empty(riskNote || needsDays(250))}
             </Card>
 
-            <Card title="Historical shock stress" right={dc ? `projected at β ${dc.beta.toFixed(2)}` : ''}>
+            <Card title="Shock scenarios" right="if it happened again" fill>
               {cockpit.shocks ? (
                 <>
                   <table className="ck-table">
@@ -1406,17 +1590,19 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                       )}
                     </tbody>
                   </table>
-                  <div className="ck-note">
-                    Each episode is the S&P 500 fund’s actual peak-to-trough fall, read from the price feed, scaled by the book’s one-year beta — a projection, not a backtest.
-                    {cockpit.vix ? ` The VIX line uses the fund’s measured elasticity to fear (${Number(cockpit.vix.elasticity).toFixed(3)} per unit of ln VIX, ${Number(cockpit.vix.n).toLocaleString()} days).` : ''}
+                  <div className="ck-note ck-pin">
+                    Each episode is the S&P 500 fund’s actual peak-to-trough fall, scaled by the book’s beta — a projection, not a backtest.
+                    {cockpit.vix ? ' The VIX line uses how much the fund has historically fallen when fear jumped.' : ''}
                   </div>
                 </>
-              ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>{riskNote || needsDays(250)}</div>}
+              ) : empty(riskNote || needsDays(250))}
             </Card>
+          </div>
 
-            <Card title="Active style factor loading" right={cockpit.factorLoading ? `vs 500 largest US stocks · scored ${fmtDate(rebalDate)}` : ''}>
-              {cockpit.factorLoading && FACTOR_ORDER.some((f) => cockpit.factorLoading[f]) ? (
-                <>
+          <Fold title="Style factor tilts" right={cockpit.factorLoading ? `vs the 500 largest US stocks · scored ${fmtDate(rebalDate)}` : ''}>
+            {cockpit.factorLoading && FACTOR_ORDER.some((f) => cockpit.factorLoading[f]) ? (
+              <>
+                <div className="ck-factors">
                   {FACTOR_ORDER.map((f) => {
                     const L = cockpit.factorLoading[f];
                     const a = L?.active;
@@ -1434,67 +1620,25 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                       </div>
                     );
                   })}
-                  <div className="ck-note">
-                    Active z-score = the book’s weighted z minus the cap-weighted z of the 500 largest US common stocks (the site holds no official
-                    S&P 500 list; this is the nearest honest proxy). Gold = more than the index, slate = less. ±1 is one standard deviation of that universe.
-                  </div>
-                </>
-              ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>{cockpit.status === 'loading' ? 'Loading…' : 'Factor scores print with the next monthly scoring.'}</div>}
-            </Card>
+                </div>
+                <div className="ck-note">
+                  Each bar is how far the book leans toward a style compared with the 500 largest US stocks (the site holds no official S&P 500 list; this is the nearest honest proxy).
+                  Gold = more than the index, slate = less. ±1 is one standard deviation of that universe.
+                </div>
+              </>
+            ) : empty(cockpit.status === 'loading' ? 'Loading…' : 'Factor scores print with the next monthly scoring.')}
+          </Fold>
+        </Section>
 
-            <Card
-              title="Backtest · growth of $1,000,000"
-              fill
-              right={
-                <span style={{ display: 'inline-flex', gap: 'var(--sp-4)', alignItems: 'center' }}>
-                  {['1Y', '3Y', '5Y', 'All'].map((r) => (
-                    <button key={r} type="button" className={`qtt-pill${btRange === r ? ' on' : ''}`} onClick={() => setBtRange(r)}>{r}</button>
-                  ))}
-                </span>
-              }
-            >
-              <div ref={btRef} className="ck-chartfill">
-              <LineChart
-                log
-                height={Math.max(btH - 34, 150)}
-                series={[
-                  { name: 'Quality Trend', color: GOLD, values: btSlice.strategy },
-                  { name: 'S&P 500', color: BLUE, values: btSlice.spx, width: 1.8, opacity: 0.9 },
-                ]}
-                dates={btSlice.dates}
-              />
-              <ChartLegend items={[['Quality Trend', GOLD], ['S&P 500', BLUE]]} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-12)', marginTop: 'var(--sp-8)' }}>
-                {[Object.entries(BT.years).slice(0, 5), Object.entries(BT.years).slice(5)].map((half, hi) => (
-                  <table className="ck-table ck-tight num" key={hi}>
-                    <thead><tr><th>Year</th><th>QT</th><th>S&P</th></tr></thead>
-                    <tbody>
-                      {half.map(([y, r]) => (
-                        <tr key={y}>
-                          <td style={{ color: INK2 }}>{y === '2026' ? '2026*' : y}</td>
-                          <td style={{ color: r.strategy >= 0 ? INK : BADBR, fontWeight: r.strategy >= r.spx ? 'var(--fw-700)' : 'var(--fw-400)' }}>{r.strategy > 0 ? '+' : ''}{r.strategy.toFixed(1)}%</td>
-                          <td style={{ color: r.spx >= 0 ? INK2 : BADBR }}>{r.spx > 0 ? '+' : ''}{r.spx.toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ))}
-              </div>
-              <div className="ck-note">
-                *2026 through Aug 11. Bold = beat the index that year (7 of 10). Survivorship-free, log scale, 40bp costs;
-                a backtest is not a live record and the live book should be expected to run below it.
-              </div>
-            </Card>
-          </div>
-
-          {/* ════ column 3 — the ledger ════ */}
-          <div className="ck-col ck-col-3">
+        {/* ══════════════════════ 3 · PORTFOLIO COMPOSITION ══════════════════════ */}
+        <Section title="Portfolio composition" sub={bookMeta ? `${nHeld || book?.length || 0} names · ${bookMeta.secList.length} sectors · ${bookMeta.nIndustries} of 74 industries` : ''}>
+          <div className="ck-comp">
             <Card
               title={nothingHeld ? 'Target book — nothing held' : 'Holdings'}
               right={nothingHeld
                 ? `${book?.length ?? 0} names scored, not owned · ${fmtDate(rebalDate)}`
                 : bookIsLive ? (priceBasis || 'no marks yet') : `final holdings · ${priceBasis || ''}`}
+              fill
             >
               {nothingHeld && !err && book && book.length ? (
                 <div style={{ margin: '0 0 var(--sp-10)', padding: 'var(--sp-8) var(--sp-10)', borderRadius: 'var(--r-10)', background: 'var(--c-b8975c-a10)', border: '1px solid var(--c-b8975c-a45)', fontSize: 'var(--v13-t2)', lineHeight: 1.5, color: INK2 }}>
@@ -1521,7 +1665,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   {query && filteredBook.length === 0 && (
                     <div style={{ padding: 'var(--sp-10)', fontSize: 'var(--v13-t3)', color: INK3 }}>No holdings match “{query}”.</div>
                   )}
-                  <div className="ck-note">
+                  <div className="ck-note ck-pin">
                     Risk share is how much of the book’s day-to-day swings come from each stock (the twenty add up to 100%); amber = more than double its share of the money. Style = the tilt the stock brings most strongly. Marks and P&L are the paper broker’s official records at the last sync. Columns can be sorted, dragged,
                     resized and shown or hidden under “Columns”.
                   </div>
@@ -1529,78 +1673,77 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               )}
             </Card>
 
-            <Card title={attribution ? (attribution.isDay ? `Contributors & detractors — ${daySession}` : 'Contributors & detractors — since entry') : 'Contributors & detractors'}
-              right={<Term tip={TIPS.contrib} labelOpacity={0.9}>bp of portfolio</Term>}>
-              {attribution ? (
-                <div className="ck-twoup">
-                  {[['Top 5', attribution.top], ['Bottom 5', attribution.bottom]].map(([lbl, rows]) => (
-                    <table className="ck-table num" key={lbl}>
-                      <thead><tr><th>{lbl}</th><th>bp</th><th>$</th></tr></thead>
-                      <tbody>
-                        {rows.map((p) => (
-                          <tr key={p.s} className="qtt-row" onClick={() => onOpenTicker && onOpenTicker(p.s)} style={{ cursor: 'pointer' }}>
-                            <td style={{ fontWeight: 'var(--fw-700)', color: INK }}>{p.s}</td>
-                            <td style={{ color: upDown(p.bp) }}>{p.bp > 0 ? '+' : ''}{p.bp.toFixed(1)}</td>
-                            <td style={{ color: upDown(p.bp) }}>{fmtSignedUsd(p.usd)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ))}
-                </div>
-              ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>Populates from the first broker marks.</div>}
-            </Card>
-
-            <Card title="Market cap" right={bookMeta?.medMcap ? <span>median <Term tip={TIPS.mcap} labelOpacity={0.9}>${(bookMeta.medMcap / 1e9).toFixed(0)}B</Term></span> : ''}>
-              {bookMeta ? (
-                <>
-                  {bookMeta.caps.map((b) => (
-                    <div key={b.name} style={{ padding: 'var(--sp-3) 0' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--v13-t2)', marginBottom: 'var(--sp-2)' }}>
-                        <span style={{ color: INK2 }}>{b.name}</span>
-                        <span className="num" style={{ fontWeight: 'var(--fw-600)' }}>{fmtPctPlain(b.weight, 1)} <span style={{ color: INK3, fontWeight: 'var(--fw-400)' }}>· {b.n}</span></span>
-                      </div>
-                      <div className="ck-bar"><span style={{ left: 0, width: `${Math.min(b.weight * 100, 100)}%`, background: BLUE }} /></div>
-                    </div>
-                  ))}
-                  <div className="ck-note">Share of the book by company size; the count is names in the bucket. Mega ≥ $200B · Large $10–200B · Mid $2–10B · Small &lt; $2B.</div>
-                </>
-              ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>Loading…</div>}
-            </Card>
-
-            <Card title="Sector & industry" right={bookMeta ? `${bookMeta.secList.length} sectors · ${bookMeta.nIndustries} of 74 industries` : ''}>
-              {bookMeta ? (
-                <div className="qtt-secgrid">
-                  {bookMeta.secList.map((sec) => (
-                    <div className="qtt-sectile" key={sec.name}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--sp-4)' }}>
-                        <span style={{ fontWeight: 'var(--fw-700)', fontSize: 'var(--v13-t2)', color: INK }}>{sec.name}</span>
-                        <span className="num" style={{ fontSize: 'var(--v13-t2)', fontWeight: 'var(--fw-700)' }}>{fmtPctPlain(sec.weight, 1)} <span style={{ color: INK3, fontWeight: 'var(--fw-400)' }}>· {sec.n}</span></span>
-                      </div>
-                      <div className="ck-bar" style={{ marginBottom: 'var(--sp-4)' }}><span style={{ left: 0, width: `${Math.min((sec.weight / (bookMeta.secList[0]?.weight || 1)) * 100, 100)}%`, background: GOLD }} /></div>
-                      {sec.industries.map((ind) => (
-                        <div key={ind.name} style={{ padding: 'var(--sp-3) 0', borderTop: `1px solid ${HAIR}`, fontSize: 'var(--v13-t1)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--sp-6)' }}>
-                            <span style={{ color: INK2 }}>{ind.name}</span>
-                            <span className="num" style={{ color: INK2, whiteSpace: 'nowrap' }}>{fmtPctPlain(ind.weight, 1)}</span>
-                          </div>
-                          <div style={{ color: INK3, marginTop: 'var(--sp-1)' }}>
-                            {ind.syms.map((sym, i) => (
-                              <React.Fragment key={sym}>
-                                <button type="button" onClick={() => onOpenTicker && onOpenTicker(sym)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: INK3 }}>{sym}</button>
-                                {i < ind.syms.length - 1 ? ' · ' : ''}
-                              </React.Fragment>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+            <div className="ck-col ck-compside">
+              <Card title="Concentration" right={effN != null ? 'how spread out the book is' : ''}>
+                <div className="ck-stats">
+                  {[
+                    ['Names held', nHeld || '—', 'equal weight targets'],
+                    [<Term key="e" tip="How many equal-sized positions the book behaves like, given its actual weights. Twenty names at exactly 5% each would read 20.0." labelOpacity={0.9}>Effective names</Term>, effN != null ? effN.toFixed(1) : '—', 'from today’s weights'],
+                    ['Top 5 weight', weights.length ? fmtPctPlain(top5, 1) : '—', 'share of the money'],
+                    ['Top 5 risk share', top5Risk != null ? fmtPctPlain(top5Risk, 1) : '—', top5Risk != null ? 'share of the swings' : (riskNote || 'with the risk figures')],
+                    ['Largest position', largest ? fmtPctPlain(largest.w, 1) : '—', largest ? largest.s : '—'],
+                    [<Term key="x" tip={TIPS.dtl} labelOpacity={0.9}>Slowest exit</Term>, bookMeta?.worstDtl != null ? `${bookMeta.worstDtl < 0.01 ? '<0.01' : bookMeta.worstDtl.toFixed(2)} days` : '—', 'the least liquid name'],
+                  ].map(([label, value, sub], i) => (
+                    <div key={i}>
+                      <div className="ck-stat-k">{label}</div>
+                      <div className="ck-stat-v">{value}</div>
+                      <div className="ck-stat-s">{sub}</div>
                     </div>
                   ))}
                 </div>
-              ) : <div style={{ fontSize: 'var(--v13-t3)', color: INK3 }}>Loading…</div>}
-            </Card>
+              </Card>
+
+              <Card title="Market cap" right={bookMeta?.medMcap ? <span>median <Term tip={TIPS.mcap} labelOpacity={0.9}>${(bookMeta.medMcap / 1e9).toFixed(0)}B</Term></span> : ''}>
+                {bookMeta ? (
+                  <>
+                    {bookMeta.caps.map((b) => barRow(b.name, b.weight, b.n, b.weight, BLUE))}
+                    <div className="ck-note">Share of the book by company size; the count is names in the bucket.</div>
+                  </>
+                ) : empty('Loading…')}
+              </Card>
+
+              <Card title="Sector" right={bookMeta ? `${bookMeta.secList.length} sectors` : ''} fill>
+                {bookMeta ? (
+                  <>
+                    {bookMeta.secList.map((sec) => barRow(sec.name, sec.weight, sec.n, sec.weight / (bookMeta.secList[0]?.weight || 1), GOLD))}
+                    <div className="ck-note ck-pin">Share of the book by sector; the count is names in the sector. Bars are scaled to the largest sector.</div>
+                  </>
+                ) : empty('Loading…')}
+              </Card>
+            </div>
           </div>
-        </div>
+
+          <Fold title="Industry detail" right={bookMeta ? `${bookMeta.nIndustries} of 74 industries · click a ticker to open it` : ''}>
+            {bookMeta ? (
+              <div className="qtt-secgrid ck-indgrid">
+                {bookMeta.secList.map((sec) => (
+                  <div className="qtt-sectile" key={sec.name}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--sp-2)' }}>
+                      <span style={{ fontWeight: 'var(--fw-700)', fontSize: 'var(--v13-t2)', color: INK }}>{sec.name}</span>
+                      <span style={{ fontSize: 'var(--v13-t1)', color: INK3 }}>{sec.n} {sec.n === 1 ? 'name' : 'names'}</span>
+                    </div>
+                    {sec.industries.map((ind) => (
+                      <div key={ind.name} style={{ padding: 'var(--sp-3) 0', borderTop: `1px solid ${HAIR}`, fontSize: 'var(--v13-t1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--sp-6)' }}>
+                          <span style={{ color: INK2 }}>{ind.name}</span>
+                          <span className="num" style={{ color: INK2, whiteSpace: 'nowrap' }}>{fmtPctPlain(ind.weight, 1)}</span>
+                        </div>
+                        <div style={{ color: INK3, marginTop: 'var(--sp-1)' }}>
+                          {ind.syms.map((sym, i) => (
+                            <React.Fragment key={sym}>
+                              <button type="button" onClick={() => onOpenTicker && onOpenTicker(sym)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: INK3 }}>{sym}</button>
+                              {i < ind.syms.length - 1 ? ' · ' : ''}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ) : empty('Loading…')}
+          </Fold>
+        </Section>
 
         <div style={{ fontSize: 'var(--v13-t1)', color: INK3, marginTop: 'var(--lg-gap)', lineHeight: 1.6 }}>
           Scored on 12- and 6-month momentum (skipping the most recent month), trend consistency, drawdown resilience, gross profitability, cash generation and buybacks from point-in-time
