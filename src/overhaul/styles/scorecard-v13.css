@@ -74,6 +74,12 @@
 .v13.home-v12.sc-wrap.sc-pro .sc-table .c-num { width: 78px; }
 .v13.home-v12.sc-wrap.sc-pro .sc-table .c-exc { width: 108px; }
 .v13.home-v12.sc-wrap.sc-pro .sc-table .c-ctb { width: 116px; }
+/* 2026-10-21 — weight out of 100 (Decision 5) and the event-idea line under
+   a trade name (Decision 4). Same tokens as the rest of the table. */
+.v13.home-v12.sc-wrap.sc-pro .sc-table .c-wt { width: 72px; }
+.v13.home-v12.sc-wrap.sc-pro .sc-table td.sc-wt { color: var(--v13-ink-2); }
+.v13.home-v12.sc-wrap.sc-pro .sc-evline { display: block; font-weight: var(--fw-400); font-size: var(--v13-t2); line-height: 1.5; color: var(--v13-ink-2); }
+.v13.home-v12.sc-wrap.sc-pro .sc-sum tr.sc-year td { padding-top: 2px; padding-bottom: 2px; color: var(--v13-ink-2); }
 .v13.home-v12.sc-wrap.sc-pro .sc-table .c-why { width: 172px; }
 .v13.home-v12.sc-wrap.sc-pro .sc-table .c-note { width: 56px; }
 .v13.home-v12.sc-wrap.sc-pro .sc-table th.num { font-family: var(--mt-type-sans); letter-spacing: 0.09em; }

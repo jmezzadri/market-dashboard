@@ -1,0 +1,13 @@
+{
+  "_doc": "Every letter or newsletter from scripts/research/reading_list.json the Trade Idea run has read, so none is read twice (Decision 7, 2026-10-21). One entry per letter: sender, date received, subject, the link that was read (the direct PDF where the email link was a tracking redirect), the run date, and the one-line method or position it fed into the fact base. Internal working file.",
+  "letters": [
+    {
+      "sender": "pracap.com",
+      "received": "2026-10-21",
+      "subject": "Praetorian Capital Q3 2026 investor letter",
+      "link": "https://go.pracap.com/hubfs/Quarterly Letters/2026/2026 Q3 Investor Letter - Approved.pdf",
+      "read_on": "2026-10-21",
+      "fed": "exited refiners near replacement cost; ~20% in two trade-school names on an enrolment shock; front-end rates via SOFR futures and call spreads; AI economics due to rationalize"
+    }
+  ]
+}

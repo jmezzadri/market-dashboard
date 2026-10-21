@@ -1,5 +1,5 @@
 {
- "_doc": "Every outside-research post already read, so none is read twice. Internal working file: nothing here is served on the site or cited in anything published.",
+ "_doc": "Every outside-research post already read, so none is read twice. Internal working file: nothing here is served on the site or cited in anything published. From 2026-10-21 (Decision 7) this also covers LETTERS from scripts/research/reading_list.json: an entry per letter read for method, with source set to the sender; the read log itself is scripts/research/letters_read.json.",
  "source": "Macro Ops — macro-ops.com/research/ — public pages only, never a member login",
  "last_checked": "2026-10-13",
  "posts": [
@@ -62,6 +62,16 @@
    "url": "https://macro-ops.com/this-infinite-game-what-force-cannot-find/",
    "read": "public part only",
    "processed": "2026-10-02"
+  }
+ ],
+ "letters": [
+  {
+   "source": "pracap.com",
+   "published": "2026-10-21",
+   "url": "https://go.pracap.com/hubfs/Quarterly Letters/2026/2026 Q3 Investor Letter - Approved.pdf",
+   "read": "full PDF",
+   "processed": "2026-10-21",
+   "method_to_test": "exit a commodity-adjacent equity when its price reaches replacement cost (the refiner exit) — test on our refiner screen"
   }
  ]
 }

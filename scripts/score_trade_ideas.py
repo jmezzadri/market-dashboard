@@ -569,6 +569,13 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
     else:
         target_date = add_months(dt.date.fromisoformat(entry_date), horizon_months).isoformat()
 
+    # Event notes (2026-10-21, Decision 4) are marked on a different rule:
+    # the spread's intrinsic value against the premium paid, from the
+    # underlying's close, resolved at expiry. Weight and contribution are
+    # added by main() for every row.
+    if isinstance(sc.get("event"), dict):
+        return score_event(idea, base, sc, hist, legs_out, entry_date, today, review_closes)
+
     # Risk-parity size, from the year BEFORE entry, frozen here for good.
     #
     # 2026-08-18, second pass (Joe: "This is SO FUCKING WILDLY CONFUSING"):
@@ -770,11 +777,186 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
     return out
 
 
+def event_intrinsic(structure: str, strikes: list, width, close: float) -> float:
+    """Intrinsic value of the structure at `close`, per share.
+
+    call_spread: clamp(close - long strike, 0, width); put_spread the mirror;
+    a single call or put is uncapped. Shared with build_trade_idea's
+    event_payoff so the contract and the scorer cannot disagree."""
+    k_long = float(strikes[0])
+    if structure == "call_spread":
+        return max(0.0, min(float(width), close - k_long))
+    if structure == "put_spread":
+        return max(0.0, min(float(width), k_long - close))
+    if structure == "call":
+        return max(0.0, close - k_long)
+    if structure == "put":
+        return max(0.0, k_long - close)
+    raise ScoreError(f"unknown event structure {structure!r}")
+
+
+def score_event(idea: dict, base: dict, sc: dict, hist: dict, legs_out: list, entry_date: str,
+                today: str, review_closes: dict | None) -> dict:
+    """Decision 4 (2026-10-21). The scorer needs no options data: at expiry it
+    reads the underlying's closing price and computes the spread's payoff
+    from the strikes. Return = intrinsic / premium - 1, so the result runs
+    from -100% to the payoff ratio. Before expiry the position is "open —
+    resolves <date>", with the underlying's distance to the long strike.
+    There is no price stop: the premium is the stop. An early close happens
+    only on a broken critical review condition, marked at that day's intrinsic
+    value — exactly the mark path at the last close on or before the review."""
+    ev = sc["event"]
+    structure, strikes = str(ev.get("structure")), list(ev.get("strikes") or [])
+    width, premium = ev.get("width"), float(ev.get("premium") or 0)
+    if premium <= 0 or not strikes:
+        return {**base, "status": "unscoreable", "reason": "event block lacks a premium or strikes — cannot be marked"}
+    try:
+        expiry = str(ev.get("expiry"))[:10]
+        dt.date.fromisoformat(expiry)
+    except (TypeError, ValueError):
+        return {**base, "status": "unscoreable", "reason": "event block lacks a valid expiry"}
+    leg = legs_out[0]
+    series = hist[leg["series"]]
+    marks, closes = [], {}
+    for d, v in window(series, entry_date, None):
+        if d > expiry:
+            break
+        r = 100.0 * (event_intrinsic(structure, strikes, width, v) / premium - 1.0)
+        marks.append((d, round(r, 4)))
+        closes[d] = v
+    if not marks:
+        return {**base, "status": "unscoreable", "reason": "no close of the underlying since entry"}
+
+    close_date, status = None, "open"
+    rd = (review_closes or {}).get(idea.get("id"))
+    thesis_close = None
+    if rd:
+        prior = [d for d, _ in marks if d <= rd]
+        if prior and prior[-1] >= entry_date:
+            thesis_close = prior[-1]
+    if thesis_close is not None:
+        close_date, status = thesis_close, "closed_thesis"
+    elif today >= expiry:
+        close_date, status = expiry, "closed_horizon"
+    scored = [(d, m) for d, m in marks if close_date is None or d <= close_date]
+    last_date, last_mark = scored[-1]
+    mfe = max(scored, key=lambda x: x[1])
+    mae = min(scored, key=lambda x: x[1])
+    last_close = closes[last_date]
+    k_long = float(strikes[0])
+    dist_pct = 100.0 * (k_long / last_close - 1.0) if last_close else None
+    legs_report = [{**leg, "return_pct": round(100.0 * (last_close / leg["entry_value"] - 1.0), 4)}]
+    label = f"{ev.get('underlying') or leg['short_label']} {structure.replace('_', ' ')}"
+    out = {
+        **base,
+        "status": status,
+        "entry_date": entry_date,
+        "target_date": expiry,
+        "horizon_months": sc.get("horizon_months"),
+        "horizon_weeks": None,
+        "horizon_label": f"to expiry {expiry}",
+        "unit": "%",
+        "legs": legs_report,
+        "buy_pct": legs_report[0]["return_pct"],
+        "sell_pct": None,
+        "trade_label": ("Long " if structure.startswith("call") else "Long ") + label,
+        "position_pct": last_mark,
+        "risk_sized_pct": last_mark,
+        "sizing": {"method": "event", "multiple": 1.0, "spread_vol_pct": None, "target_vol_pct": None,
+                   "observations": None, "basis": "an event note is sized by premium at risk (sizing.weight), not by volatility"},
+        "single_leg_note": None,
+        "benchmark": None,
+        "mark": last_mark,
+        "mark_date": last_date,
+        "sessions_held": len(scored),
+        "max_favourable": {"value": mfe[1], "date": mfe[0]},
+        "max_adverse": {"value": mae[1], "date": mae[0]},
+        "invalidation": None,
+        "result": last_mark if status != "open" else None,
+        "thesis_review_close": ({"review_date": rd, "closed_on": close_date} if status == "closed_thesis" else None),
+        "close_date": last_date if status != "open" else None,
+        "close_reason": CLOSE_REASONS.get(status),
+        "days_held": (dt.date.fromisoformat(last_date) - dt.date.fromisoformat(entry_date)).days,
+        "path": [[d, m] for d, m in scored],
+        "event": {
+            "name": (idea.get("event") or {}).get("name"),
+            "structure": structure, "underlying": ev.get("underlying"), "strikes": strikes,
+            "width": width, "premium": premium, "premium_pct_of_width": ev.get("premium_pct_of_width"),
+            "expiry": expiry, "resolves_by": ev.get("resolves_by"),
+            "payoff_ratio": ev.get("payoff_ratio"), "breakeven_odds_pct": ev.get("breakeven_odds_pct"),
+            "edge_odds_pct": ev.get("edge_odds_pct"), "implied_odds_pct": ev.get("implied_odds_pct"),
+            "max_loss_pct": -100.0,
+            "underlying_close": last_close, "underlying_as_of": last_date,
+            "distance_to_long_strike_pct": None if dist_pct is None else round(dist_pct, 2),
+            "intrinsic_per_share": round(event_intrinsic(structure, strikes, width, last_close), 4),
+            "state": (f"open — resolves {ev.get('resolves_by') or expiry}" if status == "open"
+                      else "settled at expiry from the underlying's close" if status == "closed_horizon"
+                      else "closed early at intrinsic value on the weekly review"),
+        },
+    }
+    # The same S&P yardstick as every other row, over the same days.
+    bm = BENCHMARK
+    if isinstance(bm, dict) and bm.get("series") in hist:
+        bseries = hist[bm["series"]]
+        _, bv = first_on_or_after(bseries, entry_date)
+        b_obs = [(d, v) for d, v in bseries if entry_date <= d <= last_date]
+        if bv and b_obs:
+            b_date, b_val = b_obs[-1]
+            lag = (dt.date.fromisoformat(last_date) - dt.date.fromisoformat(b_date)).days
+            if lag <= BENCHMARK_MAX_LAG_DAYS:
+                b_move = 100.0 * (b_val / bv - 1.0)
+                out["benchmark"] = {"series": bm["series"], "label": bm.get("label") or bm["series"],
+                                    "measure": "pct_change", "entry_value": bv, "as_of": b_date,
+                                    "move": round(b_move, 4), "difference": round(last_mark - b_move, 4),
+                                    "note": "What the obvious alternative did over exactly the same days."}
+    return out
+
+
 CLOSE_REASONS = {
     "closed_horizon": "Planned close date reached",
     "closed_invalidated": "Exit level reached",
     "closed_thesis": "Weekly review",
 }
+
+# Decision 5 (2026-10-21): the book is a notional 100; every call's weight
+# comes from its note's sizing.weight, written at publication. Notes older
+# than the weight field were backfilled to the standard 10 by the migration
+# (see scripts/migrations/backfill_trade_idea_weights.py); a note still without
+# one is counted at 10 and says so.
+STANDARD_WEIGHT = 10.0
+BOOK_BASE = 100.0
+
+
+def note_weight(idea: dict) -> tuple[float, bool]:
+    """(weight out of 100, stated?) for a note."""
+    sz = idea.get("sizing") if isinstance(idea, dict) else None
+    if isinstance(sz, dict):
+        try:
+            w = float(sz.get("weight"))
+            if w > 0:
+                # A weight the migration assigned (backfilled_on set) was not
+                # stated by the note; the Scorecard marks it as such.
+                return w, not bool(sz.get("backfilled_on"))
+        except (TypeError, ValueError):
+            pass
+    return STANDARD_WEIGHT, False
+
+
+def score_row(idea: dict, hist: dict, today: str, review_closes: dict | None = None) -> dict:
+    """score_one plus the Decision-5 fields every row carries: the weight the
+    note stated (out of 100), whether it was stated or backfilled, and the
+    call's contribution to the book = mark x weight / 100, in points."""
+    r = score_one(idea, hist, today, review_closes)
+    w, stated = note_weight(idea)
+    r["weight"] = w
+    r["weight_stated"] = stated
+    bf = ((idea.get("sizing") or {}) if isinstance(idea.get("sizing"), dict) else {}).get("backfilled_on")
+    r["weight_note"] = (None if stated else
+                        f"weight assigned on {bf}, when the book gained its capital base; the note did not state one"
+                        if bf else f"no weight stated; counted at the standard {STANDARD_WEIGHT:g} of 100")
+    mark = r.get("mark")
+    r["contribution_pct"] = round(w / BOOK_BASE * mark, 4) if isinstance(mark, (int, float)) else None
+    return r
 MIN_DAYS_TO_ANNUALIZE = 28
 
 
@@ -788,32 +970,33 @@ def _last_on_or_before(series, iso):
 
 
 def portfolio(rows: list[dict], hist: dict) -> dict | None:
-    """One portfolio that follows every marked call — Joe, 2026-10-09: "I want
+    """One book that follows every marked call — Joe, 2026-10-09: "I want
     to know performance of our calls overall ... whats the performance of
     closed trades (i.e., realized gain/loss) and ... open trades (unrealized)
     ... we need to somehow show annualized returns ... I dont even know what
     the total return is."
 
-    The method, chosen with the Senior Quant: each session the portfolio is
-    divided equally among the calls open that session, and earns the average
-    of their one-session returns. A call is held from the session after its
-    entry close through its close date. Days with no call open earn nothing.
-    The benchmark is the S&P 500 price index over the same calendar window.
+    2026-10-21 (Decision 5, LESSONS 6.26): the book is a NOTIONAL 100. Each
+    call holds the weight its note stated at publication (standard 10, a
+    fewer-than-five-cases fallback 5, an event idea 1–2 of premium); the rest
+    is cash, which earns nothing. A call is held from the session after its
+    entry close through its close date. The book's return, in points of the
+    100, is the sum of each call's contribution = weight x its own return /
+    100 — exactly, so realized + unrealized = total by construction, and the
+    figure on a row IS the arithmetic the reader can check. The benchmark is
+    the S&P 500 held at the same total weight the book had invested each
+    session (cash in both).
 
     * Everything is cut at ONE as-of date — the benchmark's last close — so a
       commodity that has printed for a session the index has not finished is
       not ahead of the yardstick (LESSONS 6.24). Each row gets a `book` block
       on that same date; the page shows those figures, not the row's own mark.
     * A call with no print on a session carries its last value (earns zero).
-    * Contribution = the part of the portfolio's total return that came from
-      one call: the sum over its sessions of (portfolio value before the
-      session x its return that session / calls open). Contributions add up
-      to the total EXACTLY, so realized + unrealized = total by construction.
     * Annualized is compounded from calendar days and withheld below
       MIN_DAYS_TO_ANNUALIZE, where it is noise.
 
     Mutates each marked row (adds `book`) and returns
-    {"summary": {...}, "line": [[date, portfolio %, benchmark %, calls open]]},
+    {"summary": {...}, "line": [[date, book %, benchmark %, calls open]]},
     or None when nothing can be computed. The page renders this verbatim.
     """
     bseries = hist.get(BENCHMARK["series"]) if isinstance(BENCHMARK, dict) else None
@@ -829,10 +1012,12 @@ def portfolio(rows: list[dict], hist: dict) -> dict | None:
     as_of = days[-1]
     bmap = dict(bseries)
     paths = {id(r): dict((d, float(m)) for d, m in r["path"]) for r in marked}
+    weights = {id(r): float(r.get("weight") or STANDARD_WEIGHT) for r in marked}
     prev = {id(r): 0.0 for r in marked}
     contrib = {id(r): 0.0 for r in marked}
-    value, line, n_open_seen = 1.0, [[days[0], 0.0, 0.0, 0]], []
-    for d in days[1:]:
+    book_pts, bench_pts = 0.0, 0.0
+    line, n_open_seen, invested_seen = [[days[0], 0.0, 0.0, 0]], [], []
+    for i, d in enumerate(days[1:], start=1):
         active = []
         for r in marked:
             if d <= r["entry_date"]:
@@ -841,46 +1026,60 @@ def portfolio(rows: list[dict], hist: dict) -> dict | None:
             if closed_on and d > closed_on:
                 continue
             cur = paths[id(r)].get(d, prev[id(r)])
-            step = (1.0 + cur / 100.0) / (1.0 + prev[id(r)] / 100.0) - 1.0
+            step = weights[id(r)] / BOOK_BASE * (cur - prev[id(r)])     # points of the book
             prev[id(r)] = cur
-            active.append((r, step))
+            contrib[id(r)] += step
+            book_pts += step
+            active.append(r)
+        invested = sum(weights[id(r)] for r in active)
+        b0, b1 = bmap[days[i - 1]], bmap[d]
+        if b0 and active:
+            bench_pts += invested / BOOK_BASE * 100.0 * (b1 / b0 - 1.0)
         if active:
-            for r, step in active:
-                contrib[id(r)] += value * step / len(active)
-            value *= 1.0 + sum(step for _, step in active) / len(active)
             n_open_seen.append(len(active))
-        line.append([d, round((value - 1.0) * 100.0, 4),
-                     round((bmap[d] / bmap[days[0]] - 1.0) * 100.0, 4), len(active)])
+            invested_seen.append(invested)
+        line.append([d, round(book_pts, 4), round(bench_pts, 4), len(active)])
 
-    # Per-row figures on the portfolio's as-of date.
+    # Per-row figures on the book's as-of date.
     for r in marked:
         end = min(r.get("close_date") or as_of, as_of)
         ret = prev[id(r)] if end >= r["entry_date"] else 0.0
         _, b0 = first_on_or_after(bseries, r["entry_date"])
         b1 = _last_on_or_before(bseries, end)
         bench = (100.0 * (b1[1] / b0 - 1.0)) if (b0 and b1 and b1[0] >= r["entry_date"]) else None
+        w = weights[id(r)]
         r["book"] = {
             "as_of": end,
+            "weight": w,
             "return_pct": round(ret, 4),
             "benchmark_pct": None if bench is None else round(bench, 4),
             "excess_pct": None if bench is None else round(ret - bench, 4),
-            "contribution_pct": round(contrib[id(r)] * 100.0, 4),
+            # = weight x return / 100, exactly; the daily sum above is the same number.
+            "contribution_pct": round(w / BOOK_BASE * ret, 4),
             "days_held": max(0, (dt.date.fromisoformat(end) - dt.date.fromisoformat(r["entry_date"])).days),
         }
 
-    total = (value - 1.0) * 100.0
-    bench_total = (bmap[as_of] / bmap[days[0]] - 1.0) * 100.0
+    total = book_pts
+    bench_total = bench_pts
     cal_days = (dt.date.fromisoformat(as_of) - dt.date.fromisoformat(days[0])).days
     open_rows = [r for r in marked if r["status"] == "open"]
     closed_rows = [r for r in marked if r["status"] != "open"]
-    realized = sum(contrib[id(r)] for r in closed_rows) * 100.0
-    unrealized = sum(contrib[id(r)] for r in open_rows) * 100.0
+    realized = sum(r["book"]["contribution_pct"] for r in closed_rows)
+    unrealized = sum(r["book"]["contribution_pct"] for r in open_rows)
+    by_year: dict = {}
+    for r in closed_rows:
+        y = str(r.get("close_date") or r.get("mark_date") or "")[:4]
+        by_year[y] = round(by_year.get(y, 0.0) + r["book"]["contribution_pct"], 4)
+    invested_now = sum(weights[id(r)] for r in open_rows)
     summary = {
         "inception": days[0],
         "as_of": as_of,
         "calendar_days": cal_days,
         "history_weeks": int(round(cal_days / 7.0)),
         "benchmark_label": BENCHMARK.get("label") or "S&P 500",
+        "book_base": BOOK_BASE,
+        "invested_now": round(invested_now, 2),
+        "cash_now": round(BOOK_BASE - invested_now, 2),
         "total_return_pct": round(total, 4),
         "benchmark_total_pct": round(bench_total, 4),
         "excess_total_pct": round(total - bench_total, 4),
@@ -890,15 +1089,19 @@ def portfolio(rows: list[dict], hist: dict) -> dict | None:
         "annualized_withheld_reason": None,
         "realized_contribution_pct": round(realized, 4),
         "unrealized_contribution_pct": round(unrealized, 4),
+        "realized_by_year": dict(sorted(by_year.items())),
         "positions_open": len(open_rows),
         "positions_closed": len(closed_rows),
         "min_positions_held": min(n_open_seen) if n_open_seen else 0,
         "max_positions_held": max(n_open_seen) if n_open_seen else 0,
-        "basis": ("A model portfolio divided equally each day among the calls open that day. Price returns "
-                  "only; not the returns of any account."),
+        "min_invested": round(min(invested_seen), 2) if invested_seen else 0,
+        "max_invested": round(max(invested_seen), 2) if invested_seen else 0,
+        "basis": ("A model book of 100. Each call is held at the weight its note stated when it was published; "
+                  "the rest is cash and earns nothing. A call's contribution is its weight times its own return. "
+                  "Price returns only; not the returns of any account."),
     }
     if cal_days >= MIN_DAYS_TO_ANNUALIZE:
-        ann = ((value) ** (365.0 / cal_days) - 1.0) * 100.0
+        ann = ((1.0 + total / 100.0) ** (365.0 / cal_days) - 1.0) * 100.0
         b_ann = ((1.0 + bench_total / 100.0) ** (365.0 / cal_days) - 1.0) * 100.0
         summary["annualized_pct"] = round(ann, 4)
         summary["benchmark_annualized_pct"] = round(b_ann, 4)
@@ -1017,7 +1220,7 @@ def main(argv=None) -> int:
     today = dt.date.today().isoformat()
     review_closes = load_review_closes(args.reviews)
 
-    rows = [score_one(i, hist, today, review_closes) for i in ideas]
+    rows = [score_row(i, hist, today, review_closes) for i in ideas]
     rows.sort(key=lambda r: str(r.get("date")), reverse=True)
     port = portfolio(rows, hist)          # adds each marked row's `book` block
     for r in rows:
@@ -1037,7 +1240,12 @@ def main(argv=None) -> int:
             "wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason "
             "for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones "
             "that did not work, and no win rate is shown until there are enough closed calls for one to mean "
-            "anything. Nothing on this page is typed in by hand."),
+            "anything. The book is a notional 100: each call is held at the weight its note stated when it was "
+            "published (10 for a standard idea, 5 for one published with fewer than five matching past cases, 1 to 2 "
+            "of premium for an event idea), the rest is cash, and a call's contribution is its weight times its own "
+            "return. An event idea — a defined-risk options spread on a named event — is marked at expiry from the "
+            "underlying's closing price against its strikes; the premium paid is the most it can lose, and before "
+            "expiry it is shown as open. Nothing on this page is typed in by hand."),
         "disclaimer": ("MacroTilt research is published for information only. It is not investment advice and it "
                        "is not a recommendation to buy or sell any security. These marks are the movement of the "
                        "named reference series; they are not the returns of any account and include no costs, "

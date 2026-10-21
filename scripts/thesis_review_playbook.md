@@ -122,6 +122,30 @@ been contradicted, with the dated source.
   profit; an intact thesis is held even if it is under water. That asymmetry
   is the point of the review.
 
+**4b. Event ideas (2026-10-21, Trade Idea Contract v2 Decision 4).** An
+event note — a defined-risk options spread on one named event (`kind: event`
+in the note; the Scorecard row carries an `event` block) — is reviewed on
+the same Monday cycle with two differences:
+
+- The driver checks are the note's `review_conditions[]` about the EVENT:
+  is it still live, has it been decided, has the market's price for it
+  moved. There is no price stop to measure; the premium is the stop. The
+  script prints, instead of a finishing range, where the underlying sits
+  against the long strike, what the spread is worth today, the sessions to
+  expiry, and the odds the note underwrote against the market's.
+- `broken` means the event has been DECIDED against the trade or the thesis
+  cannot pay before expiry (the deal is formally off; the catalyst has
+  passed with nothing happening; the critical condition has failed). Action
+  `close`: the scorer closes the call at the spread's value at Friday's close
+  (intrinsic value, which may be zero). The event HAPPENING is not broken —
+  it is `intact` and the spread runs to expiry, where the scorer settles it.
+  Do not close an event note early because the odds moved against it; the
+  note bought a capped loss precisely so that it can wait.
+- `called_for_pct` is the note's `expected_return.pct` — the full payoff in
+  per cent of premium (a 3.5-to-1 spread calls for +350%); `expected_return_now_pct`
+  is our expected finish from here in the same terms (our odds now times the
+  payoff, minus the rest).
+
 **5. The book.** `book_now`: one paragraph — what the whole book is
 positioned for after these verdicts, what carries the most and least
 conviction, what a reader holding the calls does today. This goes in the Monday
