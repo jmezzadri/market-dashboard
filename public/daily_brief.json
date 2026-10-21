@@ -271,12 +271,6 @@
       "group": "Commodities & FX",
       "rows": [
         {
-          "label": "WTI",
-          "level": "$98.23",
-          "chg": "-5.24%",
-          "dir": "down"
-        },
-        {
           "label": "Brent",
           "level": "$109.27",
           "chg": "-0.26%",
