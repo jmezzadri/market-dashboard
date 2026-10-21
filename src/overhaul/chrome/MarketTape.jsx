@@ -108,7 +108,7 @@ const LIVE_SYMS = TAPE_ITEMS.filter((r) => r.live).map((r) => r.live);
    morning brief applies (LESSONS 4.37). An absent tile is correct; a wrong
    one lies. */
 const OIL_PAIR = ['cmdty_oil', 'cmdty_brent'];
-const OIL_PAIR_MAX_GAP_PCT = 5;
+const OIL_PAIR_MAX_GAP_PCT = 3; // 2026-10-21: a 4.98-point WTI roll gap slipped under 5
 
 function fmt(v, dec) {
   if (v == null || !Number.isFinite(v)) return '—';
