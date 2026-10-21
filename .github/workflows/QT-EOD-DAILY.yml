@@ -87,6 +87,30 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python -m paper_portfolio.qt.eod
 
+      # 2026-10-21 (Paper cockpit): the page's risk figures — 10-day VaR, risk
+      # share per name, the market/style/specific split, shock scenarios, the
+      # exception alerts — are computed HERE, once, from the close just
+      # recorded, and stored in qt_risk_daily. The page reads one row. The
+      # first cockpit computed them in the browser and timed out the morning
+      # after the nightly ingest drained the disk-IO budget (LESSONS 9.28).
+      - name: Compute the risk figures for tonight's close
+        if: steps.gate.outputs.hold != 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if python -m paper_portfolio.qt.risk; then
+            AS_OF=$(python3 -c "
+          import os, json, urllib.request
+          req = urllib.request.Request(os.environ['SUPABASE_URL'] + '/rest/v1/qt_risk_daily?select=d&order=d.desc&limit=1',
+              headers={'apikey': os.environ['SUPABASE_SERVICE_ROLE_KEY'], 'Authorization': 'Bearer ' + os.environ['SUPABASE_SERVICE_ROLE_KEY']})
+          rows = json.load(urllib.request.urlopen(req)); print(rows[0]['d'] if rows else '-')
+          ")
+            python3 scripts/upsert_pipeline_health.py qt-risk-daily "$AS_OF" green
+          else
+            python3 scripts/upsert_pipeline_health.py qt-risk-daily - red "paper_portfolio.qt.risk failed — the Paper page's risk tiles show the previous close"
+          fi
+
       # Honest-stamp (LESSONS, 2026-06-03/06-11): a producer that writes a fresh
       # row must stamp its OWN pipeline_health row or the freshness chip lies.
       # data_as_of is read back from qt_nav_daily itself, never the runner clock.

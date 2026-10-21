@@ -127,6 +127,27 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python -m paper_portfolio.qt.rebalance --as-of "${{ steps.gate.outputs.book_date }}"
 
+      # 2026-10-20 (Paper cockpit): the style-factor z-scores the page shows
+      # beside each name are rebuilt from the same month's data the moment the
+      # book is written. One SQL function, idempotent; its own health row.
+      - name: Build style-factor exposures
+        if: steps.gate.outputs.score == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BOOK_DATE: ${{ steps.gate.outputs.book_date }}
+        run: |
+          n=$(curl -sf -X POST "$SUPABASE_URL/rest/v1/rpc/qt_factor_exposure_build" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" -d "{\"as_of\":\"$BOOK_DATE\"}") || n=""
+          echo "factor exposure rows written for $BOOK_DATE: ${n:-none}"
+          if [ -n "$n" ] && [ "$n" != "0" ]; then
+            python3 scripts/upsert_pipeline_health.py qt-factor-exposure "$BOOK_DATE" green
+          else
+            python3 scripts/upsert_pipeline_health.py qt-factor-exposure - red \
+              "qt_factor_exposure_build wrote no rows for the $BOOK_DATE book - the Paper page's factor tile is stale"
+          fi
+
       # Honest-stamp (LESSONS, 2026-06-03/06-11): stamp our own pipeline_health
       # row after rows are verifiably in the table; data_as_of read back from
       # qt_target_book itself, never the runner clock.

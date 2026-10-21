@@ -543,13 +543,43 @@ export default function MethodologyPage() {
               The rule that ran from September 1 to 10 was the cross-asset engine&rsquo;s
               overlay lifted across untested; that was a mistake, and it is recorded as one.
             </p>
+            <p className="me-body-p">
+              <b>The risk cockpit &mdash; what the Paper Portfolio page measures, and how.</b> Every
+              risk figure on the page is computed <b>once after each close, at that close&rsquo;s
+              weights, from one year of daily closes</b> in the site&rsquo;s own price feed, and stored;
+              the page shows the stored figure with its date. Every formula is
+              re-derived and checked in the repository, and no figure prints until a full year of
+              prices exists for the name. <b>10-day Value at Risk, 99%:</b> the 1% quantile of the
+              book&rsquo;s own daily return distribution (historical simulation, no bell-curve
+              assumption), scaled by &radic;10 to a ten-day horizon &mdash; the standard market-risk
+              convention; a normal-distribution figure is shown beside it so a reader can see how
+              much fatter the real tail is. <b>Risk share per name:</b> each holding&rsquo;s marginal
+              contribution to book volatility times its weight, divided by book volatility &mdash;
+              shares sum to 100%, and a name carrying over twice its weight is flagged.{' '}
+              <b>Variance decomposition:</b> the book&rsquo;s daily returns are regressed on the
+              S&amp;P 500 fund (market share = &beta;&sup2;&middot;market variance &divide; book
+              variance), then the residual on five style funds minus the market (momentum, quality,
+              buybacks, small-cap, value); what those explain is the style share, the rest is
+              stock-specific. <b>Active style loadings:</b> for each name, momentum, quality,
+              buybacks, size and value are turned into z-scores against the <b>500 largest US
+              common stocks</b> (the site holds no official S&amp;P 500 list), winsorised at the
+              2.5th/97.5th percentile; the page shows the book&rsquo;s weighted z minus the
+              baseline&rsquo;s cap-weighted z, rebuilt at each monthly scoring from the same data as
+              the score. <b>Shock scenarios:</b> the S&amp;P 500 fund&rsquo;s actual peak-to-trough fall
+              in 2000&ndash;02, 2008&ndash;09, 2020 and 2022, read from the price feed and multiplied by
+              the book&rsquo;s one-year beta; and an instant VIX-to-40 shock sized by the fund&rsquo;s
+              measured elasticity to the VIX since 2006. These are projections, labelled as such
+              &mdash; they assume the beta holds. <b>Alerts</b> fire on exactly the rules printed
+              under the alert log, and nothing else.
+            </p>
             <div className="me-formula" data-mono="code">
               eligible = $100M+ daily dollar volume · price ≥ $5 · volatility ≤ 70% · operating company with SEC filings<br />
               score    = 0.45·mom12 + 0.30·mom6 + 0.15·trend + 0.10·drawdown + 0.15·gross_profit/assets + 0.10·cash_flow/assets + 0.20·buyback (all cross-sectional ranks)<br />
               insider  = + up to 0.20 bonus · officers/directors only · open-market only, no 10b5-1 · ranked by purchase ÷ existing stake · buys &gt; $250k half-weighted · never a penalty<br />
               book     = top 20 · equal weight · monthly rebalance at the open · hold until out of the top 25%<br />
               brake    = daily, after the close · MOVE Index rank vs its last 5 years · &gt; 0.95 two days running → all to cash · then &lt; 0.80 → all back in<br />
-              risk     = no leverage · ~5% per name · the monthly exit band · the brake — no per-stock stops
+              risk     = no leverage · ~5% per name · the monthly exit band · the brake — no per-stock stops<br />
+              cockpit  = 1y daily closes at today's weights · VaR₁ = −quantile₀.₀₁(book daily return), VaR₁₀ = VaR₁·√10 · risk share = w·(Σw)/σ² · market = β²σ²ₘ/σ², style = residual explained by (MTUM, QUAL, PKW, IWM, VLUE) − SPY, specific = the rest · z vs 500 largest US stocks, winsorised 2.5/97.5 · shocks = β × SPY peak-to-trough
             </div>
           </div>
         </article>

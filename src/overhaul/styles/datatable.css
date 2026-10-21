@@ -42,14 +42,19 @@
   padding: var(--sp-9) var(--sp-10); text-align: left; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
-.dt-table th { position: relative; font-weight: var(--fw-600); color: var(--mut, var(--c-6b6558)); border-bottom: 1px solid var(--dt-hair); user-select: none; }
+.dt-table th { position: relative; font-weight: var(--fw-600); color: var(--mut, var(--c-6b6558)); border-bottom: 1px solid var(--dt-hair); user-select: none; overflow: visible; text-overflow: clip; }
 .dt-table th.r, .dt-table td.r { text-align: right; }
 .dt-table th.sorted { color: var(--ink, var(--c-111927)); }
-.dt-th { cursor: pointer; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+/* 2026-10-20: th and .dt-th were overflow:hidden, which clipped the instant
+   data-tip tooltip drawn by the ::after below — every header tooltip on this
+   control had been invisible since 2026-08-11. Headers are short; they do not
+   need an ellipsis. */
+.dt-th { cursor: pointer; display: inline-block; max-width: 100%; white-space: nowrap; vertical-align: bottom; }
 .dt-sort { margin-left: var(--sp-4); font-size: var(--v13-t2); }
 
 /* resize grip — invisible until hovered, 8px target either side of the edge */
 .dt-grip { position: absolute; top: 0; right: -4px; width: 9px; height: 100%; cursor: col-resize; }
+.dt-table th:last-child .dt-grip { right: 0; width: 5px; }
 .dt-grip:hover { background: linear-gradient(to right, transparent 3px, var(--dt-hair) 3px, var(--dt-hair) 5px, transparent 5px); }
 
 .dt-table tbody tr { border-bottom: 1px solid color-mix(in srgb, var(--dt-hair) 55%, transparent); }
@@ -76,7 +81,7 @@
   content: attr(data-tip); position: absolute; left: 0; top: calc(100% + 7px); z-index: 60;
   width: max-content; max-width: 300px; white-space: normal; text-align: left;
   background: var(--ink, var(--c-111927)); color: var(--bg, var(--c-fbf8f1));
-  font-size: var(--v13-t2); font-weight: var(--fw-400); line-height: 1.45; letter-spacing: 0;
+  font-size: var(--v13-t2); font-weight: var(--fw-400); line-height: 1.45; letter-spacing: 0; text-transform: none;
   padding: var(--sp-8) var(--sp-10); border-radius: var(--r-10); box-shadow: var(--sh-13);
 }
 .dt-table th:nth-last-child(-n+3) .dt-th[data-tip]:hover::after { left: auto; right: 0; }
@@ -84,4 +89,19 @@
 @media (max-width: 640px) {
   .dt-table { font-size: var(--v13-t3); }
   .dt-table th, .dt-table td { padding: var(--sp-8); }
+}
+
+/* Phone (2026-10-20): the site-wide rule in mobile-v12.css turns every
+   table's head and body into separate scrolling boxes, which breaks this
+   control's colgroup alignment (the Paper cockpit's ledger rendered its header
+   over the wrong columns). The control already scrolls inside .dt-scroll, so
+   on a phone it stays ONE table and scrolls there. */
+@media (max-width: 780px) {
+  .mt-overhaul .dt-table { display: table; width: max-content; min-width: 100%; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  .mt-overhaul .dt-table thead { display: table-header-group; width: auto; min-width: 0; }
+  .mt-overhaul .dt-table tbody { display: table-row-group; width: auto; min-width: 0; }
+  .mt-overhaul .dt-table tfoot { display: table-footer-group; }
+  /* cells stop clipping so the phone smoke test can see they sit inside the
+     .dt-scroll scroller (an overflow:hidden box reads as 'cut off' to it) */
+  .mt-overhaul .dt-table th, .mt-overhaul .dt-table td { overflow: visible; text-overflow: clip; }
 }

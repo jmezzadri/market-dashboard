@@ -455,13 +455,14 @@ html, body, #root { background: var(--lg-ground); }
   .v13.home-v12.home-cockpit .engine-card .es-link { flex: 0 0 auto; }
 }
 @media (max-width: 640px) {
-  /* the Paper command band: six stat columns were overlapping at 390px */
-  .paper-v12 .qtt-card > div:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: var(--sp-18) var(--sp-14) !important; }
-  .paper-v12 .qtt-card { padding: var(--sp-20) var(--sp-18) !important; }
+  /* the Paper ribbon (2026-10-20: replaces the command band) stacks its four
+     figures two by two at phone width; the cards keep the cockpit's own
+     padding. */
+  .paper-v12 .ck-ribbon { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: var(--sp-12) var(--sp-14) !important; }
 }
 .home-v12.methodology-v12 .me-section { grid-template-columns: minmax(0, 1fr); }
 .home-v12.methodology-v12 .me-num { font-size: var(--v13-t2); letter-spacing: 0.12em; }
-@media (max-width: 640px) { .paper-v12 .qtt-card .num { font-size: var(--v13-t5) !important; } }
+@media (max-width: 640px) { .paper-v12 .ck-ribbon .ck-hero { font-size: var(--v13-t5) !important; } }
 .v13.home-v12.home-cockpit .brief-card .ni .hl b { font-weight: var(--fw-600); }
 
 /* ── UAT pass 2026-10-01: full-size review of every page after PR 2 ───
