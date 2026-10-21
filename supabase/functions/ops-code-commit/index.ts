@@ -78,6 +78,12 @@ const DISPATCHABLE = new Set([
   // sweep's only browser is this workflow's log. Read-only against the site;
   // writes nothing but a bug_reports row on failure.
   "RENDERED-DOM-SMOKE.yml",
+  // 2026-10-21 (health sweep, bug #1274): the market tape's own producer.
+  // Nikkei and DAX sat a session behind two pre-opens running; the fix could
+  // only be verified by the next scheduled run, hours away, and the stale
+  // tiles could only be healed by waiting for it. Read-then-write-a-data-file
+  // job, commits only if the file changed; no trading, no deploy, no spend.
+  "MARKET-INDICATORS-EOD.yml",
   // The QT-* entries that stood here were removed on 2026-08-28: Quality Trend
   // was retired on 2026-08-26 and QT-EOD-DAILY / QT-FUNDAMENTALS-REFRESH /
   // QT-REBALANCE were deleted with it. A dispatchable name with no workflow

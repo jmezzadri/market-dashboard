@@ -190,11 +190,52 @@ def fetch(ticker):
                 raise RuntimeError("no completed bars in the vendor payload")
             if attempt:
                 print(f"  retry {attempt} succeeded for {ticker}")
-            return bars
+            # 2026-10-21 (bug #1274, second morning in a row): the completed-
+            # session cutoff is the EXCHANGE's, not New York's. See index_cutoff.
+            return bars, index_cutoff(res[0])
         except Exception as e:          # noqa: BLE001 — every failure is retried the same way
             last_err = e
             print(f"  attempt {attempt + 1} failed for {ticker}: {e}")
     raise RuntimeError(f"gave up after 4 attempts: {last_err}")
+
+
+# A finished session is only "complete" in the eyes of the clock of the
+# exchange that ran it. Grace after the published end of the regular session,
+# because an index's final print lands a few minutes after the bell (Nikkei
+# 225: session ends 15:30 JST, Yahoo stamps the final value 15:45).
+INDEX_CLOSE_GRACE_MIN = 20
+
+
+def index_cutoff(q, now_ts=None):
+    """For an equity INDEX: the newest exchange-local date whose regular
+    session has ended (plus grace), as ISO; None for anything else so the
+    caller falls back to the futures/FX settlement clock.
+
+    2026-10-21 (bug #1274): the completed-session guard in run() used ONE
+    cutoff for every series — last_settled_date(), the 17:05 ET futures
+    settlement. Tokyo's session ends 06:30 UTC, Frankfurt's 15:30 UTC; the
+    morning pass (~13-14 UTC after GitHub's delay) had Tuesday's Nikkei close
+    sitting in the vendor payload, complete for seven hours, and dropped it as
+    "not yet settled" because it was still Tuesday morning in New York. The
+    evening run — the only remaining chance — reads the vendor in a window
+    where the finished overseas session is not served (see daily_bars), so the
+    tile sat a session behind every single pre-open. A window measured on the
+    wrong market's clock is not a completed-session guard."""
+    import datetime as _dtm
+    from zoneinfo import ZoneInfo as _zi
+    meta = q.get("meta") or {}
+    if meta.get("instrumentType") != "INDEX":
+        return None
+    reg = ((meta.get("currentTradingPeriod") or {}).get("regular") or {})
+    if not reg.get("end") or not meta.get("exchangeTimezoneName"):
+        return None
+    tz = _zi(meta["exchangeTimezoneName"])
+    now_local = _dtm.datetime.fromtimestamp(now_ts if now_ts is not None else _dtm.datetime.now().timestamp(), tz)
+    end_local = _dtm.datetime.fromtimestamp(int(reg["end"]), tz)
+    end_today = now_local.replace(hour=end_local.hour, minute=end_local.minute, second=0, microsecond=0)
+    done = now_local >= end_today + _dtm.timedelta(minutes=INDEX_CLOSE_GRACE_MIN)
+    day = now_local.date() if done else now_local.date() - _dtm.timedelta(days=1)
+    return day.strftime("%Y-%m-%d")
 
 
 def daily_bars(q, now_ts=None):
@@ -254,6 +295,35 @@ def daily_bars(q, now_ts=None):
                 print(f"  closed-index session kept: {q['meta'].get('symbol', '?')} {d} = {by_date[d]}")
             continue
         by_date[local.strftime("%Y-%m-%d")] = round(float(c), 4)
+    # 2026-10-21 (bug #1274, second morning): the 2026-10-14 branch above never
+    # once fired in an evening run — every evening log from Oct 13 to Oct 20
+    # shows Nikkei and DAX one session behind with no "kept" line, while the
+    # same session was in the payload as an ordinary bar by the next morning
+    # pass. So in the evening window the finished session is not served as a
+    # bar at all (absent, or present with a null close that the loop above
+    # skips). Yahoo's meta still carries that session's close as
+    # regularMarketPrice stamped regularMarketTime. For an INDEX whose regular
+    # session has ENDED, that IS the official close: use it, say so, and let a
+    # later real bar for the date overwrite it on the next merge.
+    sym = q["meta"].get("symbol", "?")
+    if q["meta"].get("instrumentType") == "INDEX" and live_ts is not None:
+        live_day = _dtm.datetime.fromtimestamp(live_ts, tz)
+        d = live_day.strftime("%Y-%m-%d")
+        rmp = q["meta"].get("regularMarketPrice")
+        if closed_index and d not in by_date and rmp is not None:
+            by_date[d] = round(float(rmp), 4)
+            print(f"  closed-index session filled from regularMarketPrice: {sym} {d} = {by_date[d]}")
+        # One diagnostic line per index per run, so the next reader of the log
+        # sees the vendor's shape instead of guessing it (LESSONS: never
+        # theorise before reading what failed).
+        raw = list(zip(q["timestamp"], q["indicators"]["quote"][0]["close"]))[-2:]
+        tail = ", ".join(f"{_dtm.datetime.fromtimestamp(t, tz).strftime('%m-%d %H:%M')}={c}" for t, c in raw)
+        reg_txt = "?"
+        if reg.get("start") and reg.get("end"):
+            reg_txt = (f"{_dtm.datetime.fromtimestamp(int(reg['start']), tz).strftime('%m-%d %H:%M')}"
+                       f"->{_dtm.datetime.fromtimestamp(int(reg['end']), tz).strftime('%H:%M')}")
+        print(f"  index-diag {sym}: tail[{tail}] rmt={live_day.strftime('%m-%d %H:%M')} rmp={rmp} "
+              f"period={reg_txt} closed={closed_index} newest={max(by_date) if by_date else None}")
     return [[d, by_date[d]] for d in sorted(by_date)]
 
 
@@ -418,7 +488,7 @@ def run():
     hist0 = _load_hist()
     for key, ticker, name, bucket, unit in TARGETS:
         try:
-            pts = fetch(ticker)
+            pts, idx_cutoff = fetch(ticker)
             # Completed-session guard. Two cases, one cutoff (2026-10-09):
             #  - before futures/FX settlement (17:05 ET) a bar dated today is
             #    an open session (the 2026-06-11 guard);
@@ -428,7 +498,11 @@ def run():
             #    the next session as the newest "close".
             # A bar is kept only if it is dated on or before the last session
             # that has settled.
-            cutoff = last_settled_date()
+            # 2026-10-21 (bug #1274): an equity index is complete on ITS
+            # exchange's clock — Tokyo's Tuesday is done seven hours before
+            # New York's Tuesday morning pass. index_cutoff() for an INDEX,
+            # the futures/FX settlement clock for everything else.
+            cutoff = idx_cutoff or last_settled_date()
             dropped = [p for p in pts if p[0] > cutoff]
             if dropped:
                 print(f"  completed-session guard: dropped {[p[0] for p in dropped]} for {ticker}")
@@ -653,6 +727,38 @@ def selftest():
     good = daily_bars(_q2, now_ts=_close + 6 * 3600)[-1] == ["2026-10-09", 69030.9]
     ok &= good
     print(f"  {'OK' if good else 'FAIL'} non-INDEX live quote still dropped after the period end")
+    # 2026-10-21 (bug #1274): the evening window — the finished session is not
+    # served as a bar (absent, or a null close); meta still carries the close.
+    # Ended session -> filled from regularMarketPrice; open session -> not.
+    _q4 = json.loads(json.dumps(_q3)); _q4["meta"]["regularMarketPrice"] = 69500.0
+    _q4["timestamp"] = _q4["timestamp"][:2]; _q4["indicators"]["quote"][0]["close"] = [69042.1, 69030.9]
+    got_abs = daily_bars(_q4, now_ts=_b(2026, 10, 14, 8, 55, _tk))
+    _q5 = json.loads(json.dumps(_q3)); _q5["meta"]["regularMarketPrice"] = 69500.0
+    _q5["indicators"]["quote"][0]["close"] = [69042.1, 69030.9, None]
+    got_null = daily_bars(_q5, now_ts=_b(2026, 10, 14, 8, 55, _tk))
+    _q6 = json.loads(json.dumps(_q5)); _q6["meta"]["currentTradingPeriod"] = _q["meta"]["currentTradingPeriod"]
+    got_open = daily_bars(_q6, now_ts=_close - 2 * 3600)
+    good = (got_abs[-1] == ["2026-10-13", 69500.0] and got_null[-1] == ["2026-10-13", 69500.0]
+            and got_open[-1] == ["2026-10-09", 69030.9])
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} ended INDEX session with no bar filled from regularMarketPrice "
+          f"(absent {got_abs[-1]}, null {got_null[-1]}); open session not: {got_open[-1]}")
+    # index_cutoff: Tokyo's Tuesday is complete at 23:00 JST Tuesday (New
+    # York's Tuesday morning pass) and not at 15:40 JST (inside the grace);
+    # Frankfurt at 16:00 CEST is mid-session -> Monday; a future is None.
+    _q7 = {"meta": {"instrumentType": "INDEX", "exchangeTimezoneName": "Asia/Tokyo",
+                    "currentTradingPeriod": {"regular": {"start": _b(2026, 10, 20, 9, 0, _tk), "end": _b(2026, 10, 20, 15, 30, _tk)}}}}
+    _de = _zi2("Europe/Berlin")
+    _q8 = {"meta": {"instrumentType": "INDEX", "exchangeTimezoneName": "Europe/Berlin",
+                    "currentTradingPeriod": {"regular": {"start": _b(2026, 10, 20, 9, 0, _de), "end": _b(2026, 10, 20, 17, 30, _de)}}}}
+    c_tk_eve = index_cutoff(_q7, now_ts=_b(2026, 10, 20, 23, 0, _tk))
+    c_tk_grace = index_cutoff(_q7, now_ts=_b(2026, 10, 20, 15, 40, _tk))
+    c_de_mid = index_cutoff(_q8, now_ts=_b(2026, 10, 20, 16, 0, _de))
+    c_fut = index_cutoff({"meta": {"instrumentType": "FUTURE", "exchangeTimezoneName": "America/New_York"}})
+    good = c_tk_eve == "2026-10-20" and c_tk_grace == "2026-10-19" and c_de_mid == "2026-10-19" and c_fut is None
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} index_cutoff: Tokyo 23:00 -> {c_tk_eve}; Tokyo 15:40 -> {c_tk_grace}; "
+          f"Frankfurt 16:00 -> {c_de_mid}; future -> {c_fut}")
     # merge guard
     import tempfile
     global HISTORY_PATH
