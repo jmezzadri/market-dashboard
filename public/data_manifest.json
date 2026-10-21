@@ -4545,7 +4545,7 @@
    "description": "Quality Trend style-factor z-scores: for every name in the month's scored book, momentum (12-1), quality (gross profit / assets), buybacks (share-count change), size (ln market cap) and value (ln revenue / market cap) as z-scores against the 500 largest US common stocks by market cap, winsorised 2.5/97.5, plus that baseline's cap-weighted z. Drives the Paper Portfolio page's Active style factor loading tile and its holdings ledger's Factor column. Built 2026-10-20 for the cockpit redesign.",
    "sourcing_mode": "computed",
    "source_vendor": "MacroTilt engine (Postgres function qt_factor_exposure_build over prices_eod + qt_fundamentals)",
-   "source_endpoint": "prices_eod (market.prices-eod-massive) + qt_fundamentals via qt_quality() \u2192 qt_factor_exposure",
+   "source_endpoint": "prices_eod (market-prices_eod-daily) + qt_fundamentals via qt_quality() \u2192 qt_factor_exposure",
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "monthly",
@@ -4556,7 +4556,7 @@
    "data_calendar": "nyse-trading-day",
    "release_calendar": "nyse-trading-day",
    "dependencies": [
-    "market.prices-eod-massive",
+    "market-prices_eod-daily",
     "portfolio.qt-target-book"
    ],
    "output_destination": "Supabase public.qt_factor_exposure",
@@ -4581,7 +4581,7 @@
    "description": "Quality Trend risk figures, computed once after each close at that close's weights from one year of daily closes: annualized volatility, 1- and 10-day 99% VaR (historical simulation, with a normal cross-check), each name's share of book risk and marginal contribution, beta and the market / style / stock-specific variance split against the S&P 500 fund and five style funds (MTUM, QUAL, PKW, IWM, VLUE), beta-scaled shock scenarios (2000-02, 2008-09, 2020, 2022) and a VIX-to-40 shock, and the exception alerts. Drives the Paper Portfolio ribbon's VaR, the Risk & exception alerts, Variance risk decomposition and Historical shock stress tiles, and the ledger's Risk column.",
    "sourcing_mode": "computed",
    "source_vendor": "MacroTilt engine (paper_portfolio/qt/risk.py)",
-   "source_endpoint": "prices_eod (market.prices-eod-massive) + qt_nav_daily + qt_target_book + qt_brake_state + public/indicator_history.json (VIX) \u2192 qt_risk_daily",
+   "source_endpoint": "prices_eod (market-prices_eod-daily) + qt_nav_daily + qt_target_book + qt_brake_state + public/indicator_history.json (VIX) \u2192 qt_risk_daily",
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily (NYSE trading days)",
@@ -4592,7 +4592,7 @@
    "data_calendar": "nyse-trading-day",
    "release_calendar": "nyse-trading-day",
    "dependencies": [
-    "market.prices-eod-massive",
+    "market-prices_eod-daily",
     "portfolio.qt-nav-daily",
     "portfolio.qt-target-book",
     "portfolio.qt-brake-state"
@@ -4927,5 +4927,5 @@
   }
  ],
  "v_2026_10_20": "Paper Portfolio cockpit redesign (Joe, 2026-10-20). Registered qt-factor-exposure (monthly, built by QT-REBALANCE from prices_eod + qt_fundamentals). The page's other new figures (10-day 99% VaR, risk share per name, variance decomposition, beta-scaled shock scenarios) are computed in the browser from the already-registered market.prices-eod-massive feed and carry that feed's close date; the formulas are checked in paper_portfolio/qt/research/risk_cockpit_2026-10-20/. The five style-fund series (MTUM, QUAL, PKW, IWM, VLUE) were deepened to full history through eod-backfill-history the same day.",
- "v_2026_10_21": "Paper cockpit, second pass. Registered qt-risk-daily (nightly, QT-EOD-DAILY): the page's risk figures are now produced once after the close and stored; the browser-side computation and its qt_risk_prices_json call are gone from the page (the SQL function stays for the research check). qt-factor-exposure unchanged."
+ "v_2026_10_21": "Paper cockpit, second pass. Registered qt-risk-daily (nightly, QT-EOD-DAILY): the page's risk figures are now produced once after the close and stored; the browser-side computation and its qt_risk_prices_json call are gone from the page (the SQL function stays for the research check). qt-factor-exposure unchanged. Same day: the two entries' price-feed dependency was written with the root manifest's id and the header pill graded both red (\"2 feeds stale\") on a dependency it could not find \u2014 corrected to the live manifest id market-prices_eod-daily."
 }
