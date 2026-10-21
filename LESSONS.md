@@ -2589,6 +2589,7 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 2. A tile is judged by its own inner edge, not the viewport: no content past the card's padding and no horizontal scroller inside a card, at 1280, 1366, 1440, 1680 and 1920 as well as the three CLAUDE.md widths. `scratchpad/overflow.mjs`-style audit: for every `.qtt-card`, flag any descendant whose content right edge exceeds the card's inner right, and any descendant with `overflow-x: auto|scroll` that actually scrolls. Run it before a preview goes to Joe.
 3. Column slack goes into a chart (`useFillHeight`: the chart's wrapper is `flex: 1 1 0` with a min-height, so measuring it is stable and the chart grows to end the column on the neighbours' line), never into a stretched card with a blank band. `flex-basis: auto` on that wrapper is a feedback loop — the chart grows the basis, which grows the column, which grows the chart.
 4. A shared table (DataTable) in a column sums its default column widths to LESS than the column's inner width at 1366; the P&L figure is two columns ($ and %), not one wide one.
+5. (2026-10-21, same day) An alert threshold is set at the size that matters to a portfolio manager, never at zero: a −$341 margin debit on a $1.09M book was flagged as a risk ("a rounding error you're highlighting as a risk. That's insane"). The cash rule is now a leverage rule — gross exposure above 105% of equity.
 
 **Applies to:** UX Designer (lead), Lead Developer, Senior Quant.
 

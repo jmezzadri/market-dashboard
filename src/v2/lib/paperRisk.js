@@ -16,6 +16,7 @@ export const ALERT_RULES = {
   drift: 1.5,           // × target weight
   drawdown: -0.10,
   liquidityDays: 1.0,
+  leverage: 1.05,       // gross exposure / equity; a few hundred dollars of margin debit is not a risk
 };
 
 /* Which style factor a holding leans on most, from its z-scores. Size is
