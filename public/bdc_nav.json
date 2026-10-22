@@ -76,12 +76,12 @@
   },
   {
    "ticker": "HTGC",
-   "date": "2026-10-21",
-   "close": 16.270000457763672,
+   "date": "2026-10-22",
+   "close": 16.489999771118164,
    "nav": 12.15,
    "nav_period_end": "2026-06-30",
    "nav_filed": "2026-07-30",
-   "price_to_nav": 1.3391
+   "price_to_nav": 1.3572
   },
   {
    "ticker": "PSEC",
