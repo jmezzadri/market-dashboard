@@ -1,56 +1,50 @@
 {
-  "generated_at": "2026-10-22T10:25:45Z",
+  "generated_at": "2026-10-22T11:04:12Z",
   "cadence": "Research runs every morning before the US open; the best ideas publish — at most two a week.",
   "next_publish": "2026-10-23",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
   "ideas": [
     {
+      "id": "2026-10-22-credit-broke-first-the-s-p-500-has-two-weeks-to-",
       "date": "2026-10-22",
       "kind": "cross-asset",
-      "title": "Credit broke first. The S&P 500 has two weeks to catch down.",
-      "dek": "High-yield spreads are 66 basis points wider in six weeks while the S&P 500 sits 0.8% from its record close. That sequence has appeared five times since 2014. The index fell over the following two weeks every time, by 3.6% in the median case. The call is S&P 7,510 by November 5.",
-      "position_type": "outright short",
-      "call": "Over the next two weeks the S&P 500 is set up to fall about 3%: in each of the five cases since 2014 when high-yield spreads widened at least 40 basis points in six weeks while the index sat within 5% of its one-year high, the index was lower ten sessions later, by 3.6% in the median case.",
-      "instrument": "S&P 500, sold short for two weeks through SPY put options expiring November 6, or the inverse fund SH",
-      "horizon": "two weeks (through November 5, 2026)",
+      "title": "Credit spreads widening, S&P 500 likely to close the gap",
+      "dek": "High-yield spreads +66bp in six weeks. S&P 500 0.8% from its record. Five prior cases since 2014: the index fell within ten sessions every time, median -3.6%.",
+      "position_type": "outright long",
+      "call": "Over the next 2–3 weeks the S&P 500 likely falls about 3%, to 7,510. High-yield spreads are 66bp wider in six weeks with the index 0.8% from its record; in all five such cases since 2014 the index was lower ten sessions later.",
+      "instrument": "SPY ATM puts, Nov 13 expiry",
+      "horizon": "2–3 weeks",
       "the_trade": {
-        "buy": "SPY put options expiring November 6, 2026, struck at the money, bought now and closed by November 5. The premium paid is the most the position can lose.",
-        "buy_line": "SPY at-the-money puts, Nov 6 expiry",
-        "short": "For a reader who prefers a fund: SH, the ProShares Short S&P 500, bought now and sold by November 5 whatever the outcome. It resets daily, so it is a two-week holding, never longer.",
-        "short_line": "SH, the inverse S&P 500 fund, two weeks",
-        "sizing": "Half the usual size: 5 of a 100-point book. Only one of the five past cases had the 10-year Treasury yield rising as fast as it is today, so the contract halves the position and tightens the exit. The exit is a close above the record, 7,818.93, which is 0.8% away."
+        "buy": "SPY ATM puts, Nov 13 expiry.",
+        "buy_line": "SPY ATM puts, Nov 13 expiry",
+        "sizing": "5 of 100 (half size)."
       },
       "edge": {
         "source": "credit",
-        "summary": "Credit spreads widening while the stock index still sits at its high has been followed by a two-week fall in the index in all five cases since 2014; credit widening after the index had already dropped was followed by a bounce in all seven cases. The order of the two moves is the signal. Only one of the five past cases had the 10-year Treasury yield rising as fast as it is today, so this note is published at half size with a one-third stop.",
-        "vs_market": "The position is short the S&P 500 itself, so its return is the index's fall. Over the two-week horizon the five past cases put the index 3.6% lower in the median case and 4.3% lower on average, against an ordinary two weeks of +0.4%. Holding the S&P 500 instead would have lost that 3.6%; the short earns it. The Scorecard marks the index against the index, so the claim is checkable on November 5.",
+        "summary": "High-yield spreads 40bp+ wider in six weeks while the S&P 500 sits within 5% of its high: five cases since 2014, index lower ten sessions later in all five. Same credit move after a 5% drop: seven cases, index higher in all seven. Only one of the five cases had the 10-year yield rising as fast as it is today, so the position is half size with a one-third stop.",
         "backtest": {
-          "window": "ICE BofA US high-yield option-adjusted spread and S&P 500 daily closes, January 2011 to October 2026. Signal: the spread at least 40 basis points wider than six weeks earlier while the S&P 500 is within 5% of its one-year closing high. Independent cases at least 63 sessions apart. Entry at the signal close, held ten sessions.",
+          "window": "ICE BofA US high-yield OAS and S&P 500 daily closes, 2011-01 to 2026-10. Signal: spread 40bp+ wider than six weeks earlier, S&P 500 within 5% of its one-year closing high. Cases 63+ sessions apart. Entry at the signal close.",
           "n": 5,
-          "result": "S&P 500 over the next ten sessions: -3.2% (Dec 31, 2014), -8.0% (Dec 31, 2015), -4.3% (Oct 11, 2023), -2.3% (Nov 4, 2025), -3.6% (Feb 27, 2026). Lower in 5 of 5; median -3.6%, average -4.3%. The largest rise inside any of those two-week windows was 1.2%. At a looser 30-basis-point threshold, 7 cases: lower in 5, median -3.2%. The reverse state, the same widening with the index more than 5% below its high, 7 cases: higher in 7 of 7, average +3.5%.",
-          "baseline": "Every ten-session period for the S&P 500 since 2011: average +0.4%, lower 38% of the time, down 3.6% or more 9% of the time.",
-          "absolute": {
-            "median": -3.6,
-            "win_rate": 100
-          },
+          "result": "S&P 500 ten sessions later: -3.2% (Dec 31, 2014), -8.0% (Dec 31, 2015), -4.3% (Oct 11, 2023), -2.3% (Nov 4, 2025), -3.6% (Feb 27, 2026). Median -3.6%, average -4.3%. Fifteen sessions later: median -3.2%, lower in 5 of 5. Largest rise inside any window: 1.2%. Looser 30bp threshold: 7 cases, lower in 5. Same widening with the index 5%+ below its high: 7 cases, higher in 7.",
+          "baseline": "Any ten sessions since 2011: +0.4%, lower 38% of the time. Any fifteen: +0.6%.",
           "regime_match": {
-            "factor": "the 10-year Treasury yield, up 42 basis points over the past quarter to 5.13%",
+            "factor": "the 10-year Treasury yield, +42bp over the past quarter to 5.13%",
             "matching_cases": 1,
-            "result": "Only one of the five cases, October 11, 2023, had the 10-year yield up at least 25 basis points over the prior quarter; the index fell 4.3% in the following two weeks.",
+            "result": "Only one of the five cases (Oct 11, 2023) had the 10-year up 25bp+ over the prior quarter; the index fell 4.3%.",
             "dependence": {
               "correlation": 0.24,
-              "method": "correlation across all five cases between the S&P 500's ten-session return and the change in the 10-year Treasury yield over the same ten sessions (MacroTilt indicator history); the five returns ran at +0.24 with the yield change, under the 0.30 limit, so the sample did not ride the factor"
+              "method": "correlation across all five cases between the S&P 500's ten-session return and the 10-year yield change over the same ten sessions (MacroTilt indicator history)"
             }
           }
         }
       },
-      "variant": "The street is looking through the credit move. One bank published a 12-month S&P 500 target of 8,700 and said a rotation, not an index fall, is the likely outcome of its own hyperscaler credit-spread index reaching its widest of the year (reported October 19 and 20, 2026). A second house called the correction in its final innings with two to three weeks of chop left (October 20, 2026). Five banks hold year-end targets of 8,000 or higher. The October fund-manager survey showed technology the largest overweight since August 2020. Credit is saying something different: the high-yield spread is 73 basis points off its August low and the lowest-rated tier has widened 60 basis points in a week. In the record, when credit moved first and the index had not, the index followed within two weeks every time.",
+      "variant": "The street is looking through the credit move: one bank's 12-month S&P 500 target is 8,700 and it expects a rotation, not an index fall (Oct 19–20, 2026); five banks hold year-end targets of 8,000 or higher; October's fund-manager survey had technology its largest overweight since August 2020. In the record, credit moving first with the index at its high was followed by the index, every time.",
       "thesis": [
-        "High-yield spread 333 basis points on Oct 20. Six weeks earlier, Sep 8: 267. Low of the year, Aug 28: 260.",
-        "S&P 500 closed 7,757.17 on Oct 21, 0.8% under its record close of 7,818.93 on Oct 6.",
-        "Five earlier cases since 2014 with that pairing. The index fell over the next ten sessions in all five, median -3.6%.",
-        "Same credit move with the index already down more than 5%: seven cases, the index rose in all seven.",
-        "Investment-grade spread 87 basis points on Oct 20, from 81 on Sep 8. The move is not confined to junk."
+        "High-yield spread 333bp on Oct 20; 267bp on Sep 8; 2026 low 260bp on Aug 28.",
+        "S&P 500 7,757.17 on Oct 21, 0.8% under the Oct 6 record close of 7,818.93.",
+        "Five prior cases since 2014: index lower ten sessions later in all five, median -3.6%.",
+        "Same credit move with the index already down 5%+: seven cases, index higher in all seven.",
+        "Investment-grade spread 87bp on Oct 20, from 81bp on Sep 8."
       ],
       "evidence": [
         {
@@ -73,31 +67,31 @@
         },
         {
           "claim": "High-yield option-adjusted spread",
-          "value": "333 basis points",
+          "value": "333bp",
           "source": "MacroTilt indicator history (ICE BofA US High Yield index, via FRED)",
           "as_of": "2026-10-20"
         },
         {
           "claim": "High-yield option-adjusted spread six weeks earlier",
-          "value": "267 basis points",
+          "value": "267bp",
           "source": "MacroTilt indicator history (ICE BofA US High Yield index, via FRED)",
           "as_of": "2026-09-08"
         },
         {
-          "claim": "High-yield option-adjusted spread, low of 2026",
-          "value": "260 basis points",
+          "claim": "High-yield option-adjusted spread, 2026 low",
+          "value": "260bp",
           "source": "MacroTilt indicator history (ICE BofA US High Yield index, via FRED)",
           "as_of": "2026-08-28"
         },
         {
           "claim": "Investment-grade option-adjusted spread",
-          "value": "87 basis points",
+          "value": "87bp",
           "source": "MacroTilt indicator history (ICE BofA US Corporate index, via FRED)",
           "as_of": "2026-10-20"
         },
         {
           "claim": "Investment-grade option-adjusted spread six weeks earlier",
-          "value": "81 basis points",
+          "value": "81bp",
           "source": "MacroTilt indicator history (ICE BofA US Corporate index, via FRED)",
           "as_of": "2026-09-08"
         },
@@ -114,44 +108,56 @@
           "as_of": "2026-07-23"
         },
         {
-          "claim": "Backtest: cases since 2011 with the spread 40 basis points wider over six weeks and the index within 5% of its one-year high",
+          "claim": "Backtest: cases since 2011 with the spread 40bp wider over six weeks and the index within 5% of its one-year high",
           "value": "5 (Dec 31, 2014; Dec 31, 2015; Oct 11, 2023; Nov 4, 2025; Feb 27, 2026)",
           "source": "MacroTilt indicator history, computed this run",
           "as_of": "2026-10-21"
         },
         {
           "claim": "Backtest: S&P 500 return over the next ten sessions in those five cases",
-          "value": "-3.2%, -8.0%, -4.3%, -2.3%, -3.6%; median -3.6%, average -4.3%, lower in 5 of 5",
+          "value": "-3.2%, -8.0%, -4.3%, -2.3%, -3.6%; median -3.6%, average -4.3%",
           "source": "MacroTilt indicator history, computed this run",
           "as_of": "2026-10-21"
         },
         {
-          "claim": "Backtest: largest rise within the ten sessions in any of the five cases",
+          "claim": "Backtest: S&P 500 return over the next fifteen sessions in those five cases",
+          "value": "-0.3%, -8.2%, -3.2%, -0.1%, -5.4%; median -3.2%, lower in 5 of 5",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "Backtest: largest rise within the window in any of the five cases",
           "value": "1.2%",
           "source": "MacroTilt indicator history, computed this run",
           "as_of": "2026-10-21"
         },
         {
-          "claim": "Backtest: looser threshold, spread 30 basis points wider",
-          "value": "7 cases, lower in 5 of 7, median -3.2%",
+          "claim": "Backtest: looser threshold, spread 30bp wider",
+          "value": "7 cases, lower in 5 of 7",
           "source": "MacroTilt indicator history, computed this run",
           "as_of": "2026-10-21"
         },
         {
           "claim": "Backtest: same widening with the index more than 5% below its high",
-          "value": "7 cases, higher in 7 of 7, average +3.5% over ten sessions",
+          "value": "7 cases, higher in 7 of 7",
           "source": "MacroTilt indicator history, computed this run",
           "as_of": "2026-10-21"
         },
         {
           "claim": "Baseline: any ten-session S&P 500 return since 2011",
-          "value": "average +0.4%, lower 38% of the time, down 3.6% or more 9% of the time",
+          "value": "+0.4%, lower 38% of the time",
           "source": "MacroTilt indicator history, computed this run",
           "as_of": "2026-10-21"
         },
         {
-          "claim": "Backtest: cases with the 10-year yield up at least 25 basis points over the prior quarter",
-          "value": "1 of 5 (Oct 11, 2023; the index fell 4.3%)",
+          "claim": "Baseline: any fifteen-session S&P 500 return since 2011",
+          "value": "+0.6%",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "Backtest: cases with the 10-year yield up 25bp+ over the prior quarter",
+          "value": "1 of 5 (Oct 11, 2023; index fell 4.3%)",
           "source": "MacroTilt indicator history, computed this run",
           "as_of": "2026-10-21"
         },
@@ -160,24 +166,6 @@
           "value": "+0.24",
           "source": "MacroTilt indicator history, computed this run",
           "as_of": "2026-10-21"
-        },
-        {
-          "claim": "Lowest-rated (CCC) high-yield spread",
-          "value": "1,327 basis points, 60 wider on the week",
-          "source": "ICE BofA CCC index, as reported by tokenpost.com",
-          "as_of": "2026-10-20"
-        },
-        {
-          "claim": "Oracle five-year credit default swap",
-          "value": "288 basis points, a record for the name",
-          "source": "securitasglobal.com, citing ICE",
-          "as_of": "2026-10-15"
-        },
-        {
-          "claim": "Hedge-fund net selling of global equities",
-          "value": "fastest technology selling in more than ten years; net leverage at a one-year low",
-          "source": "247wallst.com, citing a prime-brokerage report for the week to Oct 15",
-          "as_of": "2026-10-19"
         },
         {
           "claim": "S&P 500 12-month target from one bank",
@@ -192,166 +180,87 @@
           "as_of": "2026-10-16"
         },
         {
-          "claim": "Share of S&P 500 companies in an open buyback window",
-          "value": "about 10%",
-          "source": "tickmill.com, citing a sell-side trading-desk note",
-          "as_of": "2026-10-16"
-        },
-        {
           "claim": "SPY close",
           "value": "773.09",
           "source": "MacroTilt end-of-day price store (SPY)",
-          "as_of": "2026-10-21"
-        },
-        {
-          "claim": "SH close",
-          "value": "32.07",
-          "source": "MacroTilt end-of-day price store (SH)",
           "as_of": "2026-10-21"
         }
       ],
       "charts": [
         {
           "series": "hy_ig",
-          "title": "Credit has repriced: high-yield spreads 66 points wider in six weeks",
-          "subtitle": "ICE BofA US high-yield option-adjusted spread, basis points, past year",
+          "title": "High-yield spreads: 66bp wider in six weeks",
+          "subtitle": "ICE BofA US high-yield option-adjusted spread, bp, past year",
           "unit": "bps",
           "decimals": 0,
           "window": "1y",
-          "caption": "The signal needs at least 40 basis points of widening in six weeks. The spread is 73 above its August low. A fall back under 300 removes the reason for the trade.",
+          "caption": "Signal needs 40bp+ of widening in six weeks. Back under 300bp, the trade is off.",
           "source": "MacroTilt indicator history (ICE BofA via FRED)"
         },
         {
           "series": "spx_index",
-          "title": "The index has not moved yet: 0.8% from its record close",
+          "title": "S&P 500: 0.8% from its record close",
           "subtitle": "S&P 500, daily closes, past year",
           "unit": "",
           "decimals": 0,
           "window": "1y",
-          "caption": "The second half of the signal is an index still at its high. A close above 7,818.93 is the exit; the call is 7,510 by November 5.",
+          "caption": "Exit on a close above 7,818. Target 7,510.",
           "source": "MacroTilt indicator history"
         },
         {
           "series": "ust_10y",
-          "title": "The condition the record does not contain: the 10-year yield rising this fast",
+          "title": "10-year yield: +42bp in a quarter",
           "subtitle": "US 10-year Treasury yield, daily, past year",
           "unit": "%",
           "decimals": 2,
           "window": "1y",
-          "caption": "Only one of the five past cases had the yield up this much over a quarter. That is why the position is half size with a one-third stop.",
+          "caption": "Only one of the five cases had the yield rising this fast. Hence half size.",
           "source": "MacroTilt indicator history (Treasury.gov)"
         }
       ],
       "levels": {
-        "trigger": "Enter at current levels: S&P 500 7,757.17, SPY 773.09, SH 32.07 (Oct 21 closes).",
-        "invalidation": "A close on the S&P 500 above 7,818.93, the record close of October 6, 0.8% above the October 21 close. For the puts, the premium paid is the most the position can lose.",
-        "target": "S&P 500 about 7,510 by November 5, a 3.2% fall, the median of the seven cases at the looser threshold. The five cases matching the signal as written averaged 4.3%, which would be about 7,425."
+        "trigger": "S&P 500 7,757 (Oct 21 close).",
+        "invalidation": "S&P 500 closes above 7,818.",
+        "target": "S&P 500 7,510."
       },
-      "sections": [
-        {
-          "title": "What lined up",
-          "bullets": [
-            "High-yield spread 333 basis points on Oct 20, from 267 on Sep 8 and a 2026 low of 260 on Aug 28.",
-            "Investment-grade spread 87 basis points on Oct 20, from 81 on Sep 8.",
-            "S&P 500 closed 7,757.17 on Oct 21, 0.8% under the record close of 7,818.93 on Oct 6.",
-            "Both halves of the signal hold: credit 40 points wider in six weeks, index within 5% of its high."
-          ]
-        },
-        {
-          "title": "What followed the last five times",
-          "bullets": [
-            "Dec 31, 2014: spread +181 in six weeks, index 1.5% off its high. Next ten sessions: -3.2%.",
-            "Dec 31, 2015: spread +228, index 4.1% off. Next ten sessions: -8.0%.",
-            "Oct 11, 2023: spread +45, index 4.6% off. Next ten sessions: -4.3%.",
-            "Nov 4, 2025: spread +42, index 1.7% off. Next ten sessions: -2.3%.",
-            "Feb 27, 2026: spread +45, index 1.4% off. Next ten sessions: -3.6%.",
-            "An ordinary ten sessions since 2011: +0.4%, lower 38% of the time."
-          ]
-        },
-        {
-          "title": "Why the order of the two moves matters",
-          "bullets": [
-            "Credit wider with the index already down more than 5%: seven cases since 2011, the index rose in all seven.",
-            "Credit wider with the index still at its high: five cases, the index fell in all five.",
-            "Spreads widening into a selloff is a bottom. Spreads widening under a record is a warning the index has not read."
-          ]
-        },
-        {
-          "title": "Why credit is moving now",
-          "bullets": [
-            "The lowest-rated junk tier widened 60 basis points in the week to Oct 20, to 1,327.",
-            "Oracle's five-year credit insurance hit a record 288 basis points on Oct 15.",
-            "Hedge funds sold technology stocks in the week to Oct 15 at the fastest pace in more than ten years.",
-            "About 10% of S&P 500 companies could buy back their own stock as of Oct 16. The rest were in blackout."
-          ]
-        },
-        {
-          "title": "Today's conditions, stated plainly",
-          "bullets": [
-            "The 10-year Treasury yield is 5.13% on Oct 21, up 42 basis points in a quarter.",
-            "Only one of the five past cases, Oct 11, 2023, had the yield rising that fast. The index fell 4.3%.",
-            "Across the five cases the returns ran at +0.24 with the yield change over the hold, inside the 0.30 limit.",
-            "So the note publishes at half size, 5 of 100, with the exit 0.8% away instead of the usual half of the target."
-          ]
-        },
-        {
-          "title": "The vehicle",
-          "bullets": [
-            "SPY at-the-money puts expiring Nov 6. The premium is the most the trade can lose.",
-            "Or SH, the inverse S&P 500 fund, held two weeks at most. It resets daily, so it is not a long hold.",
-            "The Scorecard marks the S&P 500 index itself, short, from the Oct 21 close of 7,757.17.",
-            "Closed by Nov 5 whatever the outcome, or earlier on a close above 7,818.93."
-          ]
-        },
-        {
-          "title": "Dates that decide it",
-          "bullets": [
-            "FOMC, Oct 28, 2:00 PM: a hold is expected; a statement with hike dissents is the risk to credit.",
-            "Microsoft and Alphabet report Oct 28 after the close; Amazon Oct 29. Capital-spending guidance drives the credit names.",
-            "ISM Manufacturing, Nov 2. US midterms, Nov 3. Treasury quarterly refunding, Nov 4. ISM Services, Nov 4.",
-            "The horizon ends Nov 5."
-          ]
-        }
-      ],
       "reconciles": [
         {
           "date": "2026-08-17",
-          "prose": "The August 17 call held US banks against a short Nasdaq-100 position and was closed on September 30 because the volatility-curve reading it rested on had returned to mid-range. This note is also short a US stock index, so a reader may fairly ask what is different. That call was a six-month relative position built on the shape of the volatility curve; this one is a two-week outright position built on credit spreads moving before the index, with an exit 0.8% away. Nothing in this note depends on the earlier signal, and the earlier call's failure, banks falling with the 10-year yield rising, is the one condition this note discloses as untested."
+          "prose": "The Aug 17 call (long banks, short Nasdaq-100) closed Sep 30 on a broken thesis: the volatility-curve reading it rested on went back to mid-range. This is a different signal, a different index and a 2–3 week hold with a 0.8% exit; nothing here depends on the earlier one."
         }
       ],
-      "other_side": "Five cases is a small sample, and two of them, December 2014 and December 2015, came with credit moves three to five times larger than today's. Only one of the five cases had the 10-year Treasury yield rising as fast as it is today, so the state the note is published into is mostly outside the record. The credit move is concentrated in a handful of AI-linked borrowers, and the broad investment-grade spread has widened only 6 basis points; a market can treat that as idiosyncratic for longer than two weeks. Hedge funds have already sold technology at the fastest pace in a decade and net leverage is at a one-year low, so the forced seller may be gone before the index falls. Buyback windows reopen for most of the index after next week's reports, which is a bid the five past cases did not all have at the same point in the quarter. And the exit is close: a 0.8% rise ends the trade, and the index rose 1.2% inside one of the five winning windows.",
+      "other_side": "Five cases is thin, and two of them (Dec 2014, Dec 2015) came with credit moves three to five times today's. Only one of the five cases had the 10-year yield rising as fast as it is today. The widening is concentrated in AI-linked borrowers; investment-grade spreads moved 6bp. Hedge funds have already sold technology hard, and buyback windows reopen after next week's earnings. The exit is 0.8% away and the index rose 1.2% inside one winning window.",
       "risks": [
-        "A hold on Oct 28 with a softer statement tightens credit and the index makes a new high: the exit prints.",
-        "Microsoft, Alphabet and Amazon raise guidance on Oct 28 and 29 and the AI credit names rally with them.",
-        "The five cases are too few; a sixth that looks like nothing before it is always possible.",
-        "A Strait of Hormuz agreement cuts oil sharply and the index gaps higher through the exit."
+        "FOMC Oct 28: a soft statement tightens credit and the index makes a new high.",
+        "Microsoft, Alphabet, Amazon (Oct 28–29) raise guidance; AI credit names rally.",
+        "A Hormuz deal drops oil and the index gaps through the exit."
       ],
-      "so_what": "Credit spreads widening while the S&P 500 sits at its high has preceded a two-week fall in the index in all five cases since 2014, by 3.6% in the median case. The same credit move after the index had already fallen was a bottom in all seven cases. The index has not moved yet; the record says it has two weeks to. The position is short the index through SPY puts or the inverse fund, half size, exit on a record close.",
+      "so_what": "Credit spreads widening with the S&P 500 at its high preceded a fall in the index in all five cases since 2014 (median -3.6% in ten sessions). After a 5% drop the same move was a bottom in all seven cases. SPY ATM puts, half size, exit above 7,818.",
       "review_conditions": [
         {
           "claim": "Credit remains wider than before the move began",
-          "measure": "ICE BofA US high-yield option-adjusted spread, basis points, MacroTilt indicator history (via FRED)",
-          "at_publication": "333 basis points (Oct 20)",
-          "holds_while": "at or above 300 basis points",
+          "measure": "ICE BofA US high-yield option-adjusted spread, bp, MacroTilt indicator history (via FRED)",
+          "at_publication": "333bp (Oct 20)",
+          "holds_while": "at or above 300bp",
           "critical": true
         },
         {
           "claim": "The index has not made a new record close",
           "measure": "S&P 500 daily close, MacroTilt indicator history",
           "at_publication": "7,757.17 (Oct 21), record 7,818.93 (Oct 6)",
-          "holds_while": "no close above 7,818.93",
+          "holds_while": "no close above 7,818",
           "critical": false
         }
       ],
       "expected_return": {
         "pct": 3.2,
         "loss_at_stop_pct": 0.8,
-        "basis": "the median fall in the S&P 500 over ten sessions across the seven cases at the looser 30-basis-point threshold (3.2%), stated as the return to a short of the index, which is what the Scorecard marks; the five cases matching the signal as written had a median fall of 3.6%. The loss at the stop is the 0.8% rise from the October 21 close to a close above the record. Through SPY puts the most the position can lose is the premium paid.",
-        "instrument": "S&P 500 short, through SPY at-the-money puts expiring November 6 or the inverse fund SH"
+        "basis": "median S&P 500 fall over fifteen sessions in the five cases (3.2%), as a short of the index, which is what the Scorecard marks; the stop is the 0.8% rise to a close above 7,818. Held through SPY puts, the premium is the most the position can lose.",
+        "instrument": "SPY ATM puts, Nov 13 expiry"
       },
       "sizing": {
         "weight": 5.0,
-        "basis": "of a notional book of 100; half the standard size because only one of the five backtest cases shares today's rate condition (fewer-than-five-cases fallback); fixed at publication and never changed"
+        "basis": "of a notional book of 100; half size under the fewer-than-five-cases fallback; fixed at publication"
       },
       "scorecard": {
         "legs": [
@@ -363,25 +272,26 @@
             "short_label": "S&P 500 (short)"
           }
         ],
-        "horizon_weeks": 2,
+        "horizon_weeks": 3,
         "invalidation": {
           "series": "spx_index",
           "op": ">",
-          "level": 7818.93,
+          "level": 7818,
           "basis": "close"
         },
         "benchmark": {
           "series": "spx_index"
         },
-        "note": "The vehicle is SPY puts or the inverse fund SH; the Scorecard marks the index itself, short, from the October 21 close. The put premium is not machine-checkable; the index-level stop is."
+        "note": "Vehicle: SPY ATM puts, Nov 13 expiry. The Scorecard marks the index itself, short, from the Oct 21 close. The put premium is not machine-checkable; the index stop is."
       },
       "book": {
-        "stance": "With this short added the book holds five positions: long the US energy sector, long natural gas, long the yen, short wheat, and short the S&P 500 at half size for two weeks. It is positioned for an economy where oil and bond yields stay high and, for the next two weeks, for stocks to catch down to credit. The energy call is the one most exposed to a stock-index fall; the yen and wheat calls are not. Highest conviction is the wheat short, which rests on eleven tested episodes; lowest is this short, which rests on five and is sized accordingly. Day to day the short has moved with the energy call (correlation +0.37 over the last 126 sessions): energy stocks have risen on the days the index fell. That overlap is under the 0.60 limit and is one reason the short is held two weeks and not longer. Measured over those sessions, adding it raises the book's expected excess return over the S&P 500 per unit of risk from 0.69 to 1.30, with book volatility of 5.92 points a year against the S&P's 5.37 at the same 45 of 100 invested.",
-        "rebalance": "The four open calls stay as they are: long the US energy sector, long natural gas, long the yen, short wheat. This short is a fifth position at half size for two weeks, closed by November 5 or on a record close, whichever comes first. It is the only position in the book that gains if stocks fall, so it is not a hedge to be held past its date. Nothing comes off to fund it."
+        "stance": "Five positions: long US energy (XLE), long natural gas (UNG), long yen (FXY), short wheat (WEAT), and this S&P 500 short at half size for 2–3 weeks. Highest conviction: the wheat short (eleven tested episodes). Lowest: this one (five). The short has moved with the energy call day to day (correlation +0.37 over 126 sessions), under the 0.60 limit. Adding it raises the book's expected excess return over the S&P 500 per unit of risk from 0.69 to 1.06; book volatility 5.92 points a year against the S&P's 5.37 at 45 of 100 invested.",
+        "rebalance": "The four open calls stay. This is a fifth position, half size, closed by Nov 12 or on a close above 7,818. Nothing comes off to fund it."
       },
-      "id": "2026-10-22-credit-broke-first-the-s-p-500-has-two-weeks-to-",
       "status": "live",
-      "published_at": "2026-10-22T10:25:45Z"
+      "sections": [],
+      "published_at": "2026-10-22T10:25:45Z",
+      "corrected_at": "2026-10-22T11:04:12Z"
     },
     {
       "date": "2026-10-09",
