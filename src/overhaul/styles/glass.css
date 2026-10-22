@@ -632,9 +632,11 @@ html, body, #root { background: var(--lg-ground); }
    slides) > .row x2 (the strip and its decorative copy) > .tgroup > .t */
 .mt-overhaul .v13.home-v12.home-cockpit.mt-tape-host { min-height: 0; background: transparent; padding-bottom: 0; }
 .mt-overhaul .mt-tape-host .tape { overflow: hidden; }
-/* The window is a real sideways scroller with its bar hidden: the strip moves
-   on its own, and on a phone or trackpad the reader can also drag it. */
-.mt-overhaul .mt-tape-host .tape .tape-view { max-width: none; width: 100%; padding: 0; margin: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
+/* The window is clipped, not scrollable, while the strip animates (2026-10-22):
+   a hand scroll added to the slide and could push the whole strip out of the
+   window, leaving the banner blank until a reload. Hand scrolling returns only
+   under reduced motion, where nothing slides (see below). */
+.mt-overhaul .mt-tape-host .tape .tape-view { max-width: none; width: 100%; padding: 0; margin: 0; overflow-x: hidden; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
 .mt-overhaul .mt-tape-host .tape .tape-view::-webkit-scrollbar { display: none; }
 .mt-overhaul .mt-tape-host .tape .tape-view:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: -2px; border-radius: var(--r-panel); }
 .mt-overhaul .mt-tape-host .tape .tape-track {
@@ -653,6 +655,7 @@ html, body, #root { background: var(--lg-ground); }
 /* Reduced motion: nothing slides. The strip becomes a row the reader moves
    by hand, and the decorative copy is not needed. */
 @media (prefers-reduced-motion: reduce) {
+  .mt-overhaul .mt-tape-host .tape .tape-view { overflow-x: auto; }
   .mt-overhaul .mt-tape-host .tape .tape-track { animation: none; }
   .mt-overhaul .mt-tape-host .tape .row[aria-hidden='true'] { display: none; }
 }

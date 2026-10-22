@@ -195,6 +195,16 @@ export default function MarketTape() {
     return null;
   };
 
+  /* 2026-10-22: while the strip slides, the window must stay at scroll 0. A
+     scroll (focus moving to a tile, a trackpad gesture that got through the
+     clipped overflow) adds to the slide and can carry the whole strip out of
+     view, leaving the banner blank. Under reduced motion nothing slides and
+     the window is a real hand scroller, so the position is left alone. */
+  const snapBackWhileSliding = (e) => {
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    if (e.currentTarget.scrollLeft !== 0) e.currentTarget.scrollLeft = 0;
+  };
+
   /* The strip is rendered twice, end to end, and slid left by exactly one
      copy's width — that is what makes the loop seamless. The second copy is
      decoration: hidden from assistive tech and out of the tab order. */
@@ -211,7 +221,7 @@ export default function MarketTape() {
   return (
     <div className="home-v12 v13 home-cockpit mt-tape-host">
       <div className="tape" role="region" aria-label="Market prices">
-        <div className="wrap tape-view" tabIndex={0}>
+        <div className="wrap tape-view" tabIndex={0} onScroll={snapBackWhileSliding}>
           <div className="tape-track" style={{ '--tape-n': TAPE_ITEMS.length }}>
             {strip(false)}
             {strip(true)}
