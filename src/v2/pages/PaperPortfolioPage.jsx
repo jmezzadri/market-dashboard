@@ -1143,11 +1143,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       <div className="home-v12 v13 paper-v12">
         <style>{CSS}</style>
         <div className="wrap qtt" style={{ padding: 'var(--sp-44) var(--sp-40) var(--sp-96)', minHeight: '70vh' }}>
-          <div className="eyebrow2" style={{ marginBottom: 'var(--sp-10)' }}>
-            <span className="dot" />
-            Paper Portfolio
-          </div>
-          <h1 className="serif" style={{ fontSize: 'var(--v13-t6)', lineHeight: 1.08, margin: 0 }}>
+          <h1 className="serif" style={{ fontSize: 'var(--v13-t7)', fontWeight: 'var(--fw-700)', lineHeight: 1.08, margin: 0 }}>
             Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
           </h1>
           <div aria-live="polite" style={{ marginTop: 'var(--sp-26)', fontSize: 'var(--v13-t3)', color: INK3 }}>{err ? `The book could not be loaded (${err}). Refresh to retry.` : 'Loading the book…'}</div>
@@ -1258,39 +1254,14 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       <style>{CSS}</style>
       <div className="wrap qtt" style={{ padding: 'var(--sp-44) var(--sp-40) var(--sp-96)' }}>
 
-        {/* ── page header, one line of context each side ─────────────── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--sp-10)', marginBottom: 'var(--lg-gap)' }}>
-          <div>
-            <div className="eyebrow2" style={{ marginBottom: 'var(--sp-6)' }}>
-              <span className="dot" />
-              {bookIsLive
-                ? `Paper Portfolio · live · marks sync every 10 min in market hours${markedAt ? ` · ${markedAt}` : ''}`
-                : `Paper Portfolio · closed book · retired ${RETIRED_ON}${markedAt ? ` · final ${markedAt.replace(/^marked /, 'marks ')}` : ''}`}
-            </div>
-            <h1 className="serif" style={{ fontSize: 'var(--v13-t6)', lineHeight: 1.08, margin: 0 }}>
-              Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
-            </h1>
-          </div>
-          <div style={{ textAlign: 'right', fontSize: 'var(--v13-t2)', color: INK2, lineHeight: 1.6 }}>
-            {bookIsLive
-              ? '20 US companies · equal weight · monthly rebalance · crash brake · no leverage'
-              : '40 US companies · equal weight · monthly rebalance · no leverage'}
-            <br />
-            {bookIsLive && brake && (
-              <>
-                {brake.stress_on
-                  ? `Crash brake ON — book in cash · bond-market stress ${Number(brake.composite).toFixed(2)} (back in below 0.80)`
-                  : `Crash brake off · bond-market stress ${Number(brake.composite).toFixed(2)} (to cash above 0.95, two days running)`}
-                {' · '}
-                <Link to="/methodology#portfolio" className="ck-link">how it works</Link>
-                <br />
-              </>
-            )}
-            {bookIsLive
-              ? `$1,000,000 paper account, inception ${inceptionD ? fmtDate(inceptionD) : '—'}`
-              : `$1,000,000 paper account, ${bookRan || 'now closed'} · closed`}{' · '}
-            <Link to="/methodology#portfolio" className="ck-link" style={{ fontWeight: 'var(--fw-600)' }}>Methodology</Link>
-            {' · '}<span style={{ color: INK3 }}>Paper money — not investment advice.</span>
+        {/* ── page header — title and one italic line, nothing else (Joe, 2026-10-22) ── */}
+        <div style={{ marginBottom: 'var(--lg-gap)' }}>
+          <h1 className="serif" style={{ fontSize: 'var(--v13-t7)', fontWeight: 'var(--fw-700)', lineHeight: 1.08, margin: 0 }}>
+            Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
+          </h1>
+          <div style={{ marginTop: 'var(--sp-6)', fontSize: 'var(--v13-t3)', fontStyle: 'italic', color: INK2, lineHeight: 1.5 }}>
+            An AI-driven automated portfolio rebalancer — focused on high quality names with strong momentum{' '}
+            (<Link to="/methodology#portfolio" className="ck-link">Read full methodology here</Link>)
           </div>
         </div>
 
