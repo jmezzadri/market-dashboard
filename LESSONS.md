@@ -2613,6 +2613,7 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 **Rules:**
 1. When Joe asks for a review of a page, the deliverable is a rebuilt page on a preview link, benchmarked against the best stock-page layouts a trader uses daily — not a list of recommendations and not a minimal fix. Build it, screenshot it at 1440 / 390 and in dark, send the images AND the preview link, and wait for his verdict before merging.
 2. A retired concept (here: the scanner) is deleted from every page that still references it — pills, headers, "related names", drill-downs, tab labels — the same day it is retired. Grep the live pages for the concept's name before calling a retirement done.
+   *2026-10-22 — again:* the Methodology page still described a "macro regime map" (and a category filter) that the Macro Landscape page had not shown for months; found only because the tile redesign (#1839) forced §01 to be rewritten. The Methodology page is one of the pages to grep.
 3. Tiles that share a row end on the same line. A chart beside a stack of panels is sized to the stack (measure the body and draw the chart to that height), never to a fixed number. Asymmetric tiles with blank page space below one of them are a defect.
 4. The same statistic appears once above the fold: if the tape shows it, the panel does not repeat it.
 5. Tooltips sit on an opaque surface (`--mt-tip-bg` / `--mt-tip-line`); a glass surface is unreadable over content.
