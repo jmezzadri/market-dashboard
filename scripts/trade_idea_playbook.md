@@ -1288,7 +1288,11 @@ c. Insert the queue row via Supabase MCP `execute_sql` (project
 d. Write `meta.json` as one line: `{"post_date":"<today ET>",
    "approve_url":"https://macrotilt.com/api/xapprove?id=<id>&t=<token>&a=approve",
    "changes_url":"https://macrotilt.com/api/xapprove?id=<id>&t=<token>&a=changes",
-   "post_to_x":<true|false>, "note_title":"<title>",
+   "post_to_x":<true|false>, "no_x_reason":"<only when post_to_x is false: the
+   real reason in one clause, e.g. 'The chart already posted to X this morning'
+   for a correction, or 'This month's 10 automated X posts are used up' for the
+   cap — the email prints it; without it the email wrongly claims the cap
+   (Joe, 2026-10-22)>", "note_title":"<title>",
    "note_lines":["<the call, one sentence>", "<the trade: buy / sell / short
    legs in the tile's short form>", "<expected return and horizon>", "<what
    kills it: the stop and the critical review condition>", "<the other
