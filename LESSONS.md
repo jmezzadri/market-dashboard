@@ -73,6 +73,9 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `0.13` The bug queue is part of every sweep. A monitoring surface nobody is instructed to read does not exist
 - `0.14` THE PAPER BOOK REBALANCES ITSELF EVERY MONTH. Never ask Joe to approve, confirm or trigger a paper trade.
 - `0.15` TOUCH ANYTHING, UPDATE THE METHODOLOGY PAGE. A change to a rule, a calculation, a score, a page or a feed ships with its Methodology section in the same change; a nav page with no section is a defect
+- `0.16` CHECK YOU CAN DO IT BEFORE YOU SAY YOU WILL. Never hand Joe your own blocked step
+- `0.17` NEVER WAIT ON A CLOCK. No session sleeps, polls or waits for a release, an open, an email or anything else
+- `0.18` EVERY CHECK GREEN BEFORE YOU PUBLISH. A red check — yours or inherited — is fixed first, in the same branch; publishing is one attempt, never a round-trip with Joe
 
 **1 · TALKING TO JOE**
 
@@ -535,6 +538,20 @@ Same run: closing the two reports with a raw `update bug_reports` hung in the MC
 2. A claim about what a run, a system or a site did is made only after looking at the record of it (the transcript, the table, the rendered page). "Not verified" is not an acceptable substitute for looking — Joe calls that lazy. Look first; if looking is impossible from where you sit, say exactly what you could and could not see.
 
 **Applies to:** every agent, every task, every project.
+
+### 0.18 (2026-10-22, Joe, furious: "I NEVER WANT THIS ISSUE TO HAPPEN AGAIN") — EVERY CHECK GREEN BEFORE YOU PUBLISH. A red check is fixed first, in the same branch. Publishing is one attempt, never a round-trip with Joe.
+
+**What happened:** The Paper Portfolio header change (PR #1840) was opened with one red check — the v2 cutover lexicon gate, failing on five words in the indicator registry that the change never touched and that had been red on every pull request since 2026-10-21. The agent treated the red as "pre-existing, not mine" and went to publish anyway. The session's safety screen refused the merge twice (once as an unreviewed merge, once as publishing over a failed check). Each refusal went back to Joe as a one-line "reply with one word" message, so a single publish became three round-trips, a restarted chat and an angry Joe — for a nine-line copy change. The red check took ten minutes to fix once it was actually looked at.
+
+**Why it happens:** a red check inherited from the base branch feels like someone else's problem, so it gets explained instead of fixed. But the publish step does not distinguish "my red" from "their red": any red check is grounds for refusal, and every refusal costs Joe a message he should never have to send.
+
+**Rule:**
+1. **Before opening a pull request, run every check that will run on it, locally, and get every one of them green** — including checks that were already red on `main`. A red check inherited from the base branch is fixed in the same branch, in the same pull request, before the publish is attempted. "Pre-existing" and "unrelated to my change" are explanations, not exemptions.
+2. **A check that is red because it tests something retired** (a fixture for a deleted page, a rule for a dead feed) is retired with it, per 0.10 — in the same change.
+3. **Publishing is one attempt.** If the publish is still refused with every check green, report it to Joe once, in one line, with the single word he should reply — and never again for the same change. Two refusals on one change means the preparation was wrong, not the screen.
+4. **Never explain a red check to Joe.** He does not want to know why a check is red; he wants it green. The only time a check reaches his screen is when fixing it needs a product decision that is genuinely his.
+
+**Applies to:** every specialist, every publish, every project. Lead Developer owns the pre-publish run.
 
 # 1 · TALKING TO JOE
 ### 1.1 (2026-08-26) — Never tell Joe to approve or tap something unless the prompt is CONFIRMED visible to him
