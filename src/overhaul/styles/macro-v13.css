@@ -494,36 +494,32 @@
   display: flex; flex-direction: column; justify-content: space-between; gap: var(--v13-s2);
   flex: 1; min-height: 0; padding: var(--v13-s3);
 }
-/* headline: the gauge furthest from the middle of its 3-year range */
-.v13.macro-v13 .mac-sumlead {
-  display: flex; align-items: baseline; gap: var(--v13-s2); min-width: 0; white-space: nowrap;
+/* three counts, the numbers are the headline (Joe 2026-10-22: no single
+   gauge picked out, no bar chart — just the number stretched) */
+.v13.macro-v13 .mac-sumstats {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--v13-s2);
+  flex: 1; align-items: center;
 }
-.v13.macro-v13 .mac-sumname {
-  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
-  font-size: var(--v13-t3); color: var(--v13-ink);
+.v13.macro-v13 .mac-stat {
+  display: flex; flex-direction: column; min-width: 0; padding: var(--v13-s2) 0 0;
+  border-top: 2px solid var(--v13-rule); color: var(--v13-ink-3);
 }
-.v13.macro-v13 .mac-sumval {
-  flex: none; font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
-  font-size: var(--v13-t5); font-weight: var(--fw-600); letter-spacing: -0.02em; color: var(--v13-ink);
+.v13.macro-v13 .mac-stat b {
+  font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
+  font-size: var(--v13-t6); font-weight: var(--fw-600); line-height: 1; letter-spacing: -0.02em;
+  color: var(--v13-ink-3);
 }
-.v13.macro-v13 .mac-sumpct { flex: none; box-shadow: none; }
-.v13.macro-v13 .mac-sumpct.ext, .v13.macro-v13 .mac-sumpct.elev { box-shadow: none; }
-.v13.macro-v13 .mac-sumlead--empty { font-size: var(--v13-t2); color: var(--v13-ink-3); }
-
-/* heat bar: red = share stretched, amber = share elevated, track = in range */
-.v13.macro-v13 .mac-heat {
-  display: flex; height: var(--v13-heat); border-radius: var(--v13-r); overflow: hidden;
-  background: var(--v13-up-bg);
+.v13.macro-v13 .mac-stat i {
+  font-style: normal; font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.07em;
+  text-transform: uppercase; margin-top: var(--v13-s1); white-space: nowrap;
 }
-.v13.macro-v13 .mac-heat-ext  { background: var(--v13-down); }
-.v13.macro-v13 .mac-heat-elev { background: var(--v13-warn); }
-
-.v13.macro-v13 .mac-sumfoot { display: flex; align-items: center; gap: var(--v13-s1); min-width: 0; white-space: nowrap; }
-.v13.macro-v13 .mac-sumcount {
-  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
-  font-size: var(--v13-t2); color: var(--v13-ink-3);
-}
-.v13.macro-v13 .mac-sumcount.has-ext { color: var(--v13-down); font-weight: var(--fw-600); }
+.v13.macro-v13 .mac-stat u { text-decoration: none; font-size: var(--v13-t1); white-space: nowrap; }
+.v13.macro-v13 .mac-stat.is-ext  { border-top-color: var(--v13-down); }
+.v13.macro-v13 .mac-stat.is-ext b, .v13.macro-v13 .mac-stat.is-ext i { color: var(--v13-down); }
+.v13.macro-v13 .mac-stat.is-elev { border-top-color: var(--v13-warn); }
+.v13.macro-v13 .mac-stat.is-elev b, .v13.macro-v13 .mac-stat.is-elev i { color: var(--v13-warn); }
+.v13.macro-v13 .mac-stat.is-move { border-top-color: var(--v13-accent); }
+.v13.macro-v13 .mac-stat.is-move b, .v13.macro-v13 .mac-stat.is-move i { color: var(--v13-accent); }
 
 /* the open panel — full width, under the row that holds the open tile */
 .v13.macro-v13 .mac-open {
@@ -555,5 +551,4 @@
 @media (max-width: 520px) {
   .v13.macro-v13 .mac-sumgrid { grid-auto-rows: auto; }
   .v13.macro-v13 .mac-sum { min-height: var(--v13-tile-sm); }
-  .v13.macro-v13 .mac-sumfoot { flex-wrap: wrap; white-space: normal; }
 }

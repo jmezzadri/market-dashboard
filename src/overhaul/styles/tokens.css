@@ -1203,7 +1203,6 @@
   --v13-bar: 28px;
   --v13-tile: 380px;
   --v13-tile-sm: 150px; /* Macro Landscape summary tile (2026-10-22) */
-  --v13-heat: 6px;      /* heat bar height on a summary tile */
   --v13-page: 1600px;
   --v13-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --v13-fast: 120ms;

@@ -627,13 +627,8 @@ export default function MacroPage() {
           const ext = inds.filter((i) => i.state==='extreme').length + posStates.filter((x) => x==='extreme').length;
           const elev = inds.filter((i) => i.state==='elevated').length + posStates.filter((x) => x==='elevated').length;
           const big = inds.filter((i) => i.movePct != null && i.movePct >= MOVE_FLAG_PCTILE).length;
-          // Headline: the indicator furthest from the middle of its 3-year
-          // range; ties go to the one with the bigger latest move.
-          const dist = (i) => (i.pct == null ? -1 : Math.abs(i.pct - 50));
-          const rank = (i) => (i.state === 'extreme' ? 2 : i.state === 'elevated' ? 1 : 0);
-          const lead = [...inds].filter((i) => i.pct != null).sort((a, b) => rank(b) - rank(a) || dist(b) - dist(a) || (b.movePct ?? 0) - (a.movePct ?? 0))[0] || null;
           const heat = total ? (ext + 0.5 * elev) / total : 0;
-          summ[dom] = { inds, markets, total, ext, elev, big, lead, heat };
+          summ[dom] = { inds, markets, total, ext, elev, big, heat };
         });
         const hot = DOMAINS.reduce((a, d) => (summ[d].heat > (summ[a]?.heat ?? -1) ? d : a), null);
         const rows = [];
@@ -682,36 +677,27 @@ export default function MacroPage() {
                   {row.map((dom) => {
                     const d = summ[dom];
                     const isOpen = openDom === dom;
-                    const lead = d.lead;
-                    const leadCls = lead ? (lead.state==='extreme' ? ' ext' : lead.state==='elevated' ? ' elev' : '') : '';
-                    const extPct = d.total ? (d.ext / d.total) * 100 : 0;
-                    const elevPct = d.total ? (d.elev / d.total) * 100 : 0;
                     return (
                       <button key={dom} type="button"
                         className={'mac-sum' + (isOpen ? ' is-open' : '') + (dom === hot && d.ext > 0 ? ' is-hot' : '')}
                         aria-expanded={isOpen}
-                        onClick={() => setOpenDom(isOpen ? null : dom)}>
+                        onClick={() => { hideTip(); setOpenDom(isOpen ? null : dom); }}>
                         <div className="mac-cathead mac-sumhead">
                           <span className="mac-catname">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>
                           {dom === hot && d.ext > 0 && <span className="mac-catcount mac-catcount--hot">Hot spot</span>}
                           <span className="mac-sumchev" aria-hidden="true" />
                         </div>
                         <div className="mac-sumbody">
-                          {lead ? (
-                            <div className="mac-sumlead">
-                              <span className="mac-sumname">{lead.name}</span>
-                              <span className="mac-sumval">{fmtV(lead.value, lead.decimals, lead.unit)}</span>
-                              <span className={'mac-pct mac-sumpct' + leadCls}>{lead.tailWord && <em className="mac-tail">{lead.tailWord}</em>}{ord(lead.pct)}</span>
-                            </div>
-                          ) : <div className="mac-sumlead mac-sumlead--empty">No live elements.</div>}
-                          <div className="mac-heat" aria-hidden="true">
-                            <span className="mac-heat-ext" style={{ width: `${extPct}%` }} />
-                            <span className="mac-heat-elev" style={{ width: `${elevPct}%` }} />
-                          </div>
-                          <div className="mac-sumfoot">
-                            <span className={'mac-sumcount' + (d.ext>0 ? ' has-ext' : '')} onMouseEnter={(e)=>showTip(e, STRETCHED_TIP)} onMouseLeave={hideTip}>{d.ext} of {d.total} stretched</span>
-                            {d.big>0 && <span className="mac-catcount mac-catcount--move" onMouseEnter={(e)=>showTip(e, BIG_MOVE_TIP)} onMouseLeave={hideTip}>{d.big} big {d.big>1?'moves':'move'}</span>}
-                            {d.elev>0 && <span className="mac-catcount mac-catcount--elev" onMouseEnter={(e)=>showTip(e, ELEVATED_TIP)} onMouseLeave={hideTip}>{d.elev} elevated</span>}
+                          <div className="mac-sumstats">
+                            <span className={'mac-stat' + (d.ext>0 ? ' is-ext' : '')} onMouseEnter={(e)=>showTip(e, STRETCHED_TIP)} onMouseLeave={hideTip}>
+                              <b>{d.ext}</b><i>stretched</i><u>of {d.total}</u>
+                            </span>
+                            <span className={'mac-stat' + (d.elev>0 ? ' is-elev' : '')} onMouseEnter={(e)=>showTip(e, ELEVATED_TIP)} onMouseLeave={hideTip}>
+                              <b>{d.elev}</b><i>elevated</i><u>of {d.total}</u>
+                            </span>
+                            <span className={'mac-stat' + (d.big>0 ? ' is-move' : '')} onMouseEnter={(e)=>showTip(e, BIG_MOVE_TIP)} onMouseLeave={hideTip}>
+                              <b>{d.big}</b><i>big {d.big===1?'move':'moves'}</i><u>of {d.inds.length}</u>
+                            </span>
                           </div>
                         </div>
                       </button>
