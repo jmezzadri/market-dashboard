@@ -72,6 +72,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `0.12` Ship only what was asked; no unsolicited "helper" UX
 - `0.13` The bug queue is part of every sweep. A monitoring surface nobody is instructed to read does not exist
 - `0.14` THE PAPER BOOK REBALANCES ITSELF EVERY MONTH. Never ask Joe to approve, confirm or trigger a paper trade.
+- `0.15` TOUCH ANYTHING, UPDATE THE METHODOLOGY PAGE. A change to a rule, a calculation, a score, a page or a feed ships with its Methodology section in the same change; a nav page with no section is a defect
 
 **1 · TALKING TO JOE**
 
@@ -501,6 +502,14 @@ Same run: closing the two reports with a raw `update bug_reports` hung in the MC
 **Rule:** the closing message lists ONLY (a) what was fixed, (b) anything that needs Joe — in bold, and (c) the bug queue, as one short line. Every check that came back green collapses into ONE line ("Everything else checked and green"). Transient reds, deliberately retired watchers and already-handled items do not get rows — they go in project memory / LESSONS, not the message. If nothing was fixed and nothing needs Joe, the message is one line. This governs the "closing table" wording in the scheduled sweep prompt.
 
 **Applies to:** Lead Developer — every scheduled sweep and status report to Joe.
+
+### 0.15 (2026-10-21, Joe, furious: "this is a hard fucking rule in the project!!!!!!" / "you touch anything and you must make sure methodology is kept up to date!") — Touch anything, update the Methodology page
+
+**What happened:** The Trade Idea Contract v2 build (6.26) shipped seven rule changes to the contract, the scorer and the Scorecard page — and left the Methodology page untouched, because the spec's build list did not name it. Worse, the Macro Scorecard had been a top-bar page with NO Methodology section at all since it joined the nav; the page documented four sections for five nav pages. Joe asked "Did you update the methodology page?" and the answer was no.
+
+**Rule:** The Methodology page is part of every change, not a follow-up. Any change to a rule, a formula, a threshold, a score, a feed, a page or a page name ships with its Methodology section rewritten from the production code in the same pull request (9.3: quote the code, never memory). Every page in the top bar has a Methodology section of its own, in nav order, with the nav's exact name (9.11). A spec or build list that omits the Methodology page does not excuse it — the agent adds it. Before opening any PR: "which Methodology section does this change, and is it in the diff?" If the answer is none, say why in the PR body.
+
+**Applies to:** every specialist, every change.
 
 ### 0.14 (2026-10-02, Joe, emphatic) — THE PAPER BOOK REBALANCES ITSELF EVERY MONTH. Never ask Joe to approve, confirm or trigger a paper trade.
 
