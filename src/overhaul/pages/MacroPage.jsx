@@ -394,6 +394,17 @@ export default function MacroPage() {
   const [selectedPos, setSelectedPos] = useState(null);
   const [selectedBucket, setSelectedBucket] = useState(null);
   const [engOpen, setEngOpen] = useState(false);
+  // Summary tiles (2026-10-22, Joe: "the page just feels very busy ... you
+  // don't know where your eye is supposed to go"). Each domain is a small
+  // headline tile; ONE domain opens at a time into a full-width panel under
+  // its own row of tiles, like the folded bars on Paper Portfolio.
+  const [openDom, setOpenDom] = useState(null);
+  const [cols, setCols] = useState(() => (typeof window === 'undefined' ? 3 : window.innerWidth > 1180 ? 3 : window.innerWidth > 820 ? 2 : 1));
+  useEffect(() => {
+    const on = () => setCols(window.innerWidth > 1180 ? 3 : window.innerWidth > 820 ? 2 : 1);
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
   const [tip, setTip] = useState(null);
   const showTip = (e, text) => { const r = e.currentTarget.getBoundingClientRect(); setTip({ text, x: r.left + r.width / 2, y: r.top }); };
   const hideTip = () => setTip(null);
@@ -602,64 +613,127 @@ export default function MacroPage() {
         </section>
       )}
 
-      {/* six domain tiles — putty cards with indicator + positioning rows */}
-      {!loading && (
-        <section className="wrap">
-          <Reveal className="mac-catgrid">
-            {DOMAINS.map((dom) => {
-              const inds = byDomain[dom] || [];
-              const markets = cotPos?.domains?.[dom]?.markets || [];
-              // The badge counts what the ROWS show — indicators AND the COT
-              // positioning rows below them, which carry the same flags. It
-              // used to count indicators only, so a tile could show two red
-              // positioning rows under a header claiming nothing was stretched.
-              const posStates = markets.map((m) => posState(m.spec));
-              const ext = inds.filter((i) => i.state==='extreme').length
-                        + posStates.filter((x) => x==='extreme').length;
-              const elev = inds.filter((i) => i.state==='elevated').length
-                         + posStates.filter((x) => x==='elevated').length;
-              // Big move = the latest change, scaled by this indicator's own
-              // recent volatility, in the top decile of its 3-year history.
-              const big = inds.filter((i) => i.movePct != null && i.movePct >= MOVE_FLAG_PCTILE).length;
-              return (
-                <div key={dom} className="mac-cat">
-                  <div className="mac-cathead"><span className="mac-catname">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>
-                    {big>0 && <span className="mac-catcount mac-catcount--move"
-                      onMouseEnter={(e)=>showTip(e, BIG_MOVE_TIP)} onMouseLeave={hideTip}>{big} big {big>1?'moves':'move'}</span>}
-                    {ext>0 && <span className="mac-catcount mac-catcount--ext"
-                      onMouseEnter={(e)=>showTip(e, STRETCHED_TIP)} onMouseLeave={hideTip}>{ext} stretched</span>}
-                    {elev>0 && <span className="mac-catcount mac-catcount--elev"
-                      onMouseEnter={(e)=>showTip(e, ELEVATED_TIP)} onMouseLeave={hideTip}>{elev} elevated</span>}</div>
-                  <div className="mac-rows">
-                    {inds.map((ind) => { const dd=ddOf(ind); return (
-                      <a key={ind.id} className="mac-irow" onClick={() => setSelected(ind)} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip}>
-                        <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ind.state) }} /><span className="mac-name">{ind.name}</span></span>
-                        <span className="mac-val">{fmtV(ind.value, ind.decimals, ind.unit)}</span>
-                        <span className={'mac-chg'+(dd?' '+dd.cls:'')+(ind.movePct!=null&&ind.movePct>=MOVE_FLAG_PCTILE?' mac-bigmove':'')}>{dd ? dd.arrow+dd.txt : ''}</span>
-                        <span className={'mac-pct'+(ind.state==='extreme'?' ext':ind.state==='elevated'?' elev':'')}>{ind.tailWord && <em className="mac-tail">{ind.tailWord}</em>}{ind.pct!=null ? ord(ind.pct) : ''}</span>
-                        <span className="mac-chev">›</span>
-                      </a>
-                    ); })}
-                    {markets.length > 0 && (
-                      <div className="mac-poshead">Positioning · COT extremes</div>
-                    )}
-                    {markets.map((m) => { const ln=posLean(m.spec); const ps = posState(m.spec); let chg=''; const h=m.history; if(Array.isArray(h)&&h.length>=2){ const c=h[h.length-1][1], p=h[h.length-2][1]; if(Number.isFinite(c)&&Number.isFinite(p)){ const r=Number((c-p).toFixed(1)); if(r!==0) chg=(r>0?'▲':'▼')+Math.abs(r).toFixed(1); } } return (
-                      <a key={'pos-'+m.market} className="mac-irow" onClick={() => setSelectedPos({ ...m, domain: dom })} onMouseEnter={(e)=>showTip(e, posTip(m, ln))} onMouseLeave={hideTip}>
-                        <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ps) }} /><span className="mac-name">{m.market}</span></span>
-                        <span className="mac-lean">{ln ? <span className={'lean '+ln.cls}>{ln.txt}</span> : ''}</span>
-                        <span className="mac-chg mut">{chg}</span>
-                        <span className={'mac-pct'+(ps==='extreme'?' ext':ps==='elevated'?' elev':'')}>{ps!=='calm' && Number.isFinite(m.spec) && <em className="mac-tail">{m.spec<=50?'short':'long'}</em>}{Number.isFinite(m.spec) ? ord(m.spec) : ''}</span>
-                        <span className="mac-chev">›</span>
-                      </a>
-                    ); })}
-                    {inds.length===0 && markets.length===0 && <div className="mac-empty">No live elements.</div>}
-                  </div>
+      {/* six domain summary tiles + one open panel per row (2026-10-22) */}
+      {!loading && (() => {
+        // Per-domain roll-up. Elements = indicators AND positioning rows, the
+        // same set the old badges counted. Heat = share of elements stretched
+        // plus half the share elevated; the hottest domain is the hot spot.
+        const summ = {};
+        DOMAINS.forEach((dom) => {
+          const inds = byDomain[dom] || [];
+          const markets = cotPos?.domains?.[dom]?.markets || [];
+          const posStates = markets.map((m) => posState(m.spec));
+          const total = inds.length + markets.length;
+          const ext = inds.filter((i) => i.state==='extreme').length + posStates.filter((x) => x==='extreme').length;
+          const elev = inds.filter((i) => i.state==='elevated').length + posStates.filter((x) => x==='elevated').length;
+          const big = inds.filter((i) => i.movePct != null && i.movePct >= MOVE_FLAG_PCTILE).length;
+          // Headline: the indicator furthest from the middle of its 3-year
+          // range; ties go to the one with the bigger latest move.
+          const dist = (i) => (i.pct == null ? -1 : Math.abs(i.pct - 50));
+          const rank = (i) => (i.state === 'extreme' ? 2 : i.state === 'elevated' ? 1 : 0);
+          const lead = [...inds].filter((i) => i.pct != null).sort((a, b) => rank(b) - rank(a) || dist(b) - dist(a) || (b.movePct ?? 0) - (a.movePct ?? 0))[0] || null;
+          const heat = total ? (ext + 0.5 * elev) / total : 0;
+          summ[dom] = { inds, markets, total, ext, elev, big, lead, heat };
+        });
+        const hot = DOMAINS.reduce((a, d) => (summ[d].heat > (summ[a]?.heat ?? -1) ? d : a), null);
+        const rows = [];
+        for (let i = 0; i < DOMAINS.length; i += cols) rows.push(DOMAINS.slice(i, i + cols));
+
+        const renderRows = (dom) => {
+          const { inds, markets } = summ[dom];
+          return (
+            <div className="mac-open-cols">
+              <div className="mac-rows mac-rows--open">
+                {inds.map((ind) => { const dd=ddOf(ind); return (
+                  <a key={ind.id} className="mac-irow" onClick={() => setSelected(ind)} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip}>
+                    <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ind.state) }} /><span className="mac-name">{ind.name}</span></span>
+                    <span className="mac-val">{fmtV(ind.value, ind.decimals, ind.unit)}</span>
+                    <span className={'mac-chg'+(dd?' '+dd.cls:'')+(ind.movePct!=null&&ind.movePct>=MOVE_FLAG_PCTILE?' mac-bigmove':'')}>{dd ? dd.arrow+dd.txt : ''}</span>
+                    <span className={'mac-pct'+(ind.state==='extreme'?' ext':ind.state==='elevated'?' elev':'')}>{ind.tailWord && <em className="mac-tail">{ind.tailWord}</em>}{ind.pct!=null ? ord(ind.pct) : ''}</span>
+                    <span className="mac-chev">›</span>
+                  </a>
+                ); })}
+                {inds.length===0 && <div className="mac-empty">No live indicators.</div>}
+              </div>
+              {markets.length > 0 && (
+                <div className="mac-rows mac-rows--open">
+                  <div className="mac-poshead mac-poshead--open">Positioning · COT extremes</div>
+                  {markets.map((m) => { const ln=posLean(m.spec); const ps = posState(m.spec); let chg=''; const h=m.history; if(Array.isArray(h)&&h.length>=2){ const c=h[h.length-1][1], p=h[h.length-2][1]; if(Number.isFinite(c)&&Number.isFinite(p)){ const r=Number((c-p).toFixed(1)); if(r!==0) chg=(r>0?'▲':'▼')+Math.abs(r).toFixed(1); } } return (
+                    <a key={'pos-'+m.market} className="mac-irow" onClick={() => setSelectedPos({ ...m, domain: dom })} onMouseEnter={(e)=>showTip(e, posTip(m, ln))} onMouseLeave={hideTip}>
+                      <span className="mac-nm"><span className="mac-dot" style={{ background: stateColor(ps) }} /><span className="mac-name">{m.market}</span></span>
+                      <span className="mac-lean">{ln ? <span className={'lean '+ln.cls}>{ln.txt}</span> : ''}</span>
+                      <span className="mac-chg mut">{chg}</span>
+                      <span className={'mac-pct'+(ps==='extreme'?' ext':ps==='elevated'?' elev':'')}>{ps!=='calm' && Number.isFinite(m.spec) && <em className="mac-tail">{m.spec<=50?'short':'long'}</em>}{Number.isFinite(m.spec) ? ord(m.spec) : ''}</span>
+                      <span className="mac-chev">›</span>
+                    </a>
+                  ); })}
                 </div>
-              );
-            })}
-          </Reveal>
-        </section>
-      )}
+              )}
+            </div>
+          );
+        };
+
+        return (
+          <section className="wrap">
+            <Reveal className="mac-sumrows">
+            {rows.map((row, ri) => (
+              <div key={ri} className="mac-sumrow">
+                <div className="mac-sumgrid" style={{ '--cols': cols }}>
+                  {row.map((dom) => {
+                    const d = summ[dom];
+                    const isOpen = openDom === dom;
+                    const lead = d.lead;
+                    const leadCls = lead ? (lead.state==='extreme' ? ' ext' : lead.state==='elevated' ? ' elev' : '') : '';
+                    const extPct = d.total ? (d.ext / d.total) * 100 : 0;
+                    const elevPct = d.total ? (d.elev / d.total) * 100 : 0;
+                    return (
+                      <button key={dom} type="button"
+                        className={'mac-sum' + (isOpen ? ' is-open' : '') + (dom === hot && d.ext > 0 ? ' is-hot' : '')}
+                        aria-expanded={isOpen}
+                        onClick={() => setOpenDom(isOpen ? null : dom)}>
+                        <div className="mac-cathead mac-sumhead">
+                          <span className="mac-catname">{dom==='Financial Conditions & Economy'?'Fin Cond & Economy':dom}</span>
+                          {dom === hot && d.ext > 0 && <span className="mac-catcount mac-catcount--hot">Hot spot</span>}
+                          <span className="mac-sumchev" aria-hidden="true" />
+                        </div>
+                        <div className="mac-sumbody">
+                          {lead ? (
+                            <div className="mac-sumlead">
+                              <span className="mac-sumname">{lead.name}</span>
+                              <span className="mac-sumval">{fmtV(lead.value, lead.decimals, lead.unit)}</span>
+                              <span className={'mac-pct mac-sumpct' + leadCls}>{lead.tailWord && <em className="mac-tail">{lead.tailWord}</em>}{ord(lead.pct)}</span>
+                            </div>
+                          ) : <div className="mac-sumlead mac-sumlead--empty">No live elements.</div>}
+                          <div className="mac-heat" aria-hidden="true">
+                            <span className="mac-heat-ext" style={{ width: `${extPct}%` }} />
+                            <span className="mac-heat-elev" style={{ width: `${elevPct}%` }} />
+                          </div>
+                          <div className="mac-sumfoot">
+                            <span className={'mac-sumcount' + (d.ext>0 ? ' has-ext' : '')} onMouseEnter={(e)=>showTip(e, STRETCHED_TIP)} onMouseLeave={hideTip}>{d.ext} of {d.total} stretched</span>
+                            {d.big>0 && <span className="mac-catcount mac-catcount--move" onMouseEnter={(e)=>showTip(e, BIG_MOVE_TIP)} onMouseLeave={hideTip}>{d.big} big {d.big>1?'moves':'move'}</span>}
+                            {d.elev>0 && <span className="mac-catcount mac-catcount--elev" onMouseEnter={(e)=>showTip(e, ELEVATED_TIP)} onMouseLeave={hideTip}>{d.elev} elevated</span>}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {row.includes(openDom) && (
+                  <div className="mac-open" role="region" aria-label={openDom}>
+                    <div className="mac-cathead mac-openhead">
+                      <span className="mac-catname">{openDom==='Financial Conditions & Economy'?'Fin Cond & Economy':openDom}</span>
+                      <span className="mac-opensub">{DOMAIN_TITLE[openDom]}</span>
+                      <button type="button" className="mac-openclose" onClick={() => setOpenDom(null)}>Hide</button>
+                    </div>
+                    {renderRows(openDom)}
+                  </div>
+                )}
+              </div>
+            ))}
+            </Reveal>
+          </section>
+        );
+      })()}
 
       {loading && <section className="wrap"><div className="mac-loading">Loading…</div></section>}
 
