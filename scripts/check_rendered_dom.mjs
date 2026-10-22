@@ -236,7 +236,16 @@ async function checkMobile(browser) {
           for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
             const o = getComputedStyle(a).overflowX;
             if (o === 'auto' || o === 'scroll') return 'scroller';
-            if (o === 'hidden' || o === 'clip') return 'hidden';
+            if (o === 'hidden' || o === 'clip') {
+              // A marquee: the box clips, but its content slides through the
+              // window on its own (a CSS animation on a direct child). Every
+              // tile passes the reader in turn, so nothing is cut off. Since
+              // 2026-10-22 the market banner is one of these — it stopped
+              // being a hand scroller because a hand scroll stacked on the
+              // slide and emptied the window.
+              for (const c of a.children) if (getComputedStyle(c).animationName !== 'none') return 'scroller';
+              return 'hidden';
+            }
           }
           return null;
         };
