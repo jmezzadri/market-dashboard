@@ -54,6 +54,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -166,10 +167,35 @@ PAIRED_RELEASES = {
 
 
 # ── helpers ────────────────────────────────────────────────────────────────
-def _get_json(url: str, timeout: int = 30):
-    req = urllib.request.Request(url, headers={"User-Agent": "MacroTilt/econ-calendar"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8"))
+def _get_json(url: str, timeout: int = 30, attempts: int = 3):
+    """GET + parse JSON, retrying transient failures.
+
+    2026-10-21 (23:40Z build): every one of the 29 FRED release calls failed
+    with "Expecting value: line 1 column 1" — FRED answered 200 with an empty
+    body for the whole run, and the published calendar lost claims, CPI, PCE,
+    GDP, payrolls and every other BLS/BEA date in one go. The homepage tile
+    showed four central-bank rows and nothing else; the brief's event-date
+    guard went blind. One transient outage must not wipe the calendar, so a
+    non-JSON body, a 429/5xx or a connection error is retried with a short
+    backoff before it counts as a failure.
+    """
+    import time as _time
+    last = None
+    for i in range(attempts):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "MacroTilt/econ-calendar"})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                body = r.read().decode("utf-8")
+            return json.loads(body)
+        except urllib.error.HTTPError as exc:
+            last = exc
+            if exc.code not in (429, 500, 502, 503, 504):
+                raise
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+            last = exc
+        if i + 1 < attempts:
+            _time.sleep(2 + 3 * i)
+    raise RuntimeError(f"{type(last).__name__}: {last} (after {attempts} attempts)")
 
 
 def _get_text(url: str, timeout: int = 30) -> str:
@@ -223,15 +249,41 @@ def fred_release_dates(release_id: int, start: dt.date, end: dt.date, key: str):
     return [dt.date.fromisoformat(x["date"]) for x in data.get("release_dates", [])]
 
 
-def build_fred_events(start: dt.date, end: dt.date, key: str):
+def _prior_fred_dates(prior: dict | None, name: str, start: dt.date, end: dt.date):
+    """Dates for one FRED-sourced release from the last published calendar."""
+    if not prior:
+        return []
+    out = []
+    for e in prior.get("events") or []:
+        if e.get("name") != name or not str(e.get("source", "")).startswith("FRED"):
+            continue
+        try:
+            d = dt.date.fromisoformat(e["date"])
+        except Exception:  # noqa: BLE001
+            continue
+        if start <= d <= end:
+            out.append(d)
+    return sorted(set(out))
+
+
+def build_fred_events(start: dt.date, end: dt.date, key: str, prior: dict | None = None):
+    """`prior` is the previously published calendar (same shape as this script's
+    output). When FRED cannot be read for a release even after retries, that
+    release's dates are carried over from `prior` and the problem line says so —
+    a day-old BLS schedule is correct far more often than a blank tile."""
     events, problems = [], []
 
     for rid, meta in RELEASES.items():
         try:
             dates = fred_release_dates(rid, start, end, key)
         except Exception as exc:  # noqa: BLE001
-            problems.append(f"release {rid} ({meta['name']}): {exc}")
-            continue
+            dates = _prior_fred_dates(prior, meta["name"], start, end)
+            if dates:
+                problems.append(f"release {rid} ({meta['name']}): {exc} — carried {len(dates)} "
+                                f"date(s) from the prior published calendar")
+            else:
+                problems.append(f"release {rid} ({meta['name']}): {exc}")
+                continue
         # 2026-10-13 (bug #1267): FRED returned an empty list for release 291 and
         # existing home sales vanished with no trace. Every release here is at
         # least monthly except the quarterly ECI (11) and productivity (47), so
@@ -251,7 +303,21 @@ def build_fred_events(start: dt.date, end: dt.date, key: str):
         try:
             dates = fred_release_dates(rid, start - dt.timedelta(days=20), end + dt.timedelta(days=20), key)
         except Exception as exc:  # noqa: BLE001
-            problems.append(f"release {rid} (paired): {exc}")
+            carried = []
+            for sub in ("first", "second", "fallback"):
+                for d in _prior_fred_dates(prior, spec[sub]["name"], start, end):
+                    carried.append(dict(
+                        date=d.isoformat(), time_et=spec[sub]["time"], name=spec[sub]["name"],
+                        short=spec[sub]["short"], tier=spec[sub]["tier"], category=spec[sub]["cat"],
+                        blurb=spec[sub]["blurb"], source="FRED release calendar",
+                        time_source="published release policy",
+                    ))
+            if carried:
+                events.extend(carried)
+                problems.append(f"release {rid} (paired): {exc} — carried {len(carried)} "
+                                f"date(s) from the prior published calendar")
+            else:
+                problems.append(f"release {rid} (paired): {exc}")
             continue
         labelled, i = [], 0
         while i < len(dates):
@@ -920,7 +986,13 @@ def build(today: dt.date | None = None, key: str | None = None):
     start = today - dt.timedelta(days=DAYS_BACK)
     end = today + dt.timedelta(weeks=WEEKS_FORWARD)
 
-    events, problems = build_fred_events(start, end, key)
+    prior = None
+    try:
+        with open(OUT_PATH, encoding="utf-8") as fh:
+            prior = json.load(fh)
+    except Exception:  # noqa: BLE001
+        prior = None
+    events, problems = build_fred_events(start, end, key, prior)
     fomc, fomc_problems = build_fomc_events(start, end)
     events += fomc
     problems += fomc_problems
