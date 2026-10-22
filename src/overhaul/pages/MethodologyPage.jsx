@@ -23,9 +23,16 @@
    #power-trend). #conviction-events is gone with its book; #divergences went
    with the RSI-divergence scan (retired 2026-10-13).
 
-   Untouched: §01 Macro + the Engine, §04 Data (freshness contract +
+   §04 Macro Scorecard (added 2026-10-21): the Trade Idea contract and the
+   marking rules, every number quoted from scripts/build_trade_idea.py and
+   scripts/score_trade_ideas.py (Contract v2, LESSONS 6.26). It had been
+   missing since the Scorecard joined the top bar — a nav page with no
+   methodology section (LESSONS 0.15). Data is now §05; its #freshness and
+   #sources anchors are unchanged. Section numbers are 01–05.
+
+   Untouched: §01 Macro + the Engine, §05 Data (freshness contract +
    manifest-derived vendor table; the stale dead-pipeline rows in the jobs
-   table were replaced with the three QT jobs). Section numbers are 01–04.
+   table were replaced with the three QT jobs).
 
    Cream rebrand Phase B (2026-07-07): page moved to the shared home-v12
    cream system (cream-system.css) with page styles in methodology-v12.css.
@@ -52,6 +59,7 @@ const SECTIONS = [
   ['macro',     PAGE_NAME.macro],
   ['scanner',   'Idea feeds'],
   ['portfolio', PAGE_NAME.paper],
+  ['scorecard', PAGE_NAME.scorecard],
   ['data',      PAGE_NAME.data],
 ];
 
@@ -584,10 +592,146 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 04 — Data (freshness contract + sources & vendors;
+        {/* 04 — Macro Scorecard: the Trade Idea contract and how every call is
+            marked. Every number here is quoted from scripts/build_trade_idea.py
+            and scripts/score_trade_ideas.py (LESSONS 9.3); rewritten 2026-10-21
+            for Contract v2 (LESSONS 6.26). */}
+        <article id="scorecard" className="me-section">
+          <div className="me-num">04</div>
+          <div>
+            <div className="mt-eyebrow">{PAGE_NAME.scorecard}</div>
+            <h2 className="me-h2">Every trade call, and how it is marked</h2>
+            <p className="me-body-p">
+              MacroTilt publishes a trade idea only when one clears a written contract, and then marks
+              it in public until it closes. Research runs every morning before the US open; at most{' '}
+              <b>two notes publish in any rolling seven days</b>, and most days publish nothing. A note
+              that cannot name something to buy or sell is not published. Nothing publishes without a
+              human tap; the contract below is what the idea has to survive first.
+            </p>
+
+            <h3 className="me-h3" id="scorecard-contract" style={{ scrollMarginTop: 120 }}>
+              What a note has to clear before it publishes
+            </h3>
+            <p className="me-body-p">
+              <b>A measured edge, with a baseline.</b> The note names the signal behind the call
+              (positioning, technicals, relative value, flows, a cross-asset divergence, credit, volatility
+              structure, calendar mechanics or market structure), the historical cases it was tested on,
+              what followed, and the <b>unconditional outcome over the same holding period</b> — a hit
+              rate means nothing until you know the rate from any start date. A famous valuation ratio
+              (CAPE, the Buffett indicator, the equity risk premium) may appear as context but may not be
+              the driver. The horizon is at most <b>18 months</b>.
+            </p>
+            <p className="me-body-p">
+              <b>The return bar is a pace.</b> The note states the return it calls for on the position a
+              retail account would hold, and that return must run at <b>20% a year</b> — the S&amp;P
+              500&rsquo;s long-run 10% plus a 10-point margin — pro-rated to the horizon: 1.67% for one
+              month, 5% for three, 10% for six, 20% for twelve. It must also pay <b>at least twice</b>
+              what the position loses if the stated exit level prints. Every leg names a vehicle a US
+              retail brokerage can hold: a listed stock, a fund, or listed options on one — never a
+              futures contract or a swap.
+            </p>
+            <p className="me-body-p">
+              <b>Today&rsquo;s conditions.</b> The note names the one factor it says is driving the
+              move and counts how many of its historical cases share today&rsquo;s state on it. With{' '}
+              <b>five or more</b> matching cases, the edge has to hold inside those cases alone. With
+              fewer, the idea may still publish only if the cases&rsquo; returns did not depend on that
+              factor — the correlation between each case&rsquo;s return and the factor&rsquo;s move over
+              the hold must be <b>under 0.30</b> in absolute value — and then the note says so in plain
+              words, carries an exit level at most <b>one third</b> of the expected return, and is sized
+              at half the standard weight.
+            </p>
+            <p className="me-body-p">
+              <b>Positioning edges</b> (bets that an extreme in futures positioning reverses) are measured
+              on the full record with each week ranked only against the history available that week,
+              counted in <b>at least ten independent episodes</b> at least 13 weeks apart, split by
+              whether price was above or below its 200-day average, over <b>at least ten years</b> of
+              data — or, when the contract or trader category is younger than that, over its full
+              history provided the edge keeps the same sign at every threshold from the published
+              percentile to twice it. One sign flip and the note is refused.
+            </p>
+            <p className="me-body-p">
+              <b>Shorts.</b> Any short may publish if a retail account can express it: put options,
+              a pair against a long, an outright short of a liquid fund, or an inverse fund held at
+              most four weeks. A lagging asset is not a falling asset: an <b>outright short</b> must
+              show the asset&rsquo;s own median forward return below zero, not just below the market;
+              an edge that is only relative publishes as a pair. Every short-containing note states
+              its expected return against simply holding the S&amp;P 500.
+            </p>
+            <p className="me-body-p">
+              <b>Event ideas.</b> A second kind of note: a defined-risk options spread on one named
+              event with a date, resolving within <b>six months</b>. It has no backtest; it passes three
+              tests instead — the note&rsquo;s own odds of the event are at least <b>1.5 times</b> the
+              breakeven odds the premium implies, each link in the chain from the event to the
+              instrument carries a measured number from a dated source, and the structure is a spread
+              or single option on a listed underlying with the premium stated as the most it can lose.
+              It is exempt from the pace bar and the two-to-one rule: the premium is the stop.
+            </p>
+            <p className="me-body-p">
+              <b>The book.</b> The book is a notional 100. A standard idea is sized at <b>10</b>, an
+              idea published under the fewer-than-five-cases rule at <b>5</b>, an event idea at{' '}
+              <b>1 to 2</b> of premium; the rest is cash. A candidate is rejected if its daily returns
+              over the last 126 sessions ran at more than <b>0.60</b> correlation with any open call,
+              and a standard idea must raise the book&rsquo;s expected return over the S&amp;P per unit
+              of volatility at the real weights. The weight is written at publication and never changed.
+            </p>
+            <div className="me-formula" data-mono="code">
+              bar       = 20% a year pro-rated to the horizon · expected return ≥ 2 × loss at the exit level<br />
+              edge      = cases · what followed · the unconditional outcome over the same hold<br />
+              today     = ≥ 5 matching cases, or |corr(case return, factor move)| &lt; 0.30 at half size and a one-third stop<br />
+              position  = ≥ 10 episodes · ≥ 10 years or full history with no sign flip to 2× the threshold<br />
+              short     = the asset's own median forward return &lt; 0, else a pair only<br />
+              event     = our odds ≥ 1.5 × breakeven · measured transmission · premium is the max loss · resolves ≤ 6 months<br />
+              book      = 100 notional · weights 10 / 5 / 1–2 · |correlation with any open call| ≤ 0.60
+            </div>
+
+            <h3 className="me-h3" id="scorecard-marking" style={{ scrollMarginTop: 120 }}>
+              How each call is marked
+            </h3>
+            <p className="me-body-p">
+              <b>Entry</b> is the last closing price that had settled when the note published — the
+              price a reader was looking at, looked up by timestamp so it cannot be chosen. A close is
+              treated as settled from 5 PM ET. Every call is marked as the <b>price return</b> of the
+              series or fund the note named, on both sides of a spread, netted; no dividends, interest,
+              costs or financing. Next to every call is the same yardstick: what the <b>S&amp;P 500</b>{' '}
+              did over exactly the same days, read on or before the call&rsquo;s own mark date and left
+              blank if the index is more than four days behind it.
+            </p>
+            <p className="me-body-p">
+              <b>A call closes</b> at the earliest of three things: the stated exit level printing
+              (the call is marked there and does not run on into a recovery); the <b>weekly review</b>,
+              every Monday, finding a critical claim the note relied on no longer holds (closed at the
+              last close before that review); or the planned close date. An <b>event idea</b> is marked
+              at expiry from the underlying&rsquo;s closing price against its strikes — the payoff
+              divided by the premium, so the result runs from a loss of the whole premium to the stated
+              payoff ratio — shown as open before expiry, and closed early only when the weekly review
+              finds the event decided, at the spread&rsquo;s value that day.
+            </p>
+            <p className="me-body-p">
+              <b>The book figures.</b> A call&rsquo;s <b>contribution</b> is its weight multiplied by its
+              own return, in points of the 100: a call at weight 10 that returns 20% contributes 2.
+              Realized is the sum for closed calls, shown by the year they closed; unrealized is the sum
+              for open calls; the two add to the book&rsquo;s total return exactly. The benchmark at
+              book level is the S&amp;P 500 held at the same total weight the book had invested each
+              day. Annualized figures are withheld below 28 days of history, and <b>no hit rate is
+              shown until ten calls have closed</b> — below that a single outcome moves it by ten
+              points. Every call is listed, including the ones that did not work. Calls published
+              before October 21, 2026 were assigned the standard weight of 10 and say so.
+            </p>
+            <div className="me-formula" data-mono="code">
+              entry        = last settled close before publication (settled from 5 PM ET)<br />
+              mark         = price return of the named series, long minus short, no costs<br />
+              benchmark    = S&amp;P 500 over the same days, read on or before the mark date (blank if &gt; 4 days stale)<br />
+              close        = exit level printed · weekly review finds a critical claim broken · planned close date<br />
+              event mark   = intrinsic value at expiry ÷ premium − 1 (−100% to the payoff ratio)<br />
+              contribution = weight × return ÷ 100 · realized + unrealized = total · no hit rate below 10 closed calls
+            </div>
+          </div>
+        </article>
+
+        {/* 05 — Data (freshness contract + sources & vendors;
             #freshness / #sources anchors kept for deep links) */}
         <article id="data" className="me-section">
-          <div className="me-num">04</div>
+          <div className="me-num">05</div>
           <div>
             <div className="mt-eyebrow" id="freshness" style={{ scrollMarginTop: 120 }}>{PAGE_NAME.data}</div>
             <h2 className="me-h2">When everything refreshes, and how you can tell</h2>

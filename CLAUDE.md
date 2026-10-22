@@ -36,6 +36,14 @@ in his own words and that every change must satisfy before it is opened.
   diff them; any difference nobody intended is a bug.
 - LESSONS 9.23, 9.17, 9.18, 7.15.
 
+## The Methodology page ships with every change
+
+- **Touch anything, update the Methodology page.** A change to a rule, a
+  calculation, a score, a feed, a page or a page name ships with its
+  Methodology section rewritten from the production code, in the same PR.
+  Every top-bar page has its own section. A spec that omits it does not
+  excuse it. LESSONS 0.15, 9.3, 9.11.
+
 ## Working with Joe
 
 - Three sentences. Plain English, no file names, no PR numbers, no terminal
