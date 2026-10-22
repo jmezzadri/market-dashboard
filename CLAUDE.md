@@ -50,3 +50,14 @@ in his own words and that every change must satisfy before it is opened.
   words. Anything needed from him on its own bolded line.
 - Joe never touches GitHub. The agent opens, verifies and (when authorised)
   merges its own work.
+
+## Publishing — every check green first
+
+- **Every check is green before a publish is attempted — including checks
+  that were already red on `main`.** Run them locally before opening the
+  PR; fix an inherited red in the same branch; a check that tests something
+  retired is retired with it. "Pre-existing" is not an exemption.
+- **A refusal is reported in one plain line — never as a word for Joe to
+  reply.** He does not reply "publish", "retry", "open" or "approve";
+  retry it yourself next turn. Never explain a red check to Joe; make it
+  green. LESSONS 0.18.
