@@ -346,5 +346,5 @@ export const TAILS = {
   bank_credit:['contracting','booming'], credit_3y:['contracting','booming'],
   bank_unreal:['small','large'], bkx_spx:['lagging','leading'],
   anfci:['loose','tight'], stlfsi:['loose','tight'],
-  cmdi:['calm','strained'], cpff:['normal','strained'],
+  cmdi:['calm','strained'], cpff:['calm','strained'],
 };
