@@ -234,9 +234,14 @@
   flex: none; height: var(--v13-bar); margin: 0; padding: 0 var(--v13-s3);
   background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule);
 }
+.v13.macro-v13 .mac-cathead { height: var(--v13-bar-lg); }
+/* Joe, 2026-10-22: "Headers are still too small... RATES, CREDIT, etc."
+   The six tile names are this page's chapter titles, so they take the same
+   scale as the chapter titles on Paper Portfolio (t5, bold, tracked caps). */
 .v13.macro-v13 .mac-catname {
-  font-family: var(--mt-type-sans); font-size: var(--v13-t2); font-weight: var(--fw-700);
-  letter-spacing: 0.02em; line-height: 1; color: var(--v13-ink);
+  font-family: var(--mt-type-sans); font-size: var(--v13-t5); font-weight: var(--fw-700);
+  letter-spacing: 0.14em; text-transform: uppercase; line-height: 1.2; color: var(--v13-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 }
 /* Joe, 2026-09-03: "there's no way to know the 1 BIG MOVE is associated with
    the down-5 number... Big Move is blue, down 5 is red, then Eq risk prem is
@@ -447,4 +452,108 @@
   /* "See it against the market ↗" ran off the screen on one line. */
   .v13.macro-v13 .mac-histlbl { flex-wrap: wrap; }
   .v13.macro-v13 .mac-histcta { white-space: normal; }
+}
+
+/* ── summary tiles + one open panel per row (2026-10-22) ──────────────────
+   Joe: "It's just too much data to look at when you open the page... I'd
+   like those tiles to be a bit smaller and then collapse." Each domain is a
+   headline tile — its most-stretched gauge, a heat bar, the counts — and
+   clicking it opens the full row list in a full-width panel under that row
+   of tiles, the way Paper Portfolio's folded bars open. One open at a time.
+   Tokens only; nothing new is hard-coded. */
+.v13.macro-v13 .mac-sumrow { margin-bottom: var(--v13-s3); }
+.v13.macro-v13 .mac-sumgrid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  grid-auto-rows: var(--v13-tile-sm);
+  gap: var(--v13-s3);
+  align-items: stretch;
+}
+.v13.macro-v13 .mac-sum {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
+  margin: 0; padding: 0; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  background: var(--v13-surface);
+  border: 1px solid var(--v13-rule);
+  border-radius: var(--v13-r);
+  box-shadow: var(--v13-shadow);
+  transition: box-shadow var(--v13-med) var(--v13-ease), border-color var(--v13-med) var(--v13-ease);
+}
+.v13.macro-v13 .mac-sum:hover { box-shadow: var(--v13-shadow-lift); border-color: var(--v13-rule-2); }
+.v13.macro-v13 .mac-sum:focus-visible { outline: 2px solid var(--v13-accent); outline-offset: 2px; }
+.v13.macro-v13 .mac-sum.is-open { border-color: var(--v13-accent); box-shadow: var(--v13-shadow-lift); }
+.v13.macro-v13 .mac-sum.is-hot .mac-sumhead { background: var(--v13-down-bg); }
+.v13.macro-v13 .mac-sumhead { width: 100%; }
+.v13.macro-v13 .mac-catcount--hot { background: var(--v13-down-bg); color: var(--v13-down); border: 1px solid var(--v13-down); margin-left: auto; }
+.v13.macro-v13 .mac-sumchev {
+  flex: none; width: 7px; height: 7px; margin-left: var(--v13-s2);
+  border-right: 1.5px solid var(--v13-ink-3); border-bottom: 1.5px solid var(--v13-ink-3);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform var(--v13-med) var(--v13-ease);
+}
+.v13.macro-v13 .mac-catcount--hot + .mac-sumchev { margin-left: var(--v13-s2); }
+.v13.macro-v13 .mac-sumhead .mac-catname { margin-right: auto; }
+.v13.macro-v13 .mac-sumhead .mac-catname + .mac-sumchev { margin-left: 0; }
+.v13.macro-v13 .mac-sum.is-open .mac-sumchev { transform: translateY(2px) rotate(-135deg); }
+
+.v13.macro-v13 .mac-sumbody {
+  display: flex; flex-direction: column; justify-content: space-between; gap: var(--v13-s2);
+  flex: 1; min-height: 0; padding: var(--v13-s3);
+}
+/* three counts, the numbers are the headline (Joe 2026-10-22: no single
+   gauge picked out, no bar chart — just the number stretched) */
+.v13.macro-v13 .mac-sumstats {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--v13-s2);
+  flex: 1; align-items: center;
+}
+.v13.macro-v13 .mac-stat {
+  display: flex; flex-direction: column; min-width: 0; padding: var(--v13-s2) 0 0;
+  border-top: 2px solid var(--v13-rule); color: var(--v13-ink-3);
+}
+.v13.macro-v13 .mac-stat b {
+  font-family: var(--mt-type-mono); font-variant-numeric: tabular-nums;
+  font-size: var(--v13-t6); font-weight: var(--fw-600); line-height: 1; letter-spacing: -0.02em;
+  color: var(--v13-ink-3);
+}
+.v13.macro-v13 .mac-stat i {
+  font-style: normal; font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.07em;
+  text-transform: uppercase; margin-top: var(--v13-s1); white-space: nowrap;
+}
+.v13.macro-v13 .mac-stat u { text-decoration: none; font-size: var(--v13-t1); white-space: nowrap; }
+.v13.macro-v13 .mac-stat.is-ext  { border-top-color: var(--v13-down); }
+.v13.macro-v13 .mac-stat.is-ext b, .v13.macro-v13 .mac-stat.is-ext i { color: var(--v13-down); }
+.v13.macro-v13 .mac-stat.is-elev { border-top-color: var(--v13-warn); }
+.v13.macro-v13 .mac-stat.is-elev b, .v13.macro-v13 .mac-stat.is-elev i { color: var(--v13-warn); }
+.v13.macro-v13 .mac-stat.is-move { border-top-color: var(--v13-accent); }
+.v13.macro-v13 .mac-stat.is-move b, .v13.macro-v13 .mac-stat.is-move i { color: var(--v13-accent); }
+
+/* the open panel — full width, under the row that holds the open tile */
+.v13.macro-v13 .mac-open {
+  margin-top: var(--v13-s3);
+  background: var(--v13-surface);
+  border: 1px solid var(--v13-accent);
+  border-radius: var(--v13-r);
+  box-shadow: var(--v13-shadow-lift);
+  overflow: hidden;
+}
+.v13.macro-v13 .mac-openhead { justify-content: flex-start; }
+.v13.macro-v13 .mac-opensub { font-size: var(--v13-t2); color: var(--v13-ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v13.macro-v13 .mac-openclose {
+  margin-left: auto; padding: 0 var(--v13-s2); min-height: var(--v13-bar); border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-size: var(--v13-t1); font-weight: var(--fw-600); letter-spacing: .08em; text-transform: uppercase; color: var(--v13-ink-3);
+}
+.v13.macro-v13 .mac-openclose:hover { color: var(--v13-ink); }
+.v13.macro-v13 .mac-open-cols {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 var(--v13-s5);
+  padding: 0 var(--v13-s3) var(--v13-s3);
+}
+.v13.macro-v13 .mac-open-cols:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+.v13.macro-v13 .mac-rows--open { overflow: visible; flex: none; padding: 0; align-content: start; }
+.v13.macro-v13 .mac-poshead--open { border-top: 0; }
+
+@media (max-width: 1180px) {
+  .v13.macro-v13 .mac-open-cols { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .v13.macro-v13 .mac-sumgrid { grid-auto-rows: auto; }
+  .v13.macro-v13 .mac-sum { min-height: var(--v13-tile-sm); }
 }

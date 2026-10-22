@@ -241,8 +241,8 @@ export default function MethodologyPage() {
             <div className="mt-eyebrow">{PAGE_NAME.macro}</div>
             <h2 className="me-h2">Six categories · {liveIndicatorCount} indicators</h2>
             <p className="me-body-p">
-              Every indicator on MacroTilt is sorted into one of the categories you can filter on the
-              Macro page: <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Commodities</b>,
+              Every indicator on MacroTilt is sorted into one of the six tiles on the Macro Landscape
+              page: <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Commodities</b>,
               <b> FX</b>, and <b>Financial Conditions &amp; Economy</b>. Within a category, each indicator is
               tagged by where it sits in the business cycle — <b>Lead</b>, <b>Coincident</b>, or <b>Lag</b>.
             </p>
@@ -258,17 +258,20 @@ export default function MethodologyPage() {
               unusually calm for corporate bonds and a 3-year rank labelled an ordinary reading distressed.
             </p>
             <p className="me-body-p">
-              The <b>macro regime map</b> plots every indicator on two axes. Left-to-right is the
-              indicator's state — calm names sit left, extreme names sit right. Top-to-bottom groups
-              names on a five-rung macro ladder — Rates at the top, then Credit, Equities, Money, and
-              the real Economy at the bottom — so a glance shows which part of the system is under
-              stress. That ladder is a layout for the map only; it is a different lens from the
-              category filter above.
+              Each <b>tile</b> shows three counts for its category: how many of its gauges — the
+              indicators and the positioning rows together — are <b>stretched</b> (Extreme), how many are
+              <b>elevated</b>, and how many indicators just printed a <b>big move</b> (the latest one-step change,
+              divided by the indicator's median move over its trailing 60 observations, ranks in the
+              top 10% of that same ratio over the last 3 years). The
+              tile with the largest share of its gauges stretched — plus half the share elevated — is
+              marked the <b>hot spot</b>; when no gauge anywhere is stretched, no tile is. Clicking a tile
+              opens its full list under that row of tiles, one category at a time; clicking any row
+              opens the chart.
             </p>
             <div className="me-formula" data-mono="code">
               state(today) = bin(percentile_3y(value); high-warns [75, 85] · low-warns [25, 15] · two-sided both ends)<br />
-              map x (state)        = extreme +0.62 · elevated +0.20 · calm −0.55<br />
-              map y (macro ladder) = Rates +0.45 · Credit +0.20 · Equities −0.10 · Money −0.40 · Economy −0.65
+              big_move     = |Δ| ÷ median(|Δ|, trailing 60 obs) ≥ 90th percentile of the same ratio over 3 years<br />
+              hot_spot     = argmax over tiles of (stretched + 0.5 · elevated) / gauges, if stretched &gt; 0
             </div>
 
             {/* The Engine — lives on the Macro page; folded into this section
