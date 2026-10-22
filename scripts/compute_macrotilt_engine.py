@@ -147,7 +147,8 @@ def fetch_dgs10_series(api_key: str, since: str = "2018-01-01") -> pd.Series:
 
     Uses FRED's REST endpoint directly (no fredapi dependency).
     """
-    import urllib.request, urllib.parse
+    import time
+    import urllib.error, urllib.request, urllib.parse
     params = {
         "series_id": DGS10_SERIES_ID,
         "api_key": api_key,
@@ -155,8 +156,36 @@ def fetch_dgs10_series(api_key: str, since: str = "2018-01-01") -> pd.Series:
         "observation_start": since,
     }
     url = "https://api.stlouisfed.org/fred/series/observations?" + urllib.parse.urlencode(params)
-    with urllib.request.urlopen(url, timeout=30) as resp:
-        payload = json.loads(resp.read().decode("utf-8"))
+    # 2026-10-21: the 22:44 UTC run died on `Expecting value: line 1 column 1`
+    # — FRED answered 200 with an EMPTY body during the same outage that took
+    # down the econ calendar and the release history that day (PRs #1829,
+    # #1832). Both siblings already retried; this fetcher had no retry at all,
+    # so one blank reply failed the whole engine run. An empty or non-JSON 200
+    # is a transient the same way a 429/5xx is: retry with backoff, and if it
+    # persists fail with the host named so the sweep looks at the right place.
+    retry_sleeps = (3, 8, 20)
+    payload = None
+    for attempt in range(len(retry_sleeps) + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=30) as resp:
+                body = resp.read().decode("utf-8")
+            try:
+                payload = json.loads(body)
+                break
+            except ValueError as e:
+                if attempt < len(retry_sleeps):
+                    print(f"FRED answered 200 with a non-JSON body ({len(body)} bytes); "
+                          f"retrying in {retry_sleeps[attempt]}s")
+                    time.sleep(retry_sleeps[attempt])
+                    continue
+                raise RuntimeError(f"api.stlouisfed.org answered 200 with a body that is not JSON "
+                                   f"({len(body)} bytes: {body[:80]!r}) — {e}") from e
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 500, 502, 503, 504) and attempt < len(retry_sleeps):
+                print(f"FRED HTTP {e.code}; retrying in {retry_sleeps[attempt]}s")
+                time.sleep(retry_sleeps[attempt])
+                continue
+            raise RuntimeError(f"api.stlouisfed.org answered HTTP {e.code}") from e
     obs = payload.get("observations", [])
     rows = [(o["date"], o["value"]) for o in obs if o.get("value") not in (".", "", None)]
     df = pd.DataFrame(rows, columns=["date", "value"])

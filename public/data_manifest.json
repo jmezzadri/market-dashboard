@@ -4635,7 +4635,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "05:30",
+   "scheduled_fetch_time_et": "02:45",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4656,7 +4656,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
    "display_name": "Russell 2000 index level"
   },
   {
@@ -4670,7 +4670,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "05:30",
+   "scheduled_fetch_time_et": "02:45",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4691,7 +4691,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
    "display_name": "Nikkei 225 index level"
   },
   {
@@ -4705,7 +4705,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "05:30",
+   "scheduled_fetch_time_et": "02:45",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4726,7 +4726,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
    "display_name": "DAX index level"
   },
   {
@@ -4740,7 +4740,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "05:30",
+   "scheduled_fetch_time_et": "02:45",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4761,7 +4761,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
    "display_name": "Bitcoin"
   },
   {
@@ -4775,7 +4775,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "05:30",
+   "scheduled_fetch_time_et": "02:45",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4803,7 +4803,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
    "display_name": "Platinum"
   },
   {
@@ -4817,7 +4817,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "05:30",
+   "scheduled_fetch_time_et": "02:45",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4845,7 +4845,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
    "display_name": "European natural gas (TTF)"
   }
  ],
@@ -4927,5 +4927,6 @@
   }
  ],
  "v_2026_10_20": "Paper Portfolio cockpit redesign (Joe, 2026-10-20). Registered qt-factor-exposure (monthly, built by QT-REBALANCE from prices_eod + qt_fundamentals). The page's other new figures (10-day 99% VaR, risk share per name, variance decomposition, beta-scaled shock scenarios) are computed in the browser from the already-registered market.prices-eod-massive feed and carry that feed's close date; the formulas are checked in paper_portfolio/qt/research/risk_cockpit_2026-10-20/. The five style-fund series (MTUM, QUAL, PKW, IWM, VLUE) were deepened to full history through eod-backfill-history the same day.",
+ "v_2026_10_22": "MARKET-INDICATORS-EOD morning pass moved earlier (health sweep, bug #1274): GitHub starts this repo's crons 2-7 hours late, so the 05:30 ET pass ran after the US open all week and the Nikkei tile showed the prior session every pre-open. A first pass now runs at 02:45 ET, right after Tokyo's close; 05:30 stays as the second attempt. No new feed; the six banner series produced by that job (Russell 2000, Nikkei, DAX, Bitcoin, platinum, TTF) show the earlier time on their chip. LESSONS 4.41 addendum.",
  "v_2026_10_21": "Paper cockpit, second pass. Registered qt-risk-daily (nightly, QT-EOD-DAILY): the page's risk figures are now produced once after the close and stored; the browser-side computation and its qt_risk_prices_json call are gone from the page (the SQL function stays for the research check). qt-factor-exposure unchanged. Same day: the two entries' price-feed dependency was written with the root manifest's id and the header pill graded both red (\"2 feeds stale\") on a dependency it could not find \u2014 corrected to the live manifest id market-prices_eod-daily."
 }
