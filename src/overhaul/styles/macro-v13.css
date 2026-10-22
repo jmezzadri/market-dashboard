@@ -234,9 +234,14 @@
   flex: none; height: var(--v13-bar); margin: 0; padding: 0 var(--v13-s3);
   background: var(--v13-surface-2); border-bottom: 1px solid var(--v13-rule);
 }
+.v13.macro-v13 .mac-cathead { height: var(--v13-bar-lg); }
+/* Joe, 2026-10-22: "Headers are still too small... RATES, CREDIT, etc."
+   The six tile names are this page's chapter titles, so they take the same
+   scale as the chapter titles on Paper Portfolio (t5, bold, tracked caps). */
 .v13.macro-v13 .mac-catname {
-  font-family: var(--mt-type-sans); font-size: var(--v13-t2); font-weight: var(--fw-700);
-  letter-spacing: 0.02em; line-height: 1; color: var(--v13-ink);
+  font-family: var(--mt-type-sans); font-size: var(--v13-t5); font-weight: var(--fw-700);
+  letter-spacing: 0.14em; text-transform: uppercase; line-height: 1.2; color: var(--v13-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 }
 /* Joe, 2026-09-03: "there's no way to know the 1 BIG MOVE is associated with
    the down-5 number... Big Move is blue, down 5 is red, then Eq risk prem is

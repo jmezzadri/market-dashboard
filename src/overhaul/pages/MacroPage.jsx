@@ -410,6 +410,9 @@ export default function MacroPage() {
   const hideTip = () => setTip(null);
 
   useEffect(() => { saveView(view); }, [view]);
+  // Opening or closing a tile moves the layout under the pointer; drop any
+  // hover tooltip so it cannot sit over the new panel.
+  useEffect(() => { setTip(null); }, [openDom]);
   // Positioning freshness for the bars view: the CFTC report is Tuesday data
   // pulled Saturday morning. Within 6 calendar days of the report date the
   // print is current (weekend + Monday reads); after that the group dims
