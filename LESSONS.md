@@ -257,6 +257,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.27` A site-wide phone rule can quietly break a shared control: the table head/body split in mobile-v12 misaligned every DataTable column on a phone, and a risk figure typed into a prompt is an example, never a value — compute it or dash it
 - `9.28` A page never computes a risk figure on load — a nightly producer stores it; a tile is judged by its OWN edge (no overhang, no inner scroll) at every desktop width, and a column's slack goes into a chart, never a blank band
 - `9.29` A dashboard is a tear sheet — Performance · Risk · Composition, one row of primary tiles per chapter, secondary tiles folded; every figure has exactly one home on the page, the ribbon included
+- `9.30` A box that moves its own content (the market banner) is never also a hand scroller — the two motions add and can carry the strip out of the window; the smoke test treats a clipped box with an animated child as a marquee, not cut-off text
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2658,6 +2659,16 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 3. The `check_layout` spilled-bar rule skips the hidden body of a closed `<details>`; the per-tile overflow audit (9.28 rule 2) opens every fold before it measures.
 
 **Applies to:** UX Designer (lead), Senior Quant, Lead Developer.
+
+### 9.30 (2026-10-22) — A box that slides its own content is never also a hand scroller
+
+**What happened:** Joe: "I just scrolled on the screener thats at the top of every page and now its gone. Completely empty." The site-wide market banner (2026-10-09) was built as a hand-scrollable window (`overflow-x: auto`, bar hidden) *and* its strip slid by a CSS animation. A sideways gesture moved the window's scroll position while the animation kept moving the strip inside it; the two offsets added, and at the end of the scroll range the entire strip — both copies — sat left of the window. Nothing was left to see until a reload. Reproduced on the live site by setting the window's scroll to its maximum: zero tiles in view.
+
+**Rules:**
+1. A box whose content moves on its own is clipped, never scrollable. The banner window is `overflow-x: hidden` while the strip animates, and a scroll event on it snaps the position back to 0 (focus moving to a tile can scroll an `overflow: hidden` box). Hand scrolling returns only under `prefers-reduced-motion`, where nothing slides.
+2. RENDERED-DOM-SMOKE's "text cut off by an overflow:hidden box" rule exempts a marquee: a clipped box whose direct child carries a CSS animation is a deliberate scroller, because every tile passes the reader in turn. The exemption is by behaviour, not by class name, so it holds if the banner is restyled.
+
+**Applies to:** UX Designer (lead), Lead Developer.
 
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 
