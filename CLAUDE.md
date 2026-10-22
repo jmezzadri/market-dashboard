@@ -57,6 +57,7 @@ in his own words and that every change must satisfy before it is opened.
   that were already red on `main`.** Run them locally before opening the
   PR; fix an inherited red in the same branch; a check that tests something
   retired is retired with it. "Pre-existing" is not an exemption.
-- **Publishing is one attempt.** If it is still refused with everything
-  green, tell Joe once, in one line, with the single word to reply. Never
-  explain a red check to Joe; make it green. LESSONS 0.18.
+- **A refusal is reported in one plain line — never as a word for Joe to
+  reply.** He does not reply "publish", "retry", "open" or "approve";
+  retry it yourself next turn. Never explain a red check to Joe; make it
+  green. LESSONS 0.18.

@@ -75,7 +75,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `0.15` TOUCH ANYTHING, UPDATE THE METHODOLOGY PAGE. A change to a rule, a calculation, a score, a page or a feed ships with its Methodology section in the same change; a nav page with no section is a defect
 - `0.16` CHECK YOU CAN DO IT BEFORE YOU SAY YOU WILL. Never hand Joe your own blocked step
 - `0.17` NEVER WAIT ON A CLOCK. No session sleeps, polls or waits for a release, an open, an email or anything else
-- `0.18` EVERY CHECK GREEN BEFORE YOU PUBLISH. A red check — yours or inherited — is fixed first, in the same branch; publishing is one attempt, never a round-trip with Joe
+- `0.18` EVERY CHECK GREEN BEFORE YOU PUBLISH. A red check — yours or inherited — is fixed first, in the same branch; a refusal is reported in one line and never turned into a reply-word for Joe
 
 **1 · TALKING TO JOE**
 
@@ -548,7 +548,7 @@ Same run: closing the two reports with a raw `update bug_reports` hung in the MC
 **Rule:**
 1. **Before opening a pull request, run every check that will run on it, locally, and get every one of them green** — including checks that were already red on `main`. A red check inherited from the base branch is fixed in the same branch, in the same pull request, before the publish is attempted. "Pre-existing" and "unrelated to my change" are explanations, not exemptions.
 2. **A check that is red because it tests something retired** (a fixture for a deleted page, a rule for a dead feed) is retired with it, per 0.10 — in the same change.
-3. **Publishing is one attempt.** If the publish is still refused with every check green, report it to Joe once, in one line, with the single word he should reply — and never again for the same change. Two refusals on one change means the preparation was wrong, not the screen.
+3. **Publishing is one attempt, and a refusal is never turned into a reply-word for Joe.** If the publish is still refused with every check green, say so in one plain line and stop. Never ask him to reply "publish", "retry", "open", "approve" or any other word — he said on 2026-10-20 that he does not reply with such words, and on 2026-10-22, after being asked three times in one afternoon: "I dont want to reply with some bullshit term when I ask you to do something." Retry the same action yourself on the next turn; two refusals on one change means the preparation was wrong, not the screen.
 4. **Never explain a red check to Joe.** He does not want to know why a check is red; he wants it green. The only time a check reaches his screen is when fixing it needs a product decision that is genuinely his.
 
 **Applies to:** every specialist, every publish, every project. Lead Developer owns the pre-publish run.
