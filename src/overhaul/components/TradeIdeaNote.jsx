@@ -143,12 +143,6 @@ export function TradeIdeaNoteBody({ idea, chartSeries, review }) {
       {idea.date && (
         <p className="idea-asof">Figures in this note are from {longDate(idea.date)}, the day it was published. The charts draw live data.</p>
       )}
-      {idea.position_type && (
-        <p className="idea-modal-pos">
-          <span className="idea-pos">{POSITION_LABEL[idea.position_type] || idea.position_type}</span>
-          <span>{POSITION_NOTE[idea.position_type]}</span>
-        </p>
-      )}
       {idea.dek && <p className="idea-modal-dek">{idea.dek}</p>}
 
       {/* 2026-10-21 (Decision 4): an event idea names its event, the date it
@@ -329,7 +323,7 @@ export default function TradeIdeaNoteModal({ idea, chartSeries, review, onClose 
         <button type="button" className="briefmodal-x" onClick={onClose} aria-label="Close">×</button>
         <div className="eyebrow2">
           <span className="dot dot--gold" />
-          Trade idea · {longDate(idea.date)}{idea.kind ? ` · ${KIND_LABEL[idea.kind] || idea.kind}` : ''}
+          Trade idea · {longDate(idea.date)}
         </div>
         <h2 className="briefmodal-h">{idea.title}</h2>
         <TradeIdeaNoteBody idea={idea} chartSeries={chartSeries} review={review} />
