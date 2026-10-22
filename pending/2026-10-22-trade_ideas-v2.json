@@ -1,0 +1,2133 @@
+{
+  "generated_at": "2026-10-22T11:04:12Z",
+  "cadence": "Research runs every morning before the US open; the best ideas publish — at most two a week.",
+  "next_publish": "2026-10-23",
+  "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
+  "ideas": [
+    {
+      "id": "2026-10-22-credit-broke-first-the-s-p-500-has-two-weeks-to-",
+      "date": "2026-10-22",
+      "kind": "cross-asset",
+      "title": "Credit spreads widening, S&P 500 likely to close the gap",
+      "dek": "High-yield spreads +66bp in six weeks. S&P 500 0.8% from its record. Five prior cases since 2014: the index fell within ten sessions every time, median -3.6%.",
+      "position_type": "outright long",
+      "call": "Over the next 2–3 weeks the S&P 500 likely falls about 3%, to 7,510. High-yield spreads are 66bp wider in six weeks with the index 0.8% from its record; in all five such cases since 2014 the index was lower ten sessions later.",
+      "instrument": "SPY ATM puts, Nov 13 expiry",
+      "horizon": "2–3 weeks",
+      "the_trade": {
+        "buy": "SPY ATM puts, Nov 13 expiry.",
+        "buy_line": "SPY ATM puts, Nov 13 expiry",
+        "sizing": "5 of 100 (half size)."
+      },
+      "edge": {
+        "source": "credit",
+        "summary": "High-yield spreads 40bp+ wider in six weeks while the S&P 500 sits within 5% of its high: five cases since 2014, index lower ten sessions later in all five. Same credit move after a 5% drop: seven cases, index higher in all seven. Only one of the five cases had the 10-year yield rising as fast as it is today, so the position is half size with a one-third stop.",
+        "backtest": {
+          "window": "ICE BofA US high-yield OAS and S&P 500 daily closes, 2011-01 to 2026-10. Signal: spread 40bp+ wider than six weeks earlier, S&P 500 within 5% of its one-year closing high. Cases 63+ sessions apart. Entry at the signal close.",
+          "n": 5,
+          "result": "S&P 500 ten sessions later: -3.2% (Dec 31, 2014), -8.0% (Dec 31, 2015), -4.3% (Oct 11, 2023), -2.3% (Nov 4, 2025), -3.6% (Feb 27, 2026). Median -3.6%, average -4.3%. Fifteen sessions later: median -3.2%, lower in 5 of 5. Largest rise inside any window: 1.2%. Looser 30bp threshold: 7 cases, lower in 5. Same widening with the index 5%+ below its high: 7 cases, higher in 7.",
+          "baseline": "Any ten sessions since 2011: +0.4%, lower 38% of the time. Any fifteen: +0.6%.",
+          "regime_match": {
+            "factor": "the 10-year Treasury yield, +42bp over the past quarter to 5.13%",
+            "matching_cases": 1,
+            "result": "Only one of the five cases (Oct 11, 2023) had the 10-year up 25bp+ over the prior quarter; the index fell 4.3%.",
+            "dependence": {
+              "correlation": 0.24,
+              "method": "correlation across all five cases between the S&P 500's ten-session return and the 10-year yield change over the same ten sessions (MacroTilt indicator history)"
+            }
+          }
+        }
+      },
+      "variant": "The street is looking through the credit move: one bank's 12-month S&P 500 target is 8,700 and it expects a rotation, not an index fall (Oct 19–20, 2026); five banks hold year-end targets of 8,000 or higher; October's fund-manager survey had technology its largest overweight since August 2020. In the record, credit moving first with the index at its high was followed by the index, every time.",
+      "thesis": [
+        "High-yield spread 333bp on Oct 20; 267bp on Sep 8; 2026 low 260bp on Aug 28.",
+        "S&P 500 7,757.17 on Oct 21, 0.8% under the Oct 6 record close of 7,818.93.",
+        "Five prior cases since 2014: index lower ten sessions later in all five, median -3.6%.",
+        "Same credit move with the index already down 5%+: seven cases, index higher in all seven.",
+        "Investment-grade spread 87bp on Oct 20, from 81bp on Sep 8."
+      ],
+      "evidence": [
+        {
+          "claim": "S&P 500 close",
+          "value": "7,757.17",
+          "source": "MacroTilt indicator history (S&P 500 index)",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "S&P 500 record close",
+          "value": "7,818.93",
+          "source": "MacroTilt indicator history (S&P 500 index, daily since 2006)",
+          "as_of": "2026-10-06"
+        },
+        {
+          "claim": "S&P 500 distance below its record close",
+          "value": "0.79%",
+          "source": "MacroTilt indicator history (S&P 500 index)",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "High-yield option-adjusted spread",
+          "value": "333bp",
+          "source": "MacroTilt indicator history (ICE BofA US High Yield index, via FRED)",
+          "as_of": "2026-10-20"
+        },
+        {
+          "claim": "High-yield option-adjusted spread six weeks earlier",
+          "value": "267bp",
+          "source": "MacroTilt indicator history (ICE BofA US High Yield index, via FRED)",
+          "as_of": "2026-09-08"
+        },
+        {
+          "claim": "High-yield option-adjusted spread, 2026 low",
+          "value": "260bp",
+          "source": "MacroTilt indicator history (ICE BofA US High Yield index, via FRED)",
+          "as_of": "2026-08-28"
+        },
+        {
+          "claim": "Investment-grade option-adjusted spread",
+          "value": "87bp",
+          "source": "MacroTilt indicator history (ICE BofA US Corporate index, via FRED)",
+          "as_of": "2026-10-20"
+        },
+        {
+          "claim": "Investment-grade option-adjusted spread six weeks earlier",
+          "value": "81bp",
+          "source": "MacroTilt indicator history (ICE BofA US Corporate index, via FRED)",
+          "as_of": "2026-09-08"
+        },
+        {
+          "claim": "10-year Treasury yield",
+          "value": "5.13%",
+          "source": "MacroTilt indicator history (Treasury.gov daily yield curve)",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "10-year Treasury yield 63 sessions earlier",
+          "value": "4.71%",
+          "source": "MacroTilt indicator history (Treasury.gov daily yield curve)",
+          "as_of": "2026-07-23"
+        },
+        {
+          "claim": "Backtest: cases since 2011 with the spread 40bp wider over six weeks and the index within 5% of its one-year high",
+          "value": "5 (Dec 31, 2014; Dec 31, 2015; Oct 11, 2023; Nov 4, 2025; Feb 27, 2026)",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "Backtest: S&P 500 return over the next ten sessions in those five cases",
+          "value": "-3.2%, -8.0%, -4.3%, -2.3%, -3.6%; median -3.6%, average -4.3%",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "Backtest: S&P 500 return over the next fifteen sessions in those five cases",
+          "value": "-0.3%, -8.2%, -3.2%, -0.1%, -5.4%; median -3.2%, lower in 5 of 5",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "Backtest: largest rise within the window in any of the five cases",
+          "value": "1.2%",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "Backtest: looser threshold, spread 30bp wider",
+          "value": "7 cases, lower in 5 of 7",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "Backtest: same widening with the index more than 5% below its high",
+          "value": "7 cases, higher in 7 of 7",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "Baseline: any ten-session S&P 500 return since 2011",
+          "value": "+0.4%, lower 38% of the time",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "Baseline: any fifteen-session S&P 500 return since 2011",
+          "value": "+0.6%",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "Backtest: cases with the 10-year yield up 25bp+ over the prior quarter",
+          "value": "1 of 5 (Oct 11, 2023; index fell 4.3%)",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "Backtest: correlation of the five case returns with the 10-year yield change over the hold",
+          "value": "+0.24",
+          "source": "MacroTilt indicator history, computed this run",
+          "as_of": "2026-10-21"
+        },
+        {
+          "claim": "S&P 500 12-month target from one bank",
+          "value": "8,700",
+          "source": "advisoranalyst.com",
+          "as_of": "2026-10-20"
+        },
+        {
+          "claim": "Technology overweight in the global fund-manager survey",
+          "value": "largest since August 2020",
+          "source": "atranicapital.substack.com, October survey summary",
+          "as_of": "2026-10-16"
+        },
+        {
+          "claim": "SPY close",
+          "value": "773.09",
+          "source": "MacroTilt end-of-day price store (SPY)",
+          "as_of": "2026-10-21"
+        }
+      ],
+      "charts": [
+        {
+          "series": "hy_ig",
+          "title": "High-yield spreads: 66bp wider in six weeks",
+          "subtitle": "ICE BofA US high-yield option-adjusted spread, bp, past year",
+          "unit": "bps",
+          "decimals": 0,
+          "window": "1y",
+          "caption": "Signal needs 40bp+ of widening in six weeks. Back under 300bp, the trade is off.",
+          "source": "MacroTilt indicator history (ICE BofA via FRED)"
+        },
+        {
+          "series": "spx_index",
+          "title": "S&P 500: 0.8% from its record close",
+          "subtitle": "S&P 500, daily closes, past year",
+          "unit": "",
+          "decimals": 0,
+          "window": "1y",
+          "caption": "Exit on a close above 7,818. Target 7,510.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "ust_10y",
+          "title": "10-year yield: +42bp in a quarter",
+          "subtitle": "US 10-year Treasury yield, daily, past year",
+          "unit": "%",
+          "decimals": 2,
+          "window": "1y",
+          "caption": "Only one of the five cases had the yield rising this fast. Hence half size.",
+          "source": "MacroTilt indicator history (Treasury.gov)"
+        }
+      ],
+      "levels": {
+        "trigger": "S&P 500 7,757 (Oct 21 close).",
+        "invalidation": "S&P 500 closes above 7,818.",
+        "target": "S&P 500 7,510."
+      },
+      "reconciles": [
+        {
+          "date": "2026-08-17",
+          "prose": "The Aug 17 call (long banks, short Nasdaq-100) closed Sep 30 on a broken thesis: the volatility-curve reading it rested on went back to mid-range. This is a different signal, a different index and a 2–3 week hold with a 0.8% exit; nothing here depends on the earlier one."
+        }
+      ],
+      "other_side": "Five cases is thin, and two of them (Dec 2014, Dec 2015) came with credit moves three to five times today's. Only one of the five cases had the 10-year yield rising as fast as it is today. The widening is concentrated in AI-linked borrowers; investment-grade spreads moved 6bp. Hedge funds have already sold technology hard, and buyback windows reopen after next week's earnings. The exit is 0.8% away and the index rose 1.2% inside one winning window.",
+      "risks": [
+        "FOMC Oct 28: a soft statement tightens credit and the index makes a new high.",
+        "Microsoft, Alphabet, Amazon (Oct 28–29) raise guidance; AI credit names rally.",
+        "A Hormuz deal drops oil and the index gaps through the exit."
+      ],
+      "so_what": "Credit spreads widening with the S&P 500 at its high preceded a fall in the index in all five cases since 2014 (median -3.6% in ten sessions). After a 5% drop the same move was a bottom in all seven cases. SPY ATM puts, half size, exit above 7,818.",
+      "review_conditions": [
+        {
+          "claim": "Credit remains wider than before the move began",
+          "measure": "ICE BofA US high-yield option-adjusted spread, bp, MacroTilt indicator history (via FRED)",
+          "at_publication": "333bp (Oct 20)",
+          "holds_while": "at or above 300bp",
+          "critical": true
+        },
+        {
+          "claim": "The index has not made a new record close",
+          "measure": "S&P 500 daily close, MacroTilt indicator history",
+          "at_publication": "7,757.17 (Oct 21), record 7,818.93 (Oct 6)",
+          "holds_while": "no close above 7,818",
+          "critical": false
+        }
+      ],
+      "expected_return": {
+        "pct": 3.2,
+        "loss_at_stop_pct": 0.8,
+        "basis": "median S&P 500 fall over fifteen sessions in the five cases (3.2%), as a short of the index, which is what the Scorecard marks; the stop is the 0.8% rise to a close above 7,818. Held through SPY puts, the premium is the most the position can lose.",
+        "instrument": "SPY ATM puts, Nov 13 expiry"
+      },
+      "sizing": {
+        "weight": 5.0,
+        "basis": "of a notional book of 100; half size under the fewer-than-five-cases fallback; fixed at publication"
+      },
+      "scorecard": {
+        "legs": [
+          {
+            "series": "spx_index",
+            "side": "short",
+            "measure": "pct_change",
+            "label": "S&P 500 index, short",
+            "short_label": "S&P 500 (short)"
+          }
+        ],
+        "horizon_weeks": 3,
+        "invalidation": {
+          "series": "spx_index",
+          "op": ">",
+          "level": 7818,
+          "basis": "close"
+        },
+        "benchmark": {
+          "series": "spx_index"
+        },
+        "note": "Vehicle: SPY ATM puts, Nov 13 expiry. The Scorecard marks the index itself, short, from the Oct 21 close. The put premium is not machine-checkable; the index stop is."
+      },
+      "book": {
+        "stance": "Five positions: long US energy (XLE), long natural gas (UNG), long yen (FXY), short wheat (WEAT), and this S&P 500 short at half size for 2–3 weeks. Highest conviction: the wheat short (eleven tested episodes). Lowest: this one (five). The short has moved with the energy call day to day (correlation +0.37 over 126 sessions), under the 0.60 limit. Adding it raises the book's expected excess return over the S&P 500 per unit of risk from 0.69 to 1.06; book volatility 5.92 points a year against the S&P's 5.37 at 45 of 100 invested.",
+        "rebalance": "The four open calls stay. This is a fifth position, half size, closed by Nov 12 or on a close above 7,818. Nothing comes off to fund it."
+      },
+      "status": "live",
+      "sections": [],
+      "published_at": "2026-10-22T10:25:45Z",
+      "corrected_at": "2026-10-22T11:04:12Z"
+    },
+    {
+      "date": "2026-10-09",
+      "kind": "equity",
+      "title": "Yields and oil are surging together. Energy stocks gained after that in 7 of 8 cases.",
+      "dek": "The 10-year Treasury yield has jumped 0.66 points in three months and oil is in the top tenth of its three-year range. The two have lined up eight times since 1999. The energy sector fund rose 12.1% on average over the next six months, against 4.3% in an ordinary six months. It usually fell about 8% first.",
+      "position_type": "outright long",
+      "call": "Over the next six months US energy stocks are set up to gain about 10%: in the eight earlier cases since 1999 when the 10-year Treasury yield jumped while oil sat in the top tenth of its three-year range, the energy sector fund rose 12.1% on average, against 4.3% in an ordinary six months.",
+      "instrument": "XLE, the US-listed energy sector fund, held long, six months",
+      "horizon": "six months (through early April 2027)",
+      "the_trade": {
+        "buy": "XLE — the Energy Select Sector SPDR Fund, which holds the large US oil producers, refiners and service companies — bought as shares and held for six months.",
+        "buy_line": "XLE shares, held six months",
+        "sizing": "The exit is a weekly close 10% below entry, and the expected gain is about 10%. That is one-to-one, not the two-to-one this site normally requires, so size it smaller than a usual position. In six of the eight earlier cases the fund fell roughly 8% before finishing higher."
+      },
+      "edge": {
+        "source": "cross-asset divergence",
+        "summary": "When the 10-year Treasury yield rises at least 0.4 points in three months to a one-year high while oil is in the top tenth of its three-year range, energy stocks have outrun both their own average and the S&P 500 over the following six months. Both conditions hold today.",
+        "backtest": {
+          "window": "XLE daily closes, December 1998 to October 2026; 10-year Treasury yield and West Texas Intermediate spot oil from FRED; independent episodes at least 126 sessions apart",
+          "n": 8,
+          "result": "XLE over the next 126 sessions: +15.9% (1999), +14.5% (2004), -3.7% (2006), +14.0% (2007), +8.7% (2013), +3.8% (2018), +39.0% (2021), +4.6% (2022). Mean +12.1%, median +11.3%, higher in 7 of 8. Against the S&P 500: +13.1 points on average, ahead in 6 of 8. With a weekly-close exit 10% below entry applied: mean +10.1%, one case stopped out.",
+          "baseline": "Every 126-session period for XLE since December 1998: mean +4.4%, median +5.2%, higher 62% of the time.",
+          "regime_match": "The named cause is expensive oil arriving together with a jump in bond yields. All 8 episodes share that state by construction: mean +12.1%, 7 higher. The narrower match is oil above $90 a barrel, as today: 2 cases, 2013 (+8.7%) and 2022 (+4.6%), both positive and both below the average. Loosening oil to the top fifth of its range gives 12 cases and a mean of +5.6%, so the result leans on the strict oil threshold. Oil today is at the 93rd percentile."
+        }
+      },
+      "variant": "The common view this week is that the energy trade is late. Refiners returned about 50% in the third quarter and analyst Robert Rapier warned that high margins may not last (Karmactive, October 9, 2026). David Hunter of Contrarian Macro Advisors expects oil in the $60s by year-end (Discovery Alert, October 9, 2026). President Trump's pledge not to strike Iran before the November election sent Brent lower on Friday (AP, October 9, 2026). The record of this exact combination says the broad sector, which has not run the way refiners have, kept gaining in 7 of 8 cases.",
+      "thesis": [
+        "The 10-year Treasury yield closed at 5.22% on Oct 8, up 0.66 points from 4.56% on Jul 10.",
+        "West Texas Intermediate spot oil was $96.24 on Oct 6, the 93rd percentile of the past three years.",
+        "Eight earlier cases since 1999: XLE rose 12.1% on average over six months. An ordinary six months is 4.4%.",
+        "XLE beat the S&P 500 by 13.1 points on average in those cases. The S&P 500 fund itself averaged -0.2%.",
+        "The broad energy fund is level with the S&P 500 over six months. Refiners are up more than 50 points."
+      ],
+      "evidence": [
+        {
+          "claim": "XLE closing price",
+          "value": "65.24",
+          "source": "MacroTilt end-of-day price store (XLE)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "10-year Treasury yield",
+          "value": "5.22%",
+          "source": "MacroTilt indicator history (Treasury.gov daily yield curve)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "10-year Treasury yield 63 sessions earlier",
+          "value": "4.56%",
+          "source": "MacroTilt indicator history (Treasury.gov daily yield curve)",
+          "as_of": "2026-07-10"
+        },
+        {
+          "claim": "Highest 10-year Treasury yield close in the past year",
+          "value": "5.31% on 2026-10-05",
+          "source": "MacroTilt indicator history (Treasury.gov daily yield curve)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "West Texas Intermediate spot oil",
+          "value": "$96.24 a barrel, 93rd percentile of the trailing three years",
+          "source": "FRED series DCOILWTICO",
+          "as_of": "2026-10-06"
+        },
+        {
+          "claim": "XLE return over the 126 sessions after each of the 8 earlier cases",
+          "value": "+15.9%, +14.5%, -3.7%, +14.0%, +8.7%, +3.8%, +39.0%, +4.6%; mean +12.1%, median +11.3%",
+          "source": "computed from MacroTilt end-of-day prices and FRED DGS10 / DCOILWTICO, 1998-2026",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "XLE return over any 126 sessions, December 1998 to October 2026",
+          "value": "mean +4.4%, median +5.2%, higher 62% of the time",
+          "source": "computed from MacroTilt end-of-day prices",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "XLE minus S&P 500 over the same 8 cases",
+          "value": "mean +13.1 points, XLE ahead in 6 of 8",
+          "source": "computed from MacroTilt end-of-day prices (XLE, SPY)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "S&P 500 fund return over the same 8 cases",
+          "value": "mean -0.2%, against +4.8% in an ordinary 126 sessions",
+          "source": "computed from MacroTilt end-of-day prices (SPY)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "Lowest close during each of the 8 cases, measured from entry",
+          "value": "-8.2%, -5.7%, -8.0%, -7.8%, 0.0%, -8.9%, -8.6%, -16.3%",
+          "source": "computed from MacroTilt end-of-day prices (XLE)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "The same 8 cases with a weekly-close exit 10% below entry",
+          "value": "mean +10.1%, median +11.3%; one case (2022) exited at -11.3%",
+          "source": "computed from MacroTilt end-of-day prices (XLE)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "The same test with oil in the top fifth of its three-year range instead of the top tenth (evidence against)",
+          "value": "12 cases, mean +5.6%, higher in 7 of 12",
+          "source": "computed from MacroTilt end-of-day prices and FRED",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "XLE against the S&P 500 fund over the past 126 sessions",
+          "value": "0.0 points; XLE +13.8%",
+          "source": "computed from MacroTilt end-of-day prices (XLE, SPY)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "Valero and Marathon Petroleum against the S&P 500 fund over the past 126 sessions",
+          "value": "+65.8 and +82.1 points",
+          "source": "computed from MacroTilt end-of-day prices (VLO, MPC, SPY)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "XLE price change over the past 63 sessions",
+          "value": "+18.4%",
+          "source": "computed from MacroTilt end-of-day prices (XLE)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "Marathon Petroleum against the S&P 500 fund over the 63 sessions after each earlier 40% quarterly gain",
+          "value": "mean -5.3 points, ahead in 2 of 10",
+          "source": "computed from MacroTilt end-of-day prices (MPC, SPY), 2011-2026",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "Third-quarter 2026 returns of Marathon Petroleum, Phillips 66 and Valero",
+          "value": "+55.1%, +51.8%, +49.4%",
+          "source": "Karmactive, citing Robert Rapier",
+          "as_of": "2026-10-09"
+        },
+        {
+          "claim": "XLE 200-day average price",
+          "value": "56.95",
+          "source": "computed from MacroTilt end-of-day prices (XLE)",
+          "as_of": "2026-10-08"
+        },
+        {
+          "claim": "Third-quarter 2026 returns: energy sector and S&P 500",
+          "value": "+16.5% and +2.0%",
+          "source": "Karmactive, citing Robert Rapier",
+          "as_of": "2026-10-09"
+        }
+      ],
+      "charts": [
+        {
+          "series": "cmdty_oil",
+          "title": "Oil is near the top of its three-year range",
+          "subtitle": "West Texas Intermediate crude, front-month price, past three years",
+          "unit": "$",
+          "decimals": 0,
+          "window": "3y",
+          "caption": "The signal needs oil in the top tenth of this range. A fall back toward the middle of the range removes the reason for the trade.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "ust_10y",
+          "title": "The 10-year yield is the highest since at least 2006",
+          "subtitle": "US 10-year Treasury yield, daily since 2006",
+          "unit": "%",
+          "decimals": 2,
+          "window": "full",
+          "caption": "A rise of at least 0.4 points in three months is the second half of the signal. The yield rose 0.66 points between July 10 and October 8.",
+          "source": "MacroTilt indicator history (Treasury.gov)"
+        },
+        {
+          "series": "cmdty_diesel_crack",
+          "title": "Refining margins are at an extreme",
+          "subtitle": "New York Harbor diesel price minus Brent crude, dollars a barrel, past three years",
+          "unit": "$",
+          "decimals": 0,
+          "window": "3y",
+          "caption": "This is why refiners have already run more than 50 points ahead of the market. The note buys the whole sector, which has not.",
+          "source": "MacroTilt indicator history"
+        }
+      ],
+      "levels": {
+        "trigger": "Enter at current levels, XLE near 65. The fund closed at 65.24 on October 8.",
+        "invalidation": "A weekly close at or below 58.72 on XLE, 10% under the October 8 close. In the eight earlier cases that level was reached once, in 2022.",
+        "target": "About 71.80 on XLE by early April 2027, a 10% gain. The unstopped average of the eight cases, +12.1%, would be about 73.10."
+      },
+      "sections": [
+        {
+          "title": "What lined up",
+          "bullets": [
+            "The 10-year Treasury yield rose from 4.56% on July 10 to 5.22% on October 8.",
+            "Its one-year closing high is 5.31%, set on October 5.",
+            "West Texas Intermediate spot oil was $96.24 on October 6, the 93rd percentile of three years.",
+            "October 6 is the latest day with both readings, and both conditions held."
+          ]
+        },
+        {
+          "title": "What followed the last eight times",
+          "bullets": [
+            "November 1999: +15.9%. May 2004: +14.5%. March 2006: -3.7%. July 2007: +14.0%.",
+            "July 2013: +8.7%. February 2018: +3.8%. October 2021: +39.0%. April 2022: +4.6%.",
+            "Mean +12.1% over 126 sessions. An ordinary 126 sessions for XLE averages +4.4%.",
+            "The S&P 500 fund averaged -0.2% over the same eight cases, against +4.8% normally.",
+            "A ninth case began May 15, 2026 and has not run its full six months."
+          ]
+        },
+        {
+          "title": "The rough ride, stated plainly",
+          "bullets": [
+            "In six of the eight cases XLE fell about 8% from entry before finishing higher.",
+            "An exit 5% below entry would have closed seven of the eight at a loss.",
+            "The exit here is a weekly close 10% below entry. It was hit once, in 2022.",
+            "With that exit the eight cases average +10.1%. The risk is 10% to make about 10%.",
+            "This site normally requires an expected gain of twice the loss at the exit. This note does not meet that."
+          ]
+        },
+        {
+          "title": "Why the sector and not the refiners",
+          "bullets": [
+            "Valero and Marathon Petroleum are 66 and 82 points ahead of the S&P 500 over six months.",
+            "After runs that large, Marathon lagged the S&P 500 by 5.3 points over the next quarter on average.",
+            "XLE is level with the S&P 500 over the same six months.",
+            "XLE holds producers, refiners and service companies together."
+          ]
+        },
+        {
+          "title": "The vehicle",
+          "bullets": [
+            "XLE is a listed fund and trades like a stock in any brokerage account.",
+            "Levels and the exit are on XLE's own closing price.",
+            "Returns here are price only and leave out the fund's dividend."
+          ]
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "CPI, Oct 14, 8:30 AM. A hot number keeps yields high, which is the condition this rests on.",
+            "Fed decision, Oct 28, 2:00 PM.",
+            "US election, Nov 3. The pledge not to strike Iran runs only until then."
+          ]
+        }
+      ],
+      "other_side": "Eight cases is a small sample, and the result depends on where the oil line is drawn: with oil in the top fifth of its range instead of the top tenth, the average gain falls to 5.6% across 12 cases, barely above normal. Only two of the eight cases had oil above $90 as it is today, and both gained less than the average. Today's oil price carries a war premium that a deal with Iran could remove in a day, and one strategist quoted this week expects oil in the $60s by year-end. Energy stocks have already risen 18% in three months. And the payoff is one-to-one: the exit that keeps the trade alive through its usual 8% dip is as far away as the expected gain.",
+      "risks": [
+        "A US-Iran agreement reopens the Strait of Hormuz and oil falls out of the top of its range.",
+        "Yields have peaked: a weak CPI on Oct 14 pulls the 10-year down and removes half the signal.",
+        "A broad stock selloff takes energy down with it, as in the 2022 case that hit the exit.",
+        "Eight cases cannot rule out a ninth that looks like 2006, the one loss."
+      ],
+      "so_what": "Rising bond yields and expensive oil have arrived together eight times since 1999, and the energy sector fund rose over the next six months in seven of them, by 12.1% on average. The trade usually dips about 8% first, so the exit sits 10% below entry and the payoff is one-to-one.",
+      "review_conditions": [
+        {
+          "claim": "Oil remains expensive relative to its recent range",
+          "measure": "West Texas Intermediate spot price (FRED DCOILWTICO), percentile of the trailing three years",
+          "at_publication": "93rd percentile, $96.24 (Oct 6)",
+          "holds_while": "at or above the 80th percentile of the trailing three years",
+          "critical": true
+        },
+        {
+          "claim": "Energy stocks are in an uptrend",
+          "measure": "XLE closing price against its own 200-day average, MacroTilt end-of-day prices",
+          "at_publication": "65.24 against a 200-day average of 56.95 (Oct 8)",
+          "holds_while": "XLE closes the week above its 200-day average",
+          "critical": false
+        },
+        {
+          "claim": "Bond yields have not collapsed",
+          "measure": "10-year Treasury yield, MacroTilt indicator history",
+          "at_publication": "5.22% (Oct 8)",
+          "holds_while": "the 10-year yield is at or above 4.75%",
+          "critical": false
+        }
+      ],
+      "expected_return": {
+        "pct": 10.1,
+        "loss_at_stop_pct": 10.0,
+        "basis": "the average XLE price return over 126 sessions in the eight earlier cases with the 10% weekly-close exit applied (+10.1%; +12.1% without the exit), on XLE shares, which is what the Scorecard marks",
+        "instrument": "XLE shares held for six months",
+        "reward_risk_waiver": {
+          "approved_by": "Joe",
+          "approved_on": "2026-10-09",
+          "reason": "Joe was shown that no exit level gives two-to-one on this trade (a 5% exit was hit in 7 of 8 cases; a 10% exit gives about +10% against -10%) and instructed that the note be posted with the 10% exit as a one-time exception."
+        }
+      },
+      "book": {
+        "stance": "With energy stocks added the book holds four positions: long US natural gas, short wheat, long yen and long the US energy sector. It is positioned for an economy where oil and bond yields stay high. The energy and natural gas calls share that backdrop; wheat and the yen do not. Highest conviction is the wheat short, which rests on eleven tested episodes. Lowest is this energy call, which rests on eight and pays one-to-one. Measured over the last 99 sessions, adding it lowers the book's volatility from 17.3% to 14.7% a year, still above the S&P 500's 11.5%, and raises expected excess return per unit of risk from 0.58 to 0.68.",
+        "rebalance": "The three open calls stay as they are: long natural gas, short wheat and long yen. Energy stocks are added as a fourth position at a smaller size than usual because its payoff is one-to-one. If the natural gas call reaches its December target, take it off before adding to energy; the two share the oil backdrop."
+      },
+      "scorecard": {
+        "legs": [
+          {
+            "series": "ticker:XLE",
+            "side": "long",
+            "measure": "pct_change",
+            "label": "US energy sector fund (XLE)",
+            "short_label": "US energy stocks (XLE)"
+          }
+        ],
+        "horizon_months": 6,
+        "invalidation": {
+          "series": "ticker:XLE",
+          "op": "<=",
+          "level": 58.72,
+          "basis": "weekly_close"
+        },
+        "benchmark": {
+          "series": "spx_index"
+        },
+        "note": "Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged."
+      },
+      "id": "2026-10-09-yields-and-oil-are-surging-together-energy-stock",
+      "status": "live",
+      "published_at": "2026-10-09T13:02:12Z",
+      "sizing": {
+        "weight": 10.0,
+        "basis": "of a notional book of 100; fixed at publication and never changed",
+        "backfilled_on": "2026-10-21"
+      }
+    },
+    {
+      "date": "2026-09-22",
+      "kind": "fx",
+      "title": "The record yen rescue looks dead. So did the last three at exactly this point.",
+      "dek": "Tokyo spent a record ¥15.4 trillion buying yen from late July and Washington joined. Two months on, the dollar has taken nearly all of it back — which is what month two looked like in 1998, 2022 and 2024, before the yen's real move began. This time the Bank of Japan is raising rates behind it.",
+      "position_type": "outright long",
+      "call": "Over the next four months the yen is set up to strengthen against the dollar: in all three yen-buying campaigns since 1998, the month-two retest of the intervention level — where dollar-yen sits today — was followed by a 6-21% yen gain, and this is the first campaign with the Bank of Japan raising rates behind it.",
+      "instrument": "Japanese yen via FXY, held long, four months",
+      "horizon": "four months (through late January 2027) — entry at the month-two retest",
+      "the_trade": {
+        "buy": "FXY — Invesco CurrencyShares Japanese Yen Trust — shares, or 3-6 month at-the-money call options on FXY for defined risk; the premium is the most the options position can lose.",
+        "buy_line": "FXY shares, or 3-6 month at-the-money calls",
+        "sizing": "Holding dollars pays about 2.6 points a year more than holding yen, so the position costs roughly 0.7% a quarter in forgone interest. Size for the four-month window with the stop 4% away, not as a buy-and-forget holding."
+      },
+      "edge": {
+        "source": "market structure",
+        "summary": "Official yen-buying campaigns mark durable turns, but with a lag: in every campaign since 1998 the first month went against the authorities and the real yen move ran from month two to month six. This campaign reached month two this week with dollar-yen back within 2% of the level where the buying began.",
+        "backtest": {
+          "window": "Dollar-yen daily history, 1996-2026; every yen-buying intervention campaign in the series: June 1998 (US-Japan), September 2022 (MoF), April 2024 (MoF)",
+          "n": 3,
+          "result": "Measured from two months after each campaign began — today's mark in this one — dollar-yen fell over the following four months in all three: -20.6% (1998), -6.9% (2022), -5.9% (2024); median -6.9%",
+          "baseline": "The unconditional four-month change over the same 30-year series: median +0.5%, negative only 47% of the time"
+        }
+      },
+      "variant": "Consensus after the September 18 BoJ meeting is that the hike changes nothing for the yen: the policy-rate gap is still about 2.6 points, dollar-yen drifting back to 157 is read as proof the record intervention failed, and ING's Chris Turner wrote that a sustainable yen rise 'now probably requires a much more hawkish Bank of Japan' (forex.com, September 2026). The record of the three prior campaigns says the opposite: the month-two retest preceded the entire move every time, none of the three had a rate-hiking BoJ behind it, and positioning is mid-range, so the repricing has room to run.",
+      "thesis": [
+        "Dollar-yen 157.34 Monday — within 2% of July 30, the day the record ¥15.4 trillion campaign began.",
+        "The BoJ raised its rate to 1.25% on Sep 18, the highest since 1995. The yen weakened that day anyway.",
+        "All three yen-buying campaigns since 1998: dollar-yen fell 5.9-20.6% in months two through six.",
+        "Month one went against the authorities in all three campaigns. The retest is the pattern, not the failure.",
+        "Leveraged funds swung 14 points of open interest toward yen longs in the week to Sep 15 — levels still mid-range."
+      ],
+      "evidence": [
+        {
+          "claim": "Dollar-yen exchange rate",
+          "value": "157.34",
+          "source": "MacroTilt indicator history (dollar-yen, daily since 1996)",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "Weakest yen close in the 30-year series",
+          "value": "163.86 on 2026-07-28; no later close above it",
+          "source": "MacroTilt indicator history (dollar-yen, daily since 1996)",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "Yen-buying intervention, disclosed as a record by Japan's Ministry of Finance",
+          "value": "¥15.3993 trillion spent July 30 - August 26",
+          "source": "Japan Ministry of Finance monthly disclosure, reported by forex.com / ING",
+          "as_of": "2026-08-26"
+        },
+        {
+          "claim": "US Treasury participation in the campaign, confirmed",
+          "value": "\"We will not hesitate to participate in further joint intervention\" — Treasury Secretary Bessent",
+          "source": "US Treasury statement, reported by CNBC and the Japan Times",
+          "as_of": "2026-08-03"
+        },
+        {
+          "claim": "Bank of Japan policy rate",
+          "value": "1.25% after a 25bp increase, vote 7-2, highest since 1995",
+          "source": "Bank of Japan decision, reported by CNBC",
+          "as_of": "2026-09-18"
+        },
+        {
+          "claim": "Federal Reserve target rate",
+          "value": "3.75-4.00% after a 25bp increase, the first since 2023",
+          "source": "Federal Reserve decision, reported by CNBC",
+          "as_of": "2026-09-16"
+        },
+        {
+          "claim": "Dollar-yen change, months two through six of the 1998, 2022 and 2024 campaigns",
+          "value": "-20.6%, -6.9%, -5.9%; median -6.9%, all three negative",
+          "source": "computed from MacroTilt dollar-yen daily history, 1996-2026",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "Unconditional four-month dollar-yen change over the same series",
+          "value": "median +0.5%; negative 47% of the time",
+          "source": "computed from MacroTilt dollar-yen daily history, 1996-2026",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "Dollar-yen one month after each campaign began — the move went against the authorities every time",
+          "value": "+1.5% (1998), +3.9% (2022), +0.6% (2024)",
+          "source": "computed from MacroTilt dollar-yen daily history, 1996-2026",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "Leveraged-fund yen position, week to Sep 15",
+          "value": "net long 4.3% of open interest, 76.6th percentile of 872 weeks; +14.1 points on the week",
+          "source": "CFTC Traders in Financial Futures via MacroTilt positioning feed",
+          "as_of": "2026-09-15"
+        },
+        {
+          "claim": "The current retest, through the BoJ hike",
+          "value": "dollar-yen 153.42 on Sep 13 to 157.34 on Sep 21",
+          "source": "MacroTilt indicator history (dollar-yen)",
+          "as_of": "2026-09-21"
+        },
+        {
+          "claim": "US two-year Treasury yield — the American side of the rate gap, at a one-year high",
+          "value": "4.76%, 100th percentile of the past year",
+          "source": "MacroTilt indicator history (ust_2y)",
+          "as_of": "2026-09-21"
+        }
+      ],
+      "charts": [
+        {
+          "series": "fx_jpy",
+          "title": "What a dollar buys in yen",
+          "subtitle": "US dollar - Japanese yen exchange rate, daily since 1996",
+          "unit": "¥",
+          "decimals": 1,
+          "window": "full",
+          "caption": "The July 28 close at 163.86 is the weakest yen in the series. The record buying campaign began there; today's 157 is the retest of that decision.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "usd",
+          "title": "The broad dollar is not falling",
+          "subtitle": "Dollar index against major currencies, past year",
+          "unit": "index",
+          "decimals": 1,
+          "window": "1y",
+          "caption": "The dollar overall sits near the top of its one-year range. This is the headwind: the case here rests on Japanese policy and intervention mechanics, not on a general dollar decline.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "ust_2y",
+          "title": "The American side of the rate gap",
+          "subtitle": "US 2-year Treasury yield, past year",
+          "unit": "%",
+          "decimals": 2,
+          "window": "1y",
+          "caption": "The 2-year yield is at a one-year high with the Fed signaling one more increase. The trade pays if Japan's side of the gap now moves faster than this line.",
+          "source": "MacroTilt indicator history"
+        }
+      ],
+      "levels": {
+        "trigger": "Enter at current levels, dollar-yen 157-158; the authorities acted in the 160-164 zone in July and August, so a push there is an add, not an exit.",
+        "invalidation": "A weekly close above 164 on dollar-yen — through the July 28 weak point of 163.86 — means the campaign failed. Exit; the pattern is broken.",
+        "target": "147 on dollar-yen by late January 2027, the median months-two-to-six move (-6.9%) applied from today's 157.34; roughly +6% on FXY before costs."
+      },
+      "sections": [
+        {
+          "title": "What happened",
+          "bullets": [
+            "July 28: dollar-yen closed 163.86, the weakest yen in our 30-year series.",
+            "July 30 - August 26: Japan bought a record ¥15.4 trillion of yen. The US Treasury joined and said it would do so again.",
+            "September 18: the BoJ raised rates to 1.25%, a 31-year high, three months after its previous increase.",
+            "The yen weakened through the hike: 153.42 on Sep 13 to 157.34 on Sep 21."
+          ]
+        },
+        {
+          "title": "Three campaigns, one shape",
+          "bullets": [
+            "June 1998, US-Japan: +1.5% at one month, +6.6% at two. Then -20.6% over the next four months.",
+            "September 2022, MoF alone: +3.9% at one month, flat at two. Then -6.9%.",
+            "April 2024, MoF alone: +0.6% at one month, +2.8% at two. Then -5.9%.",
+            "The G7's March 2011 action was the opposite trade — selling yen, not buying — and is excluded.",
+            "Unconditional, the same series drifts +0.5% over any four months. The gap is the edge."
+          ]
+        },
+        {
+          "title": "Why the entry is now, not at the announcement",
+          "bullets": [
+            "Intervention day is the worst entry on record: month one went against the authorities all three times.",
+            "The market tests the commitment first. The durable move started around month two in each campaign.",
+            "This campaign reached two months — 43 trading days — this week, with the retest in progress.",
+            "What is different this time: a BoJ raising rates into the campaign, and a standing US commitment to buy more."
+          ]
+        },
+        {
+          "title": "The vehicle and the cost",
+          "bullets": [
+            "Levels in this note are on the dollar-yen exchange rate; FXY, which rises as the yen strengthens, is the vehicle.",
+            "Forgone interest costs about 0.7% a quarter at the current 2.6-point rate gap. The median historical move is nine times that.",
+            "For defined risk: 3-6 month at-the-money FXY calls. The premium is the most that position can lose."
+          ]
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "PCE inflation, Sep 30, 8:30 AM — a hot print widens the American side of the rate gap.",
+            "Jobs report, Oct 2 — same mechanism.",
+            "CPI, Oct 14, and the Fed decision, Oct 28 — a second US hike this year is the scenario the stop exists for."
+          ]
+        }
+      ],
+      "other_side": "The rate gap still pays about 2.6 points a year to hold dollars over yen, so the market is paid daily to take the other side of this trade. The sample is the entire history of the setup and it is three campaigns; the biggest win, 1998, had the LTCM collapse doing much of the work, and without it the median is a single-digit move. The BoJ vote was 7-2 with two dissenters appointed by a government that favors easy policy, which caps how fast Japan's side of the gap can close. And if US inflation keeps the Fed's projections pointing higher — most participants signaled one more increase by year-end — the American side widens as fast as Japan's closes; the US 2-year at a one-year high of 4.76% is that risk, priced.",
+      "risks": [
+        "US PCE (Sep 30) or the jobs report (Oct 2) print hot, the rate gap widens, and the dollar takes another leg up.",
+        "The authorities step back: no further disclosed intervention and the September drift extends through 164.",
+        "Three episodes is the entire record of this setup; one counterexample changes the median materially.",
+        "A risk-on turn in US-China talks this week lifts the dollar against funding currencies including the yen."
+      ],
+      "so_what": "The dollar has spent two months taking back a record ¥15.4 trillion yen-buying operation. In all three prior campaigns since 1998 that retest is where the yen's real move started — and this is the first one with the BoJ raising rates behind it.",
+      "book": {
+        "stance": "With the yen added, the book is positioned for a dollar that has peaked against the majors, US inflation that stays above target (TIPS breakevens, Aug 16), a calm-volatility rotation into banks (Aug 17), cheap US natural gas against war-priced oil (Sep 12), and a fading extended long in wheat (short via WEAT, Sep 6). The 10-year Treasury long (Aug 24) hit its stop — a 5.01% weekly close on Sep 18 against its 5.00% rule — and is out of the book, so the book carries no outright duration. Highest conviction: this yen position and the natural gas long, each with a policy actor or a physical constraint on its side. Lowest: the euro long (Aug 14), below its mid-August level with the broad dollar near one-year highs.",
+        "rebalance": "The Aug 24 10-year position stopped out on the Sep 18 weekly close at 5.01% and comes off; do not re-enter while the Fed projections point higher. The Aug 14 euro long stays but is now the junior anti-dollar leg — no additions; this yen position expresses the dollar view with a catalyst attached. Wheat short, natural gas long, banks, breakevens: leave alone."
+      },
+      "scorecard": {
+        "legs": [
+          {
+            "series": "ticker:FXY",
+            "side": "long",
+            "measure": "pct_change",
+            "label": "Japanese yen via FXY"
+          }
+        ],
+        "horizon_months": 4,
+        "invalidation": {
+          "series": "fx_jpy",
+          "op": ">=",
+          "level": 164,
+          "basis": "weekly_close"
+        },
+        "benchmark": {
+          "series": "spx_index"
+        },
+        "note": "Levels and the stop are stated on the dollar-yen rate (fx_jpy), the series the analysis runs on; the return is marked on FXY, the vehicle the note names. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged."
+      },
+      "id": "2026-09-22-the-record-yen-rescue-looks-dead-so-did-the-last",
+      "status": "live",
+      "published_at": "2026-09-22T09:34:10Z",
+      "sizing": {
+        "weight": 10.0,
+        "basis": "of a notional book of 100; fixed at publication and never changed",
+        "backfilled_on": "2026-10-21"
+      }
+    },
+    {
+      "date": "2026-09-12",
+      "kind": "commodity",
+      "title": "Oil carries a war premium. US natural gas carries none.",
+      "dek": "WTI closed within a dollar of $100 on Sep 11 while front-month US gas closed $2.82 — one barrel of oil now buys 35 units of gas, the 96th percentile of 26 years. Readings this stretched have historically resolved with gas beating its own baseline, and the fast money is short.",
+      "position_type": "outright long",
+      "call": "Over the next three months, US natural gas at $2.82 is priced to close part of a 26-year extreme against oil: with WTI at $99.99, the oil-to-gas price ratio sits at the 96th percentile of our data since 2000, and past readings this stretched saw gas beat its unconditional baseline by five to seven points over the following quarter.",
+      "instrument": "UNG, the US-listed natural gas fund, held long, one quarter",
+      "horizon": "One quarter. The measured edge is a three-month effect; this is not a winter-long hold.",
+      "the_trade": {
+        "buy": "UNG, the US-listed natural gas fund (closed $10.17 on Sep 11) — shares, or call options one to three months out struck near the share price for defined risk, where the premium is the most the trade can lose.",
+        "sizing": "A small position. The signal was positive in 55% of past episodes against 50% unconditionally — the edge is in the size of the wins, not their frequency — so size it so a move to the stop is an acceptable loss. Levels are read on front-month Henry Hub gas; UNG is the vehicle, rolls its contracts monthly, and lags the spot chart when the curve is steep — expect the fund to capture less than the commodity's move.",
+        "buy_line": "UNG shares, or 1-3 month at-the-money call options"
+      },
+      "edge": {
+        "source": "relative value",
+        "summary": "The oil-to-gas price ratio closed at 35.5 on Sep 11, the 96.4th percentile of 6,539 daily observations since 2000. Ranked on a causal trailing percentile with episodes 42 trading days apart, readings at or above the 95th percentile were followed by a median gas gain of +7.6% over the next three months against +0.3% unconditionally — and the edge holds in the sub-sample that matches today's condition, where the extreme was driven by an oil rally rather than a gas collapse.",
+        "backtest": {
+          "window": "2000–2026 daily closes; causal trailing full-history percentile of WTI ÷ Henry Hub, 3-year warm-up; episodes at or above the 95th percentile, separated by 42 trading days (first episode Sep 2004)",
+          "n": 42,
+          "result": "Front-month gas median +7.6% over the following three months, positive in 55% of episodes; in the 22 episodes where oil had rallied 10%+ into the reading (today's condition), gas median +5.0%; in the ten 2021–26 episodes, +20.7%. WTI's own median was −1.9% against +3.1% unconditionally — the ratio closed from both ends.",
+          "baseline": "Unconditional three-month gas return over the same sample: median +0.3%, positive in 50% of windows"
+        }
+      },
+      "variant": "Consensus is the glut: the EIA's August outlook has Henry Hub averaging $2.87 in Q3 and staying below $3 until November on record production and the fullest storage entering winter since 2016, and September commentary reads gas as trapped. Nobody frames gas against oil: a war premium at the 92nd percentile of oil's own options market, and none of it in the fuel one border north of the disruption. The ratio, not the storage number, is the stretched price.",
+      "thesis": [
+        "WTI closed 99.99 on Sep 11 — the 98th percentile of three years. Gulf crude exports are down 47% since the war.",
+        "Front-month gas closed 2.82 the same day: the 26th percentile of 26 years, and 62% below its January close.",
+        "One barrel now buys 35.5 units of gas — 96th percentile since 2000. Extremes like this closed from both ends: gas up, oil flat-to-down.",
+        "Managed money is short gas at the 8th percentile of three years, six weeks running. The short is extended, not fresh.",
+        "QatarEnergy has declared force majeure on LNG cargoes after strikes on Ras Laffan. Any repricing of US export demand lands on a market at the 26th percentile.",
+        "The trade is Fed-quiet: a hike on Sep 16 moves the book's rates and dollar calls, not the storage-versus-winter math in gas."
+      ],
+      "evidence": [
+        {
+          "claim": "WTI front-month close, and its 3-year percentile",
+          "value": "$99.99 — 97.6th percentile",
+          "source": "MacroTilt indicator history (cmdty_oil)",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Front-month Henry Hub close, and its percentile since 2000",
+          "value": "$2.82 — 26th percentile of 6,541 daily observations",
+          "source": "MacroTilt indicator history (cmdty_natgas)",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Front-month gas close on Jan 28, 2026 — the winter high the market has since given back",
+          "value": "$7.46",
+          "source": "MacroTilt indicator history (cmdty_natgas)",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Oil-to-gas price ratio and its full-history percentile",
+          "value": "35.5x — 96.4th percentile since 2000 (n=6,539)",
+          "source": "Computed from MacroTilt indicator history",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Backtest: ratio at/above 95th trailing percentile, episodes 42 trading days apart — next-3-month gas return",
+          "value": "median +7.6% vs +0.3% unconditional; positive 55% vs 50%; n=42 since 2004",
+          "source": "Computed from MacroTilt indicator history",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Same backtest, oil-driven episodes only (oil +10% or more in the prior 3 months — today's condition)",
+          "value": "gas median +5.0% next 3 months; n=22",
+          "source": "Computed from MacroTilt indicator history",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Same backtest, WTI's own next-3-month return in the episodes",
+          "value": "median −1.9% vs +3.1% unconditional",
+          "source": "Computed from MacroTilt indicator history",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "Managed money net position in US gas, share of open interest, 3-year percentile",
+          "value": "−11.6% of open interest — 8th percentile, 6th week at the extreme",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-09-01"
+        },
+        {
+          "claim": "Oil implied volatility (OVX) and its ratio to the VIX",
+          "value": "58.92 — 92nd percentile since 2007; OVX÷VIX at 3.72, the 98th percentile",
+          "source": "MacroTilt indicator history (ovx, vix)",
+          "as_of": "2026-09-11"
+        },
+        {
+          "claim": "EIA end-October US gas storage forecast, and its Q3 Henry Hub price forecast",
+          "value": "3,985 Bcf, about 5% above the five-year average — fullest entering winter since 2016; Q3 average $2.87",
+          "source": "EIA Short-Term Energy Outlook, August 2026 (via Rigzone, Aug 19)",
+          "as_of": "2026-08-19"
+        },
+        {
+          "claim": "Gulf crude exports since the Hormuz conflict began",
+          "value": "down 47% — from ~17 to ~9 million barrels/day",
+          "source": "Al Jazeera, Aug 27 2026",
+          "as_of": "2026-08-27"
+        },
+        {
+          "claim": "Market-implied odds of a 25bp Fed hike at the Sep 16 meeting, after the August CPI (3.4% y/y)",
+          "value": "roughly 85–90%",
+          "source": "CNBC market wrap, Sep 11 2026",
+          "as_of": "2026-09-11"
+        }
+      ],
+      "charts": [
+        {
+          "series": "cmdty_natgas",
+          "title": "What a unit of US gas costs",
+          "subtitle": "Front-month Henry Hub natural gas, $/MMBtu, daily since 2016",
+          "unit": "$/MMBtu",
+          "decimals": 2,
+          "window": "10y",
+          "caption": "At $2.82 the market has given back the entire January spike to $7.46 and sits in the bottom third of its 26-year range — while oil trades at $100.",
+          "source": "MacroTilt indicator history (front-month Henry Hub natural gas)"
+        },
+        {
+          "series": "cmdty_oil",
+          "title": "The war premium in crude",
+          "subtitle": "Front-month WTI, $/bbl, daily over three years",
+          "unit": "$/bbl",
+          "decimals": 2,
+          "window": "3y",
+          "caption": "WTI closed 99.99 on Sep 11 — the 98th percentile of three years — with Gulf exports down 47% since the Hormuz conflict began.",
+          "source": "MacroTilt indicator history (front-month WTI crude)"
+        },
+        {
+          "series": "ovx",
+          "title": "What oil options cost",
+          "subtitle": "CBOE crude oil volatility index (OVX), daily since 2016",
+          "unit": "index",
+          "decimals": 1,
+          "window": "10y",
+          "caption": "Oil option prices sit at the 92nd percentile of their history since 2007: the market is paying up for oil risk while gas is priced for none of it.",
+          "source": "MacroTilt indicator history (CBOE OVX)"
+        }
+      ],
+      "levels": {
+        "trigger": "Entry at market — front-month gas closed 2.82 and UNG $10.17 on Sep 11. A further slip toward 2.60 improves the entry without changing the case.",
+        "invalidation": "A weekly close in front-month gas below 2.45 — beneath April's 2.52 low. Down there the storage glut has beaten the setup, and the position is wrong.",
+        "target": "3.05 within the quarter — the full-sample median move off these extremes. The 2021–26 episodes' median implies 3.40; treat that as the stretch case, not the base case."
+      },
+      "sections": [
+        {
+          "title": "Why gas is this cheap — the case against this trade is real",
+          "bullets": [
+            "US production is at a record. EIA (Aug 19) sees storage entering winter at 3,985 Bcf, about 5% above the five-year average.",
+            "That is the fullest start to winter since 2016, and the EIA's own price path stays below $3 until November.",
+            "January's $7.46 spike taught the market a lesson in both directions: gas can triple on cold, and give it all back by spring."
+          ]
+        },
+        {
+          "title": "The measured edge",
+          "bullets": [
+            "Signal: WTI ÷ Henry Hub at or above its 95th trailing percentile, computed only from data available on the day.",
+            "42 episodes since 2004. Next-3-month gas: median +7.6% against +0.3% unconditional. Positive 55% of the time against 50%.",
+            "The edge is asymmetric, not reliable: median wins are large, the hit rate is modest. Size accordingly.",
+            "It survives the split that matters today: in the 22 episodes where oil rallied 10%+ into the extreme, gas still made +5.0%.",
+            "Oil's own median in the episodes was −1.9% against +3.1% unconditional — the ratio closes from both ends, which is why this note buys gas rather than shorting oil into a war."
+          ]
+        },
+        {
+          "title": "The option the price ignores",
+          "prose": "QatarEnergy has declared force majeure on LNG cargoes after strikes on Ras Laffan, and Europe sources 12–14% of its LNG from Qatar. US export terminals are the marginal supplier to that gap, and they buy their feed gas at Henry Hub. The base case for this trade is the ratio arithmetic above — it needs no war at all. But a market at the 26th percentile of 26 years is not charging for the possibility that the world's spare LNG capacity is suddenly American."
+        },
+        {
+          "title": "What this trade is not",
+          "prose": "It is not a bet on the war escalating — the backtest episodes span calm markets and crises alike. It is not a winter-long storage play: the measured edge is a three-month effect and the note is graded on exactly that. And it is not a short of oil — the trend and the tail risk both argue against being short crude while tankers are being attacked, which is why the long gas leg, whose conditional return beats its own baseline on its own, carries the position alone."
+        }
+      ],
+      "other_side": "The glut is not a story, it is inventory: the fullest storage entering winter since 2016, record production, and the EIA's central path holds gas below $3 into November. The ratio can stay extreme for years — it did through 2009–2012, when shale kept gas pinned while oil traded above $100. US LNG export capacity, not price, is the binding constraint, so a Qatari outage does not mechanically lift Henry Hub. And a 55% hit rate means this trade loses outright almost half the time; the stop is what contains that.",
+      "risks": [
+        "A warm start to winter on record storage takes gas through 2.60 and toward the stop regardless of the ratio.",
+        "Escalation can widen the extreme rather than close it: oil to $120 with gas asleep loses nothing for this position but tests patience — the trade needs gas up, not oil down.",
+        "UNG's monthly roll erodes the fund's return relative to the commodity when the curve is steep; a flat gas price is a losing position in the fund.",
+        "A 25bp hike on Sep 16 and a stronger dollar pressure all commodity prices, gas included."
+      ],
+      "so_what": "The market is paying 92nd-percentile prices for oil risk and pricing US gas at the 26th percentile of 26 years, with the fast money short. History says a spread this wide closes partly through the cheap leg — and the cheap leg is the one thing in the book the Fed cannot touch on Wednesday.",
+      "book": {
+        "stance": "With this note the live book holds six positions: long 10-year Treasuries, long 10-year inflation breakevens, long US banks against the Nasdaq, long the euro against the dollar, short wheat via WEAT, and now long US natural gas via UNG. As one portfolio it is positioned for US rates near their peak, inflation compensation too cheap for a $100-oil world, a softer dollar, and mean reversion only where the data has supported it — the wheat and gas legs are both positioning-and-ratio fades in markets where the fade is measured, on opposite sides of the energy-food complex. Highest conviction remains the Aug 16 breakeven call, which the oil shock has been paying since entry (2.27% to 2.36%). Lowest is now the Aug 24 10-year note: at Friday's 4.96% it sits four basis points from its own stated stop, with a hike 85–90% priced for Sep 16.",
+        "rebalance": "Holders of the five live calls change nothing today; this is a small, independent addition. The position to watch is the Aug 24 10-year note, not this one: its stop is a weekly close at or above 5.00%, and Friday closed 4.96% with the Fed decision on Sep 16 — if that weekly close prints, the note comes off by its own rule, first out of the book. The breakeven, euro, banks and wheat calls all remain inside their invalidation levels as of Sep 11 and stay as they are."
+      },
+      "scorecard": {
+        "legs": [
+          {
+            "series": "ticker:UNG",
+            "side": "long",
+            "measure": "pct_change",
+            "label": "US natural gas fund (UNG)",
+            "short_label": "US natural gas (UNG)"
+          }
+        ],
+        "horizon_months": 3,
+        "invalidation": {
+          "series": "cmdty_natgas",
+          "op": "<=",
+          "level": 2.45,
+          "basis": "weekly_close"
+        },
+        "benchmark": {
+          "series": "spx_index"
+        },
+        "note": "Return is marked on UNG, the fund the note names (changed 2026-10-09 on Joe's instruction: the front-month series overstated what a holder of the fund earned, because the fund pays a cost each month to roll its contracts). The exit level is still checked on the front-month Henry Hub series the note's levels are stated on. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged."
+      },
+      "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
+      "status": "live",
+      "published_at": "2026-09-12T09:27:05Z",
+      "corrected_at": "2026-10-09T13:48:39Z",
+      "sizing": {
+        "weight": 10.0,
+        "basis": "of a notional book of 100; fixed at publication and never changed",
+        "backfilled_on": "2026-10-21"
+      }
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "commodity",
+      "title": "The last buyers just showed up in wheat",
+      "dek": "Funds went net long CBOT wheat for the first time since June 2022. In 16 prior episodes since 2014, that crossing marked the end of the rally, not the middle of it.",
+      "position_type": "outright short",
+      "call": "Over the next one to two months, Chicago wheat is priced to give back part of its August spike. The funds that chased the rally turned net long in the Sep 1 report — the first time since June 2022 — and after the 16 prior such readings, wheat fell within a month 14 times, a median 5.3%.",
+      "instrument": "WEAT, the US-listed wheat fund, sold short or held as puts, one to two months",
+      "horizon": "one to two months",
+      "the_trade": {
+        "buy": "Put options on WEAT, the US-listed wheat fund (closed $26.49 Friday) — one to two months out, struck near the share price. Defined risk: the premium is the most the trade can lose.",
+        "short": "Or short WEAT shares in a margin account. WEAT holds a ladder of CBOT wheat contracts, so it follows the grain with some drag — the signal and the levels below are on front-month Chicago wheat; WEAT is the vehicle.",
+        "sizing": "Small. Wheat around a war headline can gap through any stop. Puts cap the loss at the premium paid; a share short does not — size it so a front-month close at the 767 invalidation costs no more than a normal single-position loss."
+      },
+      "edge": {
+        "source": "positioning",
+        "summary": "Managed money crossed from net short to net long wheat in the Sep 1 CFTC report — above the 85th percentile of the full 2013–2026 record for the first time since June 2022. Fund length at an extreme is one of the few positioning signals that has actually predicted returns, and wheat is where it has predicted them best.",
+        "vs_market": "After the 16 prior signals, wheat fell a median 5.3% in one month and 6.6% in three. A short earning those medians beats the S&P 500's unconditional +1.5% one-month and +3.8% three-month medians over the same 2014–2026 sample, roughly threefold at one month, before costs.",
+        "backtest": {
+          "window": "Weekly CFTC disaggregated reports, Dec 2013 – Sep 2026 (664 weeks); episodes separated by at least 13 weeks",
+          "n": 16,
+          "result": "Median wheat move after managed money crossed the 85th percentile of its full record: −5.3% at one month (14 of 16 negative), −6.6% at three months (13 of 16 negative)",
+          "baseline": "Unconditional wheat medians over the same sample and horizons: −0.1% at one month, −0.1% at three months"
+        }
+      },
+      "variant": "Consensus is a supply story with more to run — Black Sea strikes on grain vessels, the worst US wheat yield since 2015, talk of $8 wheat (Al Jazeera, Aug 31 2026; Farm Progress, September 2026). This note does not dispute the supply facts. It disputes the buyer: the funds now arriving have historically been a rally's last. The same crossing fired in March and June 2022, mid-invasion of a major exporter, and wheat fell about 20% within a month both times.",
+      "thesis": [
+        "Wheat rose 12% in three sessions — 686 at the Aug 25 close to 767 on Aug 28, a three-year high. Friday it closed at 733.",
+        "Funds flipped from 3.1% of open interest net short (Aug 25 report) to 3.2% net long (Sep 1) — the first net-long reading since June 2022.",
+        "That crossing has fired 16 times since 2014. Wheat fell within a month in 14 of them, median −5.3% against a flat baseline.",
+        "Its last two firings — March and June 2022 — preceded one-month declines of 19.9% and 23.1%, with the invasion still running.",
+        "Corn and soybean funds sit at the 96th and 89th percentiles of their own records. The whole grain complex leans the same way."
+      ],
+      "evidence": [
+        {
+          "claim": "CBOT wheat, Friday close",
+          "value": "732.75 cents per bushel — the 99th percentile of three years",
+          "source": "MacroTilt indicator history (cmdty_wheat)",
+          "as_of": "2026-09-04"
+        },
+        {
+          "claim": "August spike, close to close",
+          "value": "+11.9%, from 685.50 (Aug 25) to 767.00 (Aug 28)",
+          "source": "MacroTilt indicator history (cmdty_wheat)",
+          "as_of": "2026-09-04"
+        },
+        {
+          "claim": "Managed-money net position in wheat",
+          "value": "+3.2% of open interest — 85th percentile of the full 2013–2026 record, first net long since June 2022",
+          "source": "CFTC disaggregated Commitments of Traders, WHEAT-SRW (CBOT), report dated Sep 1",
+          "as_of": "2026-09-01"
+        },
+        {
+          "claim": "One-week positioning swing",
+          "value": "from −3.1% of open interest (Aug 25 report) to +3.2% (Sep 1)",
+          "source": "CFTC disaggregated Commitments of Traders, WHEAT-SRW (CBOT)",
+          "as_of": "2026-09-01"
+        },
+        {
+          "claim": "Forward wheat return after the 16 prior crossings",
+          "value": "median −5.3% at one month (14 of 16 negative), −6.6% at three months (13 of 16)",
+          "source": "MacroTilt backtest: CFTC disaggregated COT crossed with MacroTilt wheat price history, 2013–2026",
+          "as_of": "2026-09-06"
+        },
+        {
+          "claim": "Unconditional wheat baseline, same sample",
+          "value": "−0.1% at one month, −0.1% at three months",
+          "source": "MacroTilt backtest: MacroTilt wheat price history, 2013–2026",
+          "as_of": "2026-09-06"
+        },
+        {
+          "claim": "Wheat one month after the Mar 8 and Jun 7 2022 signal weeks",
+          "value": "−19.9% and −23.1%",
+          "source": "MacroTilt indicator history (cmdty_wheat)",
+          "as_of": "2026-09-06"
+        },
+        {
+          "claim": "Corn and soybean managed-money positions",
+          "value": "corn +22.7% of open interest (96th percentile of full record); soybeans +22.9% (89th)",
+          "source": "CFTC disaggregated Commitments of Traders (CBOT), reports dated Sep 1",
+          "as_of": "2026-09-01"
+        },
+        {
+          "claim": "S&P 500 unconditional medians, same 2014–2026 sample",
+          "value": "+1.5% at one month, +3.8% at three months",
+          "source": "MacroTilt indicator history (spx_index)",
+          "as_of": "2026-09-06"
+        },
+        {
+          "claim": "US wheat yield forecast — the other side",
+          "value": "46.7 bushels per acre, the lowest since 2015",
+          "source": "Al Jazeera, citing USDA, 2026-08-31",
+          "as_of": "2026-08-31"
+        },
+        {
+          "claim": "Black Sea escalation — the other side",
+          "value": "35 Russian strikes on grain vessels in July, versus 14 in all of 2025",
+          "source": "Al Jazeera, citing Ukraine's agriculture ministry, 2026-08-31",
+          "as_of": "2026-08-31"
+        },
+        {
+          "claim": "WEAT (Teucrium wheat fund) closing share price",
+          "value": "$26.49",
+          "source": "MacroTilt end-of-day stock prices",
+          "as_of": "2026-09-04"
+        }
+      ],
+      "charts": [
+        {
+          "series": "cmdty_wheat",
+          "title": "The August spike, and where it stopped",
+          "subtitle": "CBOT wheat, front month, cents per bushel, three years",
+          "unit": "c/bu",
+          "decimals": 0,
+          "window": "3y",
+          "zero_rule": false,
+          "caption": "The rally ran from 686 on Aug 25 to 767 on Aug 28 and has since given a third of it back. Funds turned net long inside that top range.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "cmdty_corn",
+          "title": "Corn: the same crowd, deeper in",
+          "subtitle": "CBOT corn, front month, cents per bushel, three years",
+          "unit": "c/bu",
+          "decimals": 0,
+          "window": "3y",
+          "zero_rule": false,
+          "caption": "Corn funds hold 22.7% of open interest net long — the 96th percentile of their full record. The grain complex is one trade.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "cmdty_soybeans",
+          "title": "Soybeans: third leg of the complex",
+          "subtitle": "CBOT soybeans, front month, cents per bushel, three years",
+          "unit": "c/bu",
+          "decimals": 0,
+          "window": "3y",
+          "zero_rule": false,
+          "caption": "Soybean funds sit at the 89th percentile net long. When all three grains lean one way, the exit is narrow.",
+          "source": "MacroTilt indicator history"
+        }
+      ],
+      "levels": {
+        "trigger": "Enter near current levels — front-month wheat closed 733 and WEAT $26.49 on Friday. A bounce toward 745–755 in wheat improves the entry without changing the case.",
+        "invalidation": "A daily close above 767 — the Aug 28 high. A new closing high says the supply shock is still repricing and positioning is not yet binding.",
+        "target": "685 — the shelf wheat sat on Aug 20–25 before the spike, about 6.5% below Friday's close and in line with the one-to-three-month medians."
+      },
+      "sections": [
+        {
+          "title": "What happened",
+          "bullets": [
+            "Wheat ran 686 to 767 between the Aug 25 and Aug 28 closes — a three-year high on Black Sea strikes and failed harvests.",
+            "By Friday Sep 4 it had slipped to 733.",
+            "The Sep 1 CFTC report, published Friday, showed funds net long wheat for the first time since June 2022."
+          ]
+        },
+        {
+          "title": "Why late buyers matter in grains",
+          "bullets": [
+            "Grain funds follow trend. They arrive after the move.",
+            "Wheat funds have been net short in most weeks since 2013 — the median position is 8% of open interest short.",
+            "A net-long reading is rare: 16 separated episodes in 12 years. Wheat fell within the month in 14 of them.",
+            "This does not transfer across markets — the same chase in gold has been rewarded. The fade is wheat's own, measured pattern."
+          ]
+        },
+        {
+          "title": "The 2022 rhyme",
+          "bullets": [
+            "March and June 2022: a major exporter invaded, wheat at records, funds at maximum length.",
+            "One month later: down 19.9% and 23.1%. The supply story was true. The price still fell.",
+            "The bull case was fully priced the day the last fund bought it."
+          ]
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "Sep 11: next weekly CFTC positioning report — does the new fund length build or unwind?",
+            "Sep 11: US consumer prices (CPI), 8:30 AM ET — a dollar move passes straight into dollar-priced grain.",
+            "Sep 16: Fed decision (FOMC), 2:00 PM ET — same dollar channel, larger dose."
+          ]
+        }
+      ],
+      "other_side": "The supply story is real and still running: 35 strikes on grain vessels in July against 14 in all of 2025, the worst US yield since 2015, Canada's crop down 13%, Europe's down about 9 million tonnes (Al Jazeera, Aug 31). A further Black Sea escalation reprices wheat higher regardless of who is positioned how — that is what the 767 stop is for. And 16 episodes is enough to lean on, not enough to be certain.",
+      "risks": [
+        "Headline gap risk: an export-infrastructure strike can gap wheat through 767 overnight. A share short has no ceiling on its loss without the stop; puts cap it at the premium.",
+        "The Sep 1 positioning report is five days old, and wheat has already slipped from 764 to 733 — part of the median move may be spent.",
+        "Harvest-season supply revisions move grain prices on their own clock, independent of positioning.",
+        "The signal is marginal — 85.4th percentile, one week over the line. Deeper extremes have been the stronger fades."
+      ],
+      "so_what": "The supply shock is on every front page; who now owns the rally is not. When the funds that chase grain cross to net long this late, the record says the price they paid was near the top — 14 times out of 16 since 2014. The short is small, stopped at 767, and aimed at 685.",
+      "book": {
+        "stance": "The live book is long 10-year Treasuries, long 10-year inflation breakevens, long US banks against the S&P 500, and long the euro against the dollar. Its core bet: US rates near their peak, a softer dollar, and mean reversion where the data has actually supported it. This note adds the book's first commodity leg and first outright short — a positioning fade in the one grain market where fades have paid. It does not offset the breakeven call: a two-month wheat fade and a ten-year inflation view price different things on different clocks. Highest conviction remains the Aug 24 10-year note; this wheat short is the smallest position in the book.",
+        "rebalance": "Holders of the four live calls change nothing. This is a small, independent addition — not a funding switch out of any existing position. The Aug 17 banks call and Aug 24 10-year call stay on as they are."
+      },
+      "scorecard": {
+        "legs": [
+          {
+            "series": "ticker:WEAT",
+            "side": "short",
+            "measure": "pct_change",
+            "label": "WEAT (Teucrium wheat fund)"
+          }
+        ],
+        "horizon_months": 2,
+        "invalidation": {
+          "series": "cmdty_wheat",
+          "op": ">=",
+          "level": 767,
+          "basis": "close"
+        },
+        "benchmark": {
+          "series": "spx_index"
+        },
+        "note": "Corrected 2026-09-09: the marked leg is WEAT, the fund the note tells the reader to trade, replacing the front-month wheat series. Entry is unchanged — the last close before the original 2026-09-06 publication. The 767 stop stays on front-month Chicago wheat, the signal series. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged."
+      },
+      "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
+      "status": "live",
+      "published_at": "2026-09-06T09:25:50Z",
+      "corrected_at": "2026-09-09T11:50:40Z",
+      "sizing": {
+        "weight": 10.0,
+        "basis": "of a notional book of 100; fixed at publication and never changed",
+        "backfilled_on": "2026-10-21"
+      }
+    },
+    {
+      "date": "2026-08-24",
+      "kind": "rates",
+      "title": "The people who actually own the bond market are not selling. They are buying more.",
+      "dek": "Pensions, insurers and funds now hold a net position worth 46% of the entire 10-year Treasury futures market — the 99th percentile of sixteen years of records, with the four largest readings ever all set since mid-July. Betting against this crowd has been the losing side of the trade.",
+      "position_type": "outright long",
+      "call": "Over the next six to twelve months the 10-year Treasury yield is more likely to fall than rise. The market's largest holders are near a record share of it, past extremes this deep were followed by lower yields in most cases, and a 10-year note pays 4.69% while you wait.",
+      "the_trade": {
+        "buy": "10-year US Treasury notes — the bonds themselves, or a plain 10-year Treasury fund",
+        "sizing": "A core holding, not a trading position. The measured edge is roughly two tenths of a point of yield over six months — about 1.5% of price on a 10-year note — on top of the 4.69% the note pays for holding it. The case is collect-the-yield-with-a-tailwind, not a bet on a crash."
+      },
+      "instrument": "10-year US Treasury notes, held outright, six to twelve months",
+      "horizon": "6 to 12 months",
+      "edge": {
+        "source": "positioning",
+        "summary": "Weekly CFTC data splits futures ownership by who holds it. Asset managers — pensions, insurers, mutual funds — now hold a net long worth 46% of all 10-year futures outstanding, the 99th percentile of sixteen years. The reflex reading of a record position is that it must unwind. Measured, the opposite held: after extremes this deep, yields fell over the following six to twelve months.",
+        "backtest": {
+          "window": "Weekly CFTC Traders in Financial Futures reports, January 2010 to August 2026 — 868 reports, the 10-year contract's pre- and post-2022 listings joined. Entry when asset managers' net position, as a share of open interest, ranks at or above the 95th percentile of its own history to that date (a trailing calculation, so no reading uses information that did not yet exist). Episodes at least nine weeks apart.",
+          "n": 22,
+          "result": "Across the 19 episodes with six months of history, the 10-year yield fell a median 0.18 points and rose in only 37% of cases. Across the 16 with twelve months, it fell a median 0.11 points and rose in only 25% of cases.",
+          "baseline": "Over the same sixteen years, the yield's median six-month change was +0.03 points, rising 51% of the time; the median twelve-month change was +0.19 points, rising 57% of the time."
+        }
+      },
+      "variant": "Consensus is on the record and it is the other side of this trade: Bloomberg's Markets Pulse survey published August 19 carried the headline that the US 10-year yield will top 5% this year, and the argument everywhere is supply — deficits force yields up regardless of buyers. The positioning data says the reversal traders fear would have to be sold by pensions and insurers, who buy bonds to meet obligations decades out and have historically kept accumulating through their own extremes, while the investors actually positioned for higher yields — hedge funds, net short 40% of the market — are the ones who have to buy if they are wrong.",
+      "thesis": [
+        "Start with who owns it. Asset managers hold a net long worth 46.2% of all open 10-year Treasury futures, the 99.1st percentile of 868 weekly reports back to January 2010 — and the four largest readings in the entire series were all set between July 14 and August 4 of this year. This is not a stale extreme; it is still being built.",
+        "What followed past extremes runs against the reflex. In the 19 completed episodes since 2010 where this share crossed the 95th percentile of its own history, the 10-year yield fell a median 0.18 points over the next six months and rose in only 37% of them — against a coin-flip baseline. At twelve months the yield rose in only a quarter of the episodes.",
+        "The holder matters. Pensions and insurers buy bonds to meet obligations decades away; they are structurally slow to reverse. The same fade-the-extreme instinct that is correct for fast money has been wrong for this cohort — their extremes have marked the middle of moves in yield, not the end.",
+        "You are paid more to hold the long bond than at any point in a decade. The term premium — the extra yield for holding a 10-year note instead of rolling short-term bills — is 84 basis points, the 99.7th percentile of the last ten years, and the after-inflation yield of 2.35% is at the 98th percentile of the same window. The valuation argument and the positioning argument point the same way.",
+        "The fast money is on the other side, in size. Hedge funds are net short 39.8% of open interest — the 5th percentile of the sixteen-year record. A standoff this wide between record real-money length and deep fast-money shorts has an asymmetry: if yields fall, the shorts must buy into a market whose biggest owners are not selling."
+      ],
+      "evidence": [
+        {
+          "claim": "Asset managers' net long in 10-year Treasury futures, share of open interest",
+          "value": "46.2% — the 99.1st percentile of 868 weekly reports since 2010-01-05",
+          "source": "CFTC Traders in Financial Futures (pre- and post-2022 contract listings joined)",
+          "as_of": "2026-08-18"
+        },
+        {
+          "claim": "The four largest readings in the sixteen-year series",
+          "value": "49.3%, 49.2%, 48.1%, 47.5% — set on Jul 14, Jul 21, Jul 28 and Aug 4, 2026",
+          "source": "CFTC Traders in Financial Futures",
+          "as_of": "2026-08-18"
+        },
+        {
+          "claim": "What followed the 19 completed episodes at the 95th percentile or above",
+          "value": "10-year yield six months later: down a median 0.18 points, rising in 37% of episodes; twelve months later: down a median 0.11 points, rising in 25%",
+          "source": "MacroTilt backtest on CFTC TFF and the 10-year constant-maturity yield",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "The unconditional baseline over the same sample",
+          "value": "median six-month change +0.03 points (rising 51% of the time); twelve-month +0.19 points (rising 57%)",
+          "source": "MacroTilt backtest on the 10-year constant-maturity yield, 2010-2026",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "Hedge funds' net position in the same contract",
+          "value": "net short 39.8% of open interest — the 5th percentile of the sixteen-year record",
+          "source": "CFTC Traders in Financial Futures",
+          "as_of": "2026-08-18"
+        },
+        {
+          "claim": "10-year Treasury yield",
+          "value": "4.69%",
+          "source": "MacroTilt indicator history (FRED DGS10)",
+          "as_of": "2026-08-20"
+        },
+        {
+          "claim": "Term premium on the 10-year",
+          "value": "83.9 basis points — the 99.7th percentile of the last ten years",
+          "source": "MacroTilt indicator history (NY Fed ACM term premium)",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "After-inflation 10-year yield",
+          "value": "2.35% — the 98.3rd percentile of the last ten years",
+          "source": "MacroTilt indicator history (10-year TIPS yield)",
+          "as_of": "2026-08-20"
+        },
+        {
+          "claim": "Bond-market implied volatility, for context",
+          "value": "MOVE at 73.4 — the 15th percentile of the last five years; the options market prices no turbulence in Treasuries",
+          "source": "MacroTilt indicator history (ICE BofA MOVE)",
+          "as_of": "2026-08-21"
+        },
+        {
+          "claim": "Where consensus sits",
+          "value": "Bloomberg Markets Pulse survey headline: the US 10-year yield will top 5% this year",
+          "source": "Bloomberg, published 2026-08-19",
+          "as_of": "2026-08-19"
+        },
+        {
+          "claim": "July payrolls",
+          "value": "-23,000 — one of several negative months in the past year; a weakening labour market argues for lower yields",
+          "source": "MacroTilt indicator history (BLS via FRED)",
+          "as_of": "2026-07-01"
+        },
+        {
+          "claim": "AGAINST THIS IDEA — the three most recent completed episodes all failed",
+          "value": "entries in Sep 2025, Nov 2025 and Feb 2026 saw the yield RISE 0.22, 0.45 and 0.52 points over six months — the longest failing streak in the sample, and the in-flight April 2026 episode is also under water",
+          "source": "MacroTilt backtest on CFTC TFF and the 10-year constant-maturity yield",
+          "as_of": "2026-08-21"
+        }
+      ],
+      "charts": [
+        {
+          "series": "ust_10y",
+          "title": "The yield this note is buying",
+          "subtitle": "10-year US Treasury yield, daily, last five years",
+          "window": "5y",
+          "caption": "At 4.69% the 10-year sits in the top few percent of its one-year range. This note argues the next move from here is more likely down than up — and that you collect 4.69% a year while finding out.",
+          "source": "MacroTilt indicator history (FRED DGS10)"
+        },
+        {
+          "series": "term_premium",
+          "title": "What you are paid extra to hold a long bond",
+          "subtitle": "NY Fed estimate of the 10-year term premium, daily, full history",
+          "window": "full",
+          "caption": "The extra yield for holding a 10-year note rather than rolling short-term bills is at its richest in a decade. High readings mean the market is already paying you handsomely for the risk everyone is worried about.",
+          "source": "MacroTilt indicator history (NY Fed ACM term premium)"
+        },
+        {
+          "series": "real_rates",
+          "title": "The yield after inflation",
+          "subtitle": "10-year TIPS yield, daily, last ten years",
+          "window": "10y",
+          "caption": "A 10-year inflation-protected Treasury pays 2.35% above inflation, near the top of its ten-year range. Bonds have not offered this much real income since before the financial crisis era of zero rates.",
+          "source": "MacroTilt indicator history (10-year TIPS yield)"
+        },
+        {
+          "series": "move",
+          "title": "How nervous the bond market is",
+          "subtitle": "ICE BofA MOVE index of Treasury implied volatility, daily, last five years",
+          "window": "5y",
+          "caption": "Treasury options price very little turbulence — the 15th percentile of five years. Whatever the headlines say about a bond-market revolt, the market that insures against one is not charging for it.",
+          "source": "MacroTilt indicator history (ICE BofA MOVE)"
+        }
+      ],
+      "levels": {
+        "trigger": "Asset managers' share of the 10-year futures market crossed the 95th-percentile entry level in mid-2025 and stands at the 99.1st percentile as of the August 18 report, with the 10-year at 4.69% and the term premium at a ten-year high.",
+        "invalidation": "A weekly close in the 10-year yield at or above 5.00% — a level it has not closed at since 2007 in our data (the October 2023 peak was 4.98%). Through there, the market is repricing government debt itself, and the positioning case is overruled.",
+        "target": "10-year yield at or below 4.50% within six months — the median historical move from these extremes — with the note's running yield collected along the way."
+      },
+      "sections": [
+        {
+          "title": "Setting the stage",
+          "prose": "Every week the CFTC publishes who holds Treasury futures, split into types: asset managers (pensions, insurers, mutual funds — the slow, deep-pocketed money), leveraged funds (hedge funds — the fast money), and dealers. Most positioning commentary lumps these together. Separated, they tell a story the combined number hides: the slow money's net position has grown to 46% of the whole 10-year market, the largest concentration in sixteen years of records, while the fast money is short 40% — near its own record the other way. This note is about which of those two crowds history says to stand with."
+        },
+        {
+          "title": "Why not just fade the record long?",
+          "prose": "Because it has been tried, in this exact market, and it lost. The instinct that a full position must unwind works for fast money, whose positions are bets. It has failed against asset managers, whose positions are obligations: a pension buying 10-year notes to fund benefits in 2045 does not sell because its futures share hit a percentile. In the nineteen completed episodes since 2010 where their share crossed the 95th percentile of its own history, yields fell over the following six months in nearly two thirds of them — and over twelve months, in three quarters. The record long has been the signal, not the warning."
+        },
+        {
+          "title": "What the other side says",
+          "prose": "The case for 5% yields — Bloomberg's survey headline of August 19 — rests on supply: deficits mean more bonds than buyers, whoever the buyers are. It is a serious argument and 2026 has been its year; the failing recent episodes in our own backtest are what that argument looks like in the data. Two things answer it here. The term premium at a ten-year high means the market has already repriced a great deal of that supply risk into today's yield — that is precisely what a term premium is. And the Treasury's own buyback operations, the first of which lands September 9, put a price-insensitive buyer on the other side of the supply story for the first time in this cycle."
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "2026-09-04 — Jobs report. Another negative payroll month makes the case; a strong one hurts it.",
+            "2026-09-09 — The Treasury's first bond buyback operation of the programme announced this month.",
+            "2026-09-11 — Consumer prices (CPI). The number most able to reprice the whole curve.",
+            "2026-09-16 — Fed decision. A cut with soft labour data behind it is the cleanest path to lower long yields.",
+            "2026-10-28 — Fed decision, second chance at the same."
+          ]
+        }
+      ],
+      "other_side": "The honest case against is that 2026 has been the year this signal broke. The three most recent completed episodes — September 2025, November 2025, February 2026 — all failed, with the yield rising up to half a point over the following six months, the longest failing streak in the sample, and the April entry is under water too. If deficits and Treasury supply now set the price of the long bond, then record real-money ownership just means the owners are wrong at growing scale, and the term premium at a ten-year high is not compensation on offer but a warning of more to come. Two structural caveats belong here as well: the contract changed listing in 2022 and asset managers' share has climbed structurally since the Fed stepped back from the market, so part of today's percentile reflects a regime change rather than conviction; and the signal only separates from the baseline at the 95th percentile and above — at the 85th to 93rd it shows nothing — so the edge lives in a thin tail of 22 episodes.",
+      "risks": [
+        "A hot CPI print on September 11 or a Fed that does not cut on September 16 repricing the front end and dragging the 10-year with it.",
+        "Supply: quarterly refunding announcements keep growing, and a deficit-driven selloff ignores positioning entirely — that is exactly what the three recent failed episodes looked like.",
+        "The edge is a thin tail: 22 episodes in sixteen years, and only the deepest extremes carry it. Below the 95th percentile the signal shows nothing at all.",
+        "The 2022 contract relisting and the Fed's exit from the market shifted the level of asset managers' share structurally upward; the percentile overstates how unusual today is by some unknowable amount."
+      ],
+      "so_what": "A 10-year Treasury bought today pays 4.69% a year while the market's deepest-pocketed owners keep adding to a record position — and past extremes like this one were followed by lower yields, not the unwind the street is calling for. Buy the note or a plain 10-year Treasury fund, and get out if the yield closes a week at 5% or higher.",
+      "scorecard": {
+        "legs": [
+          {
+            "series": "ust_10y",
+            "side": "long",
+            "measure": "bond_return",
+            "maturity_years": 10,
+            "label": "10-year Treasury"
+          }
+        ],
+        "horizon_months": 12,
+        "invalidation": {
+          "series": "ust_10y",
+          "op": ">=",
+          "level": 5.0,
+          "basis": "weekly_close"
+        },
+        "benchmark": {
+          "series": "ust_2y",
+          "measure": "bond_return",
+          "maturity_years": 2,
+          "label": "2-year Treasuries (staying in short bonds instead)"
+        },
+        "note": "Scored as the price return of a 10-year par bond from the yield series, against the alternative the term-premium argument competes with: staying in short-dated Treasuries. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged."
+      },
+      "reconciles": [
+        {
+          "date": "2026-08-16",
+          "prose": "The August 16 note sells ordinary 10-year Treasuries, dollar for dollar, to buy their inflation-protected twins — and this note buys the ordinary ones back. That is not the contradiction it looks like, because the two notes answer different questions. The August 16 trade is a swap: it wins if inflation compensation is repriced upward, and it does not care whether yields rise or fall. This note is about the level: it wins if yields fall. A reader who takes both ends up simply owning 10-year TIPS — the sold Treasuries in the first trade and the bought Treasuries in this one cancel out. Read together, the house view is one sentence: own the 10-year Treasury market, and prefer the inflation-protected version of it while inflation insurance is priced this cheaply. A reader taking only one idea should take this one; it is the simpler position."
+        }
+      ],
+      "book": {
+        "stance": "Taken together, the four live calls are one portfolio: own bonds — the 10-year outright, and prefer the inflation-protected version where you hold Treasuries already — stay invested in stocks but tilt them toward banks and away from the expensive end of the market, and lean toward a softer dollar through the euro. Nothing in the book is a bet on a crash. It is positioned for one thing above all: interest rates coming down faster than the stock market does, with the bond side carrying the most conviction and the currency call the least remaining runway.",
+        "rebalance": "A reader holding the earlier three calls adds this Treasury purchase; nothing is sold to make room for it and nothing else changes. The banks-versus-Nasdaq and TIPS positions keep their original stops. The euro call is the oldest of the four — its stop and target are unchanged, but it is the first candidate to come off when its window closes in November."
+      },
+      "id": "2026-08-24-the-people-who-actually-own-the-bond-market-are-",
+      "status": "live",
+      "published_at": "2026-08-26T10:59:51Z",
+      "sizing": {
+        "weight": 10.0,
+        "basis": "of a notional book of 100; fixed at publication and never changed",
+        "backfilled_on": "2026-10-21"
+      }
+    },
+    {
+      "date": "2026-08-17",
+      "kind": "equity",
+      "title": "The volatility curve is at its steepest in five years. That has been a pay cut, not a warning.",
+      "dek": "The S&P's 30-day implied volatility is trading at 0.77 times its three-month — the flattest near-date reading in five years of daily data. In the 37 independent episodes since 2011 that reached this percentile, the index returned +4.36% over the following six months against a +6.63% unconditional baseline, and +10.20% over twelve against +13.48%. The drawdown odds barely moved. What changed was the pay, not the risk — and the sleeve that gained relative ground in those windows was banks, which today sit mid-range while the Nasdaq's lead over the S&P sits at the 94th percentile.",
+      "instrument": "US bank equities against the S&P 500",
+      "horizon": "six months",
+      "position_type": "allocation shift",
+      "call": "US bank shares are positioned to out-return the S&P 500 over the next six months, and the index itself to pay materially less than its normal return for the same downside risk, because the 30-day-to-three-month volatility curve is at its steepest contango in five years.",
+      "the_trade": {
+        "buy": "US bank equities — the KBW-style bank complex, held outright.",
+        "funded_by": "Trimming the most concentrated part of existing US index exposure: the Nasdaq-100-weighted leadership, whose relative-strength ratio against the S&P sits at the 94th percentile of five years and whose own implied volatility is 45% above the S&P's, the 96th percentile of that relationship.",
+        "expression": "An allocation shift inside equity exposure. Nothing is sold short, nothing is borrowed, and total equity weight does not change. The claim is about which equities pay, not about whether to own them.",
+        "size": "A tilt, not a reversal — the base rate is a 60% hit rate on the relative leg, which supports moving a slice, not the book.",
+        "hedge_note": "If protection is wanted alongside this, it is unusually cheap here in absolute terms: three-month S&P implied volatility sits at 18.46, the 28th percentile of five years. The steep curve is precisely what makes the far date inexpensive."
+      },
+      "edge": {
+        "source": "volatility structure",
+        "summary": "The slope of the S&P volatility curve — 30-day implied divided by three-month implied — has been a usable conditioning variable for the next two to four quarters of equity return, in a direction most readers guess wrong. Steep contango is read as complacency and therefore as danger; the measured outcome is not danger but dilution. Returns compress toward half the unconditional rate while the frequency and depth of drawdowns stay where they were. The relative result is the more actionable half: banks, a sleeve nobody associates with the options market, gained ground against the index in these windows at a 60% rate against a 44% baseline.",
+        "backtest": {
+          "window": "2011-12 to 2026-08 (daily, 5,049 sessions of VIX/VIX3M from 2006-07; ranked on a causal trailing five-year percentile so no observation uses data it could not have had)",
+          "n": 37,
+          "result": "Entering at a curve reading in the bottom 5th percentile: S&P +0.40% at one month, +2.19% at three, +4.36% at six, +10.20% at twelve. Six-month hit rate 74%. Banks against the S&P: +1.72% at six months (median +3.69%), hit rate 60%. Nasdaq's excess over the S&P falls to +0.96 percentage points at six months. Probability of a 10% drawdown inside six months: 22%.",
+          "baseline": "Unconditional over the identical span, sampled every fifth session: S&P +1.11% / +3.34% / +6.63% / +13.48% at one, three, six and twelve months, six-month hit rate 82%. Banks against the S&P: -1.11% at six months (median -1.42%), hit rate 44%. Nasdaq's excess over the S&P +2.03 percentage points. Probability of a 10% drawdown inside six months: 19%.",
+          "robustness": "The direction holds in all three sub-periods (2011-2015 -2.03pp, 2016-2020 -1.28pp, 2021-2026 -4.33pp) and at every threshold tested from the 2nd to the 20th percentile (-1.28pp to -2.40pp). Episodes are separated by at least 42 trading days, so overlapping weeks are not counted as independent observations."
+        }
+      },
+      "variant": "Consensus reads a 14 handle on the VIX and a curve this steep as complacency, and complacency as a setup for a fall — the standard risk-manager reflex is to cut equity exposure and buy protection into it. The measured record disagrees with the second half of that. Drawdown frequency after these readings is statistically indistinguishable from any other day; what actually degrades is the return you are paid for carrying unchanged risk. That is a different problem with a different answer: not less equity, but different equity. Almost nobody runs the sector question off the volatility surface, because the two live on different desks.",
+      "thesis": [
+        "The signal is a slope, not a level. A VIX of 14.25 on its own is unremarkable — the 15th percentile of five years, and low volatility has been the market's resting state for most of the last decade. What is rare is 14.25 sitting against a three-month reading of 18.46. That ratio, 0.77, is the 0.6th percentile of the last five years: the options market has priced the coming month as calmer relative to the coming quarter than on all but a handful of days since 2021. The market is not saying nothing will go wrong. It is saying nothing will go wrong soon.",
+        "What follows is dilution, not danger, and the distinction is the whole note. Across 37 independent episodes since December 2011, the six-month return after a reading this steep was +4.36% against +6.63% unconditionally, and the twelve-month was +10.20% against +13.48% — roughly a third of the return removed. Meanwhile the probability of at least a 10% peak-to-trough drawdown inside six months was 22% conditionally against 19% unconditionally, and at three months the conditional figure was actually the lower of the two, 8% against 11%. You are not being handed more risk. You are being handed less compensation for the risk you already have, which is a portfolio-construction problem rather than a hedging one.",
+        "Banks are the sleeve the record points to, and they are not extended. In those same 37 windows the bank complex gained on the S&P at a 60% rate with a median relative gain of 3.69%, against a 44% rate and a median loss of 1.42% for a randomly chosen entry — a spread that widens rather than decays as the horizon extends, reaching +4.56 percentage points at twelve months. The setup matters as much as the statistic: the bank-to-index ratio today sits at the 44.6th percentile of five years, squarely mid-range, so this is a rotation into something ordinary rather than a chase of something already run.",
+        "The funding leg is where the concentration sits, and the options market is quietly agreeing. Nasdaq-100 implied volatility is 20.72 against the S&P's 14.25, a ratio of 1.45 that ranks in the 96th percentile of five years — the options market is charging near-record relative premium to insure the index whose relative-strength ratio against the S&P is simultaneously at its 94th percentile. In the backtested episodes, the Nasdaq's structural excess return over the S&P more than halved, from +2.03 percentage points to +0.96 at six months. The premium for concentration has historically been at its thinnest exactly when it was priced at its dearest.",
+        "The cross-asset reading is the tell that this is about equities specifically and not a general calm. Gold implied volatility sits at 1.68 times the VIX, the 97th percentile of the relationship since 2008; crude oil implied volatility at 3.48 times, the 94th percentile since 2007. Rate volatility is at the 14th percentile of five years. So the hedging bid has not disappeared from the system — it has migrated into metal and energy and out of the equity index. When one asset's insurance is being marked down while every other asset's is being marked up, the interesting question is what the equity market thinks it knows."
+      ],
+      "evidence": [
+        {
+          "claim": "S&P 30-day implied volatility (VIX)",
+          "value": "14.25 — 15th percentile of the trailing five years",
+          "source": "CBOE via FRED VIXCLS / Yahoo ^VIX, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "S&P three-month implied volatility (VIX3M)",
+          "value": "18.46 — 28th percentile of the trailing five years",
+          "source": "CBOE via FRED VXVCLS, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Volatility curve slope, VIX ÷ VIX3M",
+          "value": "0.7719 — 0.6th percentile of the trailing five years, third consecutive session below the 5th",
+          "source": "MacroTilt, computed from CBOE VIX and VIX3M closes",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Curve first entered the bottom 5th percentile in this stretch",
+          "value": "2026-08-12, at a ratio of 0.7852",
+          "source": "MacroTilt, computed from CBOE VIX and VIX3M closes",
+          "as_of": "2026-08-12"
+        },
+        {
+          "claim": "Bank complex against the S&P 500",
+          "value": "0.0923 — 44.6th percentile of the trailing five years, mid-range",
+          "source": "MacroTilt, KBE ÷ SPY daily closes via Yahoo Finance",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Nasdaq-100 implied volatility against the S&P's (VXN ÷ VIX)",
+          "value": "1.4540 — 95.8th percentile of the trailing five years",
+          "source": "CBOE via Yahoo ^VXN and ^VIX, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Nasdaq-100 relative strength against the S&P 500",
+          "value": "94th percentile of the trailing five years",
+          "source": "MacroTilt, NDX ÷ SPX daily closes",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Gold implied volatility against the S&P's (GVZ ÷ VIX)",
+          "value": "1.6786 — 97.4th percentile of the trailing five years",
+          "source": "CBOE via Yahoo ^GVZ and ^VIX, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Crude oil implied volatility against the S&P's (OVX ÷ VIX)",
+          "value": "3.4751 — 94.3rd percentile of the trailing five years",
+          "source": "CBOE via Yahoo ^OVX and ^VIX, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Treasury implied volatility (MOVE)",
+          "value": "69.6 — 13.9th percentile of the trailing five years",
+          "source": "ICE BofA MOVE via Yahoo ^MOVE, daily close",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "S&P 500 members above their 200-day average",
+          "value": "72.2% — 76.5th percentile of the trailing five years; participation is not the problem here",
+          "source": "MacroTilt breadth series",
+          "as_of": "2026-08-14"
+        }
+      ],
+      "levels": {
+        "trigger": "Already live. The curve closed at 0.7719 on 14 August, its third consecutive session inside the bottom 5th percentile of five years, which is the entry condition the 37 backtested episodes were defined on.",
+        "invalidation": "The VIX ÷ VIX3M ratio closing above 1.00 — outright backwardation. That is not a worse version of this setup, it is the opposite one: in the same dataset, readings in the top 5th percentile preceded six-month S&P returns of +8.97% against a +6.63% baseline. If the curve inverts, this note's premise has been replaced rather than damaged, and the allocation shift should be unwound. Separately, if the bank-to-S&P ratio runs through the 75th percentile of five years before the six months are out, the relative leg has done its work early.",
+        "target": "The relative leg: banks gaining roughly 3 to 4 percentage points on the S&P over six months, the conditional median of the backtested episodes. The absolute expectation for the index over the same window is a positive but below-par +4.4%, and the note is not built on the index falling."
+      },
+      "other_side": "The honest counter is that 74% of these episodes still made money over six months, and the twelve-month hit rate was 85% — statistically identical to the 86% unconditional. Acting on a return-degradation signal as though it were a direction signal is the most likely way to lose money on this note, because the modal outcome remains a rising market. There is also a live mechanism argument for staying put: steep contango is itself the product of persistent volatility-selling flows, and those flows are supportive of equity prices for as long as they persist, which can be quarters. And the bank leg is the weaker of the two claims — a 60% hit rate against a 44% baseline over 37 observations is a real edge but a thin one, and the effect is concentrated at the tightest thresholds where the sample is smallest.",
+      "risks": [
+        "Sample size. Thirty-seven independent episodes over roughly fifteen years is enough to reject coincidence but not enough to be precise about magnitude. The 2021-2026 sub-period, where the effect is largest at -4.33 percentage points, contains only eight of them.",
+        "The relative leg is thinner than the absolute one. Banks beat the index in 60% of episodes; that is 22 of 37, and a handful of different outcomes would move it materially. The median relative gain of +3.69% is more reliable than the mean of +1.72%, which tells you the distribution has a left tail.",
+        "Bank-specific risk is not volatility-structure risk. A credit event, a regional funding scare, or a sharp curve flattening would overwhelm this signal entirely. The high-yield-to-investment-grade spread at 271 basis points is near the tight end of its post-2011 range, which is a comfort today and a vulnerability if it moves.",
+        "The signal conditions returns; it does not time them. The one-month conditional return of +0.40% against +1.11% is a small difference on a noisy series, and nothing in this work identifies when inside the six months the underperformance arrives.",
+        "Regime dependence. Every episode in this sample sits inside a long equity bull market with two short interruptions. A dataset that began in 1998 rather than 2011 might read differently, and VIX3M does not exist before 2006 to check."
+      ],
+      "so_what": "This is a note about what you are being paid, not about what is about to happen. The equity market is offering roughly two-thirds of its usual six-month return for an unchanged amount of downside — and it is offering the thinnest version of that inside the most concentrated part of the index, at the moment the options market is charging the most to insure it. The response is a tilt within equities toward a sleeve that is neither expensive nor extended, not a reduction in equities. If the volatility curve inverts, the setup reverses and so should the tilt.",
+      "charts": [
+        {
+          "series": "vix_ts",
+          "title": "The slope, not the level",
+          "subtitle": "S&P 30-day implied volatility ÷ three-month implied volatility",
+          "caption": "Below 1.00 the market prices the coming month as calmer than the coming quarter — the normal state. At 0.77 it is the 0.6th percentile of five years. Readings above 1.00 are near-dated fear, and historically the better entry.",
+          "source": "CBOE VIX and VIX3M daily closes",
+          "window": "5y"
+        },
+        {
+          "series": "bkx_spx",
+          "title": "Banks are mid-range, not extended",
+          "subtitle": "US bank complex ÷ S&P 500, ratio",
+          "caption": "At the 44.6th percentile of five years. In the 37 episodes when the volatility curve was this steep, this ratio rose over the following six months 60% of the time, against 44% for a randomly chosen entry.",
+          "source": "KBE ÷ SPY daily closes, Yahoo Finance",
+          "window": "5y"
+        },
+        {
+          "series": "vxn",
+          "title": "What it costs to insure the concentration",
+          "subtitle": "Nasdaq-100 implied volatility, index",
+          "caption": "At 20.72 against the S&P's 14.25 — a 45% premium, the 96th percentile of that relationship over five years. The options market is charging most to insure the sleeve whose relative strength is already at its 94th percentile.",
+          "source": "CBOE ^VXN daily close",
+          "window": "5y"
+        },
+        {
+          "series": "gvz",
+          "title": "The hedging bid did not vanish — it moved",
+          "subtitle": "Gold implied volatility, index",
+          "caption": "At 23.92, or 1.68 times the VIX — the 97th percentile of that ratio since 2008. Alongside crude oil volatility at 3.48 times the VIX, this says demand for protection migrated out of the equity index rather than out of the market.",
+          "source": "CBOE ^GVZ daily close",
+          "window": "5y"
+        }
+      ],
+      "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
+      "status": "live",
+      "sections": [],
+      "published_at": "2026-08-17T15:01:00Z",
+      "scorecard": {
+        "legs": [
+          {
+            "series": "kbw_index",
+            "side": "long",
+            "measure": "pct_change",
+            "label": "KBW bank index",
+            "short_label": "KBW"
+          },
+          {
+            "series": "ndx_index",
+            "side": "short",
+            "measure": "pct_change",
+            "label": "Nasdaq Composite",
+            "short_label": "NASDAQ"
+          }
+        ],
+        "horizon_months": 6,
+        "invalidation": {
+          "series": "vix_ts",
+          "op": ">=",
+          "level": 1.0,
+          "basis": "close"
+        },
+        "note": "Re-cut 2026-08-18 under the two-leg contract. The previous block scored a single leg on bkx_spx — banks divided by the S&P 500 — while the note funds the position by trimming Nasdaq-100 leadership. That graded a different trade than the one recommended. The short leg is now the Nasdaq, matching the funding paragraph. CAVEAT ON THE PROXY: our ndx_index series is the Nasdaq COMPOSITE, not the Nasdaq-100 the note named — a close but not exact stand-in, recorded here rather than glossed. The long leg is the bank complex level itself (bkx_spx × spx_index), so the two sides can be shown separately. Entry levels are unchanged. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged.",
+        "backfilled": true,
+        "recut_at": "2026-08-18"
+      },
+      "sizing": {
+        "weight": 10.0,
+        "basis": "of a notional book of 100; fixed at publication and never changed",
+        "backfilled_on": "2026-10-21"
+      }
+    },
+    {
+      "date": "2026-08-16",
+      "kind": "rates",
+      "title": "Two prices for the same insurance, and only one of them is cheap",
+      "dek": "The inflation compensation inside a 10-year Treasury is 2.27% — the 31st percentile of three years. Gold, which insures against the same thing, sits at the 85th percentile of three years and the 98th of its history since 2000. In the eighteen episodes since 2006 when those two hedges have been priced this far apart, the bond market's number was the higher one six months later in three cases out of four. Unconditionally it is a coin flip.",
+      "position_type": "allocation shift",
+      "call": "Over the next two to three quarters the inflation compensation inside a 10-year Treasury — 2.27%, the 31st percentile of three years — is likelier to widen than to narrow. Gold prices the same risk at the 85th percentile of three years, and when the two have disagreed this far, the bond market's number is the one that has moved.",
+      "the_trade": {
+        "buy": "10-year Treasury Inflation-Protected Securities (TIPS). The principal is adjusted upward with the consumer price index, so the holder is repaid in money that keeps its purchasing power.",
+        "sell": "Ordinary 10-year Treasury notes of the same maturity, dollar for dollar. Same issuer, same maturity date, same credit — the only thing that changes is whether the payout is fixed or indexed to inflation.",
+        "sizing": "Matched maturity and matched money. Nothing is sold short and no borrowing is involved: this is a swap of one Treasury for another. The position pays off if inflation over the life of the bond runs above 2.27% a year, or if the market simply revises its guess upward; the profit and loss is the difference between two Treasuries, not a view on whether yields rise or fall."
+      },
+      "edge": {
+        "source": "cross-asset divergence",
+        "summary": "Two markets that price protection against the same risk are far apart. The 10-year inflation breakeven sits in the bottom third of its trailing three-year range while gold sits in the top fifteen percent of its own, and industrial commodity prices are at the top of their range with copper in the 99th percentile of three years. The gap between the two hedges — not the low breakeven on its own — is what the measurement is built on.",
+        "backtest": {
+          "window": "Daily, 29 December 2006 to 14 August 2026 — 4,900 observations, being every day on which a trailing three-year percentile exists for both gold and the 10-year inflation breakeven. Condition: gold in the top 15% of its own trailing three years AND the breakeven in the bottom 35% of its own. That fires on 1,079 days, which collapse to 18 distinct episodes.",
+          "n": 18,
+          "result": "At six months the breakeven was wider a median of 9.5 basis points counting one observation per episode, with 75% of the 16 completed episodes positive; across 18 non-overlapping six-month windows the median was +12 basis points with 72% positive. At three months the two counting methods disagree — +15 basis points across 31 non-overlapping windows (71% positive) but only +3.5 basis points on the stricter one-per-episode count (56%) — which is why the horizon on this note is set at six months rather than three.",
+          "baseline": "Unconditional over the same sample: the six-month change in the breakeven has a median of +1.5 basis points with 52% of 40 non-overlapping windows positive, and the three-month change a median of −1 basis point with 48% of 81 windows positive. The control that matters more: on the days when the breakeven is equally low but gold is NOT in the top 15% of its range, the six-month median is +3.0 basis points with 57% positive — roughly a third of the conditional result. The low breakeven alone is worth something; the disagreement between the two hedges is worth most of it."
+        }
+      },
+      "variant": "Consensus holds these as two separate conversations. The breakeven is read as the bond market's inflation forecast — a serious, liquid, professional number. Gold is read as a story about central bank buying, government debt and geopolitics, and therefore as saying nothing about the consumer price index at all. Both instruments are nevertheless bought by people who want to be protected from the same outcome, and they are currently priced as if that outcome has very different odds. The variant view is not that gold is right and the bond market is wrong; it is that a 54-percentile gap between two prices for one risk has historically closed from the cheaper side, and the cheaper side is the one you can buy from the US Treasury.",
+      "instrument": "10-year inflation breakeven — TIPS held against nominal 10-year Treasuries, two to three quarters",
+      "horizon": "Two to three quarters. The measured edge holds under both counting methods at six months and only one of them at three, so this is a six-month proposition with an entry window, not a multi-year holding.",
+      "thesis": [
+        "The 10-year Treasury yields 4.68%, the 96th percentile of three years — but almost none of that is about inflation. The real yield is 2.41%, the 97th percentile of three years and the 99th of ten. The inflation compensation left over is 2.27%, the 31st percentile of three years. The bond market is charging a great deal to lend money and almost nothing to insure the lender against prices.",
+        "Every other market that prices the same risk disagrees. Gold at $4,363.60 is in the 85th percentile of its trailing three years and the 98th of its history back to August 2000. Copper at $6.5925 a pound is in the 99th percentile of three years and sits 1.7% under the highest price in that series, set on 5 August 2026. Wheat is in the 96th percentile of three years. None of that is the behaviour of a world in which inflation compensation belongs in the bottom third of its range.",
+        "The measurement supports the divergence rather than the level. Conditioning only on a low breakeven gives a six-month median of +8 basis points; adding the requirement that gold be expensive at the same time raises it to +12, and the mirror case — low breakeven, gold not expensive — gives +3. The gap between two hedges carries the information, which is why this is not simply a bet that a cheap thing gets less cheap.",
+        "The position is deliberately neutral on the direction of interest rates. In the historical episodes the widening came mostly from the nominal yield moving up — a median +18 basis points at three months against +6 for the real yield — so a reader who owns this expressed as TIPS against nominal Treasuries collects the gap whether yields rise or fall. That matters right now, because there is no confident view available on the level of rates into a September FOMC meeting that follows a jobs report showing payrolls at −23,000.",
+        "The most extended position in our own positioning data sits on the other side of the leg being sold. Asset managers — pension funds, insurers, real-money accounts — hold a net long in 10-year Treasury futures equal to 46.8% of open interest, the 97.5th percentile of the 236 weekly reports since February 2022. Real money is maximally long the nominal bond. Nobody is that long the indexed one."
+      ],
+      "evidence": [
+        {
+          "claim": "The inflation compensation priced into a 10-year Treasury (its breakeven inflation rate)",
+          "value": "2.27% — the 31st percentile of the past three years (750 daily observations) and the 28th of five years; the three-year range is 2.02% to 2.50%",
+          "source": "MacroTilt indicator history (FRED 10-year breakeven, T10YIE)",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "The real (inflation-adjusted) 10-year Treasury yield",
+          "value": "2.41% — the 97th percentile of three years and the 99th of ten years",
+          "source": "MacroTilt indicator history (FRED 10-year TIPS yield, DFII10)",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "The nominal 10-year Treasury yield",
+          "value": "4.68% — the 96th percentile of three years",
+          "source": "MacroTilt indicator history (FRED DGS10)",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Gold, the other instrument bought as protection against inflation",
+          "value": "$4,363.60 an ounce — the 85th percentile of its trailing three years and the 98th of the full series back to 30 August 2000. It is also 18.0% below the highest price in that series, $5,318.40 on 29 January 2026, so this is an expensive market rather than a peaking one",
+          "source": "MacroTilt indicator history (LBMA/Stooq gold spot)",
+          "as_of": "2026-08-13"
+        },
+        {
+          "claim": "Copper, the industrial commodity least sentimental about inflation stories",
+          "value": "$6.5925 a pound — the 99th percentile of three years, 1.7% below the highest price in the series since 30 August 2000, which was $6.7030 on 5 August 2026",
+          "source": "MacroTilt indicator history (Stooq copper front month)",
+          "as_of": "2026-08-13"
+        },
+        {
+          "claim": "Wheat, a second check on the commodity read",
+          "value": "652.75 cents a bushel — the 96th percentile of three years",
+          "source": "MacroTilt indicator history (Stooq wheat front month)",
+          "as_of": "2026-08-13"
+        },
+        {
+          "claim": "Conditional outcome — breakeven change six months after the two hedges diverge (gold top 15% of trailing three years, breakeven bottom 35% of its own)",
+          "value": "Median +9.5 basis points counting one observation per episode, 75% of 16 completed episodes positive; +12 basis points across 18 non-overlapping six-month windows, 72% positive",
+          "source": "MacroTilt indicator history, measured over 4,900 daily observations from 29 December 2006",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Unconditional baseline — the same six-month change with no condition attached",
+          "value": "Median +1.5 basis points, 52% of 40 non-overlapping windows positive. At three months the unconditional median is −1 basis point with 48% positive",
+          "source": "MacroTilt indicator history, same 4,900-observation sample",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Control that argues against a simpler explanation — breakeven equally low but gold NOT expensive",
+          "value": "Six-month median +3.0 basis points, 57% positive across 14 non-overlapping windows. Roughly a third of the conditional result, so the low breakeven on its own is not the driver",
+          "source": "MacroTilt indicator history, same sample",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "Where the historical widening came from, at three months",
+          "value": "Nominal 10-year yield median +18 basis points, real 10-year yield median +6 — the gap opened mostly through the nominal leg, so the spread is not a disguised bet on lower yields",
+          "source": "MacroTilt indicator history, same sample",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "AGAINST the idea — the worst single episode in the sample",
+          "value": "The episode entered on 29 July 2008 saw the 10-year breakeven 150 basis points lower three months later. Inflation protection is exactly what gets marked down in a growth accident, and one observation of that size is the fat tail this trade carries",
+          "source": "MacroTilt indicator history, same sample",
+          "as_of": "2026-08-14"
+        },
+        {
+          "claim": "AGAINST the idea — the labour market is not confirming an inflation impulse",
+          "value": "US non-farm payrolls of −23,000 in the July 2026 report, with the unemployment rate at 4.1%",
+          "source": "MacroTilt indicator history (BLS payrolls, unemployment rate)",
+          "as_of": "2026-07-01"
+        },
+        {
+          "claim": "Positioning on the leg being sold to fund the trade",
+          "value": "Asset managers net long 10-year Treasury futures equal to 46.8% of open interest — the 97.5th percentile of 236 weekly reports since 8 February 2022. Hedge funds sit on the other side at the 19.5th percentile",
+          "source": "MacroTilt positioning (CFTC Traders in Financial Futures)",
+          "as_of": "2026-08-11"
+        }
+      ],
+      "charts": [
+        {
+          "series": "breakeven_10y",
+          "title": "What the bond market is paying for inflation protection",
+          "subtitle": "The 10-year breakeven inflation rate — the annual inflation the market must average for a nominal Treasury to match an inflation-indexed one, daily",
+          "unit": "%",
+          "decimals": 2,
+          "window": "10y",
+          "caption": "At 2.27% the market is priced for consumer price inflation to average 2.27% a year for a decade — the 31st percentile of the past three years, and a lower number than the market demanded on two thirds of the days since 2023.",
+          "source": "MacroTilt indicator history (FRED T10YIE)"
+        },
+        {
+          "series": "cmdty_gold",
+          "title": "What the other inflation hedge costs",
+          "subtitle": "Gold spot, dollars per ounce, daily",
+          "unit": "$/oz",
+          "decimals": 0,
+          "window": "10y",
+          "caption": "The 85th percentile of the past three years and the 98th of the series since August 2000, and 18% under its own January 2026 peak. Buyers here are paying up for protection against the same thing the breakeven says is not worth insuring.",
+          "source": "MacroTilt indicator history (gold spot)"
+        },
+        {
+          "series": "real_rates",
+          "title": "The part of the 10-year yield that has nothing to do with inflation",
+          "subtitle": "The 10-year inflation-protected Treasury yield — what a lender earns after inflation, daily",
+          "unit": "%",
+          "decimals": 2,
+          "window": "10y",
+          "caption": "At 2.41% this is the 99th percentile of ten years. Nearly the whole of the 4.68% nominal yield is compensation for lending, not for inflation — which is the arithmetic that leaves the breakeven so low.",
+          "source": "MacroTilt indicator history (FRED DFII10)"
+        },
+        {
+          "series": "cmdty_copper",
+          "title": "The commodity with no inflation narrative attached to it",
+          "subtitle": "Copper front-month futures, dollars per pound, daily",
+          "unit": "$/lb",
+          "decimals": 3,
+          "window": "10y",
+          "caption": "The 99th percentile of three years and 1.7% under the highest price in the series since August 2000. Copper is bought by manufacturers, not by people with a view on the Federal Reserve, which makes it the least sentimental check on the bond market's inflation number.",
+          "source": "MacroTilt indicator history (copper front month)"
+        }
+      ],
+      "levels": {
+        "trigger": "A 10-year breakeven at or below 2.30%. It is 2.27% as of 14 August, so the entry is live; scale in ahead of the 11 September consumer price report rather than after it.",
+        "invalidation": "A weekly close in the 10-year breakeven below 2.10% — the bottom decile of the past three years — or a payrolls print below −100,000 on 4 September or 2 October. Either says the market is pricing a demand shock rather than an inflation one, and this position loses on both legs in that world.",
+        "target": "A 10-year breakeven of 2.39%, which is the +12 basis point six-month median the base rate implies from 2.27% and sits inside the 2.02%–2.50% range of the past three years. There is no case here for a return to the 3.02% of April 2022."
+      },
+      "sections": [
+        {
+          "title": "What you are actually buying",
+          "prose": "A nominal Treasury pays a fixed number of dollars. A Treasury Inflation-Protected Security pays a smaller fixed rate on a principal that grows with the consumer price index. The difference between the two yields — 2.27% today at ten years — is the annual inflation rate at which the two end up in the same place. Buy the indexed bond and sell the ordinary one and you own nothing except that number: same issuer, same maturity, no credit risk taken, no money borrowed. If inflation over the coming years averages more than 2.27%, or if the market's estimate of it moves up before then, the indexed bond wins. If prices run cooler than that, the ordinary one does."
+        },
+        {
+          "title": "Setting the stage — which product this is",
+          "prose": "Match the horizon to the signal. This one is a measurement about a gap between two prices, and gaps between prices close over months, not over years. The evidence is clean at six months under both ways of counting it and ambiguous at three. So the honest description is a two-to-three-quarter position with a defined level that proves it wrong, entered while the breakeven sits below 2.30%. It is not an inflation forecast, it is not a call on the level of yields, and it is not a view a reader should still be holding in 2028."
+        },
+        {
+          "title": "Why the counting method matters",
+          "bullets": [
+            "The condition fires on 1,079 separate days since 2006. Treated as 1,079 independent observations it would look overwhelming, and it would be wrong — those days sit inside 18 episodes, and days within an episode tell you the same thing repeatedly.",
+            "Two stricter counts are reported instead. Non-overlapping windows: take one observation, skip forward the full horizon, take the next. One-per-episode: take only the day the condition first fires.",
+            "At six months both agree — +12 basis points and 72% positive on non-overlapping windows, +9.5 and 75% on episode entries, against an unconditional +1.5 and 52%.",
+            "At three months they disagree, +15 basis points against +3.5. Where two defensible counts of the same data disagree, the weaker one is the finding. The horizon is set at six months for that reason."
+          ]
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "26 August 2026 — personal income and the PCE price index, the inflation measure the Federal Reserve actually targets.",
+            "4 September 2026 — the August jobs report. The July report showed payrolls at −23,000; a second negative print is the fastest route to the invalidation level on this trade.",
+            "10 and 11 September 2026 — producer prices, then the consumer price index. The single largest scheduled mover of a breakeven inflation rate.",
+            "16 September 2026 — the Federal Reserve decision and the updated projections. A committee that signals tolerance for inflation above target while cutting is the outcome this position is positioned for.",
+            "14 October 2026 — the next consumer price index, roughly the mid-point of the horizon."
+          ]
+        }
+      ],
+      "other_side": "The strongest argument against is that a breakeven is not a pure inflation forecast and never has been. Part of the 2.27% is compensation for the fact that inflation-protected Treasuries trade in a thinner market than ordinary ones — buyers demand a discount for that, and it is not an error waiting to be corrected. It can also sit there for a very long time: between 2014 and 2016 the breakeven stayed in the bottom third of its range for more than two years while nothing closed the gap. Second, the gold leg of the argument is a correlation and not a mechanism. Gold is 18% below its January 2026 peak, and a market that has already given back that much may be telling you the inflation hedge is being sold rather than that it is dear. Third, and most seriously, the sample carries one catastrophic observation: the episode entered on 29 July 2008 was 150 basis points lower three months later. Inflation protection is exactly the asset that is marked down when growth breaks, and with payrolls at −23,000 in July this is not a theoretical risk. The trade is a modest median gain against a small chance of a very large loss, and it should be sized as that and nothing else.",
+      "risks": [
+        "A growth accident. If the September or October jobs report confirms contraction, breakevens fall with the demand outlook and both legs move against the position at once. This is the loss that is large rather than the loss that is likely.",
+        "The liquidity discount inside TIPS widens instead of narrowing. In a stressed market, indexed Treasuries are sold before ordinary ones — the mechanism that produced the 2008 observation in the sample.",
+        "Time. The 2014-2016 precedent had the breakeven in the bottom third of its range for over two years. A six-month horizon can expire while the argument is still intact, which is a real cost even though it is not a large one.",
+        "The gold signal is a statistical relationship measured over 18 episodes, not a causal link. Eighteen is enough to be worth acting on and not enough to be sure of, and a reader should hold it that way.",
+        "The measured gain is small in absolute terms. A twelve basis point median widening on a ten-year spread is a modest result on the money committed. This is a high-probability, low-magnitude position, and treating it as anything larger is the mistake available here."
+      ],
+      "so_what": "The bond market is charging the 97th percentile of three years to lend money and the 31st percentile to insure the lender against inflation, at the same moment copper sits in the 99th percentile of three years and gold in the 85th. Two markets are pricing the same risk 54 percentiles apart. The way to own that disagreement is a swap of one Treasury for another — no leverage, no short, no view on the direction of rates — and the honest expectation is a small gain with good odds over six months, not a windfall.",
+      "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
+      "status": "live",
+      "published_at": "2026-08-16T23:28:45Z",
+      "scorecard": {
+        "legs": [
+          {
+            "series": "real_rates",
+            "side": "long",
+            "measure": "bond_return",
+            "maturity_years": 10,
+            "label": "10-year TIPS",
+            "short_label": "10y TIPS"
+          },
+          {
+            "series": "ust_10y",
+            "side": "short",
+            "measure": "bond_return",
+            "maturity_years": 10,
+            "label": "10-year Treasuries",
+            "short_label": "10y UST"
+          }
+        ],
+        "horizon_months": 6,
+        "invalidation": {
+          "series": "breakeven_10y",
+          "op": "<=",
+          "level": 2.1,
+          "basis": "weekly_close"
+        },
+        "note": "Re-cut 2026-08-18. The previous block scored the 10-year breakeven as a level change and reported it in pp, so a 1bp widening printed as “+0.01pp” next to equity returns in per cent — not comparable in unit or in size. The trade is now its two actual sides: long 10y TIPS, short duration-matched 10y nominals, each converted from its own yield to a price return via the modified duration of a par bond at that yield. The net is arithmetically the breakeven move times duration, but it can now be netted, sized and benchmarked. Price return only: the carry on this pair is the realised-versus-breakeven inflation accrual, which we do not observe daily and therefore do not claim. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged.",
+        "backfilled": true,
+        "recut_at": "2026-08-18"
+      },
+      "sizing": {
+        "weight": 10.0,
+        "basis": "of a notional book of 100; fixed at publication and never changed",
+        "backfilled_on": "2026-10-21"
+      }
+    },
+    {
+      "date": "2026-08-14",
+      "kind": "fx",
+      "title": "The most one-sided trade in the market is not on any chart",
+      "position_type": "long/short spread",
+      "call": "Over the next one to two quarters the euro is likely to out-return the dollar. Speculators hold the largest dollar long in three years while the dollar's PRICE sits mid-range — the consensus is in the position, not the chart, which is why nothing about the tape looks stretched.",
+      "horizon": "One to two quarters",
+      "dek": "A dollar long at the 90th percentile of three years with commercial hedgers at the 8th, on a currency trading at the 37th percentile of its own range. Every completed instance of this setup in the sample was followed by a lower dollar three months later — and the sample is small enough that the number of instances matters more than the average.",
+      "the_trade": {
+        "buy": "The euro against the dollar (EUR/USD, spot 1.153)",
+        "short": "The dollar — the euro leg is the expression; a short dollar index position is the same trade",
+        "sizing": "Sized to a three-month horizon, not six. The edge measured here decays: the same setup shows a median dollar move of −1.25% at three months and +0.81% at six, so this is not a position to leave on and forget."
+      },
+      "edge": {
+        "source": "positioning",
+        "summary": "Speculative dollar-index positioning at or above the 85th percentile of its three-year distribution, with commercial hedgers at the opposite extreme, and the same trade visible on the crosses — euro shorts at the 10th percentile, sterling at the 8th.",
+        "backtest": {
+          "window": "CFTC Commitments of Traders, weekly, 3 August 2023 to 4 August 2026 (156 weeks)",
+          "n": 26,
+          "result": "Euro, after speculative positioning at or below the 15th percentile: median +3.18% at three months with 77% of instances positive, and +8.50% at six months with 92% positive (n=26 weeks). Dollar index, after speculative positioning at or above the 85th percentile: median −1.60% at one month with 95% of weeks lower, and −1.25% at three months with 73% lower (n=22 weeks). Those 22 dollar weeks collapse to FOUR independent episodes; three have completed, and all three fell between 4.2% and 6.2% over the following three months.",
+          "baseline": "Unconditional over the same 156 weeks: the euro's median three-month return is +0.18% with 52% positive and its six-month is +0.62% with 56% positive; the dollar index's median one-month return is −0.11% with 52% of weeks lower and its three-month is +0.06% with 49% lower. The conditional readings are a genuine departure from a coin flip at one and three months. At SIX months the dollar edge disappears entirely (+0.81% median), which is what sets the horizon on this trade."
+        }
+      },
+      "variant": "Consensus is not positioned for a weaker dollar and does not think it is taking a consensus position, because the dollar index at 100 is unremarkable — the 37th percentile of its own three-year range, nowhere near an extreme on any chart. The one-sidedness is visible only in the positioning data, at the 90th percentile with commercial hedgers at the 8th. The market is reading price and concluding the trade is not consensus. This note reads the position.",
+      "thesis": [
+        "<b>The position is at an extreme; the price is not.</b> Speculative net length in the dollar index sits at the 90th percentile of the last three years at 43.1% of open interest, and it moved 13 percentile points in the reporting week — new, not a standing condition. The dollar index itself closed at 100.01, the 37th percentile of its three-year range of 96.2 to 110.0. A one-sided position that has not yet been rewarded is a different animal from a one-sided position sitting on a large profit: there is no gain to defend, so the exit is cheaper and faster.",
+        "<b>Commercial hedgers are at the opposite extreme on all three legs.</b> Dollar index commercials sit at the 8th percentile, euro commercials at the 90th, sterling commercials on the same side. The positioning feed flags all three as divergences. One market at an extreme is a market view; the same trade expressed three ways with the hedging community taking the other side of each is a consensus.",
+        "<b>The base rates favour the fade at this horizon, and stop favouring it after.</b> Euro shorts at or below the 15th percentile have been followed by a median +3.18% three-month euro return against an unconditional +0.18%, and 77% of instances were positive against a 52% coin flip. The dollar side agrees at one and three months and then decays to nothing by six. The trade has a shelf life and the sizing says so.",
+        "<b>The same speculators are also at the 87th percentile long gold — and that cannot be right.</b> Both positions have been at or above the 85th percentile in only five of 156 weeks. The daily changes of gold and the dollar index have been NEGATIVELY correlated in 100% of 4,926 rolling one-year windows since 2007, currently −0.33 against a median of −0.39. Speculators are long both sides of a pair that has never once moved together for a year. One of those two books is wrong, and the dollar is the one with the weaker base rate behind it."
+      ],
+      "evidence": [
+        {
+          "value": "90th percentile",
+          "claim": "Speculative net dollar-index positioning, ranked against three years of weekly reports — 43.1% of open interest, up 13 percentile points on the week.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "8th percentile",
+          "claim": "Commercial hedger positioning in the dollar index — the opposite extreme, which is what makes this a divergence rather than a one-sided market.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "10th / 90th",
+          "claim": "Euro speculative and commercial positioning percentiles — the mirror image of the dollar, flagged as a divergence for five straight weeks.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "8th percentile",
+          "claim": "Sterling speculative positioning — an extended short running twelve weeks, the third leg of the same dollar trade.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "37th percentile",
+          "claim": "The dollar index at 100.01 ranked against its own three-year range of 96.2 to 110.0. The price is unremarkable; only the positioning is stretched.",
+          "source": "MacroTilt indicator history (ICE dollar index)",
+          "as_of": "2026-08-12"
+        },
+        {
+          "value": "+3.18% vs +0.18%",
+          "claim": "Median three-month euro return after speculative positioning at or below the 15th percentile (n=26 weeks, 77% positive), against the unconditional median over the same 156 weeks (52% positive).",
+          "source": "MacroTilt backtest — CFTC COT + indicator history",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "3 of 3",
+          "claim": "Completed independent episodes of dollar positioning at or above the 85th percentile that were followed by a lower dollar three months later — falls of 4.2%, 4.4% and 6.2%. The fourth episode is the current one.",
+          "source": "MacroTilt backtest — CFTC COT + indicator history",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "+0.81%",
+          "claim": "Median SIX-month dollar return after the same signal — the edge is gone by then. This is the number that sets the horizon, and it argues against holding the trade longer.",
+          "source": "MacroTilt backtest — CFTC COT + indicator history",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "87th percentile",
+          "claim": "Speculative gold positioning, up 32 percentile points on the week — the largest single-week positioning move in the report.",
+          "source": "CFTC Commitments of Traders via MacroTilt",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "5 of 156 weeks",
+          "claim": "Weeks in which speculative positioning in BOTH gold and the dollar index sat at or above the 85th percentile. The prior four were two clusters, in June and September 2024.",
+          "source": "MacroTilt backtest — CFTC COT",
+          "as_of": "2026-08-04"
+        },
+        {
+          "value": "0 of 4,926",
+          "claim": "Rolling one-year windows since 2007 in which the daily changes of gold and the dollar index were positively correlated. The current reading is −0.33 against a full-history median of −0.39.",
+          "source": "MacroTilt indicator history",
+          "as_of": "2026-08-12"
+        },
+        {
+          "value": "1st / 2nd percentile",
+          "claim": "Nasdaq 100 and Russell 2000 speculative positioning — both extended shorts. Tested as a squeeze trade and REJECTED: forward returns after those extremes came in at or below the unconditional baseline at every horizon. Noted here because it is the argument this note does not make.",
+          "source": "MacroTilt backtest — CFTC COT + indicator history",
+          "as_of": "2026-08-04"
+        }
+      ],
+      "levels": {
+        "trigger": "A weekly close in EUR/USD above 1.16, or a weekly close in the dollar index below 99.5. Confirm on the way in — the same rule the site's regime gate uses.",
+        "invalidation": "A weekly close in the dollar index above 103, which is roughly the 60th percentile of its three-year range. That says the position is being rewarded rather than unwound, and a one-sided position that starts paying can stay one-sided for a long time.",
+        "target": "EUR/USD 1.19 — approximately the +3.18% median three-month move the base rate implies from 1.153, reached in 77% of comparable instances."
+      },
+      "charts": [
+        {
+          "series": "usd",
+          "title": "The dollar's price is mid-range",
+          "subtitle": "ICE dollar index, last three years — the positioning is at the 90th percentile, the price at the 37th",
+          "unit": "",
+          "decimals": 2,
+          "window": "3y",
+          "caption": "This is the chart the market is looking at, and there is nothing stretched about it. That is the point: the crowding does not appear here.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "fx_eur",
+          "title": "The other side of the same trade",
+          "subtitle": "Euro against the dollar, last three years",
+          "unit": "",
+          "decimals": 3,
+          "window": "3y",
+          "caption": "Speculators are short the euro at the 10th percentile of three years while commercial hedgers sit at the 90th. After that reading the euro's median three-month return has been +3.18% against an unconditional +0.18%.",
+          "source": "MacroTilt indicator history"
+        },
+        {
+          "series": "cmdty_gold",
+          "title": "And they are long gold at the same time",
+          "subtitle": "Gold, last three years",
+          "unit": "$/oz",
+          "decimals": 0,
+          "window": "3y",
+          "caption": "Speculative gold positioning is at the 87th percentile, up 32 points on the week. Gold and the dollar have not had a positive one-year correlation in any of 4,926 windows since 2007 — both books cannot be right.",
+          "source": "MacroTilt indicator history"
+        }
+      ],
+      "sections": [
+        {
+          "title": "What the backtest actually says, including where it is thin",
+          "prose": "Three years of weekly reports is 156 observations, and the dollar signal fires in 22 of them — but those 22 weeks are only FOUR independent episodes, because positioning stays extreme for weeks at a time. Three of the four have completed and all three saw the dollar 4.2% to 6.2% lower three months on. That is a striking run and it is also n=3, which is not a number to size aggressively against. The euro side is better populated at 26 weeks and cleaner against its baseline (+3.18% versus +0.18% at three months; 77% positive versus 52%), which is why the euro is the expression rather than a naked dollar short. Both readings use overlapping weekly windows, which flatters significance; the honest summary is a real effect at one to three months, a small number of genuine episodes behind it, and nothing at all by six months."
+        },
+        {
+          "title": "The idea this note is not making",
+          "prose": "Speculators are also at the 1st percentile in the Nasdaq 100 and the 2nd in the Russell 2000 — extended shorts in both, with commercials at the 100th percentile on each. That is a more exciting story and it did not survive its own test: after Nasdaq positioning at or below the 10th percentile, the index's median forward return was −0.60% at one month, +2.35% at three and +3.73% at six, against unconditional readings of +2.30%, +6.15% and +11.53%. Buying the extreme was WORSE than buying at random at every horizon. Positioning at an extreme is not a signal by itself; it is a signal in the markets where the base rate says it is one."
+        },
+        {
+          "title": "Dates that decide it",
+          "bullets": [
+            "<b>Every Friday, 3:30 PM</b> — the next Commitments of Traders report. The first thing to watch is whether the dollar percentile falls; the trade works by the position unwinding, so evidence of the unwind is the thesis playing out.",
+            "<b>26 August, 8:30 AM</b> — personal income and the PCE price index.",
+            "<b>4 September, 8:30 AM</b> — the jobs report.",
+            "<b>16 September, 2:00 PM</b> — the FOMC decision, with projections. A hawkish dot plot is the single most likely route to the dollar-index-above-103 invalidation."
+          ]
+        }
+      ],
+      "other_side": "The strongest argument against is the sample. Twenty-two weeks sounds like evidence; four independent episodes, three of them completed, does not. A run of three is exactly the kind of pattern that appears in any three-year window by chance, and the six-month result — a median +0.81% dollar return, no edge at all — is a reminder that whatever is here is short-lived. Second, positioning is a coincident measure and it is reported with a lag: this data is dated 4 August and the unwind may already have begun without the print to show it. Third, a one-sided dollar long can keep being right. If the September projections push the rate differential further in the dollar's favour, commercial hedgers will be on the wrong side and stay there — hedgers are not a smart-money signal, they are the other side of a trade, and treating their extreme as a forecast is the standard way this analysis fails.",
+      "risks": [
+        "<b>n=3 completed episodes.</b> Everything above rests on a run short enough to be luck. Size it as a position with a good base rate, not a high-conviction one.",
+        "<b>The signal is reported with a lag.</b> The 4 August data is eight sessions old by publication; a fast unwind would already be in the price and the entry gone.",
+        "<b>A hawkish September changes the sign.</b> If the FOMC projections widen the rate gap, the one-sided dollar long becomes the correct dollar long and the invalidation triggers.",
+        "<b>The euro is not cheap on price</b> — it sits around the 67th percentile of its own three-year range. This trade is paid by the positioning unwinding, not by the euro being undervalued."
+      ],
+      "so_what": "The most one-sided position in the market right now is not in equities and is not visible on a price chart — it is a dollar long at the 90th percentile with hedgers on the other side of three separate legs. It has a short shelf life and a thin sample behind it, and it is a far better use of risk over the next two quarters than another observation that stocks are expensive.",
+      "instrument": "Long EUR/USD against a short dollar-index position, one to two quarters",
+      "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
+      "status": "live",
+      "published_at": "2026-08-14T18:17:21Z",
+      "scorecard": {
+        "legs": [
+          {
+            "series": "fx_eur",
+            "side": "long",
+            "measure": "pct_change",
+            "label": "EUR/USD",
+            "short_label": "EUR/USD"
+          }
+        ],
+        "horizon_months": 3,
+        "invalidation": {
+          "series": "usd",
+          "op": ">=",
+          "level": 103,
+          "basis": "weekly_close"
+        },
+        "note": "Reviewed 2026-08-18 and deliberately left as ONE leg. The note frames it as “long EUR against a short dollar-index position”, but the dollar is the quote currency of EUR/USD — buying the pair already sells dollars. Adding a short DXY leg would double-count the same exposure, since the euro is roughly 57% of that index. The short-dollar side is inside the instrument. Benchmarked against the dollar index, which is what the consensus position was. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged.",
+        "backfilled": true,
+        "recut_at": "2026-08-18",
+        "funding_inside_instrument": "The dollar is the quote currency of EUR/USD, so buying the pair already sells dollars. A separate short dollar-index leg would double the same exposure — the euro is roughly 57% of that index."
+      },
+      "sizing": {
+        "weight": 10.0,
+        "basis": "of a notional book of 100; fixed at publication and never changed",
+        "backfilled_on": "2026-10-21"
+      }
+    }
+  ]
+}
