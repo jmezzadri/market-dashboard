@@ -171,12 +171,12 @@ export function TradeIdeaNoteBody({ idea, chartSeries, review }) {
           ['Pays, if it happens', idea.expected_return?.payoff_ratio != null ? `${Number(idea.expected_return.payoff_ratio).toFixed(1)} to 1 on the premium` : null],
         ] : []),
           ['Buy', idea.the_trade?.buy], ['Sell to pay for it', idea.the_trade?.sell],
-          ['Sell short', idea.the_trade?.short],
+          ['Sell short', idea.the_trade?.short || 'N/A'],
           ['What would make it a position', idea.the_trade?.what_would_make_it_a_position],
           ['How much', idea.the_trade?.sizing],
           ['Weight in the book', idea.sizing?.weight != null ? `${idea.sizing.weight} of 100${idea.scorecard?.note && /backfill/i.test(idea.scorecard.note) ? ' (assigned October 21, 2026, when the book gained its capital base)' : ''}` : null],
-          ['The technical version', idea.instrument], ['Horizon', idea.horizon],
-          ['Why now', idea.levels?.trigger], ['What proves it wrong', idea.levels?.invalidation],
+          ['The technical version', idea.instrument], ['Time horizon', idea.horizon],
+          ['Why now', idea.levels?.trigger], ['Exit trigger', idea.levels?.invalidation],
           ['Where it goes if it works', idea.levels?.target]]
           .filter(([, v]) => v).map(([k, v]) => (
             <div className="idea-fact" key={k}><span className="k">{k}</span><span className="v">{v}</span></div>

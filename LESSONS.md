@@ -82,6 +82,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `1.4` Specialists don't bounce specialist calls back to Joe
 - `1.5` Write to Joe in full sentences with standard finance terms. No shorthand, and no dumbed-down substitutes either
 - `1.6` A skip day is reported as a STATISTICS TABLE — one row per candidate, the trade named in plain English, why and how it was tested, the numbers not the words. Never a black box. (2026-10-21: two tables, Backdrop / Thesis cells, five tests with gaps, no internal labels — 6.26)
+- `1.7` THE TRADE BLOCK IS FOUR FIELDS, ONE VEHICLE, TRADER ENGLISH: Buy · Sell short (or N/A) · Time horizon · Exit trigger — nothing else, no alternatives, no repeated phrases
 
 **2 · SCOPE & TURN DISCIPLINE**
 
@@ -628,6 +629,21 @@ credential-questioning anti-pattern wearing a new hat.
 
 **Amended 2026-10-21 (6.26, Decision 6; Joe: "NO ONE HAS A FUCKING CLUE WHAT YOURE SAYING").** The reply had opened with "Dominant scheduled event: none tier-1" — a label copied from the run's internal checklist — and the "why" cell read as a dates-and-percentiles string. Five rules, binding on the run and on the playbook text (step 7): (1) no internal label reaches Joe — "the big market-moving event on the calendar today", never "dominant scheduled event"; mechanics go in one footnote or nowhere; (2) Table 1 is `Idea | Why we tested it`, the second cell exactly two labelled lines — *Backdrop:* the facts in words; *Thesis:* the mechanism and the forward call with the horizon in months; (3) Table 2 is the five tests, one row per idea per hold, each test a visible pass/fail with the gap to the bar (bar · expected return = the median case · gap · pass? · beats baseline · enough history · today's conditions · risk · killed by), shorts as two rows (relative, absolute); (4) one horizon is enough — the neighbours are shown, a lone pass is a warning not a fail; (5) at most three sentences under the tables: the closest call, the number that killed it, and whether another weight or hold would have passed it. Any positioning claim names the report, the date, the contracts, the open interest and the rank when asked.
 
+### 1.7 (2026-10-22, Joe, emphatic: "MAKE A HARD FUCKING RULE NOW!!! IM NOT GOING OT SAY IT AGAIN!!!") — The trade block is four fields, one vehicle, no words
+
+**What happened:** The Oct 22 note (short the S&P 500 on credit widening under a record) went live with Buy: "SPY at-the-money puts, Nov 6 expiry" and Sell short: "SH, the inverse S&P 500 fund, two weeks" — one position written as two trades, because the contract requires `the_trade.short` for `outright short` and the playbook's "retail expressions" table invited listing alternatives. Joe: "WHAT THE FUCK IS THIS?!" Then the title: "The S&P 500 has two weeks to catch down" — "Where have you ever seen any human write like this?" — and "two weeks" repeated four times inside one screen. His version of the whole trade block: **Buy: SPY ATM puts; Sell short: N/A; Time horizon: 2–3 weeks; Exit trigger: S&P 500 > 7,818.** His version of the title: "Credit spreads widening, S&P 500 likely to close the gap."
+
+**Rule:**
+1. **The trade block on the site is exactly four fields:** Buy · Sell short (or N/A) · Time horizon · Exit trigger. Each a few words. Nothing else renders in the strip — no premium sentence, no restated horizon, no "closed by whatever the outcome".
+2. **One vehicle.** A note names one way to hold the position. Alternatives (an inverse fund beside puts, shares beside calls) never appear in `the_trade`; if the vehicle is an option, the position type is the option's side (`outright long` for bought puts) and `short` is N/A.
+3. **Titles and calls are trader English**, the way a PM says it across a desk: "Credit spreads widening, S&P 500 likely to close the gap." Never "has two weeks to catch down", never a sentence a human has not said aloud.
+4. **A phrase appears once per screen.** The title, dek, call and summary may not repeat the same figure or phrase; say it in the title, reference it elsewhere.
+5. **Fewest words that carry the fact**, everywhere Joe or a reader sees — 0.1, 1.5, 1.6 restated and now binding on the tile fields: `buy_line`/`short_line` ≤ 8 words, `horizon` ≤ 4 words, `levels.invalidation` ≤ 8 words.
+
+**Contract follow-up (Lead Developer):** `build_trade_idea.py` — cap `buy_line`/`short_line` at 8 words and `levels.invalidation` at 8 words for notes dated 2026-10-23+; render Sell short as "N/A" on the tile when absent; reject a `the_trade` naming two vehicles (two tickers across buy/short legs of a single-leg scorecard). Playbook: replace the "retail expressions, in order of preference" table's framing with "pick ONE".
+
+**Applies to:** the Trade Idea + X Chart session, UX (the tile), Lead Developer (the contract), Senior Quant.
+
 # 2 · SCOPE & TURN DISCIPLINE
 
 
@@ -1082,8 +1098,6 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer — any change that adds a rendered field; any restore/un-retirement.
 
-**2026-10-22 addendum (health sweep):** the same shape in a scheduler. POWER-TREND-LIST-MONTHLY fires at 10:00 AND 11:00 UTC on the 1st (DST double-cron). On Oct 1 the first fire published the list and stamped green; the second collided with the quarterly backtest in the same 11:00 UTC slot, timed out three times on `power_trend_scan`, and red-stamped the row — the correct list sat under a red stamp written by a run that had nothing to add. The producer now checks for this panel date's list before scanning and exits clean when it is already on file (`FORCE_REPUBLISH=1` recomputes). **Rule, restated for redundant timers:** a safety-net fire that finds the work already done touches nothing — not the data, not the stamp. Its failure is never evidence about the first fire's output.
-
 **2026-10-09 addendum (health sweep) — the audit worked and was then overwritten by its own workflow.** The Oct 1 book scored two new names (QLYS, HNGE) absent from `qt_gics`; `_stamp_health` correctly wrote qt-target-book RED, and seconds later QT-REBALANCE's "Stamp pipeline health green" step stamped GREEN unconditionally. /paper rendered "Unclassified 10.0% · QLYS · HNGE" for eight days under a green row; the sweep found it by rendering the page, not from any alarm. Fixed: the workflow stamp now re-audits the rows it reads back and stays red on any hole; both names added to `qt_gics` and the Oct 1 rows healed. **Rule: a later stamp in the same job must never be less strict than an earlier one.** Any step that writes a status after a producer's self-audit either re-runs that audit or leaves status alone — "the job finished" is not evidence the output is complete.
 
 
@@ -1200,8 +1214,6 @@ They are not the same series and they are nowhere near each other:
 **Rule, added:** Before stating what a series "should" read, print the vendor's raw bars with their timestamps. A date is assigned in the exchange's timezone. A live quote is never a daily bar. A fix to a data producer is verified against the vendor, not against the file the producer wrote.
 
 **Applies to:** Lead Developer, Data Steward — every producer of a daily market series.
-
-**2026-10-22 addendum (health sweep, bug #1274 fourth day):** the Nikkei tile was a session behind AGAIN on the Thursday pre-open with the per-exchange cutoff fix (#1819) proven correct in the evening log — because the 09:30 UTC "morning pass" that is supposed to catch Tokyo's close never runs in the morning. Read from the run history: this repo's crons start 2–7 hours after their schedule line, every cron, every day, since at least September (23:00 UTC drills → 01:03–03:24; 09:30 UTC econ calendar → 13:04–17:02; the 09:30 market pass → 13:07–14:35 all week). The pass was written as if GitHub fires on time, the one thing this entry's own rule says never to assume. The first morning pass now sits at 06:45 UTC, right after Tokyo's 15:30 JST close, so the measured delay still lands it before 6am ET; 09:30 stays as the second attempt. **Rule, restated for schedules:** a cron line is placed for the time the job really RUNS (schedule + the delay read from history), never for the time written on it; a "pre-open" pass whose history shows post-open starts is not a pre-open pass. The delay itself is a standing condition of this repo (5.2 is the dropped-block case); any pre-open deliverable needs either an early cron that absorbs it or a dispatch from a scheduler that is on time (the cloud sweep's `dispatch`).
 
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 

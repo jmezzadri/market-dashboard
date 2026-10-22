@@ -294,14 +294,12 @@ export default function HomePage() {
                     {idea.the_trade.sell && (
                       <div className="idea-fact"><span className="k">Sell to pay for it</span><span className="v">{idea.the_trade.sell_line || firstClause(idea.the_trade.sell, 64)}</span></div>
                     )}
-                    {idea.the_trade.short && (
-                      <div className="idea-fact"><span className="k">Sell short</span><span className="v">{idea.the_trade.short_line || firstClause(idea.the_trade.short, 64)}</span></div>
-                    )}
+                    <div className="idea-fact"><span className="k">Sell short</span><span className="v">{idea.the_trade.short ? (idea.the_trade.short_line || firstClause(idea.the_trade.short, 64)) : 'N/A'}</span></div>
                     {idea.the_trade.what_would_make_it_a_position && (
                       <div className="idea-fact"><span className="k">What would make it a position</span><span className="v">{firstClause(idea.the_trade.what_would_make_it_a_position)}</span></div>
                     )}
-                    <div className="idea-fact"><span className="k">Horizon</span><span className="v">{firstClause(idea.horizon, 64) || "—"}</span></div>
-                    <div className="idea-fact"><span className="k">What proves it wrong</span><span className="v">{firstClause(idea.levels?.invalidation) || '—'}</span></div>
+                    <div className="idea-fact"><span className="k">Time horizon</span><span className="v">{firstClause(idea.horizon, 64) || "—"}</span></div>
+                    <div className="idea-fact"><span className="k">Exit trigger</span><span className="v">{firstClause(idea.levels?.invalidation) || '—'}</span></div>
                   </div>
                 )}
 
