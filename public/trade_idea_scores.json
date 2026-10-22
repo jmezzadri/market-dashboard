@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T00:00:21Z",
+  "generated_at": "2026-10-22T01:07:56Z",
   "as_of": "2026-10-22",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. The book is a notional 100: each call is held at the weight its note stated when it was published (10 for a standard idea, 5 for one published with fewer than five matching past cases, 1 to 2 of premium for an event idea), the rest is cash, and a call's contribution is its weight times its own return. An event idea — a defined-risk options spread on a named event — is marked at expiry from the underlying's closing price against its strikes; the premium paid is the most it can lose, and before expiry it is shown as open. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
@@ -37,19 +37,19 @@
     "stats_withheld_reason": "4 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless.",
     "portfolio": {
       "inception": "2026-08-13",
-      "as_of": "2026-10-20",
-      "calendar_days": 68,
+      "as_of": "2026-10-21",
+      "calendar_days": 69,
       "history_weeks": 10,
       "benchmark_label": "S&P 500",
       "book_base": 100.0,
       "invested_now": 40.0,
       "cash_now": 60.0,
       "total_return_pct": 0.0247,
-      "benchmark_total_pct": -0.4592,
-      "excess_total_pct": 0.4839,
-      "annualized_pct": 0.1329,
-      "benchmark_annualized_pct": -2.4402,
-      "excess_annualized_pct": 2.573,
+      "benchmark_total_pct": -0.2279,
+      "excess_total_pct": 0.2526,
+      "annualized_pct": 0.1309,
+      "benchmark_annualized_pct": -1.1996,
+      "excess_annualized_pct": 1.3305,
       "annualized_withheld_reason": null,
       "realized_contribution_pct": -1.7782,
       "unrealized_contribution_pct": 1.803,
@@ -353,6 +353,12 @@
       0.0247,
       -0.4592,
       4
+    ],
+    [
+      "2026-10-21",
+      0.0247,
+      -0.2279,
+      4
     ]
   ],
   "scores": [
@@ -432,13 +438,13 @@
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": 0.4184,
       "book": {
-        "as_of": "2026-10-20",
+        "as_of": "2026-10-21",
         "weight": 10.0,
         "return_pct": 4.1845,
-        "benchmark_pct": -0.6798,
-        "excess_pct": 4.8643,
+        "benchmark_pct": -0.1055,
+        "excess_pct": 4.29,
         "contribution_pct": 0.4184,
-        "days_held": 12
+        "days_held": 13
       }
     },
     {
@@ -517,13 +523,13 @@
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": -0.0498,
       "book": {
-        "as_of": "2026-10-20",
+        "as_of": "2026-10-21",
         "weight": 10.0,
         "return_pct": -0.4983,
-        "benchmark_pct": -0.6714,
-        "excess_pct": 0.1731,
+        "benchmark_pct": -0.097,
+        "excess_pct": -0.4013,
         "contribution_pct": -0.0498,
-        "days_held": 29
+        "days_held": 30
       }
     },
     {
@@ -604,13 +610,13 @@
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": 0.3245,
       "book": {
-        "as_of": "2026-10-20",
+        "as_of": "2026-10-21",
         "weight": 10.0,
         "return_pct": 3.2448,
-        "benchmark_pct": 0.726,
-        "excess_pct": 2.5188,
+        "benchmark_pct": 1.3085,
+        "excess_pct": 1.9363,
         "contribution_pct": 0.3245,
-        "days_held": 39
+        "days_held": 40
       }
     },
     {
@@ -689,13 +695,13 @@
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": 1.1099,
       "book": {
-        "as_of": "2026-10-20",
+        "as_of": "2026-10-21",
         "weight": 10.0,
         "return_pct": 11.0985,
-        "benchmark_pct": -0.0781,
-        "excess_pct": 11.1766,
+        "benchmark_pct": 0.4997,
+        "excess_pct": 10.5988,
         "contribution_pct": 1.1099,
-        "days_held": 46
+        "days_held": 47
       }
     },
     {
