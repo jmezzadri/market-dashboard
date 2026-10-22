@@ -47,7 +47,7 @@ import useEconCalendar from '../lib/useEconCalendar';
 import useTradeIdea from '../lib/useTradeIdea';
 import useIndicatorSeries from '../lib/useIndicatorSeries';
 import IdeaChart from '../components/IdeaChart';
-import TradeIdeaNoteModal, { KIND_LABEL, POSITION_LABEL, POSITION_NOTE } from '../components/TradeIdeaNote';
+import TradeIdeaNoteModal from '../components/TradeIdeaNote';
 import { nyseMarketState } from '../chrome/PageHeader';
 import '../styles/cream-system.css';
 // v13 last — it overrides the page's own v12 stylesheet.
@@ -251,12 +251,6 @@ export default function HomePage() {
           <Reveal className="tile putty-card idea-tile sp6">
             <div className="tilehead">
               <div className="eyebrow2"><span className="dot dot--gold" />Trade idea{idea?.date ? ` · ${weekdayDate(idea.date)}` : ''}</div>
-              <div className="idea-badges">
-                {idea?.position_type && (
-                  <span className="idea-pos" title={POSITION_NOTE[idea.position_type] || ''}>{POSITION_LABEL[idea.position_type] || idea.position_type}</span>
-                )}
-                {idea?.kind && <span className="idea-kind">{KIND_LABEL[idea.kind] || idea.kind}</span>}
-              </div>
             </div>
 
             {idea ? (
