@@ -62,8 +62,9 @@ jobs:
               note_html = ""
               if is_idea:
                   items = "".join(f"<li style='margin:6px 0'>{html.escape(l)}</li>" for l in note_lines)
+                  no_x_reason = (meta.get("no_x_reason") or "This month's 10 automated X posts are used up").strip()
                   x_note = "" if post_to_x else ("<p style='font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#9c2b1f;margin:10px 0 0'>"
-                           "This month's 10 automated X posts are used up: Approve publishes the note only; the chart will not go to X.</p>")
+                           + html.escape(no_x_reason) + ": Approve publishes the note only; the chart will not go to X.</p>")
                   note_html = f"""<div style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#8a8374;letter-spacing:.04em;text-transform:uppercase">Trade idea for macrotilt.com</div>
                   <div style="font-size:20px;font-weight:bold;margin:4px 0 8px">{html.escape(note_title)}</div>
                   <ul style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45;padding-left:20px;margin:0 0 14px">{items}</ul>{x_note}
