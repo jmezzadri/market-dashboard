@@ -90,6 +90,23 @@ def main():
     rebal = date.fromisoformat(pd_res if isinstance(pd_res, str) else str(pd_res))
     print(f"panel date (rebalance_date) {rebal}")
 
+    # 1b) DST double-fire guard (2026-10-01). The workflow fires at 10:00 AND
+    # 11:00 UTC on the 1st so one of them is 06:00 ET whatever the clock says.
+    # On Oct 1 the first fire published the list and stamped green; the second
+    # collided with the quarterly backtest (same 11:00 UTC slot), hit three
+    # statement timeouts on power_trend_scan and red-stamped a row that was
+    # correct — a later stamp less strict than an earlier one (LESSONS 4.31
+    # addendum). If this panel date's list is already on file, the redundant
+    # fire has nothing to do: say so and leave the first fire's stamp alone.
+    # FORCE_REPUBLISH=1 (or a dry run) still recomputes.
+    if not dry and os.environ.get("FORCE_REPUBLISH", "") != "1":
+        rchk = requests.get(f"{url}/rest/v1/{TABLE}?rebalance_date=eq.{rebal}&select=ticker",
+                            headers=h, timeout=60)
+        if rchk.status_code == 200 and rchk.json():
+            print(f"already published for {rebal}: {len(rchk.json())} rows on file "
+                  f"(DST double-fire / re-fire) — nothing to do, stamp untouched")
+            return
+
     # 2) run the scan
     rows = rpc("power_trend_scan", {})
     if not isinstance(rows, list):

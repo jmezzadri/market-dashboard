@@ -35,7 +35,18 @@ on:
     # just ended with no close for some hours, so the evening run often cannot
     # read that day's settle; by the next morning it is there. Without this
     # pass the newest close on the site is a full day behind until evening.
-    - cron: "30 9 * * 2-6"       # 09:30 UTC = 05:30 ET (EDT)
+    # 2026-10-22 (health sweep, bug #1274): GitHub starts this repo's crons
+    # 2-7 hours after the schedule line (every cron, every day since at least
+    # September — read from the run history, LESSONS 4.41). A 09:30 UTC pass
+    # therefore ran at 13:00-14:35 UTC all week, AFTER the US open, and the
+    # Nikkei tile showed the prior session every pre-open even though the
+    # per-exchange cutoff fix (#1819) was correct. The first morning pass now
+    # sits right after Tokyo's 15:30 JST close (06:30 UTC): with the measured
+    # delay it lands ~08:45-12:00 UTC, before Joe's 6am ET look most days.
+    # 09:30 stays as the second attempt. The fetcher merges, so both are
+    # idempotent. The schedule line is set for when the job really RUNS.
+    - cron: "45 6 * * 2-6"       # 06:45 UTC = 02:45 ET (EDT); after Tokyo close
+    - cron: "30 9 * * 2-6"       # 09:30 UTC = 05:30 ET (EDT); second attempt
   workflow_dispatch:
     inputs:
       seed_uranium:
