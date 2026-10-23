@@ -45,8 +45,17 @@ on:
     # delay it lands ~08:45-12:00 UTC, before Joe's 6am ET look most days.
     # 09:30 stays as the second attempt. The fetcher merges, so both are
     # idempotent. The schedule line is set for when the job really RUNS.
-    - cron: "45 6 * * 2-6"       # 06:45 UTC = 02:45 ET (EDT); after Tokyo close
-    - cron: "30 9 * * 2-6"       # 09:30 UTC = 05:30 ET (EDT); second attempt
+    # 2026-10-23 (health sweep, bug #1274 fifth day): the 06:45 UTC cron did
+    # not start at all by 11:20 UTC on its first morning. The pre-open pass is
+    # therefore no longer a GitHub cron: pg_cron `market_tape_morning_dispatch()`
+    # (supabase/migrations/20261023_market_tape_morning_dispatch.sql) fires a
+    # workflow_dispatch of THIS workflow at 06:40 and 08:40 UTC Tue-Sat, guarded
+    # by pipeline_health.n225_index.data_as_of — a dispatch starts in seconds,
+    # only `schedule:` events are delayed. The two lines below stay as the
+    # redundant path (LESSONS 5.2: the GitHub cron is the backup, never the
+    # only timer for a pre-open deliverable).
+    - cron: "45 6 * * 2-6"       # 06:45 UTC = 02:45 ET (EDT); after Tokyo close (backup to pg_cron)
+    - cron: "30 9 * * 2-6"       # 09:30 UTC = 05:30 ET (EDT); second attempt (backup to pg_cron)
   workflow_dispatch:
     inputs:
       seed_uranium:

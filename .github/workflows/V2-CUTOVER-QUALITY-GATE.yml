@@ -4,6 +4,14 @@ name: V2-CUTOVER-QUALITY-GATE
 # from Joe's 2026-05-05 punch. Fails the build on any banned-lexicon hit,
 # hardcoded number in copy, internal table-name leak, internal jargon, or
 # Apple-blue / legacy palette. See LESSONS rule 2026-05-06.
+#
+# 2026-10-23 (health sweep, hard rule 0.18 rule 2): the "snapshot fixture"
+# step was retired. Its four fixtures locked the May-2026 v2 pages
+# (MacroOverviewPage, AssetTiltPage, IndicatorsPage, MethodologyBody) that no
+# longer exist — the site runs src/overhaul/ — so the step had failed on every
+# pull request since at least 2026-10-22 and could never go green. A check
+# that tests something retired is retired with it: fixtures/v2_snapshots/ and
+# scripts/check_v2_snapshot_fixtures.py are deleted in the same change.
 
 on:
   pull_request:
@@ -11,8 +19,6 @@ on:
       - "public/*.json"
       - "src/v2/**"
       - "scripts/check_v2_cutover_quality.py"
-      - "scripts/check_v2_snapshot_fixtures.py"
-      - "fixtures/v2_snapshots/**"
       - ".github/workflows/V2-CUTOVER-QUALITY-GATE.yml"
   push:
     branches:
@@ -35,6 +41,3 @@ jobs:
 
       - name: Run cutover quality gate
         run: python scripts/check_v2_cutover_quality.py
-
-      - name: Run snapshot fixture checks
-        run: python scripts/check_v2_snapshot_fixtures.py --report
