@@ -556,9 +556,11 @@ export default function MethodologyPage() {
             </p>
             <p className="me-body-p">
               <b>The risk cockpit &mdash; what the Paper Portfolio page measures, and how.</b> Every
-              risk figure on the page is computed <b>once after each close, at that close&rsquo;s
+              risk figure on the page is computed <b>after each close, at that close&rsquo;s
               weights, from one year of daily closes</b> in the site&rsquo;s own price feed, and stored;
-              the page shows the stored figure with its date. Every formula is
+              because that feed receives a session&rsquo;s closes the following morning, the figure is
+              measured again once they arrive, so by the pre-open it includes the last close. The page
+              shows the stored figure with the date of the last close it includes. Every formula is
               re-derived and checked in the repository, and no figure prints until a full year of
               prices exists for the name. <b>10-day Value at Risk, 99%:</b> the 1% quantile of the
               book&rsquo;s own daily return distribution (historical simulation, no bell-curve
