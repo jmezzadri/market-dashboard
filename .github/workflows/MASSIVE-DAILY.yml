@@ -87,3 +87,53 @@ jobs:
         run: |
           pip install --quiet requests
           python3 scripts/adjust_splits_retroactive.py
+
+      # 2026-10-23 (health sweep): the Paper page's risk figures are computed by
+      # QT-EOD-DAILY at ~23:57 UTC, but the session's closes reach prices_eod
+      # only with this job's T+1 morning pass (~08:15 UTC — read from
+      # prices_eod.ingested_at, every day since the cockpit shipped). So every
+      # evening's qt_risk_daily row measured the PREVIOUS session under a green
+      # stamp, and /paper said "computed after the Oct 21 close" beside marks for
+      # Oct 22. Re-measure here, once the closes are in: paper_portfolio.qt.risk
+      # upserts on (d, account), so as_of then equals d. Guarded by the data
+      # (LESSONS 5.7, 5.19): runs only when the newest risk row does not yet
+      # measure its own close AND that close is now in prices_eod — so the five
+      # evening fires of this workflow do nothing, and the morning one runs once.
+      - name: Re-measure the Paper book's risk once the closes are in
+        continue-on-error: true
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PYTHONUNBUFFERED:          "1"
+        run: |
+          NEED=$(python3 - <<'PY'
+          import os, json, urllib.request, urllib.parse
+          base = os.environ['SUPABASE_URL'] + '/rest/v1/'
+          hdr = {'apikey': os.environ['SUPABASE_SERVICE_ROLE_KEY'], 'Authorization': 'Bearer ' + os.environ['SUPABASE_SERVICE_ROLE_KEY']}
+          def get(q):
+              return json.load(urllib.request.urlopen(urllib.request.Request(base + q, headers=hdr), timeout=60))
+          rows = get('qt_risk_daily?select=d,as_of&order=d.desc&limit=1')
+          if not rows:
+              print('no'); raise SystemExit
+          d, as_of = rows[0]['d'], rows[0].get('as_of')
+          if as_of and as_of >= d:
+              print('no'); print(f'risk row {d} already measures its own close ({as_of})', file=__import__("sys").stderr); raise SystemExit
+          spy = get('prices_eod?select=trade_date&ticker=eq.SPY&trade_date=eq.' + d + '&limit=1')
+          if not spy:
+              print('no'); print(f'closes for {d} not in prices_eod yet (risk row as_of {as_of}) — the next pass will catch them', file=__import__("sys").stderr); raise SystemExit
+          print('yes'); print(f'risk row {d} measures {as_of}; closes for {d} are in — re-measuring', file=__import__("sys").stderr)
+          PY
+          )
+          if [ "$NEED" != "yes" ]; then exit 0; fi
+          pip install --quiet pandas numpy requests
+          if python -m paper_portfolio.qt.risk; then
+            AS_OF=$(python3 -c "
+          import os, json, urllib.request
+          req = urllib.request.Request(os.environ['SUPABASE_URL'] + '/rest/v1/qt_risk_daily?select=d&order=d.desc&limit=1',
+              headers={'apikey': os.environ['SUPABASE_SERVICE_ROLE_KEY'], 'Authorization': 'Bearer ' + os.environ['SUPABASE_SERVICE_ROLE_KEY']})
+          rows = json.load(urllib.request.urlopen(req)); print(rows[0]['d'] if rows else '-')
+          ")
+            python3 scripts/upsert_pipeline_health.py qt-risk-daily "$AS_OF" green
+          else
+            python3 scripts/upsert_pipeline_health.py qt-risk-daily - red "paper_portfolio.qt.risk failed on the morning re-measure — the Paper page's risk tiles show the previous close"
+          fi
