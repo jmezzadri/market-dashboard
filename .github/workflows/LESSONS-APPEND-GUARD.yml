@@ -1,0 +1,38 @@
+name: LESSONS-APPEND-GUARD
+
+# 2026-10-23 (health sweep, LESSONS 5.25 recurrence): three LESSONS paragraphs
+# merged on 10-21/10-22 were silently removed within hours by unrelated pull
+# requests that rewrote LESSONS.md from a copy cloned before the merge. This
+# check fails any PR whose LESSONS.md lacks a heading or a bold dated lead-in
+# that the base branch has — the stale-base signature — unless the PR body
+# says LESSONS-REWRITE-OK (a deliberate restructure). Under hard rule 0.18 a
+# red check is fixed before publishing, so the clobber is caught in time.
+# Pull-request only; nothing scheduled, nothing emailed.
+
+on:
+  pull_request:
+    paths:
+      - "LESSONS.md"
+
+jobs:
+  guard:
+    name: LESSONS.md keeps every entry the base branch has
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out PR head
+        uses: actions/checkout@v4
+
+      - name: Fetch the base branch's LESSONS.md
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git fetch --depth 1 origin "$BASE_REF"
+          git show "origin/$BASE_REF:LESSONS.md" > /tmp/LESSONS.base.md
+
+      - name: Compare headings and dated lead-ins
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > /tmp/pr_body.txt
+          python3 scripts/check_lessons_append.py /tmp/LESSONS.base.md LESSONS.md --pr-body /tmp/pr_body.txt

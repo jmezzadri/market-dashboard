@@ -4635,7 +4635,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "02:45",
+   "scheduled_fetch_time_et": "02:40",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4656,7 +4656,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:40 AM (after Tokyo's close, fired by the database scheduler), 5:30 AM and after the close",
    "display_name": "Russell 2000 index level"
   },
   {
@@ -4670,7 +4670,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "02:45",
+   "scheduled_fetch_time_et": "02:40",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4691,7 +4691,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:40 AM (after Tokyo's close, fired by the database scheduler), 5:30 AM and after the close",
    "display_name": "Nikkei 225 index level"
   },
   {
@@ -4705,7 +4705,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "02:45",
+   "scheduled_fetch_time_et": "02:40",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4726,7 +4726,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:40 AM (after Tokyo's close, fired by the database scheduler), 5:30 AM and after the close",
    "display_name": "DAX index level"
   },
   {
@@ -4740,7 +4740,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "02:45",
+   "scheduled_fetch_time_et": "02:40",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4761,7 +4761,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:40 AM (after Tokyo's close, fired by the database scheduler), 5:30 AM and after the close",
    "display_name": "Bitcoin"
   },
   {
@@ -4775,7 +4775,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "02:45",
+   "scheduled_fetch_time_et": "02:40",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4803,7 +4803,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:40 AM (after Tokyo's close, fired by the database scheduler), 5:30 AM and after the close",
    "display_name": "Platinum"
   },
   {
@@ -4817,7 +4817,7 @@
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
-   "scheduled_fetch_time_et": "02:45",
+   "scheduled_fetch_time_et": "02:40",
    "refresh_trigger": "MARKET-INDICATORS-EOD",
    "freshness_sla_hours": 49,
    "data_max_age_hours": 54,
@@ -4845,7 +4845,7 @@
    "as_of_cutoff_et": null,
    "as_of_cutoff_note": "no single intraday cutoff",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
-   "cadence_display": "Daily \u00b7 2:45 AM (after Tokyo's close), 5:30 AM and after the close",
+   "cadence_display": "Daily \u00b7 2:40 AM (after Tokyo's close, fired by the database scheduler), 5:30 AM and after the close",
    "display_name": "European natural gas (TTF)"
   }
  ],
