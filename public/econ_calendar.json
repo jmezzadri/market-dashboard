@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-23T23:17:01Z",
+  "generated_at": "2026-10-24T13:26:41Z",
   "window": {
-    "from": "2026-10-16",
-    "to": "2027-01-01"
+    "from": "2026-10-17",
+    "to": "2027-01-02"
   },
   "counts": {
-    "total": 112,
-    "tier1": 32
+    "total": 107,
+    "tier1": 30
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -28,41 +28,10 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [],
+  "problems": [
+    "WASDE page fetch failed: HTTP Error 403: Forbidden"
+  ],
   "events": [
-    {
-      "date": "2026-10-16",
-      "time_et": "8:30 AM",
-      "name": "Import & export prices",
-      "short": "Imp/Exp",
-      "tier": 2,
-      "category": "Inflation",
-      "blurb": "Traded-goods prices \u2014 where a weaker dollar or a tariff shows up first.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-16",
-      "time_et": "9:15 AM",
-      "name": "Industrial production",
-      "short": "Ind Prod",
-      "tier": 2,
-      "category": "Growth",
-      "blurb": "Factory, mining and utility output plus capacity utilisation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-16",
-      "time_et": "4:00 PM",
-      "name": "Foreign Treasury flows (TIC)",
-      "short": "TIC",
-      "tier": 3,
-      "category": "Flows",
-      "blurb": "Cross-border purchases of US securities \u2014 who is funding the deficit.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-20",
       "time_et": "8:30 AM",
@@ -457,17 +426,6 @@
       "category": "Inflation",
       "blurb": "Headline and core consumer inflation.",
       "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-10",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
@@ -941,17 +899,6 @@
       "category": "Labor",
       "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
       "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-10",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
