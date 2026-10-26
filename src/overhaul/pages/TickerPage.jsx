@@ -359,7 +359,20 @@ export default function TickerPage() {
      leads with yesterday's close during trading hours. The official close
      demotes to the small reference line. Closed market, uncovered names, or
      a missing base keep the close-first block unchanged. */
-  const liveHero = lseLive.marketOpen === true && livePrice != null && livePct != null;
+  /* ONE price, ONE change (Joe 2026-10-26, SPCX: the page led with the Oct 21
+     close +7.8% and printed "LIVE $146.44 -8.08%" under it after the Oct 22
+     bell — two quotes on one page, "how does this make any sense?!"). The
+     rule is now: whichever quote is NEWER is the headline, open market or
+     not. After the bell, the live feed's last bar IS the session close until
+     the daily bar lands (vendor + cron delay, often past 9 PM ET). The older
+     stored close becomes the base of the one change we show, and the
+     reference line says exactly which session each number is. */
+  const liveBarDate = liveQ?.barTs
+    ? new Date(liveQ.barTs).toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+    : null;
+  const liveNewer = !!(liveBarDate && (!priceAsOf || liveBarDate > priceAsOf));
+  const liveHero = livePrice != null && livePct != null && (lseLive.marketOpen === true || liveNewer);
+  const liveIsClose = liveHero && lseLive.marketOpen !== true;
 
   /* Price chart — REAL daily history from prices_eod. SMAs are computed over
      the full history then sliced to the visible window so they're accurate at
@@ -521,12 +534,13 @@ export default function TickerPage() {
             <>
               <div className="tk-price num">${fmt(livePrice, 2)}</div>
               <div className={`tk-priceΔ num ${livePct >= 0 ? 'up' : 'down'}`}>
-                {livePct >= 0 ? '▲' : '▼'} ${Math.abs(livePrice - liveBase).toFixed(2)} ({livePct > 0 ? '+' : ''}{livePct.toFixed(2)}%) today
+                {livePct >= 0 ? '▲' : '▼'} ${Math.abs(livePrice - liveBase).toFixed(2)} ({livePct > 0 ? '+' : ''}{livePct.toFixed(2)}%)
+                <span className="tk-chgsession">{liveIsClose && liveBarDate ? ` · ${fmtDateShort(liveBarDate)}` : ' today'}</span>
               </div>
               <div className="tk-liveline num">
                 <FreshnessChip elementId="market-lse_intraday-live" variant="dot" />
-                <span className="tk-livelabel">Live</span>
-                <span>{isIntraday ? <>vs prev close ${fmt(liveBase, 2)}</> : <>vs close{priceAsOf ? <> {fmtDateShort(priceAsOf)}</> : null} ${fmt(liveBase, 2)}</>}</span>
+                <span className="tk-livelabel">{liveIsClose ? 'Close' : 'Live'}</span>
+                <span>{isIntraday && !liveIsClose ? <>vs prev close ${fmt(liveBase, 2)}</> : <>vs {priceAsOf ? <>{fmtDateShort(priceAsOf)} </> : null}close ${fmt(liveBase, 2)}</>}</span>
               </div>
             </>
           ) : (
@@ -539,24 +553,13 @@ export default function TickerPage() {
                   <span className="tk-chgsession">{isIntraday ? ' today' : (priceAsOf ? ` · ${fmtDateShort(priceAsOf)}` : '')}</span>
                 </div>
               )}
+              {/* No second quote here. If the live feed had a newer or
+                  in-session print, it would be the headline above. Anything
+                  else it holds is the same session as the stored close, and
+                  restating it against a different base is the two-number
+                  confusion this block used to cause. */}
               <div className="tk-liveline num">
-                {liveQ ? (
-                  <>
-                    <FreshnessChip elementId="market-lse_intraday-live" variant="dot" />
-                    {livePrice != null ? (
-                      <>
-                        <span className="tk-livelabel">Live</span> ${fmt(livePrice, 2)}
-                        {livePct != null && (
-                          <span className={livePct >= 0 ? 'up' : 'down'}>{' '}{livePct >= 0 ? '+' : ''}{livePct.toFixed(2)}%</span>
-                        )}
-                      </>
-                    ) : (
-                      <><span className="tk-livelabel">Live</span> <span className="tk-livedim">no quote</span></>
-                    )}
-                  </>
-                ) : (
-                  <span className="tk-livedim">{priceAsOf ? `${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}{prevClose != null ? ` · prev ${fmt(prevClose, 2)}` : ''}</span>
-                )}
+                <span className="tk-livedim">{priceAsOf ? `${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}{prevClose != null ? ` · prev ${fmt(prevClose, 2)}` : ''}</span>
               </div>
             </>
           )}
@@ -579,10 +582,12 @@ export default function TickerPage() {
         </div>
 
         <div className="tk-tape-ref">
-          <TapeStat label="Open"      value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
-          <TapeStat label="Day range" value={lastBar?.low != null && lastBar?.high != null ? `${fmt(lastBar.low, 2)} – ${fmt(lastBar.high, 2)}` : '—'} />
-          <TapeStat label="Prev close" value={prevClose != null ? `$${fmt(prevClose, 2)}` : '—'} />
-          <TapeStat label="Volume"    value={fmtVol(lastBar?.volume)} sub={avgVol ? `avg ${fmtVol(avgVol)}` : null} />
+          {/* These three come from the last STORED daily bar. When the headline
+              is a newer session (liveNewer), say which day they belong to. */}
+          <TapeStat label="Open"      value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} sub={liveNewer && priceAsOf ? fmtDateShort(priceAsOf) : null} />
+          <TapeStat label="Day range" value={lastBar?.low != null && lastBar?.high != null ? `${fmt(lastBar.low, 2)} – ${fmt(lastBar.high, 2)}` : '—'} sub={liveNewer && priceAsOf ? fmtDateShort(priceAsOf) : null} />
+          <TapeStat label="Prev close" value={liveHero && liveBase != null ? `$${fmt(liveBase, 2)}` : (prevClose != null ? `$${fmt(prevClose, 2)}` : '—')} />
+          <TapeStat label="Volume"    value={fmtVol(lastBar?.volume)} sub={liveNewer && priceAsOf ? fmtDateShort(priceAsOf) : (avgVol ? `avg ${fmtVol(avgVol)}` : null)} />
           <TapeStat label="Mkt cap"   value={fmtMcap(marketcap)} />
           <TapeStat label="Shares out" value={fmtVol(sharesOut)} />
           <TapeStat label="Div yield" value={divYield.value != null ? `${(divYield.value * 100).toFixed(2)}%` : (divYield.note === 'none' ? 'None' : '—')} />

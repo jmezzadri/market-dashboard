@@ -23,7 +23,7 @@ on:
 jobs:
   smoke:
     name: Open each surface and verify real content
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest moved to 26.04 on 2026-10-26; Playwright chromium has no build for it yet
     # On deployment_status, only run for a successful PREVIEW deploy.
     if: >
       github.event_name == 'workflow_dispatch' ||

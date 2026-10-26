@@ -57,7 +57,7 @@ on:
 jobs:
   rendered-smoke:
     name: Rendered-page label/semantic smoke test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # same reason as BLAST-RADIUS-SMOKE: Playwright chromium does not support ubuntu 26.04 yet
     timeout-minutes: 15
     steps:
       - name: Check out main
