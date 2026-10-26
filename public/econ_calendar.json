@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-25T22:42:10Z",
+  "generated_at": "2026-10-26T16:14:28Z",
   "window": {
-    "from": "2026-10-18",
-    "to": "2027-01-03"
+    "from": "2026-10-19",
+    "to": "2027-01-04"
   },
   "counts": {
-    "total": 109,
-    "tier1": 32
+    "total": 110,
+    "tier1": 33
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -1227,6 +1227,17 @@
       "category": "Liquidity",
       "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2027-01-04",
+      "time_et": "10:00 AM",
+      "name": "ISM Manufacturing",
+      "short": "ISM Mfg",
+      "tier": 1,
+      "category": "Surveys",
+      "blurb": "Factory-sector survey; above 50 means the sector is expanding.",
+      "source": "ISM published schedule (computed)",
       "time_source": "published release policy"
     }
   ]
