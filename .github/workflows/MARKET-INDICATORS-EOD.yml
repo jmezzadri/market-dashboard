@@ -11,10 +11,12 @@
 # SCHEDULE
 # ────────
 # Weekdays 20:45 UTC (16:45 ET EDT) — after the US equity/futures close.
-# Plus a morning pass Tue-Sat 09:30 UTC (05:30 ET EDT): the vendor often has
-# no close for the session that just ended until hours later, so the morning
-# pass is what lands the previous day's settle (added 2026-10-09). GitHub
-# starts both runs late — observed 3 to 6 hours after the scheduled time.
+# Plus a morning pass every weekday: the vendor often has no close for the
+# session that just ended until hours later, so the morning pass is what lands
+# the previous day's settle (added 2026-10-09; weekdays 06:45 + 09:30 UTC as
+# the GitHub backup, pg_cron 06:40 + 08:40 UTC Mon-Fri as the primary since
+# 2026-10-23/26 — see the schedule block). GitHub starts its own crons late —
+# observed 2 to 7 hours after the scheduled time.
 # Uranium is weekly by nature; it is pulled on every run and simply ranks
 # once enough history accrues.
 #
@@ -31,7 +33,7 @@ name: MARKET-INDICATORS-EOD
 on:
   schedule:
     - cron: "45 20 * * 1-5"      # weekdays 20:45 UTC = 16:45 ET (EDT)
-    # Morning pass, Tue-Sat (2026-10-09). The vendor shows the session that
+    # Morning pass (2026-10-09, Tue-Sat then; Mon-Fri since 2026-10-26). The vendor shows the session that
     # just ended with no close for some hours, so the evening run often cannot
     # read that day's settle; by the next morning it is there. Without this
     # pass the newest close on the site is a full day behind until evening.
@@ -49,13 +51,20 @@ on:
     # not start at all by 11:20 UTC on its first morning. The pre-open pass is
     # therefore no longer a GitHub cron: pg_cron `market_tape_morning_dispatch()`
     # (supabase/migrations/20261023_market_tape_morning_dispatch.sql) fires a
-    # workflow_dispatch of THIS workflow at 06:40 and 08:40 UTC Tue-Sat, guarded
+    # workflow_dispatch of THIS workflow at 06:40 and 08:40 UTC Mon-Fri, guarded
     # by pipeline_health.n225_index.data_as_of — a dispatch starts in seconds,
     # only `schedule:` events are delayed. The two lines below stay as the
     # redundant path (LESSONS 5.2: the GitHub cron is the backup, never the
     # only timer for a pre-open deliverable).
-    - cron: "45 6 * * 2-6"       # 06:45 UTC = 02:45 ET (EDT); after Tokyo close (backup to pg_cron)
-    - cron: "30 9 * * 2-6"       # 09:30 UTC = 05:30 ET (EDT); second attempt (backup to pg_cron)
+    # 2026-10-26 (health sweep, bug #1274 sixth day): Tue-Sat was a day shifted.
+    # Tokyo's session ends 06:30 UTC on the SAME calendar day, so Friday's
+    # close lands Friday morning, Saturday has nothing to land, and MONDAY's
+    # close had no morning pass at all — the first Monday after the pg_cron
+    # fix showed Friday's Nikkei (and Friday's Bitcoin) at the pre-open. Both
+    # the pg_cron fires (20261026_market_tape_morning_dispatch_weekdays.sql)
+    # and these backup lines are Mon-Fri now.
+    - cron: "45 6 * * 1-5"       # 06:45 UTC = 02:45 ET (EDT); after Tokyo close (backup to pg_cron)
+    - cron: "30 9 * * 1-5"       # 09:30 UTC = 05:30 ET (EDT); second attempt (backup to pg_cron)
   workflow_dispatch:
     inputs:
       seed_uranium:
