@@ -1,0 +1,31 @@
+-- Market-tape morning dispatch runs MONDAY too (2026-10-26, health sweep,
+-- bug #1274, sixth pre-open with the Nikkei tile a session behind).
+--
+-- WHY
+-- ---
+-- 20261023_market_tape_morning_dispatch.sql scheduled the two pg_cron fires
+-- Tue-Sat (`2-6`) "because the Friday session lands on Saturday morning UTC".
+-- That is a day shifted: Tokyo's regular session ends 15:30 JST = 06:30 UTC
+-- on the SAME calendar day, so Friday's close is complete on Friday morning
+-- UTC, Saturday has nothing to land, and Monday's close — complete at 06:30
+-- UTC Monday, four and a half hours before Joe's pre-open look — had no
+-- dispatch at all. The first Monday after the fix (2026-10-26) rendered
+-- NIKKEI 62,693 (Friday) at 11:09 UTC while Tokyo had closed Monday at
+-- 62,190; Bitcoin, a 24/7 market, showed Friday as well because nothing had
+-- run since Friday evening. The guard itself was correct (it returned
+-- "dispatched ... n225_index at 2026-10-23, Tokyo today 2026-10-26" when the
+-- sweep called it by hand); only the day-of-week mask was wrong.
+--
+-- SCHEDULE
+-- --------
+-- Mon-Fri (`1-5`): one fire after every Tokyo session, none on a day with no
+-- session. The guard (pipeline_health.n225_index.data_as_of older than
+-- today's date in Asia/Tokyo) still makes a fire that is not needed a no-op
+-- that logs "not needed". The function body is unchanged.
+--
+-- Applied to production via MCP on 2026-10-26 11:14 UTC (cron.schedule on an
+-- existing jobname updates it in place: jobids 44 and 45 kept); this file is
+-- the record.
+
+select cron.schedule('market-tape-morning-0640utc', '40 6 * * 1-5', $$select market_tape_morning_dispatch()$$);
+select cron.schedule('market-tape-morning-0840utc', '40 8 * * 1-5', $$select market_tape_morning_dispatch()$$);
