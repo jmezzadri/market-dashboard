@@ -84,6 +84,13 @@ const DISPATCHABLE = new Set([
   // tiles could only be healed by waiting for it. Read-then-write-a-data-file
   // job, commits only if the file changed; no trading, no deploy, no spend.
   "MARKET-INDICATORS-EOD.yml",
+  // 2026-10-27 (health sweep, PR #1855): index breadth. Its commit step lost a
+  // rebase conflict on two days running and the computed Monday read never
+  // reached the site; the only re-run path was the 15:00Z backstop cron, which
+  // this repo's scheduler starts hours late. Same class as the tape producer:
+  // reads prices_eod, writes four keys into indicator_history.json, commits
+  // only if changed; no trading, no deploy, no spend.
+  "BREADTH-DAILY.yml",
   // The QT-* entries that stood here were removed on 2026-08-28: Quality Trend
   // was retired on 2026-08-26 and QT-EOD-DAILY / QT-FUNDAMENTALS-REFRESH /
   // QT-REBALANCE were deleted with it. A dispatchable name with no workflow
