@@ -19,6 +19,65 @@ Procedure: `PLAYBOOK.md`. Posts already read: `processed_posts.json`.
 
 ---
 
+## 2026-10-27 — weak credit under a strong index: is the range divergence a signal on its own?
+
+Ten posts since the last read (Oct 3–26; eight read in full, two members-only
+episodes read from their public topic lists; all listed in
+`processed_posts.json`). Also read, by sender, four Macro Ops letters and
+twelve Daily Upside issues from the inbox (`letters_read.json`). Nothing new
+from Praetorian since the Q3 letter; nothing from Greenhaven Road in 60 days.
+
+**What their work does that ours does not.** It reads low-grade credit and
+the index TOGETHER as a position in their recent ranges — the weakest bonds
+near the bottom of a three-month range while the index sits near the top —
+and treats that divergence, not the spread level, as the warning. It also
+reads a rising rates-vol index against a calm equity-vol index as the first
+crack, and counts momentum-factor crash days as a regime marker.
+
+**The question that puts to us.** The Oct 22 SPY-puts call rests on one
+measured signal: high-yield spreads widening 50bp+ with the index near a
+record (five cases since 2014). Does the RANGE divergence add anything to
+that, and is it live today?
+
+**The test.** `credit_range_test.py`, output `results_2026-10-27.txt`. Range
+position = (close − 63-session low) / (63-session high − low). Credit on HYG
+price (daily 2007–) and, for robustness, HYG/IEF. Trigger: credit ≤ 0.15
+AND SPY ≥ 0.90; first trigger in any 21 sessions; thresholds also moved to
+0.25/0.85 and 0.10/0.95. Next 15, 63 and 126 sessions in SPY against every
+day in the sample; share of windows with a 5% drawdown.
+
+**The result.** Below baseline but small and thin on HYG price; nothing on
+HYG/IEF.
+
+| state | SPY next 63 sessions | baseline | episodes | 5% drawdown within 63 |
+|---|---|---|---|---|
+| HYG ≤ 0.15, SPY ≥ 0.90 | −0.6%, 56% up | +2.4%, 71% up | 9 | 67% vs 58% |
+| HYG ≤ 0.25, SPY ≥ 0.85 | +0.3%, 62% up | +2.4%, 71% up | 21 | 57% vs 58% |
+| HYG/IEF ≤ 0.15, SPY ≥ 0.90 | +2.9%, 91% up | +2.4%, 71% up | 11 | 64% vs 58% |
+
+At 15 sessions (the Nov 13 put's window) the tight HYG-price state ran −0.4%
+against +0.6%, nine cases. Today the state is NOT live: HYG sits at 0.13 of
+its range but SPY at 0.72 (2.3% under its high). The spread-widening signal
+already underwriting the open call is the stronger and the live one.
+
+**What changed in MacroTilt.** Nothing in the book. The range divergence is
+logged as weak-and-thin, not a second leg for the credit call; the call stays
+on its own measure. The rates-vol-versus-equity-vol crack and the
+momentum-crash count go to the queue below.
+
+### Not yet tested — carried to the next read
+
+- MOVE up 25+ points in 21 sessions while VIX ≤ 18: forward S&P return and
+  5% drawdown odds (we carry both daily from 2006).
+- Count of ±2% daily moves in the momentum factor over 63 sessions ≥ 8 with
+  the S&P within 3% of its high (French momentum daily is on file).
+- Tight range followed by a break to a new 3-month high, with a measured-move
+  target (carried from Oct 13).
+- Equal-weight S&P lagging as a warning (needs a longer equal-weight series).
+- Corporate-bond-to-Treasury relative strength, spread-based (carried from Oct 2).
+
+---
+
 ## 2026-10-13 — do financials breaking down under a record S&P call the top?
 
 Eight new posts, Oct 3–12; four read (listed in `processed_posts.json`). One

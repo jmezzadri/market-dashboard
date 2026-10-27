@@ -1,13 +1,141 @@
 {
-  "_doc": "Every letter or newsletter from scripts/research/reading_list.json the Trade Idea run has read, so none is read twice (Decision 7, 2026-10-21). One entry per letter: sender, date received, subject, the link that was read (the direct PDF where the email link was a tracking redirect), the run date, and the one-line method or position it fed into the fact base. Internal working file.",
-  "letters": [
-    {
-      "sender": "pracap.com",
-      "received": "2026-10-21",
-      "subject": "Praetorian Capital Q3 2026 investor letter",
-      "link": "https://go.pracap.com/hubfs/Quarterly Letters/2026/2026 Q3 Investor Letter - Approved.pdf",
-      "read_on": "2026-10-21",
-      "fed": "exited refiners near replacement cost; ~20% in two trade-school names on an enrolment shock; front-end rates via SOFR futures and call spreads; AI economics due to rationalize"
-    }
-  ]
+    "_doc": "Every letter or newsletter from scripts/research/reading_list.json the Trade Idea run has read, so none is read twice (Decision 7, 2026-10-21). One entry per letter: sender, date received, subject, the link that was read (the direct PDF where the email link was a tracking redirect), the run date, and the one-line method or position it fed into the fact base. Internal working file.",
+    "letters": [
+        {
+            "fed": "exited refiners near replacement cost; ~20% in two trade-school names on an enrolment shock; front-end rates via SOFR futures and call spreads; AI economics due to rationalize",
+            "link": "https://go.pracap.com/hubfs/Quarterly Letters/2026/2026 Q3 Investor Letter - Approved.pdf",
+            "sender": "pracap.com",
+            "read_on": "2026-10-21",
+            "subject": "Praetorian Capital Q3 2026 investor letter",
+            "received": "2026-10-21"
+        },
+        {
+            "fed": "weekly: long crude, short long-end and 2-year Treasuries, short Nasdaq, long wheat and commodities; liquidity gauge at a 3-year low; retail not capitulated (body identical to Oct 19 send)",
+            "link": "gmail thread-f:1880113756971358554",
+            "sender": "alex@macro-ops.com",
+            "read_on": "2026-10-27",
+            "subject": "IS THIS ENOUGH BLOOD?",
+            "received": "2026-10-26"
+        },
+        {
+            "fed": "same body as the Oct 26 send",
+            "link": "gmail thread-f:1879479570722648457",
+            "sender": "alex@macro-ops.com",
+            "read_on": "2026-10-27",
+            "subject": "TCTM RISK OFF SIGNAL FIRED",
+            "received": "2026-10-19"
+        },
+        {
+            "fed": "flat VIX futures curve; S&P lower low unconfirmed by VIX/VVIX; variance premium near 10 pts; rates vol rising as yields fall",
+            "link": "gmail thread-f:1880050929846208813",
+            "sender": "tony@macro-ops.com",
+            "read_on": "2026-10-27",
+            "subject": "Vol Street Journal :: Episode 45",
+            "received": "2026-10-25"
+        },
+        {
+            "fed": "front VIX future inverted Oct 16; read as overreaction; HY/IG split",
+            "link": "gmail thread-f:1879411066463971694",
+            "sender": "tony@macro-ops.com",
+            "read_on": "2026-10-27",
+            "subject": "Vol Street Journal :: Episode 44",
+            "received": "2026-10-18"
+        },
+        {
+            "fed": "AI IPO haircut; hyperscaler capex and Gartner impairment estimate; Permian output discipline",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-26-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "Anthropic's $1.5 Trillion Reality Check",
+            "received": "2026-10-26"
+        },
+        {
+            "fed": "mortgage 7.4%; pending sales -11% y/y",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-25-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "Buying a House? In this Economy?",
+            "received": "2026-10-25"
+        },
+        {
+            "fed": "Blackstone realizations -34%; M&A -41% q/q; AI debt above 10%",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-23-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "P&G's Financial Wellness",
+            "received": "2026-10-23"
+        },
+        {
+            "fed": "Meta capex floor raised; hedge funds selling tech fastest in a decade; Gulf flows above pre-war; French 10y above 5%",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-22-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "Hungry, Hungry Hedge Funds",
+            "received": "2026-10-22"
+        },
+        {
+            "fed": "neocloud IPO failures; housing starts -7% y/y",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-21-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "Neoclouds in the Coffee",
+            "received": "2026-10-21"
+        },
+        {
+            "fed": "CoreWeave debt; steel tariffs and Cleveland-Cliffs guide",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-20-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "Dimon's Private Pentagon",
+            "received": "2026-10-20"
+        },
+        {
+            "fed": "top-10 S&P names 40% of index; worst day since July on hike fears",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-19-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "Morgan Stanley's Makeover",
+            "received": "2026-10-19"
+        },
+        {
+            "fed": "cocoa $5,645; strongest El Nino in 75 years",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-18-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "Cocoa's Halloween Horror Story",
+            "received": "2026-10-18"
+        },
+        {
+            "fed": "CoreWeave yields 15%, CDS-implied 60% default odds; IEA 100M bbl release",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-16-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "CoreWeave's Storm Clouds",
+            "received": "2026-10-16"
+        },
+        {
+            "fed": "Sept CPI 3.7%; refiners +$215B market cap; IEA crunch into 2H27",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-15-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "BlackRock Laps Wall Street",
+            "received": "2026-10-15"
+        },
+        {
+            "fed": "bank Q3; KBE worst quarter since 2023",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-14-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "The M&A Bottleneck",
+            "received": "2026-10-14"
+        },
+        {
+            "fed": "OpenAI ARR $50B not $70B; IMF WEO 3.1%",
+            "link": "https://www.thedailyupside.com/newsletter/tdu-october-13-2026/",
+            "sender": "squad@thedailyupside.com",
+            "read_on": "2026-10-27",
+            "subject": "AI's Hardware-Software Divide",
+            "received": "2026-10-13"
+        }
+    ]
 }
