@@ -1,77 +1,137 @@
 {
- "_doc": "Every outside-research post already read, so none is read twice. Internal working file: nothing here is served on the site or cited in anything published. From 2026-10-21 (Decision 7) this also covers LETTERS from scripts/research/reading_list.json: an entry per letter read for method, with source set to the sender; the read log itself is scripts/research/letters_read.json.",
- "source": "Macro Ops — macro-ops.com/research/ — public pages only, never a member login",
- "last_checked": "2026-10-13",
- "posts": [
-  {
-   "published": "2026-10-12",
-   "url": "https://macro-ops.com/above-the-channel/",
-   "read": "full public post",
-   "processed": "2026-10-13"
-  },
-  {
-   "published": "2026-10-08",
-   "url": "https://macro-ops.com/the-power-of-volatility/",
-   "read": "full public post",
-   "processed": "2026-10-13"
-  },
-  {
-   "published": "2026-10-06",
-   "url": "https://macro-ops.com/the-best-commodity-charts-of-2026/",
-   "read": "full public post",
-   "processed": "2026-10-13"
-  },
-  {
-   "published": "2026-10-05",
-   "url": "https://macro-ops.com/signs-of-a-late-cycle/",
-   "read": "public part only",
-   "processed": "2026-10-13"
-  },
-  {
-   "published": "2026-09-28",
-   "url": "https://macro-ops.com/crowded-fragile-not-done/",
-   "read": "full public post",
-   "processed": "2026-10-02"
-  },
-  {
-   "published": "2026-09-27",
-   "url": "https://macro-ops.com/vol-street-journal-episode-41/",
-   "read": "written summary of a video episode",
-   "processed": "2026-10-02"
-  },
-  {
-   "published": "2026-09-26",
-   "url": "https://macro-ops.com/falling-behind/",
-   "read": "public part only",
-   "processed": "2026-10-02"
-  },
-  {
-   "published": "2026-09-21",
-   "url": "https://macro-ops.com/the-last-leg-of-the-bull/",
-   "read": "full public post",
-   "processed": "2026-10-02"
-  },
-  {
-   "published": "2026-09-20",
-   "url": "https://macro-ops.com/vol-street-journal-episode-40/",
-   "read": "written summary of a video episode",
-   "processed": "2026-10-02"
-  },
-  {
-   "published": "2026-09-19",
-   "url": "https://macro-ops.com/this-infinite-game-what-force-cannot-find/",
-   "read": "public part only",
-   "processed": "2026-10-02"
-  }
- ],
- "letters": [
-  {
-   "source": "pracap.com",
-   "published": "2026-10-21",
-   "url": "https://go.pracap.com/hubfs/Quarterly Letters/2026/2026 Q3 Investor Letter - Approved.pdf",
-   "read": "full PDF",
-   "processed": "2026-10-21",
-   "method_to_test": "exit a commodity-adjacent equity when its price reaches replacement cost (the refiner exit) — test on our refiner screen"
-  }
- ]
+    "_doc": "Every outside-research post already read, so none is read twice. Internal working file: nothing here is served on the site or cited in anything published. From 2026-10-21 (Decision 7) this also covers LETTERS from scripts/research/reading_list.json: an entry per letter read for method, with source set to the sender; the read log itself is scripts/research/letters_read.json.",
+    "posts": [
+        {
+            "url": "https://macro-ops.com/buried-in-numbers/",
+            "read": "full public post",
+            "processed": "2026-10-27",
+            "published": "2026-10-03"
+        },
+        {
+            "url": "https://macro-ops.com/vol-street-journal-episode-42/",
+            "read": "full public post",
+            "processed": "2026-10-27",
+            "published": "2026-10-05"
+        },
+        {
+            "url": "https://macro-ops.com/open-possibilities/",
+            "read": "full public post",
+            "processed": "2026-10-27",
+            "published": "2026-10-10"
+        },
+        {
+            "url": "https://macro-ops.com/vol-street-journal-episode-43/",
+            "read": "public topic list only",
+            "processed": "2026-10-27",
+            "published": "2026-10-11"
+        },
+        {
+            "url": "https://macro-ops.com/the-red-spade/",
+            "read": "full public post",
+            "processed": "2026-10-27",
+            "published": "2026-10-17"
+        },
+        {
+            "url": "https://macro-ops.com/vol-street-journal-episode-44/",
+            "read": "public topic list only",
+            "processed": "2026-10-27",
+            "published": "2026-10-18"
+        },
+        {
+            "url": "https://macro-ops.com/tctm-risk-off-signal-fired/",
+            "read": "full public post",
+            "processed": "2026-10-27",
+            "published": "2026-10-19"
+        },
+        {
+            "url": "https://macro-ops.com/before-you-trust-a-strategy/",
+            "read": "full public post",
+            "processed": "2026-10-27",
+            "published": "2026-10-24"
+        },
+        {
+            "url": "https://macro-ops.com/vol-street-journal-episode-45/",
+            "read": "public topic list only",
+            "processed": "2026-10-27",
+            "published": "2026-10-25"
+        },
+        {
+            "url": "https://macro-ops.com/is-this-enough-blood/",
+            "read": "full public post",
+            "processed": "2026-10-27",
+            "published": "2026-10-26"
+        },
+        {
+            "url": "https://macro-ops.com/above-the-channel/",
+            "read": "full public post",
+            "processed": "2026-10-13",
+            "published": "2026-10-12"
+        },
+        {
+            "url": "https://macro-ops.com/the-power-of-volatility/",
+            "read": "full public post",
+            "processed": "2026-10-13",
+            "published": "2026-10-08"
+        },
+        {
+            "url": "https://macro-ops.com/the-best-commodity-charts-of-2026/",
+            "read": "full public post",
+            "processed": "2026-10-13",
+            "published": "2026-10-06"
+        },
+        {
+            "url": "https://macro-ops.com/signs-of-a-late-cycle/",
+            "read": "public part only",
+            "processed": "2026-10-13",
+            "published": "2026-10-05"
+        },
+        {
+            "url": "https://macro-ops.com/crowded-fragile-not-done/",
+            "read": "full public post",
+            "processed": "2026-10-02",
+            "published": "2026-09-28"
+        },
+        {
+            "url": "https://macro-ops.com/vol-street-journal-episode-41/",
+            "read": "written summary of a video episode",
+            "processed": "2026-10-02",
+            "published": "2026-09-27"
+        },
+        {
+            "url": "https://macro-ops.com/falling-behind/",
+            "read": "public part only",
+            "processed": "2026-10-02",
+            "published": "2026-09-26"
+        },
+        {
+            "url": "https://macro-ops.com/the-last-leg-of-the-bull/",
+            "read": "full public post",
+            "processed": "2026-10-02",
+            "published": "2026-09-21"
+        },
+        {
+            "url": "https://macro-ops.com/vol-street-journal-episode-40/",
+            "read": "written summary of a video episode",
+            "processed": "2026-10-02",
+            "published": "2026-09-20"
+        },
+        {
+            "url": "https://macro-ops.com/this-infinite-game-what-force-cannot-find/",
+            "read": "public part only",
+            "processed": "2026-10-02",
+            "published": "2026-09-19"
+        }
+    ],
+    "source": "Macro Ops — macro-ops.com/research/ — public pages only, never a member login",
+    "letters": [
+        {
+            "url": "https://go.pracap.com/hubfs/Quarterly Letters/2026/2026 Q3 Investor Letter - Approved.pdf",
+            "read": "full PDF",
+            "source": "pracap.com",
+            "processed": "2026-10-21",
+            "published": "2026-10-21",
+            "method_to_test": "exit a commodity-adjacent equity when its price reaches replacement cost (the refiner exit) — test on our refiner screen"
+        }
+    ],
+    "last_checked": "2026-10-27"
 }
