@@ -202,6 +202,9 @@ jobs:
               raise SystemExit("BREADTH indices disagree on latest session %s — one index is stale; refusing to publish."%asofs)
           fn="public/indicator_history.json"; d=json.load(open(fn)); d.update(out)
           json.dump(d,open(fn,"w"),separators=(",",":"))
+          # Sidecar for the commit step: it re-applies these keys onto whatever
+          # main holds at push time (see the commit step, 2026-10-27).
+          json.dump(out,open("/tmp/breadth_out.json","w"))
           print("wrote keys:",list(out.keys()))
           vals=",".join("('%s','%s','computed','D',1440,'green')"%(k,k) for k in out)
           if vals:
@@ -210,8 +213,30 @@ jobs:
           PY
       - name: commit
         run: |
+          set -euo pipefail
           git config user.name "macrotilt-bot"; git config user.email "bot@macrotilt.com"
-          git add public/indicator_history.json
-          git commit -m "Index breadth (% > 50d/200d EMA) refresh [skip ci]" || echo "no change"
-          git pull --rebase origin main   # another workflow may have pushed since checkout
-          git push
+          if [ ! -s /tmp/breadth_out.json ]; then echo "no breadth output this run (panel unchanged) - nothing to commit"; exit 0; fi
+          # 2026-10-27 (health sweep, LESSONS 5.16 addendum): public/indicator_history.json is ONE
+          # minified line, so when another producer commits it between our checkout and our push,
+          # `git pull --rebase` does not race - it CONFLICTS, and no retry loop resolves a conflict.
+          # 2 of 6 runs (10-26 00:05Z, 10-27 08:40Z) died here with the breadth computed and never
+          # published; both collided with MARKET-INDICATORS-EOD, whose 08:40Z morning dispatch
+          # (added 10-23 for bug #1274) now lands in the same minute as this chain's post-panel fire.
+          # Fix: never rebase the file - reset to origin/main, re-apply our four keys onto whatever
+          # is there, commit, push; repeat only on a push race. Idempotent, so a repeat is harmless.
+          for attempt in 1 2 3 4 5 6; do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+            python3 - <<'PY'
+          import json
+          fn="public/indicator_history.json"
+          d=json.load(open(fn)); d.update(json.load(open("/tmp/breadth_out.json")))
+          json.dump(d,open(fn,"w"),separators=(",",":"))
+          PY
+            git add public/indicator_history.json
+            if git diff --cached --quiet; then echo "breadth keys already on main - no change"; exit 0; fi
+            git commit -q -m "Index breadth (% > 50d/200d EMA) refresh [skip ci]"
+            if git push origin HEAD:main; then echo "pushed on attempt $attempt"; exit 0; fi
+            echo "push race on attempt $attempt - re-applying onto latest main in 5s"; sleep 5
+          done
+          echo "::error::could not push after 6 attempts - this is a real failure, not a race"; exit 1
