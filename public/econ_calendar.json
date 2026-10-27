@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-26T23:57:56Z",
+  "generated_at": "2026-10-27T15:28:27Z",
   "window": {
-    "from": "2026-10-19",
-    "to": "2027-01-04"
+    "from": "2026-10-20",
+    "to": "2027-01-05"
   },
   "counts": {
-    "total": 108,
-    "tier1": 31
+    "total": 110,
+    "tier1": 33
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -28,9 +28,7 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [
-    "WASDE page fetch failed: HTTP Error 403: Forbidden"
-  ],
+  "problems": [],
   "events": [
     {
       "date": "2026-10-20",
@@ -426,6 +424,17 @@
       "category": "Inflation",
       "blurb": "Headline and core consumer inflation.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-10",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
@@ -899,6 +908,17 @@
       "category": "Labor",
       "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-10",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
