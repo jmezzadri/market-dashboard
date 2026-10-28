@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-27T23:54:07Z",
+  "generated_at": "2026-10-28T16:11:49Z",
   "window": {
-    "from": "2026-10-20",
-    "to": "2027-01-05"
+    "from": "2026-10-21",
+    "to": "2027-01-06"
   },
   "counts": {
-    "total": 108,
-    "tier1": 31
+    "total": 109,
+    "tier1": 34
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -28,37 +28,8 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [
-    "NASS calendar fetch failed (2026-10): <urlopen error [Errno -3] Temporary failure in name resolution>",
-    "NASS calendar fetch failed (2026-11): <urlopen error [Errno -3] Temporary failure in name resolution>",
-    "NASS calendar fetch failed (2026-12): <urlopen error [Errno -3] Temporary failure in name resolution>",
-    "NASS calendar fetch failed (2027-01): <urlopen error [Errno -3] Temporary failure in name resolution>",
-    "NASS calendar parsed to zero rows across the window",
-    "WASDE page fetch failed: <urlopen error [Errno -3] Temporary failure in name resolution>"
-  ],
+  "problems": [],
   "events": [
-    {
-      "date": "2026-10-20",
-      "time_et": "8:30 AM",
-      "name": "Housing starts & permits",
-      "short": "Starts",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "New residential construction \u2014 starts, permits and completions.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-20",
-      "time_et": "8:30 AM",
-      "name": "Philadelphia Fed services survey",
-      "short": "Philly Svc",
-      "tier": 3,
-      "category": "Surveys",
-      "blurb": "Philadelphia Fed non-manufacturing outlook survey.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-22",
       "time_et": "8:30 AM",
@@ -431,6 +402,17 @@
       "category": "Inflation",
       "blurb": "Headline and core consumer inflation.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-10",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
@@ -908,6 +890,17 @@
     },
     {
       "date": "2026-12-10",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-10",
       "time_et": "4:30 PM",
       "name": "Fed balance sheet (H.4.1)",
       "short": "H.4.1",
@@ -1222,6 +1215,17 @@
       "tier": 1,
       "category": "Surveys",
       "blurb": "Factory-sector survey; above 50 means the sector is expanding.",
+      "source": "ISM published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2027-01-06",
+      "time_et": "10:00 AM",
+      "name": "ISM Services",
+      "short": "ISM Svc",
+      "tier": 1,
+      "category": "Surveys",
+      "blurb": "Services-sector survey \u2014 the larger share of the economy.",
       "source": "ISM published schedule (computed)",
       "time_source": "published release policy"
     }
