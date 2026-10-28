@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-28T16:11:49Z",
+  "generated_at": "2026-10-28T22:50:46Z",
   "window": {
     "from": "2026-10-21",
     "to": "2027-01-06"
   },
   "counts": {
-    "total": 109,
+    "total": 113,
     "tier1": 34
   },
   "sources": [
@@ -21,14 +21,21 @@
     "USDA NASS release calendar (nass.usda.gov) \u2014 quarterly Grain Stocks",
     "USDA OCE WASDE schedule (usda.gov) \u2014 monthly WASDE dates",
     "US federal election day \u2014 Tuesday after the first Monday in November, even years (2 U.S.C. section 7), computed",
-    "US Treasury quarterly refunding documents (home.treasury.gov) \u2014 next refunding announcement date"
+    "US Treasury quarterly refunding documents (home.treasury.gov) \u2014 next refunding announcement date",
+    "S&P / Moody's / Fitch published EU sovereign rating calendars \u2014 scheduled G7 reviews (France, Germany, Italy, UK; the US, Canada and Japan have no scheduled review dates)"
   ],
   "notes": [
     "Times are US Eastern and come from each agency's standing release policy, not from the wire.",
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [],
+  "problems": [
+    "NASS calendar fetch failed (2026-10): HTTP Error 403: Forbidden",
+    "NASS calendar fetch failed (2026-11): HTTP Error 403: Forbidden",
+    "NASS calendar fetch failed (2026-12): HTTP Error 403: Forbidden",
+    "NASS calendar fetch failed (2027-01): HTTP Error 403: Forbidden",
+    "NASS calendar parsed to zero rows across the window"
+  ],
   "events": [
     {
       "date": "2026-10-22",
@@ -62,6 +69,42 @@
       "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
+    },
+    {
+      "date": "2026-10-23",
+      "time_et": "12:00 PM",
+      "name": "Moody's France rating review",
+      "short": "Moody's France",
+      "tier": 2,
+      "category": "Sovereign",
+      "blurb": "Moody's scheduled review of France (Aa3, negative outlook since Oct 24, 2025). Published after the European close on a date fixed a year ahead under EU rules. Worth watching: negative outlook.",
+      "source": "Moody's published sovereign rating calendar 2026 (EU regulation 1060/2009 art. 8a)",
+      "time_source": "EU publication rule \u2014 after the European close",
+      "country": "France",
+      "agency": "Moody's",
+      "rating": "Aa3",
+      "outlook": "negative",
+      "rating_as_of": "2025-10-24",
+      "watch": true,
+      "watch_reason": "negative outlook"
+    },
+    {
+      "date": "2026-10-23",
+      "time_et": "12:00 PM",
+      "name": "S&P Germany rating review",
+      "short": "S&P Germany",
+      "tier": 3,
+      "category": "Sovereign",
+      "blurb": "S&P's scheduled review of Germany (AAA, stable outlook since Oct 25, 2024). Published after the European close on a date fixed a year ahead under EU rules. Background: stable outlook, clear of every threshold \u2014 an affirmation is the base case.",
+      "source": "S&P published sovereign rating calendar 2026 (EU regulation 1060/2009 art. 8a)",
+      "time_source": "EU publication rule \u2014 after the European close",
+      "country": "Germany",
+      "agency": "S&P",
+      "rating": "AAA",
+      "outlook": "stable",
+      "rating_as_of": "2024-10-25",
+      "watch": false,
+      "watch_reason": "stable outlook, clear of every threshold"
     },
     {
       "date": "2026-10-26",
@@ -460,6 +503,24 @@
       "time_source": "published release policy"
     },
     {
+      "date": "2026-11-13",
+      "time_et": "12:00 PM",
+      "name": "S&P Italy rating review",
+      "short": "S&P Italy",
+      "tier": 2,
+      "category": "Sovereign",
+      "blurb": "S&P's scheduled review of Italy (BBB+, positive outlook since Jan 30, 2026). Published after the European close on a date fixed a year ahead under EU rules. Worth watching: positive outlook.",
+      "source": "S&P published sovereign rating calendar 2026 (EU regulation 1060/2009 art. 8a)",
+      "time_source": "EU publication rule \u2014 after the European close",
+      "country": "Italy",
+      "agency": "S&P",
+      "rating": "BBB+",
+      "outlook": "positive",
+      "rating_as_of": "2026-01-30",
+      "watch": true,
+      "watch_reason": "positive outlook"
+    },
+    {
       "date": "2026-11-16",
       "time_et": "8:30 AM",
       "name": "Empire State survey",
@@ -678,6 +739,24 @@
       "blurb": "Early estimate of the goods trade gap and retail/wholesale inventories.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-27",
+      "time_et": "12:00 PM",
+      "name": "S&P France rating review",
+      "short": "S&P France",
+      "tier": 3,
+      "category": "Sovereign",
+      "blurb": "S&P's scheduled review of France (A+, stable outlook since Oct 17, 2025). Published after the European close on a date fixed a year ahead under EU rules. Background: stable outlook, clear of every threshold \u2014 an affirmation is the base case.",
+      "source": "S&P published sovereign rating calendar 2026 (EU regulation 1060/2009 art. 8a)",
+      "time_source": "EU publication rule \u2014 after the European close",
+      "country": "France",
+      "agency": "S&P",
+      "rating": "A+",
+      "outlook": "stable",
+      "rating_as_of": "2025-10-17",
+      "watch": false,
+      "watch_reason": "stable outlook, clear of every threshold"
     },
     {
       "date": "2026-11-27",
