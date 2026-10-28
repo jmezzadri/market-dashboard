@@ -1228,7 +1228,7 @@ _SENT_MAX_WORDS = 20
 # a reader missing a meeting. Any dated reference to a scheduled event must
 # match econ_calendar.json, which is the same feed the homepage tile reads.
 _EVENT_WORDS = ("fomc", "cpi", "ppi", "payrolls", "jobs report", "ism", "pce",
-                "gdp", "jobless claims", "jolts", "retail sales")
+                "gdp", "jobless claims", "jolts", "retail sales", "rating review")
 _MONTHS = {"jan":1,"feb":2,"mar":3,"apr":4,"may":5,"jun":6,"jul":7,"aug":8,
            "sep":9,"sept":9,"oct":10,"nov":11,"dec":12}
 
