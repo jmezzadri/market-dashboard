@@ -410,7 +410,7 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 
 /* ════════════════════════════════════════════════════════════════════════
    TERMINAL — shared primitives for Macro Landscape and Paper Portfolio.
-   Dark only. Mono for numbers and labels; the condensed sans (the terminal's
+   Light and dark (Joe, 2026-10-28 evening). Mono for numbers and labels; the condensed sans (the terminal's
    cut of the sans role, type.css) for headlines and names.
    ════════════════════════════════════════════════════════════════════════ */
 .mt-overhaul .mt-terminal { background: var(--tm-page); color: var(--tm-text); font-family: var(--mt-type-mono); font-size: var(--v13-t2); line-height: 1.45; }

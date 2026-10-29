@@ -46,18 +46,18 @@
   border-radius: var(--r-18); color: var(--mut); font-size: var(--v13-t3); transition: background var(--dur-500); }
 .home-v12.data-v12 .df-banner--err { color: var(--down); box-shadow: var(--shx-2); }
 
-.home-v12.data-v12 .df-totals { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-8) var(--sp-26);
+.home-v12.data-v12 .df-totals { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-8) var(--sp-26);
   margin: 0 0 var(--sp-14); padding: var(--sp-14) var(--sp-22); background: var(--putty); border-radius: var(--r-22);
   font-size: var(--v13-t3); color: var(--mut); transition: background var(--dur-500); }
 .home-v12.data-v12 .df-totals b { font-family: var(--mt-type-serif); font-size: var(--v13-t5); font-weight: var(--fw-400);
   color: var(--ink); font-variant-numeric: tabular-nums; margin-right: var(--sp-2); }
 
-.home-v12.data-v12 .df-legend-top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-8) var(--sp-20);
+.home-v12.data-v12 .df-legend-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-8) var(--sp-20);
   margin: 0 0 var(--sp-18); padding: var(--sp-10) var(--sp-18); border: 1px solid var(--hair); border-radius: var(--r-999);
   font-size: var(--v13-t2); color: var(--ink-soft); }
 .home-v12.data-v12 .df-legend-top > span { display: inline-flex; align-items: center; }
 .home-v12.data-v12 .df-legend-grp-h { font-size: var(--v13-t1); letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: var(--fw-700); }
-.home-v12.data-v12 .df-legend-hint { color: var(--mut); font-style: italic; font-size: var(--v13-t1); margin-left: auto; }
+.home-v12.data-v12 .df-legend-hint { color: var(--mut); font-style: italic; font-size: var(--v13-t1); }
 
 /* ── two-pane layout: flow board left, detail panel right ── */
 .home-v12.data-v12 .df-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr); gap: var(--sp-18); align-items: start; }

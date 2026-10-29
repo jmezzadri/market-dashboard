@@ -101,10 +101,10 @@
   font-size: var(--v13-t2); font-weight: var(--fw-600); padding: var(--sp-5) var(--sp-10);
   border-radius: var(--v13-r); color: var(--v13-ink-2);
 }
+/* The selected pill's text is the skin's "on" foreground token (dark on the
+   terminal's amber, light on the editorial accent) — never a literal white. */
 .v13.home-v12 .mt-pill.on,
-.v13.home-v12 .t.on { background: var(--v13-accent); color: var(--c-ffffff); border-color: var(--v13-accent); }
-[data-mt-theme='dark'] .v13.home-v12 .mt-pill.on,
-[data-mt-theme='dark'] .v13.home-v12 .t.on { color: var(--c-0f1114); }
+.v13.home-v12 .t.on { background: var(--v13-accent); color: var(--lg-nav-on-fg); border-color: var(--v13-accent); }
 .v13.home-v12 .mt-btn{
   font-size: var(--v13-t2); font-weight: var(--fw-600); padding: var(--sp-5) var(--sp-10);
   border-radius: var(--v13-r); border: 1px solid var(--v13-rule-2);
@@ -455,10 +455,8 @@
 .v13.home-v12.ticker-v12 .mt-pillgroup { gap: var(--sp-2); background: transparent; padding: 0; }
 .v13.home-v12.ticker-v12 .mt-pill.on,
 .v13.home-v12.ticker-v12 .mt-btn.on {
-  background: var(--v13-accent); border-color: var(--v13-accent); color: var(--c-ffffff);
+  background: var(--v13-accent); border-color: var(--v13-accent); color: var(--lg-nav-on-fg);
 }
-[data-mt-theme='dark'] .v13.home-v12.ticker-v12 .mt-pill.on,
-[data-mt-theme='dark'] .v13.home-v12.ticker-v12 .mt-btn.on { color: var(--c-0a0c0f); }
 
 /* The company name placeholder rendered in serif while the symbol beside it
    was sans — two faces on one line. */

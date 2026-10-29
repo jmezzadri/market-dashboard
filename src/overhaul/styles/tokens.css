@@ -1508,11 +1508,6 @@
   --lg-sheet: rgba(255,255,255,0.93);
   --lg-track: rgba(11,18,32,0.12);
   --lg-row: rgba(255,255,255,0.6);
-  --lg-blob: 0.34;
-  --lg-blob-1: #6FA0FF;
-  --lg-blob-2: #3FD9BD;
-  --lg-blob-3: #FFC56B;
-  --lg-blob-4: #B79BFF;
   --lg-fg3: rgba(11,18,32,0.62);
   --lg-up-bg: rgba(8,117,94,0.12);
   --lg-down-bg: rgba(180,71,26,0.12);
@@ -1568,11 +1563,6 @@
   --lg-sheet: rgba(18,24,38,0.94);
   --lg-track: rgba(255,255,255,0.14);
   --lg-row: rgba(255,255,255,0.1);
-  --lg-blob: 0.55;
-  --lg-blob-1: #2F6BFF;
-  --lg-blob-2: #12C9A8;
-  --lg-blob-3: #FFB23E;
-  --lg-blob-4: #8B5CFF;
   --lg-fg3: rgba(255,255,255,0.55);
   --lg-up-bg: rgba(111,227,196,0.14);
   --lg-down-bg: rgba(255,160,107,0.14);
@@ -2220,7 +2210,7 @@
   --tm-text-2: #5B626C;
   --tm-text-3: #3A4049;
   --tm-text-4: #4E555E;
-  --tm-text-5: #6E757E;
+  --tm-text-5: #5F666F;
   --tm-amber: #9A5A00;
   --tm-green: #0B7148;
   --tm-red: #B42318;
@@ -2404,7 +2394,6 @@ html[data-skin='editorial'], .mt-overhaul[data-skin='editorial'] {
   --lg-sheet: var(--ed-surface);
   --lg-track: var(--ed-track);
   --lg-row: var(--ed-hover);
-  --lg-blob: 0;
   --lg-card-shadow: none;
   --lg-card-shadow-hover: none;
   --mt-tip-bg: var(--ed-surface);
@@ -2465,7 +2454,6 @@ html[data-skin='terminal'], .mt-overhaul[data-skin='terminal'] {
   --lg-sheet: var(--tm-panel);
   --lg-track: var(--tm-bar-track);
   --lg-row: var(--tm-hover);
-  --lg-blob: 0;
   --lg-card-shadow: none;
   --lg-card-shadow-hover: none;
   --mt-tip-bg: var(--tm-head);
