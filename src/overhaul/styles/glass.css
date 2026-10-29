@@ -5,23 +5,14 @@
    says WHICH elements are glass and how they move. Loaded last (main.jsx).
    Everything that moves stops under prefers-reduced-motion. */
 
-/* ── ground ─────────────────────────────────────────────────────────── */
+/* ── ground ─────────────────────────────────────────────────────────── *
+   2026-10-28: the drifting light blobs are retired — every page wears the
+   editorial or terminal skin (Joe: "harmonize all pages"); tokens.css
+   repoints the --lg-* family at the skin under each data-skin attribute. */
 html, body, #root { background: var(--lg-ground); }
 .mt-overhaul { background: var(--lg-ground); color: var(--lg-fg); position: relative; min-height: 100vh; overflow-x: clip; }
-.mt-overhaul .lg-ground { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
-.mt-overhaul .lg-blob {
-  position: absolute; border-radius: var(--r-50pct); filter: blur(var(--blur-glass));
-  opacity: var(--lg-blob); will-change: transform; transition: background var(--dur-600);
-}
-.mt-overhaul .lg-blob-1 { top: -180px; left: -120px; width: 720px; height: 720px; background: radial-gradient(circle, var(--lg-blob-1) 0%, transparent 68%); animation: lg-drift1 var(--dur-26000) ease-in-out infinite; }
-.mt-overhaul .lg-blob-2 { top: 120px; right: -200px; width: 780px; height: 780px; background: radial-gradient(circle, var(--lg-blob-2) 0%, transparent 66%); animation: lg-drift2 var(--dur-32000) ease-in-out infinite; }
-.mt-overhaul .lg-blob-3 { bottom: -320px; left: 18%; width: 760px; height: 760px; background: radial-gradient(circle, var(--lg-blob-3) 0%, transparent 66%); animation: lg-drift3 var(--dur-30000) ease-in-out infinite; }
-.mt-overhaul .lg-blob-4 { top: 34%; left: 44%; width: 420px; height: 420px; background: radial-gradient(circle, var(--lg-blob-4) 0%, transparent 68%); animation: lg-drift2 var(--dur-22000) ease-in-out infinite; }
 .mt-overhaul .mt-app, .mt-overhaul .mt-main { position: relative; z-index: 1; background: transparent; }
 
-@keyframes lg-drift1 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(140px, 90px) scale(1.18); } }
-@keyframes lg-drift2 { 0%, 100% { transform: translate(0, 0) scale(1.1); } 50% { transform: translate(-160px, -70px) scale(0.92); } }
-@keyframes lg-drift3 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(90px, -120px) scale(1.25); } }
 /* opacity only: a transform on a backdrop-filtered card makes Chrome/Safari
    paint the blur layer square (ignoring the rounded clip) for the whole
    animation — the "overlapping tiles" Joe saw on Macro, 2026-10-01. */
@@ -297,7 +288,6 @@ html, body, #root { background: var(--lg-ground); }
   .v13.home-v12.home-cockpit .engine-card .es-verdict h2 { font-size: var(--v13-t7); }
   .v13.home-v12.home-cockpit .brief-card h1 { font-size: var(--v13-t6); }
   .v13.home-v12.home-cockpit .brief-card .newslist { grid-template-columns: minmax(0, 1fr); }
-  .mt-overhaul .lg-blob { filter: blur(40px); }
 }
 @media (max-width: 1100px) {
   .v13.home-v12.home-cockpit .bgrid > .tile { grid-column: 1 / -1; }
@@ -306,7 +296,6 @@ html, body, #root { background: var(--lg-ground); }
 /* ── motion off ─────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .mt-overhaul *, .mt-overhaul *::before, .mt-overhaul *::after { animation: none !important; transition: none !important; }
-  .mt-overhaul .lg-blob { animation: none; }
 }
 
 /* ── 1440×900 fit pass ───────────────────────────────────────────────── */

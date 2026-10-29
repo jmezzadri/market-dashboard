@@ -1,6 +1,6 @@
 /* PaperPortfolioPage — Quality Trend, terminal skin (2026-10-28 redesign,
    from Joe's approved "MacroTilt Redesign" canvas: Portfolio /
-   PortfolioMobile boards). Dark, dense, data-first; no light theme.
+   PortfolioMobile boards). Dense, data-first; light and dark by the site toggle.
 
    Desktop: the title bar, six key figures, then three columns — PERF (growth
    of $1,000,000 + the returns table) over HOLD (the ledger); ATTR over RISK;

@@ -1,6 +1,6 @@
 /* Macro Landscape — terminal skin (2026-10-28 redesign, from Joe's approved
    "MacroTilt Redesign" canvas: Macro / MacroMobile boards). Dark, dense,
-   data-first; no light theme on this page.
+   data-first; light and dark by the site toggle.
 
    Desktop: the ENG panel (regime, two 24-block meters, the regime-history
    strip), a six-cell summary strip, then three columns of indicator panels

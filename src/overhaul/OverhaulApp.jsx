@@ -186,17 +186,19 @@ function RequireAuth({ children }) {
   return children;
 }
 
-/* Which skin a route wears (2026-10-28 redesign).
-     editorial  Home — the newspaper front page, light or dark by the toggle.
-     terminal   Macro Landscape and Paper Portfolio — dark only.
-     legacy     every other page: the new header, status line, ticker bar and
-                footer, over the page's own existing look.
+/* Which skin a route wears (2026-10-28 redesign; every page since Joe's
+   "harmonize all pages" the same evening).
+     editorial  Home, Methodology, the reference pages, sign-in, Bugs — the
+                newspaper paper, light or dark by the toggle.
+     terminal   Macro Landscape, Paper Portfolio, Macro Scorecard, Ticker,
+                Data — dense panels, light or dark by the same toggle.
    The attribute goes on the shell AND on <html>, so the ground behind an
-   overscrolled page is the skin's colour too. */
+   overscrolled page is the skin's colour too; tokens.css repoints the older
+   pages' palette under each attribute. */
+const TERMINAL_ROUTES = ['/macro', '/paper', '/scorecard', '/admin/data'];
 function skinFor(pathname) {
-  if (pathname === '/') return 'editorial';
-  if (pathname === '/macro' || pathname === '/paper') return 'terminal';
-  return 'legacy';
+  if (TERMINAL_ROUTES.includes(pathname) || pathname.startsWith('/ticker/')) return 'terminal';
+  return 'editorial';
 }
 
 function Shell() {
@@ -206,26 +208,13 @@ function Shell() {
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute('data-skin', skin);
-    /* The terminal pages are dark by design, and the shared drill modals read
-       the theme tokens — so while a terminal page is up, the theme attribute
-       reads dark whatever the toggle says; leaving it restores the choice. */
-    root.setAttribute('data-mt-theme', skin === 'terminal' ? 'navy' : tweaks.theme);
+    /* Every page, every skin, follows the one saved theme (Joe 2026-10-28:
+       light and dark on every page). */
+    root.setAttribute('data-mt-theme', tweaks.theme);
     return () => { root.removeAttribute('data-skin'); };
   }, [skin, tweaks.theme]);
   return (
     <div className="mt-overhaul" data-skin={skin}>
-      {/* Liquid Glass ground: drifting light blobs behind the pages that
-          still wear the glass look (presentational only; styled in
-          glass.css, frozen under prefers-reduced-motion). The redesigned
-          pages draw their own ground (Home: two faint blobs; terminal: none). */}
-      {skin === 'legacy' && (
-        <div className="lg-ground" aria-hidden="true">
-          <span className="lg-blob lg-blob-1" />
-          <span className="lg-blob lg-blob-2" />
-          <span className="lg-blob lg-blob-3" />
-          <span className="lg-blob lg-blob-4" />
-        </div>
-      )}
       <div className="mt-app">
         <main className="mt-main">
           <TopNav />
@@ -234,6 +223,7 @@ function Shell() {
           <MarketTape />
           <ScrollToTop />
           <VersionWatch />
+          <div className={skin === 'terminal' ? 'mt-terminal mt-skin' : 'mt-skin'}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/macro" element={<MacroPage />} />
@@ -272,6 +262,7 @@ function Shell() {
             <Route path="/disclaimer" element={<DisclaimerPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </div>
           <SiteFooter />
           <ReportBug />
         </main>
