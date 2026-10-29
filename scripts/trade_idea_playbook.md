@@ -554,7 +554,7 @@ do not publish a multi-quarter outright short of an asset in a strong uptrend
 
 | expression | when | what the Scorecard marks |
 |---|---|---|
-| puts or a put spread on a listed fund or stock | headline or gap risk is real; borrow is doubtful; the thesis has a date | the underlying, with the premium stated as the most the trade can lose |
+| puts or a put spread on a listed fund or stock | headline or gap risk is real; borrow is doubtful; the thesis has a date | **the option itself** (2026-10-29, #1277): state `the_trade.option{underlying, structure, strike, expiry, premium?}` and the Scorecard values that contract every day from the underlying's close (Black-Scholes, VIX-type vol, 2-year yield; intrinsic at expiry) — never the underlying |
 | pair: short fund A, long fund B (or long SPY) | the edge is relative — A lags B | both legs, no benchmark (the pair is already relative) |
 | short the fund or stock outright | liquid, borrowable, the edge is an absolute decline | the fund or stock, against the S&P |
 | inverse fund | only when no put market exists; `horizon_weeks` ≤ 4 (daily-reset drift) — the contract refuses longer | the inverse fund itself |
@@ -828,6 +828,33 @@ per-cent-of-position terms the Scorecard marks. The scorecard block marks the
 underlying series; the weekly review compares the mark against
 `expected_return.pct`, so the two must be stated on the same basis (say so in
 `basis`).
+
+**Option vehicles (2026-10-29, bug #1277 — Joe lost about half his premium on
+a put the Scorecard showed as +0.2%).** When `the_trade.buy` tells the reader to
+buy a put or a call (not "shares, or calls as an alternative" — then say so in
+`the_trade.shares_primary` and the shares are marked), the note states the ONE
+contract:
+
+```json
+"the_trade": {"buy": "SPY at-the-money puts, Nov 13 expiry.", "buy_line": "SPY 773 put, Nov 13 expiry",
+              "option": {"underlying": "SPY", "structure": "put", "strike": 773, "expiry": "2026-11-13"}}
+```
+
+The contract derives the scorecard leg (`ticker:SPY`, short for a put, long
+for a call) and `scorecard.option`; `premium` may be stated (per share) or
+omitted, in which case the scorer models it at the entry close and says so.
+`iv_series` defaults to the VIX for S&P 500 funds, VXN for QQQ, GVZ for gold
+and OVX for oil — anything else must name one we carry. `expected_return.pct`
+and `loss_at_stop_pct` are then ON THE PREMIUM (what the reader's position
+does if the call works, and if the stop prints mid-hold — model both with
+`score_trade_ideas.black_scholes` from the entry close and show the arithmetic
+in `basis`; the loss cannot exceed 100), the two-to-one rule is judged on
+those, and `expected_return.underlying_pct` states the move in the underlying
+the note calls for, which is what the book test paces. The scorer marks the
+option every session and settles it at intrinsic value at expiry or the
+planned close, whichever is first; the exit level on the underlying still
+closes it. A premium-paid directional option that cannot clear two-to-one on
+the premium is a note that should hold shares or a spread instead.
 
 **0a. "Today's conditions" — the five-case rule, with a fallback (Decision 1,
 2026-10-21).** Every note names, in `edge.backtest.regime_match`, the ONE

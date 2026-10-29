@@ -755,11 +755,22 @@ def _open_book(published: list, idea: dict, warnings: list):
 
 
 def _annual_pace(note: dict):
-    """The annual pace of the return a note called for, or None if it stated none."""
+    """The annual pace of the return a note called for, or None if it stated none.
+
+    An option-vehicle note (scorecard.option, 2026-10-29) states its return on
+    the PREMIUM — +109% in three weeks on a put is a 1,900%-a-year pace — and
+    the book test measures the position's daily returns on the underlying
+    (as it does for an event idea). Pacing the premium return against the
+    underlying's volatility would swamp the book test for every later note
+    while the option is open, so such a note also states
+    expected_return.underlying_pct, the move in the underlying it calls for,
+    and that is the pace the book test uses."""
     er = note.get("expected_return") or {}
     m = _scored_months(note.get("scorecard") or {})
+    sc = note.get("scorecard") if isinstance(note.get("scorecard"), dict) else {}
+    key = "underlying_pct" if isinstance(sc.get("option"), dict) else "pct"
     try:
-        pct = float(er.get("pct"))
+        pct = float(er.get(key))
     except (TypeError, ValueError):
         return None
     return pct * 12.0 / m if m else None
@@ -967,6 +978,162 @@ def _validate_event(idea: dict, idea_date: dt.date, warnings: list) -> None:
     idea["sizing"] = idea.get("sizing") if isinstance(idea.get("sizing"), dict) else {}
 
 
+# ---------------------------------------------------------------------------
+# OPTION VEHICLES (2026-10-29, bug #1277). The Oct 22 note told the reader to
+# buy "SPY ATM puts, Nov 13 expiry" and its scorecard marked the S&P 500 index
+# short, with a note saying "the put premium is not machine-checkable". It is
+# — from the underlying's close, an implied-volatility series we carry and a
+# rate (score_trade_ideas.score_option) — and the index short was the return
+# of a trade nobody was told to make: +0.2% on the row while the put was down
+# 11% from the entry close. LESSONS 6.18(a): the scorecard grades the vehicle
+# the reader is told to trade.
+#
+# Rule: from OPTION_VEHICLE_FROM, a directional note whose trade names a put,
+# call or option (and is not an event note, which has its own block) states
+# `the_trade.option {underlying, structure, strike, expiry, premium?}` — the
+# one contract the reader is told to buy — and the scorecard leg is DERIVED
+# from it: the underlying's ticker, marked as that option. A note may still
+# offer shares with options as an alternative; then it says so in
+# `the_trade.shares_primary` (one sentence) and is marked on the shares. A
+# note that names only an option and carries neither field does not publish.
+# Notes dated before OPTION_VEHICLE_FROM are grandfathered unless they carry
+# an option block, in which case it is validated.
+OPTION_VEHICLE_FROM = "2026-10-29"
+OPTION_WORD_RE = re.compile(r"\b(puts?|calls?|options?|straddles?|strangles?)\b", re.I)
+OPTION_VEHICLE_STRUCTURES = {"put", "call"}
+# The implied-volatility series the scorer values the option with, by
+# underlying. Anything else must name option.iv_series explicitly.
+OPTION_IV_DEFAULTS = {"SPY": "vix", "VOO": "vix", "IVV": "vix", "SPX": "vix",
+                      "QQQ": "vxn", "GLD": "gvz", "IAU": "gvz", "USO": "ovx"}
+OPTION_RATE_DEFAULT = "ust_2y"
+
+
+def _option_grandfathered(idea: dict) -> bool:
+    """A note dated before OPTION_VEHICLE_FROM that carries an option block —
+    i.e. a published note re-stated on its real vehicle after the fact."""
+    sc = idea.get("scorecard") if isinstance(idea.get("scorecard"), dict) else {}
+    tt = idea.get("the_trade") if isinstance(idea.get("the_trade"), dict) else {}
+    has = isinstance(sc.get("option"), dict) or isinstance(tt.get("option"), dict)
+    return has and str(idea.get("date", "")) < OPTION_VEHICLE_FROM
+
+
+def _names_an_option(tt: dict, idea: dict) -> bool:
+    txt = " ".join(str(tt.get(k) or "") for k in ("buy", "buy_line", "sell", "sell_line", "short", "short_line"))
+    txt += " " + str(idea.get("instrument") or "")
+    return bool(OPTION_WORD_RE.search(txt))
+
+
+def _validate_option_vehicle(idea: dict, idea_date: dt.date, warnings: list) -> None:
+    """Derives scorecard.legs and scorecard.option from the_trade.option, or
+    confirms the note has claimed shares as the primary vehicle. Raises
+    ContractError."""
+    tt = idea.get("the_trade")
+    if not isinstance(tt, dict):
+        raise ContractError("the_trade must be an object")
+    opt = tt.get("option")
+    sc = idea.get("scorecard") if isinstance(idea.get("scorecard"), dict) else {}
+    dated_in = str(idea.get("date", "")) >= OPTION_VEHICLE_FROM
+    if opt is None and not isinstance(sc.get("option"), dict):
+        if not _names_an_option(tt, idea) or not dated_in:
+            return
+        if len(str(tt.get("shares_primary") or "").strip()) >= 20:
+            return                        # shares are the vehicle; options offered as an alternative
+        raise ContractError(
+            "the_trade names a put, call or option, so the reader is being told to trade an option: state "
+            "the_trade.option{underlying, structure (put|call), strike, expiry, premium (per share, optional)} "
+            "and the scorecard will mark that option — or, if shares are the vehicle and the option is only an "
+            "alternative, say so in the_trade.shares_primary (one sentence). The scorecard grades the vehicle "
+            "the reader is told to trade (LESSONS 6.18), never its underlying.")
+    if opt is None:
+        opt = dict(sc.get("option") or {})   # a corrected note may carry only the scorecard block
+    if not isinstance(opt, dict):
+        raise ContractError("the_trade.option must be an object")
+    und = str(opt.get("underlying") or "").strip().upper()
+    if not re.fullmatch(r"[A-Z][A-Z0-9.\-]{0,9}", und):
+        raise ContractError("the_trade.option.underlying must be the listed ticker the option is on (e.g. SPY)")
+    err = _ticker_exists_error(f"ticker:{und}")
+    if err:
+        raise ContractError(f"the_trade.option.underlying: {err}")
+    structure = str(opt.get("structure") or "").strip().lower()
+    if structure not in OPTION_VEHICLE_STRUCTURES:
+        raise ContractError("the_trade.option.structure must be put or call (a spread on a named event is kind: event)")
+    strike = _num(opt.get("strike"))
+    if strike is None or strike <= 0:
+        raise ContractError("the_trade.option.strike must be the strike price, a positive number")
+    try:
+        expiry = dt.date.fromisoformat(str(opt.get("expiry")))
+    except (TypeError, ValueError):
+        raise ContractError("the_trade.option.expiry must be the listed expiry as an ISO date")
+    if expiry <= idea_date:
+        raise ContractError(f"the_trade.option.expiry ({expiry}) must be after the note's date")
+    premium = opt.get("premium")
+    if premium not in (None, ""):
+        premium = _num(premium)
+        if premium is None or premium <= 0:
+            raise ContractError("the_trade.option.premium, when stated, is the price per share paid — a positive number; "
+                                "omit it and the scorer models the premium at the entry close")
+    else:
+        premium = None
+    iv_series = str(opt.get("iv_series") or OPTION_IV_DEFAULTS.get(und) or "").strip()
+    if not iv_series:
+        raise ContractError(f"the_trade.option.iv_series is required for {und}: the implied-volatility series the option "
+                            f"is valued with (defaults exist only for {', '.join(sorted(OPTION_IV_DEFAULTS))})")
+    rate_series = str(opt.get("rate_series") or OPTION_RATE_DEFAULT).strip()
+    hist = _history()
+    if hist is not None:
+        for k, label in ((iv_series, "iv_series"), (rate_series, "rate_series")):
+            if k not in hist:
+                raise ContractError(f"the_trade.option.{label} {k!r} is not in indicator_history.json — the option cannot be valued")
+    div = _num(opt.get("dividend_yield_pct"), 0.0)
+    if div is None or div < 0 or div > 20:
+        raise ContractError("the_trade.option.dividend_yield_pct must be a small positive percentage or omitted")
+
+    side = "short" if structure == "put" else "long"
+    short_label = f"{und} {strike:g} {structure}, {expiry.strftime('%b')} {expiry.day}"
+    legs = sc.get("legs")
+    if isinstance(legs, list) and legs:
+        if len(legs) != 1 or not isinstance(legs[0], dict):
+            raise ContractError("an option-vehicle note has exactly one scorecard leg: the underlying the option is on")
+        if str(legs[0].get("series")) != f"ticker:{und}":
+            raise ContractError(
+                f"scorecard.legs[0] names {legs[0].get('series')!r} but the option is on {und}: the leg must be "
+                f"'ticker:{und}' so the option is marked from the fund the reader actually holds it on")
+        if legs[0].get("side") != side:
+            raise ContractError(f"scorecard.legs[0].side must be {side!r} for a {structure}")
+        legs[0].setdefault("label", f"{und} (the fund the {structure}s are on)")
+        legs[0]["short_label"] = short_label
+        legs[0].setdefault("measure", "pct_change")
+    else:
+        sc["legs"] = [{"series": f"ticker:{und}", "side": side, "measure": "pct_change",
+                       "label": f"{und} (the fund the {structure}s are on)", "short_label": short_label}]
+    sc["option"] = {"underlying": und, "structure": structure, "strike": strike, "expiry": expiry.isoformat(),
+                    "premium": premium, "iv_series": iv_series, "rate_series": rate_series,
+                    "dividend_yield_pct": div}
+    idea["scorecard"] = sc
+    tt["option"] = {"underlying": und, "structure": structure, "strike": strike, "expiry": expiry.isoformat(),
+                    "premium": premium, "iv_series": iv_series, "rate_series": rate_series,
+                    "dividend_yield_pct": div}
+    er = idea.get("expected_return")
+    if isinstance(er, dict):
+        inst = str(er.get("instrument") or "")
+        if not OPTION_WORD_RE.search(inst):
+            raise ContractError("expected_return.instrument must name the option: the called-for return and the loss "
+                                "at the stop are stated on the premium, which is what the scorecard marks")
+        loss = _num(er.get("loss_at_stop_pct"))
+        if loss is not None and abs(loss) > 100.0 + 1e-9:
+            raise ContractError("expected_return.loss_at_stop_pct cannot exceed 100 on an option — the premium is the most it can lose")
+        upct = _num(er.get("underlying_pct"))
+        if upct is None or upct <= 0:
+            raise ContractError("expected_return.underlying_pct is required on an option-vehicle note: the move in the "
+                                "underlying the note calls for, in per cent (the book test paces the underlying; the "
+                                "premium return is what the scorecard marks)")
+    if not str(sc.get("note") or "").strip():
+        sc["note"] = (f"Marked as the {short_label} the note tells the reader to buy: valued every session from "
+                      f"{und}'s close with a Black-Scholes model, the {iv_series} series as implied volatility and "
+                      f"the {rate_series} series as the rate; intrinsic value at expiry. The return is on the premium, "
+                      f"which is the most it can lose. The exit level on the underlying still closes the call.")
+
+
 def _validate_weight(idea: dict, fallback: bool, warnings: list) -> None:
     """Decision 5 — every note carries sizing.weight, banded by its type."""
     sz = idea.get("sizing")
@@ -1046,9 +1213,12 @@ def _validate_regime_match_v2(idea: dict, bt: dict, er: dict, warnings: list) ->
                 "it is today.'")
     pct, loss = _num(er.get("pct")), _num(er.get("loss_at_stop_pct"))
     if pct is not None and loss is not None and loss > pct / FALLBACK_STOP_FRACTION + 1e-9:
-        raise ContractError(
-            f"fallback stop: loss at the stop is {loss:g}% against an expected {pct:g}% — under the fewer-than-five-cases "
-            f"fallback the stop may be at most one third of the expected return ({pct / FALLBACK_STOP_FRACTION:.2f}%)")
+        msg = (f"fallback stop: loss at the stop is {loss:g}% against an expected {pct:g}% — under the fewer-than-five-cases "
+               f"fallback the stop may be at most one third of the expected return ({pct / FALLBACK_STOP_FRACTION:.2f}%)")
+        if _option_grandfathered(idea):
+            warnings.append("GRANDFATHERED (vehicle re-stated on the option, #1277): " + msg)
+        else:
+            raise ContractError(msg)
     warnings.append(f"published under the Decision-1 fallback: {mc} matching case(s), dependence correlation {corr:+.2f}, "
                     f"weight {FALLBACK_WEIGHT:g}, one-third stop")
     return True
@@ -1158,6 +1328,10 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     missing = [k for k in REQUIRED if not idea.get(k)]
     if missing:
         raise ContractError(f"missing required field(s): {', '.join(missing)}")
+    if not event:
+        # 2026-10-29 (#1277) — a directional note whose vehicle is a listed
+        # option is marked as that option; derives the scorecard leg.
+        _validate_option_vehicle(idea, idea_date, warnings)
 
     if idea["kind"] not in VALID_KINDS:
         raise ContractError(f"kind must be one of {sorted(VALID_KINDS)}, got {idea['kind']!r}")
@@ -1639,7 +1813,15 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                                 "on the same basis as pct (a positive number)")
         if loss <= 0:
             raise ContractError("expected_return.loss_at_stop_pct must be a positive number")
-        if not event and er_pct < MIN_REWARD_TO_RISK * loss:
+        if not event and er_pct < MIN_REWARD_TO_RISK * loss and _option_grandfathered(idea):
+            # A note published before OPTION_VEHICLE_FROM on an underlying
+            # basis and since re-stated on the option it named (#1277): the
+            # honest risk/reward on the vehicle is published and shown, not
+            # hidden behind the index arithmetic it passed with. Dated, so no
+            # new note can use it.
+            warnings.append(f"GRANDFATHERED (vehicle re-stated on the option, #1277): expected_return.pct ({er_pct:g}%) "
+                            f"is less than {MIN_REWARD_TO_RISK:g}x the loss at the stop ({loss:g}%) on the option")
+        elif not event and er_pct < MIN_REWARD_TO_RISK * loss:
             # 2026-10-09 — Joe can waive the 2x rule for one named note. He was
             # shown that the energy call's history supports a 10% gain against
             # a 10% stop (no stop level gave 2x: a tighter stop was hit in 7 of

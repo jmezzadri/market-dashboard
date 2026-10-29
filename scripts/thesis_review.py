@@ -336,6 +336,31 @@ def quant_one(row: dict, idea: dict, hist: dict, called_for_pct: float | None, u
             out["called_for_pct"] = called_for_pct
             out["remaining_to_called_for_pct"] = round(called_for_pct - mark, 2)
         return out
+    op = row.get("option")
+    if isinstance(op, dict):
+        # 2026-10-29 (bug #1277): an option-vehicle note is marked as the put
+        # or call the reader was told to buy, so a driftless range built from
+        # the underlying's daily moves is in the wrong currency. The review
+        # reports what decides it: the option's modelled value against the
+        # premium, where the underlying sits against the strike, the implied
+        # vol it is valued at, the sessions to the planned close, and the
+        # stop on the underlying, which still applies.
+        left = sessions_between(mark_date, target)
+        total = sessions_between(entry, target) if entry else None
+        out.update({
+            "sessions_left": left,
+            "horizon_elapsed_pct": round(100.0 * (1 - left / total), 1) if total else None,
+            "option": {k: op.get(k) for k in ("structure", "underlying", "strike", "expiry", "premium", "premium_basis",
+                                              "iv_series", "underlying_close", "underlying_as_of", "iv_pct",
+                                              "value_per_share", "intrinsic_per_share", "days_to_expiry", "state")},
+            "range_at_horizon": None,
+            "note": "option idea: marked as the option the note named, valued from the underlying's close; the premium is the most it can lose",
+        })
+        if called_for_pct is not None:
+            out["called_for_pct"] = called_for_pct
+            out["remaining_to_called_for_pct"] = round(called_for_pct - mark, 2)
+        out["stop"] = stop_geometry(row, idea, hist, mark_date, left, units)
+        return out
     left = sessions_between(mark_date, target)
     total = sessions_between(entry, target) if entry else None
     out["sessions_left"] = left
@@ -804,6 +829,13 @@ def render_email_html(doc: dict) -> str:
                                     f'<span style="color:{MUTE}">— premium is the most it can lose; pays {qe.get("payoff_ratio") if qe.get("payoff_ratio") is None else round(float(qe["payoff_ratio"]), 1)} to 1 in full</span>'))
             rows.append(("Where the underlying sits", f'{qe.get("underlying_close")} on {e(qe.get("underlying_as_of") or "")} — {_pct(qe.get("distance_to_long_strike_pct"))} from the long strike; the spread is worth {qe.get("intrinsic_per_share")} a share today'))
             rows.append(("The odds", f'market {qe.get("implied_odds_pct")}% at publication, breakeven {qe.get("breakeven_odds_pct")}%, ours {qe.get("edge_odds_pct")}% <span style="color:{MUTE}">— {q.get("sessions_left")} sessions to expiry</span>'))
+        elif q.get("option"):
+            qo = q["option"]
+            rows.append(("The position", f'{e(qo.get("underlying") or "")} {qo.get("strike")} {e(qo.get("structure") or "")}, expiry {e(qo.get("expiry") or "")} '
+                                         f'<span style="color:{MUTE}">— premium {qo.get("premium")} a share is the most it can lose</span>'))
+            rows.append(("What it is worth now", f'{qo.get("value_per_share")} a share on {e(qo.get("underlying_as_of") or "")} '
+                                                 f'<span style="color:{MUTE}">— {e(qo.get("underlying") or "")} at {qo.get("underlying_close")} against the {qo.get("strike")} strike, '
+                                                 f'{qo.get("intrinsic_per_share")} in the money, valued at {qo.get("iv_pct")}% implied volatility, {qo.get("days_to_expiry")} days to expiry</span>'))
         elif rng:
             rows.append(("Where it can finish (no view)",
                          f'10th {_pct(rng.get("p10"))} · median {_pct(rng.get("p50"))} · 90th {_pct(rng.get("p90"))} '

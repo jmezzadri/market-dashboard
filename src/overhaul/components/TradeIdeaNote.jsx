@@ -165,6 +165,7 @@ export function TradeIdeaNoteBody({ idea, chartSeries, review }) {
           ['Pays, if it happens', idea.expected_return?.payoff_ratio != null ? `${Number(idea.expected_return.payoff_ratio).toFixed(1)} to 1 on the premium` : null],
         ] : []),
           ['Buy', idea.the_trade?.buy], ['Sell to pay for it', idea.the_trade?.sell],
+          ['The contract', idea.the_trade?.option?.underlying ? `${idea.the_trade.option.underlying} ${idea.the_trade.option.strike} ${idea.the_trade.option.structure}, expiry ${idea.the_trade.option.expiry} — the Scorecard marks this option; the premium is the most it can lose` : null],
           ['Sell short', idea.the_trade?.short || 'N/A'],
           ['What would make it a position', idea.the_trade?.what_would_make_it_a_position],
           ['How much', idea.the_trade?.sizing],

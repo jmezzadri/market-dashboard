@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T11:04:12Z",
+  "generated_at": "2026-10-29T11:17:59Z",
   "cadence": "Research runs every morning before the US open; the best ideas publish — at most two a week.",
   "next_publish": "2026-10-23",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
@@ -16,8 +16,18 @@
       "horizon": "2–3 weeks",
       "the_trade": {
         "buy": "SPY ATM puts, Nov 13 expiry.",
-        "buy_line": "SPY ATM puts, Nov 13 expiry",
-        "sizing": "5 of 100 (half size)."
+        "buy_line": "SPY 773 put, Nov 13 expiry",
+        "sizing": "5 of 100 (half size).",
+        "option": {
+          "underlying": "SPY",
+          "structure": "put",
+          "strike": 773.0,
+          "expiry": "2026-11-13",
+          "premium": null,
+          "iv_series": "vix",
+          "rate_series": "ust_2y",
+          "dividend_yield_pct": 0.0
+        }
       },
       "edge": {
         "source": "credit",
@@ -253,10 +263,11 @@
         }
       ],
       "expected_return": {
-        "pct": 3.2,
-        "loss_at_stop_pct": 0.8,
-        "basis": "median S&P 500 fall over fifteen sessions in the five cases (3.2%), as a short of the index, which is what the Scorecard marks; the stop is the 0.8% rise to a close above 7,818. Held through SPY puts, the premium is the most the position can lose.",
-        "instrument": "SPY ATM puts, Nov 13 expiry"
+        "pct": 109,
+        "loss_at_stop_pct": 57,
+        "basis": "the put's modelled value if the S&P 500 falls the median 3.2% of the five cases (to about 7,510, SPY about 748) by the planned close on Nov 11: about 24.5 a share against the 11.71 premium, +109%. The loss at the stop is the put's value if the index closes above 7,818 (SPY about 779) mid-hold on Nov 4: about 5.1 a share, -57%; it runs from -26% if the stop prints in the first days to -88% in the last, and the premium (-100%) is the most the trade can lose. The underlying move called for is the 3.2% fall in the S&P 500 (the book test paces that). Restated on the put on Oct 29 (bug #1277); the note was published on the index basis, +3.2% against -0.8%.",
+        "instrument": "SPY 773 put, Nov 13 expiry — the return and the loss at the stop are on the premium",
+        "underlying_pct": 3.2
       },
       "sizing": {
         "weight": 5.0,
@@ -265,11 +276,11 @@
       "scorecard": {
         "legs": [
           {
-            "series": "spx_index",
+            "series": "ticker:SPY",
             "side": "short",
             "measure": "pct_change",
-            "label": "S&P 500 index, short",
-            "short_label": "S&P 500 (short)"
+            "label": "SPY (the fund the puts are on)",
+            "short_label": "SPY 773 put, Nov 13"
           }
         ],
         "horizon_weeks": 3,
@@ -282,7 +293,17 @@
         "benchmark": {
           "series": "spx_index"
         },
-        "note": "Vehicle: SPY ATM puts, Nov 13 expiry. The Scorecard marks the index itself, short, from the Oct 21 close. The put premium is not machine-checkable; the index stop is."
+        "note": "Corrected Oct 29 (bug #1277): the Scorecard first marked the S&P 500 index itself, short, because the put premium was called \"not machine-checkable\". It is. From Oct 29 the row marks the SPY 773 put expiring Nov 13 that the note told the reader to buy, valued every session from SPY's close with a Black-Scholes model, the VIX as implied volatility and the 2-year Treasury yield as the rate (intrinsic value at expiry); the premium is modelled at the Oct 21 close (11.71 a share), and the return is on that premium, which is the most the trade can lose. The entry date and the exit level (a close above 7,818) are unchanged. On the index basis the row had read +0.2% on Oct 28; on the put it reads about -11%, and worse for anyone who bought after the Oct 22 open.",
+        "option": {
+          "underlying": "SPY",
+          "structure": "put",
+          "strike": 773.0,
+          "expiry": "2026-11-13",
+          "premium": null,
+          "iv_series": "vix",
+          "rate_series": "ust_2y",
+          "dividend_yield_pct": 0.0
+        }
       },
       "book": {
         "stance": "Five positions: long US energy (XLE), long natural gas (UNG), long yen (FXY), short wheat (WEAT), and this S&P 500 short at half size for 2–3 weeks. Highest conviction: the wheat short (eleven tested episodes). Lowest: this one (five). The short has moved with the energy call day to day (correlation +0.37 over 126 sessions), under the 0.60 limit. Adding it raises the book's expected excess return over the S&P 500 per unit of risk from 0.69 to 1.06; book volatility 5.92 points a year against the S&P's 5.37 at 45 of 100 invested.",
@@ -291,7 +312,7 @@
       "status": "live",
       "sections": [],
       "published_at": "2026-10-22T10:25:45Z",
-      "corrected_at": "2026-10-22T11:04:12Z"
+      "corrected_at": "2026-10-29T11:17:59Z"
     },
     {
       "date": "2026-10-09",

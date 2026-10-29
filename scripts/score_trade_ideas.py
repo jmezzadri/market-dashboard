@@ -576,6 +576,13 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
     if isinstance(sc.get("event"), dict):
         return score_event(idea, base, sc, hist, legs_out, entry_date, today, review_closes)
 
+    # Option-vehicle notes (2026-10-29, bug #1277): a directional note whose
+    # vehicle is a listed put or call is marked on the OPTION, not on the
+    # underlying it was written against. See score_option.
+    if isinstance(sc.get("option"), dict):
+        return score_option(idea, base, sc, hist, legs_out, entry_date, horizon_weeks, horizon_months,
+                            horizon_label, target_date, today, review_closes)
+
     # Risk-parity size, from the year BEFORE entry, frozen here for good.
     #
     # 2026-08-18, second pass (Joe: "This is SO FUCKING WILDLY CONFUSING"):
@@ -702,9 +709,11 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
         "position_pct": last_mark,
         "risk_sized_pct": round(last_mark * mult, 4),
         "sizing": sizing,
-        "single_leg_note": (
-            "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short."
-            if len(legs_out) == 1 else None),
+        # 2026-10-29: this used to print the EUR/USD sentence on EVERY one-leg
+        # row (an S&P short "because buying EUR/USD already sells dollars").
+        # The note's own funding_inside_instrument sentence, or nothing.
+        "single_leg_note": ((str(sc.get("funding_inside_instrument") or "").strip() or None)
+                            if len(legs_out) == 1 else None),
         "benchmark": None,
         "mark": last_mark,
         "mark_date": last_date,
@@ -895,6 +904,288 @@ def score_event(idea: dict, base: dict, sc: dict, hist: dict, legs_out: list, en
         },
     }
     # The same S&P yardstick as every other row, over the same days.
+    bm = BENCHMARK
+    if isinstance(bm, dict) and bm.get("series") in hist:
+        bseries = hist[bm["series"]]
+        _, bv = first_on_or_after(bseries, entry_date)
+        b_obs = [(d, v) for d, v in bseries if entry_date <= d <= last_date]
+        if bv and b_obs:
+            b_date, b_val = b_obs[-1]
+            lag = (dt.date.fromisoformat(last_date) - dt.date.fromisoformat(b_date)).days
+            if lag <= BENCHMARK_MAX_LAG_DAYS:
+                b_move = 100.0 * (b_val / bv - 1.0)
+                out["benchmark"] = {"series": bm["series"], "label": bm.get("label") or bm["series"],
+                                    "measure": "pct_change", "entry_value": bv, "as_of": b_date,
+                                    "move": round(b_move, 4), "difference": round(last_mark - b_move, 4),
+                                    "note": "What the obvious alternative did over exactly the same days."}
+    return out
+
+
+# ------------------------------------------------------- option vehicles
+#
+# 2026-10-29 (bug #1277, Joe): the Oct 22 note told the reader to buy SPY
+# at-the-money puts expiring Nov 13, and the Scorecard marked the S&P 500
+# index, short. The index was down 0.2%; the put was down about 11% from the
+# entry close and 30-40% for anyone who bought at the open after the note
+# went out. LESSONS 6.18(a): the scorecard grades the vehicle the reader is
+# told to trade. An option leg was marked as its underlying, so every number
+# on the row was the return of a trade nobody was told to make.
+#
+# The fix is a third leg type beside the price leg and the event spread: an
+# `option` block {underlying, structure put|call, strike, expiry, premium,
+# iv_series, rate_series}. The scorer needs no options vendor: it marks the
+# option every session with Black-Scholes from the underlying's close, the
+# named implied-volatility series (the VIX for SPY/SPX — a 30-day index
+# volatility applied to a 3-week at-the-money put is the closest series we
+# carry and is stated on the row) and the named rate series; at expiry it is
+# the intrinsic value. Return = value / premium - 1, so the row runs from
+# -100% (the premium, which is the most it can lose) upward. The premium is
+# either the figure the note stated or, when the note stated none, the same
+# model's price at the entry close — recorded on the row as `premium_basis`
+# so a reader can see which. A price stop on the underlying (the note's exit
+# level) still closes the call, at that day's modelled option value.
+#
+# What this is NOT: a quote. Listed puts carry a volatility skew the VIX does
+# not, and the model is European. The row says "modelled" in so many words.
+# It is a far better grade of the trade than its underlying's return, which
+# is what it replaces, and it moves in the right direction by the right order
+# of magnitude on every session — which is the bar the Scorecard sets.
+OPTION_STRUCTURES = {"put", "call"}
+OPTION_MODEL = "Black-Scholes (European), from the underlying's close, the named implied-volatility series and the named rate series; intrinsic value at expiry"
+DAYS_PER_YEAR = 365.0
+
+
+def _norm_cdf(x: float) -> float:
+    import math
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def black_scholes(structure: str, spot: float, strike: float, years: float, vol: float,
+                  rate: float = 0.0, div_yield: float = 0.0) -> float:
+    """Price of one European put or call per share. `vol`, `rate` and
+    `div_yield` are decimals (0.17, not 17). At or past expiry (years <= 0)
+    the intrinsic value is returned."""
+    import math
+    if structure not in OPTION_STRUCTURES:
+        raise ScoreError(f"unknown option structure {structure!r}")
+    spot, strike = float(spot), float(strike)
+    if years <= 0 or vol <= 0 or spot <= 0 or strike <= 0:
+        return max(0.0, strike - spot) if structure == "put" else max(0.0, spot - strike)
+    sq = vol * math.sqrt(years)
+    d1 = (math.log(spot / strike) + (rate - div_yield + 0.5 * vol * vol) * years) / sq
+    d2 = d1 - sq
+    df_k = strike * math.exp(-rate * years)
+    df_s = spot * math.exp(-div_yield * years)
+    if structure == "call":
+        return df_s * _norm_cdf(d1) - df_k * _norm_cdf(d2)
+    return df_k * _norm_cdf(-d2) - df_s * _norm_cdf(-d1)
+
+
+def _last_on_or_before_value(series, iso):
+    out = None
+    for d, v in series or []:
+        if d > iso:
+            break
+        out = v
+    return out
+
+
+def score_option(idea: dict, base: dict, sc: dict, hist: dict, legs_out: list, entry_date: str,
+                 horizon_weeks, horizon_months, horizon_label: str, target_date: str,
+                 today: str, review_closes: dict | None) -> dict:
+    """Mark a single listed put or call from the underlying's close (see the
+    block comment above). legs_out[0] is the underlying's price leg, already
+    resolved to the last close before publication; it supplies the entry
+    date and the spot path, and its own return is still reported so the
+    reader can see what the underlying did next to what the option did."""
+    op = sc["option"]
+    structure = str(op.get("structure") or "")
+    if structure not in OPTION_STRUCTURES:
+        return {**base, "status": "unscoreable",
+                "reason": f"option.structure must be put or call, got {structure!r}"}
+    try:
+        strike = float(op.get("strike"))
+        if strike <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        return {**base, "status": "unscoreable", "reason": "option.strike must be a positive number"}
+    try:
+        expiry = str(op.get("expiry"))[:10]
+        dt.date.fromisoformat(expiry)
+    except (TypeError, ValueError):
+        return {**base, "status": "unscoreable", "reason": "option block lacks a valid expiry"}
+    if expiry <= entry_date:
+        return {**base, "status": "unscoreable", "reason": f"option expiry {expiry} is not after the entry date {entry_date}"}
+    iv_key = op.get("iv_series")
+    if not iv_key or iv_key not in hist:
+        return {**base, "status": "unscoreable",
+                "reason": f"option.iv_series {iv_key!r} is not in indicator_history.json — the option cannot be valued without an implied-volatility series"}
+    rate_key = op.get("rate_series")
+    if rate_key and rate_key not in hist:
+        return {**base, "status": "unscoreable", "reason": f"option.rate_series {rate_key!r} is not in indicator_history.json"}
+    try:
+        div_yield = float(op.get("dividend_yield_pct") or 0.0) / 100.0
+    except (TypeError, ValueError):
+        return {**base, "status": "unscoreable", "reason": "option.dividend_yield_pct must be a number"}
+
+    leg = legs_out[0]
+    series = hist[leg["series"]]
+
+    def value_on(d: str, spot: float) -> tuple[float, float, float, float]:
+        iv = _last_on_or_before_value(hist[iv_key], d)
+        rate = _last_on_or_before_value(hist[rate_key], d) if rate_key else 0.0
+        if iv is None:
+            raise ScoreError(f"no {iv_key} reading on or before {d}")
+        years = (dt.date.fromisoformat(expiry) - dt.date.fromisoformat(d)).days / DAYS_PER_YEAR
+        v = black_scholes(structure, spot, strike, years, float(iv) / 100.0, float(rate or 0.0) / 100.0, div_yield)
+        return v, float(iv), float(rate or 0.0), years
+
+    # The premium: stated by the note, or modelled at the entry close.
+    stated = op.get("premium")
+    try:
+        premium = float(stated) if stated not in (None, "") else None
+        if premium is not None and premium <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        return {**base, "status": "unscoreable", "reason": "option.premium must be a positive number per share, or omitted to model it at the entry close"}
+    try:
+        v0, iv0, r0, _ = value_on(entry_date, float(leg["entry_value"]))
+    except ScoreError as e:
+        return {**base, "status": "unscoreable", "reason": str(e)}
+    if premium is None:
+        premium = v0                       # unrounded, so the entry-day mark is exactly 0
+        premium_basis = (f"modelled at the entry close: {structure} struck {strike:g} on {leg['entry_value']:g}, "
+                         f"{iv_key} {iv0:g}, rate {r0:g}%, {(dt.date.fromisoformat(expiry) - dt.date.fromisoformat(entry_date)).days} days to expiry")
+    else:
+        premium_basis = (f"stated by the note; the same model at the entry close gives {v0:.2f}")
+    if premium <= 0:
+        return {**base, "status": "unscoreable", "reason": "the modelled premium at entry is zero — the option cannot be marked"}
+
+    # The horizon: the note's planned close, or the expiry, whichever is first
+    # — an option cannot be held past its expiry, and the note's own hold is
+    # still the reader's instruction.
+    close_by = min(target_date, expiry)
+
+    marks, closes, values, ivs = [], {}, {}, {}
+    for d, spot in window(series, entry_date, None):
+        if d > close_by:
+            break
+        try:
+            v, iv, _, _ = value_on(d, spot)
+        except ScoreError:
+            continue
+        marks.append((d, round(100.0 * (v / premium - 1.0), 4)))
+        closes[d], values[d], ivs[d] = spot, v, iv
+    if not marks:
+        return {**base, "status": "unscoreable", "reason": "no close of the underlying since entry"}
+
+    # Rule 3 — the note's exit level on the underlying still closes the call.
+    inv, inv_hit = sc.get("invalidation"), None
+    if isinstance(inv, dict) and inv.get("series"):
+        key, iop, level = inv["series"], inv.get("op"), inv.get("level")
+        basis = inv.get("basis", "close")
+        if key not in hist:
+            return {**base, "status": "unscoreable",
+                    "reason": f"invalidation names series {key!r}, which is not in indicator_history.json"}
+        if iop not in OPS or basis not in BASES:
+            return {**base, "status": "unscoreable", "reason": f"invalidation op/basis invalid: {iop!r}/{basis!r}"}
+        all_dates = [d for d, _ in hist[key]]
+        for d, v in window(hist[key], entry_date, None):
+            if d == entry_date:
+                continue
+            if basis == "weekly_close" and not is_week_end(d, all_dates):
+                continue
+            if OPS[iop](v, float(level)):
+                inv_hit = {"date": d, "series": key, "value": v,
+                           "rule": f"{key} {iop} {level} ({basis.replace('_', ' ')})"}
+                break
+
+    close_date, status = None, "open"
+    thesis_close = None
+    rd = (review_closes or {}).get(idea.get("id"))
+    if rd:
+        prior = [d for d, _ in marks if d <= rd]
+        if prior and prior[-1] >= entry_date:
+            thesis_close = prior[-1]
+    if inv_hit and (thesis_close is None or inv_hit["date"] <= thesis_close):
+        # Marked at the option's value on the first mark on or after the stop
+        # printed (the stop series and the underlying share the US session).
+        after = [d for d, _ in marks if d >= inv_hit["date"]]
+        if after:
+            close_date, status = after[0], "closed_invalidated"
+    if close_date is None and thesis_close is not None:
+        close_date, status = thesis_close, "closed_thesis"
+    elif close_date is None and today >= close_by:
+        close_date, status = close_by, "closed_horizon"
+    scored = [(d, m) for d, m in marks if close_date is None or d <= close_date]
+    last_date, last_mark = scored[-1]
+    mfe = max(scored, key=lambda x: x[1])
+    mae = min(scored, key=lambda x: x[1])
+    last_close, last_value, last_iv = closes[last_date], values[last_date], ivs[last_date]
+    days_left = (dt.date.fromisoformat(expiry) - dt.date.fromisoformat(last_date)).days
+    intrinsic = black_scholes(structure, last_close, strike, 0.0, 0.0)
+    und = str(op.get("underlying") or leg["short_label"])
+    exp_short = dt.date.fromisoformat(expiry).strftime("%b %-d")
+    label = f"{und} {strike:g} {structure}, {exp_short}"
+    legs_report = [{**leg, "return_pct": round(100.0 * (last_close / leg["entry_value"] - 1.0), 4)}]
+    if status == "open":
+        state = f"open — modelled value {last_value:.2f} a share on {last_date}, {days_left} days to expiry"
+    elif status == "closed_horizon" and last_date >= expiry:
+        state = "settled at expiry at intrinsic value from the underlying's close"
+    elif status == "closed_horizon":
+        state = "closed on the planned close date at the modelled value"
+    elif status == "closed_invalidated":
+        state = "closed at the modelled value on the day the exit level printed"
+    else:
+        state = "closed early at the modelled value on the weekly review"
+    out = {
+        **base,
+        "status": status,
+        "entry_date": entry_date,
+        "target_date": close_by,
+        "horizon_months": horizon_months,
+        "horizon_weeks": horizon_weeks,
+        "horizon_label": horizon_label if close_by == target_date else f"to expiry {expiry}",
+        "unit": "%",
+        "legs": legs_report,
+        "buy_pct": legs_report[0]["return_pct"],
+        "sell_pct": None,
+        "trade_label": f"Long {label}",
+        "position_pct": last_mark,
+        "risk_sized_pct": last_mark,
+        "sizing": {"method": "option", "multiple": 1.0, "spread_vol_pct": None, "target_vol_pct": None,
+                   "observations": None, "basis": "an option idea is sized by premium at risk (sizing.weight), not by volatility"},
+        "single_leg_note": None,
+        "benchmark": None,
+        "mark": last_mark,
+        "mark_date": last_date,
+        "sessions_held": len(scored),
+        "max_favourable": {"value": mfe[1], "date": mfe[0]},
+        "max_adverse": {"value": mae[1], "date": mae[0]},
+        "invalidation": inv_hit or (
+            {"rule": f"{inv['series']} {inv.get('op')} {inv.get('level')} "
+                     f"({str(inv.get('basis', 'close')).replace('_', ' ')})", "date": None}
+            if isinstance(inv, dict) and inv.get("series") else None),
+        "result": last_mark if status != "open" else None,
+        "thesis_review_close": ({"review_date": rd, "closed_on": close_date} if status == "closed_thesis" else None),
+        "close_date": last_date if status != "open" else None,
+        "close_reason": CLOSE_REASONS.get(status),
+        "days_held": (dt.date.fromisoformat(last_date) - dt.date.fromisoformat(entry_date)).days,
+        "path": [[d, m] for d, m in scored],
+        "option": {
+            "structure": structure, "underlying": und, "strike": strike, "expiry": expiry,
+            "premium": round(premium, 4), "premium_basis": premium_basis,
+            "model": OPTION_MODEL, "iv_series": iv_key, "rate_series": rate_key,
+            "dividend_yield_pct": round(div_yield * 100.0, 4),
+            "underlying_entry": leg["entry_value"], "iv_at_entry_pct": iv0,
+            "underlying_close": round(last_close, 4), "underlying_as_of": last_date,
+            "iv_pct": last_iv, "value_per_share": round(last_value, 4),
+            "intrinsic_per_share": round(intrinsic, 4),
+            "days_to_expiry": days_left,
+            "max_loss_pct": -100.0,
+            "state": state,
+        },
+    }
     bm = BENCHMARK
     if isinstance(bm, dict) and bm.get("series") in hist:
         bseries = hist[bm["series"]]
