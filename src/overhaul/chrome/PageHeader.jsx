@@ -1,15 +1,21 @@
-/* PageHeader — sticky top header with market state, date, search,
-   freshness pill, and the light/dark theme toggle.
-   (Tweaks gear retired 2026-07-21 — theme is the only remaining option.)
-   Ported from site-overhaul prototype lm-core.jsx. */
+/* PageHeader — the STATUS LINE under the top bar, on every page (2026-10-28
+   redesign): the date, the market state with the session the prices belong
+   to ("US market pre-open · prices as of Monday's close", or "US market open ·
+   live prices"), and the site-wide feeds pill with its pulsing dot. The
+   search box and the theme toggle moved up into TopNav.
 
-import React from 'react';
+   Every word on this line is driven by logic that already existed: the
+   market clock below (one clock for the whole site, LESSONS 4.28), the
+   newest "as of" among the ticker bar's series (the same reader Home's old
+   footer used), and the freshness rollup the pill has always graded off.
+   (Tweaks gear retired 2026-07-21.) */
+
+import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import FreshnessChip from '../components/FreshnessChip';
-import TickerSearch from './TickerSearch';
-import { useTweaks } from '../tweaks/TweaksContext';
 import { useFreshnessRollup } from '../../hooks/useFreshness';
 import { NYSE_HOLIDAYS } from '../../lib/freshnessClock';
+import useMarketLevels from '../lib/useMarketLevels';
+import { TAPE_ITEMS } from './MarketTape';
 
 // "All feeds" pill — a TRUE site-wide rollup across EVERY registered data
 // element, graded with the exact same logic the per-element chips use
@@ -155,9 +161,12 @@ function AllFeedsPill() {
       onBlur={onLeave}
       tabIndex={0}
       aria-label={status === 'red' ? `${red.length} feeds stale: ${red.map((r) => r.label).join(', ')}` : text}
-      style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 'var(--sp-6)', fontSize: 'var(--v13-t2)', fontFamily: 'var(--mt-type-sans)', color, padding: 'var(--sp-3) var(--sp-10)', borderRadius: 'var(--r-999)', background: `color-mix(in oklab, ${color} 12%, transparent)`, fontWeight: 'var(--fw-400)' }}
+      className={`rd-feeds rd-feeds--${status}`}
+      style={{ '--rd-feeds-color': color }}
     >
-      <span style={{ width: 6, height: 6, borderRadius: 'var(--r-50pct)', background: color, flexShrink: 0 }} />
+      {/* the dot pulses only when everything is current — a soft ring every
+          2.4s; a red or amber dot holds still so the state reads at a glance */}
+      <span className={`rd-feeds-dot${status === 'green' ? ' rd-live' : ''}`} />
       {text}
       {tip}
     </span>
@@ -202,54 +211,50 @@ function formatToday(now = new Date()) {
   }).format(now);
 }
 
+/* "Monday's close" — the weekday of the newest close the ticker bar is
+   showing, in words. Outside the session the status line says which close
+   the prices belong to; during the session it says they are live. */
+function closeWeekday(iso) {
+  if (!iso) return null;
+  const d = new Date(`${String(iso).slice(0, 10)}T00:00:00Z`);
+  if (!Number.isFinite(d.getTime())) return null;
+  return d.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+}
+
 export default function PageHeader() {
-  const { tweaks, setTweak } = useTweaks();
   const ms = nyseMarketState();
   const today = formatToday();
-
-  /* 2026-05-27 — Joe directive: keep only Light and Dark Navy; drop the
-     pure-black 'dark' variant from the cycle. If a user has 'dark' saved
-     in localStorage from a prior session, treat it as navy. */
-  const cycleTheme = () => {
-    const order = ['light', 'navy'];
-    const current = tweaks.theme === 'dark' ? 'navy' : tweaks.theme;
-    const next = order[(order.indexOf(current) + 1) % order.length];
-    setTweak('theme', next);
-  };
-
-  const themeGlyph = tweaks.theme === 'light' ? '☾' : '☀';
+  const { level } = useMarketLevels();
+  const newestAsOf = useMemo(() => {
+    const ds = TAPE_ITEMS.map((r) => level(r.key)?.asOf).filter(Boolean).sort();
+    return ds.length ? ds[ds.length - 1] : null;
+  }, [level]);
+  const wd = closeWeekday(newestAsOf);
+  const prices = ms.open
+    ? 'live prices'
+    : wd ? `prices as of ${wd}'s close` : null;
+  const stateText = `US ${ms.label.charAt(0).toLowerCase()}${ms.label.slice(1)}`;
+  const [weekday, ...rest] = today.split(', ');
+  /* The phone row has room for "Wed, Oct 28 · Pre-open" and the feeds pill;
+     the long form stays on wider screens. Both are rendered, CSS shows one. */
+  const shortDate = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/New_York' }).format(new Date());
+  const shortState = ms.open ? 'Open' : /pre-open/i.test(ms.label) ? 'Pre-open' : /holiday/i.test(ms.label) ? 'Closed · holiday' : 'Closed';
 
   return (
-    <header className="mt-header">
-      <div className="mt-headmeta">
-        <span>
-          <span className={`mt-marketdot ${ms.open ? 'mt-marketdot--open' : ''}`} />
-          {ms.label}
+    <div className="rd-status" role="contentinfo" aria-label="Market status">
+      <div className="rd-status-in">
+        <span className="rd-status-date rd-status-long"><b>{weekday}</b>, {rest.join(', ')}</span>
+        <span className="rd-status-sep" aria-hidden="true" />
+        <span className="rd-status-market rd-status-long">
+          <span className={`rd-marketdot${ms.open ? ' is-open' : ''}`} aria-hidden="true" />
+          {stateText}{prices ? ` · ${prices}` : ''}
         </span>
-        <span className="mt-headmeta-sep" />
-        <span><b>{today.split(', ')[0]}</b>, {today.split(', ').slice(1).join(', ')}</span>
-      </div>
-      <TickerSearch />
-      <div className="mt-headstatus">
-        {/* Freshness pill rolls up the universe pipeline — when all
-            ingest pipelines are green, this reads "All feeds healthy".
-            When any are red, the chip flips and the tooltip names the
-            failing upstream. */}
-        {/* Real manifest ID — was a fictional ID prior to PR-O13; the
-            fictional ID resolved to "no manifest entry → green" which made
-            the All-feeds chip permanently green regardless of actual
-            pipeline state. */}
+        <span className="rd-status-short" title={`${stateText}${prices ? ` · ${prices}` : ''}`}>
+          <b>{shortDate}</b> · {shortState}
+        </span>
+        <span className="rd-status-fill" />
         <AllFeedsPill />
-        <button
-          type="button"
-          className="mt-iconbtn"
-          onClick={cycleTheme}
-          aria-label={`Theme: ${tweaks.theme} (click to cycle)`}
-          title={`Theme: ${tweaks.theme}`}
-        >
-          {themeGlyph}
-        </button>
       </div>
-    </header>
+    </div>
   );
 }

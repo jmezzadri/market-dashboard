@@ -554,6 +554,8 @@ Same run: closing the two reports with a raw `update bug_reports` hung in the MC
 
 **2026-10-23 addendum (health sweep) — rule 2 applied the day after it was written.** V2-CUTOVER-QUALITY-GATE was red on every pull request (six for six on 10-22/10-23, the daily brief's included) because its "snapshot fixture" step still locked four May-2026 v2 pages — MacroOverviewPage, AssetTiltPage, IndicatorsPage, MethodologyBody — that the overhaul had deleted; the checker exited 2 on "page file missing" and no change to any live file could have made it green. The step, the four fixtures, their README and the checker are deleted in one change (0.10); the lexicon step, which passes, stays. The sweep now runs every pull-request check that fires on its own paths locally before shipping (contracts, watchlist, grants, push-auth, synthetic-data, the v2 lexicon gate, and LESSONS-APPEND-GUARD).
 
+**2026-10-28 addendum (redesign) — a red that no local run can reproduce is the runner, not the code.** BLAST-RADIUS-SMOKE went red on every branch the day GitHub moved `ubuntu-latest` to 26.04: the workflow's pinned Playwright 1.60 cannot install Chromium there ("does not support chromium on ubuntu26.04-x64"), so it died on the install step before opening a single page. Every local check was green because local checks never touch the runner image. When a check fails before it reaches the code, read the first failing step rather than re-running the suite; the fix was a one-line runner pin (`ubuntu-24.04`) in the same branch, per rule 1. Workflows that fetch an unpinned Playwright survived the image change; the pinned one did not — a pinned browser needs a pinned runner.
+
 **Applies to:** every specialist, every publish, every project. Lead Developer owns the pre-publish run.
 
 # 1 · TALKING TO JOE
@@ -2536,6 +2538,8 @@ Plus self-hosted Fraunces and Inter `@font-face` rules in `theme.css` and four `
 5. **The rule is `scripts/check_fonts.mjs`, not this entry.** It fails the build on a family named outside `type.css`, a font token that is not one of the three, a bare generic fallback in a component, a declared-but-unloaded family, a stray self-hosted face, prose rendered in mono, and a fourth family appearing on screen. Per 7.15, `check_layout.mjs` — written for this same reason on 2026-09-01 and never wired to anything — now runs in the same workflow, `UI-STANDARDS-CHECK`.
 
 **Applies to:** UX Designer on every sign-off; Lead Developer on every PR touching `src/` or `index.html`. See `docs/TYPOGRAPHY_STANDARD.md`.
+
+**2026-10-28 — the faces changed, the rule did not.** Joe's approved "MacroTilt Redesign" canvas sets the serif to Newsreader, the sans to Inter and keeps IBM Plex Mono; the three roles, the three tokens, the one declaration site and the one `<link>` are exactly as above. The terminal pages (Macro Landscape, Paper Portfolio) add one scoped cut of the sans role — `.mt-terminal { --mt-type-sans: 'IBM Plex Sans Condensed' … }` on one line of `type.css` — and set their capitalised labels in mono, the way a terminal reads; `check_fonts.mjs` allows that one scoped line and treats a capitalised mono line inside a terminal root as a label. Sentence-case text on a terminal page is still prose and still sans.
 
 ### 9.18 (2026-09-08, hours after 9.17) — Six steps, three weights, no clamp(); same role declared together, or the two tiles drift apart
 

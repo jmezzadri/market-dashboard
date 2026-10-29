@@ -2129,3 +2129,221 @@
   --c-ffffff-a82: rgba(255,255,255,0.82);
   --c-ffffff-a85: rgba(255,255,255,0.85);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   REDESIGN (2026-10-28) — Joe's approved "MacroTilt Redesign" canvas.
+   Two skins, one site:
+     editorial  Home — a newspaper front page. `--ed-*`, light AND dark.
+     terminal   Macro Landscape and Paper Portfolio — dark, dense, data-first.
+                `--tm-*`. The terminal has no light theme (Joe), so these
+                values are the same under both theme attributes; they are
+                still declared under both so the one-tokens-file rule holds
+                and a future light terminal is one block away.
+   Every colour, size, duration and radius the three rebuilt pages and the
+   shared chrome use lives here. redesign.css references these and nothing
+   else. See docs/TYPOGRAPHY_STANDARD.md for the faces.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root, .mt-overhaul {
+  /* — editorial, light — */
+  --ed-bg: #F6F5F1;
+  --ed-surface: #FFFFFF;
+  --ed-ink: #121417;
+  --ed-ink-2: #454B55;
+  --ed-ink-3: #686F7A;
+  --ed-rule: #DCD9D1;
+  --ed-rule-2: #ECEAE4;
+  --ed-accent: #A84E0E;
+  --ed-up: #0B7148;
+  --ed-down: #B42318;
+  --ed-hover: #F1EFE9;
+  --ed-track: #E6E3DC;
+  --ed-zone-calm: #C9DDD2;
+  --ed-zone-watch: #EAD9B8;
+  --ed-zone-off: #EBC5BF;
+  --ed-zone-defl: #C7D3E6;
+  --ed-ping: rgba(11, 113, 72, 0.45);
+  --ed-blob-1: rgba(168, 78, 14, 0.08);
+  --ed-blob-2: rgba(40, 80, 150, 0.07);
+  --ed-veil: rgba(18, 20, 23, 0.55);
+  /* the ticker bar's edge fade is an alpha ramp, not a colour: solid in, clear out */
+  --ed-mask-solid: black;
+  --ed-mask-clear: transparent;
+
+  /* — editorial geometry — */
+  --ed-wrap: 1320px;
+  --ed-gutter: 40px;
+  --ed-head-h: 64px;
+  --ed-status-h: 40px;
+  --ed-meter-h: 6px;
+  --ed-pin-w: 3px;
+  --ed-pin-h: 16px;
+  --ed-dot: 6px;
+  --ed-live: 7px;
+  --ed-search-w: 260px;
+  --ed-phone-band-gap: 8px;
+  --ed-phone-head-h: 56px;
+
+  /* — motion (shared by both skins) — */
+  --ed-dur-rise: 800ms;
+  --ed-dur-stagger: 100ms;
+  --ed-dur-draw: 2400ms;
+  --ed-dur-draw-2: 1100ms;
+  --ed-dur-pop: 400ms;
+  --ed-dur-pin: 1600ms;
+  --ed-dur-grow: 1200ms;
+  --ed-dur-ping: 2400ms;
+  --ed-dur-hover: 150ms;
+  --ed-dur-blob-1: 28s;
+  --ed-dur-blob-2: 32s;
+  --ed-dur-tape: 110s;
+  --ed-dur-tape-phone: 90s;
+  --ed-ease-rise: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ed-ease-draw: cubic-bezier(0.3, 0.6, 0.2, 1);
+  --ed-ping-ring: 7px;
+
+  /* — terminal (dark only) — */
+  --tm-page: #000000;
+  --tm-panel: #08090B;
+  --tm-head: #15181C;
+  --tm-group: #0E1013;
+  --tm-border: #262A30;
+  --tm-border-2: #1E2228;
+  --tm-rowline: #121519;
+  --tm-text: #E8E8E8;
+  --tm-num: #FFFFFF;
+  --tm-text-2: #9AA0A6;
+  --tm-text-3: #C9CDD2;
+  --tm-text-4: #AEB4BB;
+  --tm-text-5: #7D848C;
+  --tm-amber: #FFB02E;
+  --tm-green: #34D07F;
+  --tm-red: #FF5C50;
+  --tm-blue: #5AB0FF;
+  --tm-slate: #8FA3B8;
+  --tm-hover: #15191E;
+  --tm-bar-track: #1E2228;
+  --tm-bar-mid: #6B727A;
+  --tm-midline: #3A3F46;
+  --tm-tape-bg: #050607;
+  --tm-head-bg: #0B0D10;
+  --tm-input-border: #33383F;
+  --tm-ping: rgba(52, 208, 127, 0.55);
+  --tm-green-dim: #12301F;
+  --tm-amber-dim: #3A2A0E;
+  --tm-red-dim: #3A1512;
+  --tm-blue-dim: #132A40;
+  --tm-grey-dim: #24282D;
+  --tm-nav-ink: #ECEEF1;
+  --tm-nav-ink-2: #B4BBC6;
+
+  /* — terminal geometry — */
+  --tm-gutter: 8px;
+  --tm-head-h: 56px;
+  --tm-panel-head-h: 28px;
+  --tm-tape-h: 32px;
+  --tm-tape-h-phone: 34px;
+  --tm-block-h: 16px;
+  --tm-block-h-phone: 14px;
+  --tm-pctbar-w: 46px;
+  --tm-pctbar-h: 6px;
+  --tm-tilt-h: 10px;
+  --tm-src-h: 6px;
+  --tm-sector-h: 8px;
+  --tm-search-w: 280px;
+  --tm-cursor-w: 7px;
+  --tm-cursor-h: 14px;
+  --tm-dur-blk: 50ms;
+  --tm-dur-blk-in: 220ms;
+  --tm-dur-blink: 1100ms;
+  --tm-dur-rise: 700ms;
+  --tm-dur-hover: 120ms;
+  --tm-ping-ring: 6px;
+}
+:root[data-mt-theme='dark'],
+:root[data-mt-theme='navy'],
+[data-mt-theme='dark'] .mt-overhaul,
+[data-mt-theme='navy'] .mt-overhaul {
+  /* — editorial, dark — (also on :root so the html/body ground behind an
+     overscrolled page is the same colour as the page) */
+  --ed-bg: #0B0E13;
+  --ed-surface: #10151C;
+  --ed-ink: #ECEEF1;
+  --ed-ink-2: #B4BBC6;
+  --ed-ink-3: #8C96A4;
+  --ed-rule: #252D38;
+  --ed-rule-2: #1A212A;
+  --ed-accent: #E8894A;
+  --ed-up: #41C08E;
+  --ed-down: #F2766A;
+  --ed-hover: #151B24;
+  --ed-track: #222A35;
+  --ed-zone-calm: #1F4A3A;
+  --ed-zone-watch: #5A4520;
+  --ed-zone-off: #5C2A26;
+  --ed-zone-defl: #24395C;
+  --ed-ping: rgba(65, 192, 142, 0.45);
+  --ed-blob-1: rgba(232, 137, 74, 0.07);
+  --ed-blob-2: rgba(80, 130, 220, 0.08);
+  --ed-veil: rgba(0, 0, 0, 0.6);
+
+  /* — terminal: identical in both themes (dark only, by design) — */
+  --tm-page: #000000;
+  --tm-panel: #08090B;
+  --tm-head: #15181C;
+  --tm-group: #0E1013;
+  --tm-border: #262A30;
+  --tm-border-2: #1E2228;
+  --tm-rowline: #121519;
+  --tm-text: #E8E8E8;
+  --tm-num: #FFFFFF;
+  --tm-text-2: #9AA0A6;
+  --tm-text-3: #C9CDD2;
+  --tm-text-4: #AEB4BB;
+  --tm-text-5: #7D848C;
+  --tm-amber: #FFB02E;
+  --tm-green: #34D07F;
+  --tm-red: #FF5C50;
+  --tm-blue: #5AB0FF;
+  --tm-slate: #8FA3B8;
+  --tm-hover: #15191E;
+  --tm-bar-track: #1E2228;
+  --tm-bar-mid: #6B727A;
+  --tm-midline: #3A3F46;
+  --tm-tape-bg: #050607;
+  --tm-head-bg: #0B0D10;
+  --tm-input-border: #33383F;
+  --tm-ping: rgba(52, 208, 127, 0.55);
+  --tm-green-dim: #12301F;
+  --tm-amber-dim: #3A2A0E;
+  --tm-red-dim: #3A1512;
+  --tm-blue-dim: #132A40;
+  --tm-grey-dim: #24282D;
+  --tm-nav-ink: #ECEEF1;
+  --tm-nav-ink-2: #B4BBC6;
+}
+
+/* ── The terminal's remap of the cream/v12 names (2026-10-28) ───────────
+   The shared controls a terminal page still mounts — the DataTable ledger,
+   the Term tooltip — read the older cream names (--ink, --mut, --hair,
+   --bg, --up/--down, --gold-deep …). Inside a terminal page root those names
+   resolve to the terminal palette, so the controls wear the skin without a
+   rewrite. Same idea as legacy-bridge.css, scoped to one root. */
+.mt-overhaul .mt-terminal {
+  --dt-hair: var(--tm-rowline);
+  --hair: var(--tm-border-2);
+  --mut: var(--tm-text-2);
+  --ink: var(--tm-text);
+  --ink-soft: var(--tm-text-3);
+  --bg: var(--tm-panel);
+  --bg2: var(--tm-group);
+  --putty: var(--tm-panel);
+  --up: var(--tm-green);
+  --down: var(--tm-red);
+  --warn: var(--tm-amber);
+  --gold-deep: var(--tm-amber);
+  --mt-tip-bg: var(--tm-head);
+  --mt-tip-line: var(--tm-border);
+  --sh: none;
+  --sh-12: none;
+  --sh-13: none;
+}

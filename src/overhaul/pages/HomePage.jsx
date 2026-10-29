@@ -1,60 +1,48 @@
-/* HomePage — the MacroTilt cockpit.
+/* HomePage — the editorial front page (2026-10-28 redesign, from Joe's
+   approved "MacroTilt Redesign" canvas: Main / Dark / Mobile boards).
 
-   2026-08-13 (Joe, second pass the same day): "We should have the Brief and
-   Trade idea be the centerpieces. And the Engine and Data almost like
-   supporting tiles somewhere. I dont like to have to scroll."
+   A newspaper front page: two rows, each split two-thirds and one-third,
+   with a rule between the columns.
+     Row 1 — Morning Brief (lead) | The Engine
+     Row 2 — Trade Idea            | This Week's Data
+   On a phone the sections stack Brief, Engine, Trade Idea, Data as white
+   bands with an 8px gap.
 
-   So the page is now a HIERARCHY, not four equal tiles:
-     Row 1 — Morning Brief | Trade Idea      the two reading surfaces, half each
-     Row 2 — The Engine | Upcoming data      short supporting strip beneath them
+   VISUAL REBUILD ONLY. Every feed, hook, link, modal and number is the one
+   the cockpit used (2026-08-13 → 2026-10-27): the brief and its full-brief
+   modal, the engine regime and its two meters (bands 116 / 124 and the
+   3-month change in the 10-year, from the engine hook — never the brief's
+   prose), the Trade Idea with its four-field block (Joe's standing rule,
+   LESSONS 1.7), the release calendar with its detail and all-releases
+   modals, and the indicator drill that opens in place (LESSONS 9.16).
+   Nothing is hard-coded; a feed that has not loaded renders its honest empty
+   state (LESSONS 4.9). Styling lives in styles/redesign.css. */
 
-   Everything that fights the no-scroll rule was cut rather than shrunk into
-   illegibility: the hero margin above the grid, the brief's headline list (three
-   on the tile, all of them in the modal), and the Engine's vertical stack (its
-   two gauges now sit side by side in a short card). Nothing is hidden without
-   the page saying so — the brief's "full brief" row states how many headlines it
-   is holding back, and every chart in a note is reachable from the tile.
-
-   Design rules honored (these caused earlier reworks):
-     • Engine data wins — the stress signal is MOVE (bands 116 / 124) and the
-       yield regime is the 3-month change in the 10-year, both from the engine
-       hook, never the brief's prose. No invented thresholds.
-     • Ink is reserved for exactly ONE card, The Engine. Gold is the editorial
-       accent and appears on the Trade Idea and nowhere else.
-     • Lead with the day-over-day CHANGE on every level.
-     • Prices are prior-close, labeled "close".
-     • Everything links to its detail route.
-     • The Trade Idea tile is a HEADLINE surface (Joe, 2026-09-14: "Its too
-       much writing"): one-line call (tileLine), short fact values (`*_line`
-       from the note, else first clause), full text only in the modal. */
-
-import React, { useMemo, useEffect, useRef, useState } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { useTweaks } from '../tweaks/TweaksContext';
 import useEngineRegime from '../lib/useEngineRegime';
 import { stressGaugePct, yieldGaugePct, stressMessage } from '../lib/engineGauges';
-import useMarketLevels from '../lib/useMarketLevels';
 import IndicatorDrillModal from '../components/IndicatorDrillModal';
 import ReleaseDetailModal from '../components/ReleaseDetailModal';
 import useScrollLock from '../lib/useScrollLock';
 import ReleaseCalendarModal from '../components/ReleaseCalendarModal';
 import ImpactMark from '../components/ImpactMark';
 import useEconReleaseHistory from '../lib/useEconReleaseHistory';
-import { TAPE_ITEMS } from '../chrome/MarketTape';
 import useDailyBrief from '../lib/useDailyBrief';
 import useEconCalendar from '../lib/useEconCalendar';
 import useTradeIdea from '../lib/useTradeIdea';
 import useIndicatorSeries from '../lib/useIndicatorSeries';
 import IdeaChart from '../components/IdeaChart';
 import TradeIdeaNoteModal from '../components/TradeIdeaNote';
-import { nyseMarketState } from '../chrome/PageHeader';
+import { STRESS_THRESH, YIELD_THRESH } from '../lib/useEngineRegime';
+// The modals keep the cockpit's own sheets (they carry the .home-v12 scope on
+// their veil), so those sheets stay loaded here.
 import '../styles/cream-system.css';
-// v13 last — it overrides the page's own v12 stylesheet.
 import '../styles/v13.css';
 import '../styles/pages-v13.css';
 
-/* ── format helpers ─────────────────────────────────────────────────────── */
+/* ── format helpers (unchanged from the cockpit) ─────────────────────── */
 function fmt(v, dec) {
   if (v == null || !Number.isFinite(v)) return '—';
   return v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -67,11 +55,6 @@ function weekdayDate(iso) {
   if (!iso) return '';
   const d = new Date(`${iso}T00:00:00Z`);
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
-}
-function longDate(iso) {
-  if (!iso) return '';
-  const d = new Date(`${iso}T00:00:00Z`);
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
 }
 /* The tile's fact strip is scannable, not prose. The contract deliberately
    requires a FULL invalidation sentence (it has to be checkable), so the tile
@@ -86,12 +69,8 @@ function firstClause(s, max = 82) {
   const cut = head.slice(0, max);
   return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
 }
-
-/* One tile line from a long claim: cut at the first full stop, colon,
-   semicolon or spaced dash. The contract requires the call to carry its whole
-   argument, so the full text lives in the modal; the tile prints only the
-   claim itself. (Joe, 2026-09-14: "I want the home page trade idea tile to be
-   more succinct... Its too much writing.") */
+/* One line from a long claim: cut at the first full stop, colon, semicolon or
+   spaced dash. The full text lives in the modal (Joe, 2026-09-14). */
 function tileLine(s, max = 150) {
   const t = String(s || '').trim();
   if (!t) return '';
@@ -104,100 +83,70 @@ function tileLine(s, max = 150) {
   return head === t ? head : `${head}.`;
 }
 
-/* Reveal — scroll-reveal wrapper. Replays in BOTH directions (Joe 2026-07-07).
-   State lives in React so data-poll re-renders preserve the revealed class. */
-function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
-  const ref = useRef(null);
-  const [vis, setVis] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === 'undefined') { setVis(true); return undefined; }
-    const io = new IntersectionObserver(([e]) => setVis(e.isIntersecting), { threshold: 0.05 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return <Tag ref={ref} className={`${className} rv${vis ? ' in' : ''}`} {...rest}>{children}</Tag>;
+/* The two faint background blobs (Joe's board). One setting turns them off,
+   kept in the same place the theme is kept. */
+const AMBIENT_KEY = 'mt.overhaul.ambient';
+function readAmbient() {
+  try { return window.localStorage.getItem(AMBIENT_KEY) !== 'off'; } catch { return true; }
 }
 
-/* What the position IS, in one hover. The badge answers "am I shorting
-   anything?" before the reader meets a single number — Joe, 2026-08-13. */
+/* The number of stories on the front page. The mockup carries four; the full
+   list, the stance, implications and what to watch are one tap away. */
+const FRONT_PAGE_STORIES = 4;
 
 export default function HomePage() {
   const navigate = useNavigate();
   const go = (path) => (e) => { e.preventDefault(); navigate(path); };
 
-  const { tweaks, setTweak } = useTweaks();
-  const isDark = tweaks.theme !== 'light';
-  const flip = () => setTweak('theme', isDark ? 'light' : 'navy');
-
-  // The market banner itself lives in the site frame now (chrome/MarketTape);
-  // Home only needs the levels for its "data through" footer line.
-  const { level } = useMarketLevels();
-  // Which indicator's drill is open, or null. One piece of state; the modal
-  // resolves everything else itself.
   const [drillInd, setDrillInd] = useState(null);
   const regime = useEngineRegime();
   const { brief } = useDailyBrief();
-  const { days: calDays, all: calAll, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 4 });
+  const { days: calDays, all: calAll, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 5 });
   const [calOpen, setCalOpen] = useState(false);
-  // The release history carries each release's MEASURED market impact, so the
-  // tile can grade its rows (Joe, 2026-09-10: "showing potential impact to
-  // markets"). ~65 KB, fetched once per page life, shared with the modals.
   const { data: relHist } = useEconReleaseHistory(true);
   const impactOf = (name) => relHist?.series?.[name]?.impact || null;
-  // Which release's detail is open, or null. Joe 2026-09-10: a release is a
-  // thing to read about where you are, not a link to the Macro page.
   const [openRelease, setOpenRelease] = useState(null);
-  const { idea, nextPublish, error: ideaError } = useTradeIdea();
+  const { idea, error: ideaError } = useTradeIdea();
 
   // Charts are declarative: the note names series that already exist in
-  // indicator_history.json and the site draws them. The 4.5 MB history file is
-  // only fetched once a note is actually on screen asking for a chart.
+  // indicator_history.json and the site draws them.
   const chartKeys = useMemo(() => (idea?.charts || []).map((c) => c.series), [idea]);
   const { series: chartSeries } = useIndicatorSeries(chartKeys);
 
-  // Footer: market state + honest "data as of" (newest displayed level).
-  // 2026-08-18: this was a SECOND, private market clock — weekday plus
-  // 9:30-16:00, no holiday table, two states where the header has four. It
-  // disagreed with the header every weekday morning ("Market pre-open" up top,
-  // "market closed" down here at the same instant) and on an NYSE holiday it
-  // would have read "market open" outright. It now calls the same function the
-  // header renders, lowercased to match this strip's voice.
-  const marketLabel = nyseMarketState().label.toLowerCase();
-  const newestAsOf = useMemo(() => {
-    const ds = TAPE_ITEMS.map((r) => level(r.key)?.asOf).filter(Boolean).sort();
-    return ds.length ? ds[ds.length - 1] : null;
-  }, [level]);
+  const [ambient, setAmbient] = useState(readAmbient);
+  const flipAmbient = () => {
+    setAmbient((v) => { try { window.localStorage.setItem(AMBIENT_KEY, v ? 'off' : 'on'); } catch {} return !v; });
+  };
 
-  const stress = { mk: stressGaugePct(regime.move) };
-  const yld = { mk: yieldGaugePct(regime.yieldDeltaBp) };
+  const stressMk = stressGaugePct(regime.move);
+  const yieldMk = yieldGaugePct(regime.yieldDeltaBp);
   const stressZone = regime.stressZone;
-  const stressCls = stressZone === 'Risk On' ? 'ok' : stressZone === 'Watch' ? 'warm' : stressZone === 'Risk Off' ? 'bad' : '';
   const stressMsg = stressMessage(stressZone, regime.move);
   const yReg = regime.yieldRegime;
-  const nearInfl = yReg === 'Neutral' && regime.yieldDeltaBp != null && 32 - regime.yieldDeltaBp <= 8;
-  const yCls = yReg === 'Inflationary' ? 'warm' : yReg === 'Deflationary' ? 'ok' : nearInfl ? 'warm' : '';
-  const yMsg = yReg === 'Inflationary' ? 'Inflationary — the Fed is back in play.'
-    : yReg === 'Deflationary' ? 'Deflationary — a growth scare.'
-    : nearInfl ? 'Neutral — nearing the inflationary edge.' : 'Neutral.';
-
+  const yDelta = regime.yieldDeltaBp;
+  /* One plain sentence under the yield meter, stating the distance to the
+     nearest line the way stressMessage does — the words can never outrun the
+     number. */
+  const yMsg = (() => {
+    if (yReg === 'Inflationary') return 'Inflationary — the Fed is back in play.';
+    if (yReg === 'Deflationary') return 'Deflationary — a growth scare.';
+    if (yReg === 'Neutral' && yDelta != null && Number.isFinite(yDelta)) {
+      const toInfl = Math.round(YIELD_THRESH.inflBp - yDelta);
+      const toDefl = Math.round(yDelta - YIELD_THRESH.deflBp);
+      const bp = (n) => `${n} basis point${n === 1 ? '' : 's'}`;
+      return toInfl <= toDefl
+        ? `Neutral — ${bp(Math.max(1, toInfl))} short of the inflationary line.`
+        : `Neutral — ${bp(Math.max(1, toDefl))} above the deflationary line.`;
+    }
+    return yReg ? `${yReg}.` : '—';
+  })();
   const verdictParts = (regime.regimeLabel || '—').split('·').map((s) => s.trim());
 
-  const toggleNi = (e) => { e.currentTarget.parentElement.classList.toggle('open'); };
-
-  // Joe, 2026-08-13 (third pass): "On the Brief - WE can add more headlines.
-  // There is so much dead space in that tile." Right — the brief shares a
-  // stretched grid row with the Trade Idea, which is the taller card, so cutting
-  // the brief to three headlines did not shorten the row at all. It only left a
-  // hole. The tile now carries six; the full-brief row still names anything held
-  // back and the modal renders every one, so the count stays true.
-  const BRIEF_TILE_HEADLINES = 8;   // the writer files 6-7; the cap only guards a runaway day
   const allNews = brief?.news || [];
-  const briefNews = allNews.slice(0, BRIEF_TILE_HEADLINES);
+  const briefNews = allNews.slice(0, FRONT_PAGE_STORIES);
   const briefHidden = Math.max(0, allNews.length - briefNews.length);
+  const [openStory, setOpenStory] = useState(null);
 
-  // Portal modals (Joe 2026-07-22: expanding a tile in place jacked up the grid
-  // spacing — detail opens in a portal modal instead).
   const [briefOpen, setBriefOpen] = useState(false);
   const [ideaOpen, setIdeaOpen] = useState(false);
   const anyModal = briefOpen || ideaOpen;
@@ -210,226 +159,184 @@ export default function HomePage() {
   useScrollLock(anyModal);
   const modalTarget = (typeof document !== 'undefined' && (document.querySelector('.mt-overhaul') || document.body)) || null;
 
+  /* "This Week's Data": the remaining days of the current week (through
+     Sunday). Late in the week, when fewer than two days are left, the list
+     runs on into next week so the tile never shows a lone row; every day
+     carries its own date, so nothing is implied that is not printed. */
+  const weekDays = useMemo(() => {
+    if (!todayISO) return calDays;
+    const t = new Date(`${todayISO}T00:00:00Z`);
+    const dow = t.getUTCDay() || 7;            // Mon=1 … Sun=7
+    const end = new Date(t); end.setUTCDate(t.getUTCDate() + (7 - dow));
+    const endISO = end.toISOString().slice(0, 10);
+    const inWeek = calDays.filter((d) => d.date <= endISO);
+    return inWeek.length >= 2 ? inWeek : calDays.slice(0, 4);
+  }, [calDays, todayISO]);
+
   const heroChart = idea?.charts?.[0];
+  const briefDate = brief?.date ? weekdayDate(brief.date) : '';
+  const briefStale = brief?.date && todayISO && brief.date < todayISO;
 
   return (
-    <div className="home-v12 v13 home-cockpit">
+    <div className="ed-home" data-ambient={ambient ? 'on' : 'off'}>
+      {ambient && (
+        <div className="ed-amb" aria-hidden="true">
+          <div className="ed-blob ed-blob-1" />
+          <div className="ed-blob ed-blob-2" />
+        </div>
+      )}
 
-      <section className="wrap">
-        <div className="bgrid">
+      <main className="ed-main">
+        <div className="ed-row ed-row-1">
 
-          {/* ── centerpiece 1 · morning brief ─────────────────────────────── */}
-          <Reveal className="tile brief-card sp6" onClick={(e) => { const a = e.target.closest && e.target.closest('a[data-route]'); if (a) { e.preventDefault(); navigate(a.getAttribute('data-route')); } }}>
-            <div className="eyebrow2"><span className="dot" />{brief?.eyebrow || 'Morning Brief'}{brief?.date ? ` · ${weekdayDate(brief.date)}` : ''}{brief?.date && brief.date < todayISO ? ' · last session' : ''}</div>
-            <h1>{brief?.headline || 'Reading the tape…'}</h1>
-            {/* The brief's own stance line. It was modal-only while the tile sat
-                200px short of its neighbour — the tile was hiding real content
-                and showing whitespace instead. */}
-            {brief?.stance && <Html tag="p" className="brief-stance" html={brief.stance} />}
-            <div className="newslist">
-              {briefNews.map((n, i) => (
-                <div className="ni" key={i}>
-                  <button type="button" onClick={toggleNi}>
-                    <span className="hl"><b><Html html={n.head} /></b> <span>— <Html html={n.body} /></span></span>
-                    <span className="plus">+</span>
-                  </button>
-                  <div className="body"><div><Html html={n.body} /></div></div>
-                </div>
-              ))}
-              {(brief?.stance || brief?.implications?.length > 0 || brief?.watch?.length > 0 || brief?.sections?.length > 0 || allNews.length > 0) && (
-                <div className="ni fullbrief">
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setBriefOpen(true); }}>
-                    <span className="hl"><b>The full brief</b> <span>— {briefHidden > 0 ? `${briefHidden} more ${briefHidden === 1 ? 'headline' : 'headlines'}, ` : ''}stance, implications and what to watch</span></span>
-                    <span className="plus">+</span>
-                  </button>
-                </div>
-              )}
+          {/* ── Morning Brief (lead) ──────────────────────────────────── */}
+          <article className="ed-brief rd-rise d2" aria-label="Morning Brief">
+            <div className="ed-label ed-label--accent">
+              {brief?.eyebrow || 'Morning Brief'}{briefDate ? ` · ${briefDate}` : ''}{briefStale ? ' · last session' : ''}
             </div>
-          </Reveal>
+            <h1 className="ed-brief-h">{brief?.headline || 'Reading the tape…'}</h1>
+            {brief?.stance && <Html tag="p" className="ed-brief-sum" html={brief.stance} />}
+            {briefNews.length > 0 && (
+              <ol className="ed-news">
+                {briefNews.map((n, i) => (
+                  <li key={i} className={`ed-news-li${openStory === i ? ' is-open' : ''}`}>
+                    <button type="button" className="ed-news-btn" onClick={() => setOpenStory(openStory === i ? null : i)} aria-expanded={openStory === i}>
+                      <span className="ed-news-n rd-num">{String(i + 1).padStart(2, '0')}</span>
+                      <span className="ed-news-t"><Html html={n.head} /></span>
+                    </button>
+                    {openStory === i && <div className="ed-news-body"><Html html={n.body} /></div>}
+                  </li>
+                ))}
+              </ol>
+            )}
+            {(brief?.stance || brief?.implications?.length > 0 || brief?.watch?.length > 0 || brief?.sections?.length > 0 || allNews.length > 0) && (
+              <button type="button" className="ed-link" onClick={() => setBriefOpen(true)}>
+                Read the full brief{briefHidden > 0 ? ` · ${briefHidden} more ${briefHidden === 1 ? 'story' : 'stories'}` : ''} →
+              </button>
+            )}
+          </article>
 
-          {/* ── centerpiece 2 · trade idea ────────────────────────────────── */}
-          <Reveal className="tile putty-card idea-tile sp6">
-            <div className="tilehead">
-              <div className="eyebrow2"><span className="dot dot--gold" />Trade idea{idea?.date ? ` · ${weekdayDate(idea.date)}` : ''}</div>
-            </div>
+          {/* ── The Engine ──────────────────────────────────────────── */}
+          <aside className="ed-engine rd-rise d3" aria-label="The Engine">
+            <div className="ed-label">The Engine · Today's Regime</div>
+            <div className="ed-engine-h">{verdictParts[0]}</div>
+            <div className="ed-engine-y">Yield regime: <b>{verdictParts[1] || '—'}</b></div>
+            <p className="ed-engine-so">Bond volatility called S&amp;P 500 drawdowns better than fifteen other stress gauges since 2006.</p>
 
+            <button type="button" className="ed-meter" onClick={() => setDrillInd('move')} style={{ '--mk': `${stressMk ?? 0}%` }}>
+              <div className="ed-meter-head"><span>Stress signal · MOVE index</span><b className="rd-num">{fmt(regime.move, 0)}</b></div>
+              <div className="ed-meter-track" aria-hidden="true">
+                <span className="ed-zone ed-zone--calm" />
+                <span className="ed-zone ed-zone--watch" />
+                <span className="ed-zone ed-zone--off" />
+                {stressMk != null && <span className="ed-pin" />}
+              </div>
+              <div className="ed-meter-scale rd-num"><span>Risk on ≤{STRESS_THRESH.watch}</span><span>Watch</span><span>Risk off ≥{STRESS_THRESH.riskOff}</span></div>
+              <div className="ed-meter-read">{stressMsg}</div>
+            </button>
+
+            <button type="button" className="ed-meter" onClick={() => setDrillInd('ust_10y')} style={{ '--mk': `${yieldMk ?? 0}%` }}>
+              <div className="ed-meter-head"><span>Yield regime · 3-month change in 10Y</span><b className="rd-num">{yDelta == null ? '—' : `${yDelta >= 0 ? '+' : '−'}${Math.abs(Math.round(yDelta))}bp`}</b></div>
+              <div className="ed-meter-track" aria-hidden="true">
+                <span className="ed-zone ed-zone--defl" />
+                <span className="ed-zone ed-zone--neutral" />
+                <span className="ed-zone ed-zone--watch" />
+                {yieldMk != null && <span className="ed-pin" />}
+              </div>
+              <div className="ed-meter-scale rd-num"><span>Deflationary ≤{YIELD_THRESH.deflBp}</span><span>Neutral</span><span>Inflationary ≥+{YIELD_THRESH.inflBp}</span></div>
+              <div className="ed-meter-read">{yMsg}</div>
+            </button>
+
+            <a className="ed-link" href="/macro" onClick={go('/macro')}>See the track record →</a>
+          </aside>
+        </div>
+
+        <div className="ed-row ed-row-2">
+
+          {/* ── Trade Idea ──────────────────────────────────────────── */}
+          <article className="ed-idea rd-rise d3" aria-label="Trade Idea">
+            <div className="ed-label ed-label--accent">Trade Idea{idea?.date ? ` · ${weekdayDate(idea.date)}` : ''}</div>
             {idea ? (
               <>
-                <h2 className="idea-title">{idea.title}</h2>
+                <h2 className="ed-idea-h">{idea.title}</h2>
+                {idea.call && <p className="ed-idea-call">{tileLine(idea.call)}</p>}
 
-                {/* The CALL leads — a claim with a horizon, not an instruction.
-                    The first version of this line was an order ("Sell a slice of
-                    your US large-company stocks and put the money into…") and
-                    Joe's verdict was that it read as a terrible headline. A
-                    research note states what is likely to happen and over what
-                    period; the instruction lives in the fact strip below.
-                    The tile prints the claim's FIRST CLAUSE only — the full call,
-                    with its numbers, lives in the modal (Joe, 2026-09-14: "Its
-                    too much writing."). */}
-                {idea.call && <p className="idea-call">{tileLine(idea.call)}</p>}
-                {/* Numbers quoted in the note's prose are point-in-time; the
-                    chart beside them is live. Without this line a reader sees
-                    "pays 4.69%" next to a chart reading 4.73% and takes the
-                    prose as a live quote (Joe, 2026-08-31). Kept to one short
-                    line — it is a footnote, not copy. */}
-                {idea.date && (
-                  <p className="idea-asof">Note figures from {weekdayDate(idea.date)} · chart is live.</p>
-                )}
-
-                {/* Fact strip values are SHORT: a hand-written `*_line` from
-                    the note when it carries one, else the leg's first clause.
-                    The full legs (prices, options mechanics, sizing) are in
-                    the modal. (Joe, 2026-09-14.) */}
+                {/* Exactly four fields, one vehicle (Joe, 2026-10-22 — LESSONS 1.7). */}
                 {idea.the_trade && (
-                  <div className="idea-facts">
-                    {idea.the_trade.buy && (
-                      <div className="idea-fact"><span className="k">Buy</span><span className="v">{idea.the_trade.buy_line || firstClause(idea.the_trade.buy, 64)}</span></div>
-                    )}
-                    {idea.the_trade.sell && (
-                      <div className="idea-fact"><span className="k">Sell to pay for it</span><span className="v">{idea.the_trade.sell_line || firstClause(idea.the_trade.sell, 64)}</span></div>
-                    )}
-                    <div className="idea-fact"><span className="k">Sell short</span><span className="v">{idea.the_trade.short ? (idea.the_trade.short_line || firstClause(idea.the_trade.short, 64)) : 'N/A'}</span></div>
-                    {idea.the_trade.what_would_make_it_a_position && (
-                      <div className="idea-fact"><span className="k">What would make it a position</span><span className="v">{firstClause(idea.the_trade.what_would_make_it_a_position)}</span></div>
-                    )}
-                    <div className="idea-fact"><span className="k">Time horizon</span><span className="v">{firstClause(idea.horizon, 64) || "—"}</span></div>
-                    <div className="idea-fact"><span className="k">Exit trigger</span><span className="v">{firstClause(idea.levels?.invalidation) || '—'}</span></div>
-                  </div>
+                  <dl className="ed-trade">
+                    <div className="ed-trade-f"><dt>Buy</dt><dd>{idea.the_trade.buy ? (idea.the_trade.buy_line || firstClause(idea.the_trade.buy, 64)) : 'N/A'}</dd></div>
+                    <div className="ed-trade-f"><dt>Sell short</dt><dd>{idea.the_trade.short ? (idea.the_trade.short_line || firstClause(idea.the_trade.short, 64)) : 'N/A'}</dd></div>
+                    <div className="ed-trade-f"><dt>Time horizon</dt><dd>{firstClause(idea.horizon, 64) || '—'}</dd></div>
+                    <div className="ed-trade-f"><dt>Exit trigger</dt><dd className="rd-num">{firstClause(idea.levels?.invalidation) || '—'}</dd></div>
+                  </dl>
                 )}
 
                 {heroChart && (
-                  <div className="idea-herochart">
-                    <IdeaChart spec={heroChart} series={chartSeries?.[heroChart.series]} width={720} height={76} compact />
+                  <div className="ed-idea-chart">
+                    <IdeaChart spec={heroChart} series={chartSeries?.[heroChart.series]} asOf={idea.date} accentFrom={idea.date} width={720} height={200} compact animate />
                   </div>
                 )}
 
-                <p className="tilenote">
-                  <button type="button" className="idea-more" onClick={() => setIdeaOpen(true)}>
-                    Read the full note{idea.charts?.length > 1 ? ` · ${idea.charts.length} charts` : ''} →
-                  </button>
-                </p>
+                <button type="button" className="ed-link" onClick={() => setIdeaOpen(true)}>
+                  Read the full note{idea.charts?.length > 1 ? ` · ${idea.charts.length} charts` : ''} →
+                </button>
               </>
             ) : ideaError ? (
-              /* A failed fetch is an error, not an empty archive (LESSONS 4.9).
-                 Before 2026-09-22 a transient 502 here printed "No note
-                 published yet" over a live same-day note. */
-              <div className="idea-empty">
-                <p className="secnote">
-                  Couldn&rsquo;t load the trade idea just now — refresh to try again.
-                </p>
-              </div>
+              /* A failed fetch is an error, not an empty archive (LESSONS 4.9). */
+              <p className="ed-empty">Couldn&rsquo;t load the trade idea just now — refresh to try again.</p>
             ) : (
-              <div className="idea-empty">
-                <p className="secnote">
-                  No note published yet. The research runs every morning before the US open;
-                  the best ideas publish — at most two a week.
-                </p>
-              </div>
+              <p className="ed-empty">
+                No note published yet. The research runs every morning before the US open;
+                the best ideas publish — at most two a week.
+              </p>
             )}
-          </Reveal>
+          </article>
 
-          {/* ── supporting · the engine (short, gauges side by side) ───────── */}
-          <Reveal className="tile engine-card engine-strip sp7">
-            {/* Three columns across the wide card — verdict, then one gauge each
-                — rather than a header stacked on two gauges crammed side by side
-                in half the page width. Joe: "look at the engine tile... Youve
-                got shit jammed up - it looks terrible." The card was the wrong
-                shape for its contents; widening it to span 7 and letting the
-                verdict take a column of its own is the fix, not smaller type. */}
-            <div className="es-verdict">
-              <div className="eyebrow2"><span className="dot" />The Engine</div>
-              <h2>{verdictParts[0]}{verdictParts[1] && <em><br />{verdictParts[1].toLowerCase()}</em>}</h2>
-              <div className="es-foot">
-                <p className="es-so">Bond volatility called S&amp;P 500 drawdowns better than fifteen other stress gauges since 2006.</p>
-                <a className="es-link" href="/macro" onClick={go('/macro')}>See the track record ↗</a>
+          {/* ── This Week's Data ────────────────────────────────────── */}
+          <aside className="ed-data rd-rise d4" aria-label="This week's data">
+            <div className="ed-data-head">
+              <span className="ed-label">This Week's Data</span>
+              <span className="ed-legend"><span className="ed-dot" aria-hidden="true" />Market-moving</span>
+            </div>
+            {weekDays.map((d, di) => (
+              <div key={d.date} className={`ed-day${d.isToday ? ' is-today' : ''}${di === 0 ? ' is-first' : ''}`}>
+                <div className="ed-day-h">{d.isToday ? 'Today' : weekdayDate(d.date)}</div>
+                {d.events.slice().sort((a, b) => a.tier - b.tier).map((e) => (
+                  <button key={e.name} type="button" className={`ed-ev${e.tier === 1 ? ' is-major' : ''}`} onClick={() => setOpenRelease(e)}>
+                    <span className="ed-ev-n">{e.tier === 1 && <span className="ed-dot" aria-hidden="true" />}{e.name}</span>
+                    <span className="ed-ev-t rd-num">{e.time_et}<ImpactMark impact={impactOf(e.name)} /></span>
+                  </button>
+                ))}
               </div>
-            </div>
-            <div className="es-gauges">
-              <button type="button" className="gauge" onClick={() => setDrillInd('move')} style={{ '--w': `${stress.mk ?? 0}%` }}>
-                <div className="gl"><span>Stress signal · MOVE</span><b>{fmt(regime.move, 0)}</b></div>
-                <div className="track"><div className="fill" /><div className="pin" /></div>
-                <div className="ends"><span>Risk on ≤116</span><span>Watch</span><span>Off ≥124</span></div>
-                <div className={`read ${stressCls}`}>{stressMsg}</div>
-              </button>
-              <button type="button" className="gauge" onClick={() => setDrillInd('ust_10y')} style={{ '--w': `${yld.mk ?? 0}%` }}>
-                <div className="gl"><span>Yield regime · 3M Δ 10Y</span><b>{regime.yieldDeltaBp == null ? '—' : `${regime.yieldDeltaBp >= 0 ? '+' : ''}${Math.round(regime.yieldDeltaBp)}`}<i>bp</i></b></div>
-                <div className="track"><div className="fill" /><div className="pin" /></div>
-                <div className="ends"><span>Defl ≤−11</span><span>Neutral</span><span>Infl ≥+32</span></div>
-                <div className={`read ${yCls}`}>{yMsg}</div>
-              </button>
-            </div>
-          </Reveal>
-
-          {/* ── supporting · upcoming data (short) ─────────────────────────── */}
-          <Reveal className="tile putty-card cal-tile cal-strip sp5">
-            <div className="tilehead">
-              <div className="eyebrow2"><span className="dot" />Upcoming data</div>
-              {/* The full calendar opens HERE. This used to link to the Macro
-                  page, which has never carried a release calendar. */}
-              {calMeta?.counts?.total > 0 && (
-                <a href="#releases" onClick={(e) => { e.preventDefault(); setCalOpen(true); }}>
-                  All releases →
-                </a>
-              )}
-            </div>
-            <div className="calrows">
-              {/* One line per day; each release on it is its own button. The
-                  releases used to be joined into one string in a nowrap,
-                  ellipsis cell — on 2026-09-16 that read "Retail sales ·
-                  Import & export prices · Fed decisi…" and the FOMC, the one
-                  release the whole week is about, was the part cut off (Joe,
-                  2026-09-10). Now the day's most important release leads, the
-                  line wraps, and nothing is truncated. Each release carries its
-                  own time so a 2:00 PM decision is never stamped 8:30 AM. */}
-              {calDays.map((d) => (
-                <div key={d.date} className={`srow calrow${d.isToday ? ' calrow--today' : ''}`}>
-                  <span className="when">{d.isToday ? 'Today' : weekdayDate(d.date)}</span>
-                  <span className="what">
-                    {d.events.slice().sort((a, b) => a.tier - b.tier).map((e) => (
-                      <span key={e.name} className="cal-evwrap">
-                        <button type="button" className={`cal-ev${e.tier === 1 ? ' cal-ev--major' : ''}`}
-                                onClick={() => setOpenRelease(e)}>
-                          <span className="cal-ev-name">{e.name}</span>
-                          <span className="cal-time">{e.time_et}</span>
-                        </button>
-                        <ImpactMark impact={impactOf(e.name)} />
-                      </span>
-                    ))}
-                  </span>
-                </div>
-              ))}
-              {calDays.length === 0 && !calFailed && (
-                <div className="secnote">No major releases scheduled in the next ten weeks.</div>
-              )}
-              {calFailed && (
-                <div className="secnote">The release calendar did not load. It rebuilds each morning from the agencies&rsquo; published schedules.</div>
-              )}
-            </div>
-          </Reveal>
-
+            ))}
+            {weekDays.length === 0 && !calFailed && (
+              <p className="ed-empty">No major releases scheduled in the next ten weeks.</p>
+            )}
+            {calFailed && (
+              <p className="ed-empty">The release calendar did not load. It rebuilds each morning from the agencies&rsquo; published schedules.</p>
+            )}
+            {calMeta?.counts?.total > 0 && (
+              <button type="button" className="ed-link" onClick={() => setCalOpen(true)}>All releases →</button>
+            )}
+          </aside>
         </div>
-      </section>
 
-      <footer>
-        <div className="micro">
-          MacroTilt · data through {newestAsOf || '—'} · {marketLabel} ·{' '}
-          <button type="button" onClick={flip} style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit', letterSpacing: 'inherit', cursor: 'pointer', textTransform: 'inherit' }}>
-            switch to {isDark ? 'light' : 'dark'} theme
+        <div className="ed-ambient-row">
+          <button type="button" className="ed-ambient-btn" onClick={flipAmbient} aria-pressed={ambient}>
+            Background motion: {ambient ? 'on' : 'off'}
           </button>
         </div>
-      </footer>
+      </main>
 
-      {/* full-brief modal — portals to the app root so the tile grid never reflows */}
+      {/* full-brief modal — portals to the app root so the page never reflows */}
       {briefOpen && modalTarget && createPortal(
         <div onClick={() => setBriefOpen(false)} className="home-v12 briefmodal-veil">
           <div onClick={(e) => e.stopPropagation()} className="briefmodal">
             <button type="button" className="briefmodal-x" onClick={() => setBriefOpen(false)} aria-label="Close">×</button>
-            <div className="eyebrow2"><span className="dot" />{brief?.eyebrow || 'Morning Brief'}{brief?.date ? ` · ${weekdayDate(brief.date)}` : ''}</div>
+            <div className="eyebrow2"><span className="dot" />{brief?.eyebrow || 'Morning Brief'}{briefDate ? ` · ${briefDate}` : ''}</div>
             <h2 className="briefmodal-h">The full brief</h2>
             <div className="briefmodal-body">
               {brief?.stance && <p><Html html={brief.stance} /></p>}
-              {/* Every headline, including the ones the tile held back — the
-                  tile's "N more headlines" line has to be true. */}
               {allNews.length > 0 && (
                 <>
                   <p className="briefmodal-sec">The headlines</p>
@@ -462,7 +369,6 @@ export default function HomePage() {
         modalTarget,
       )}
 
-      {/* full trade-idea note */}
       {/* Indicator drill — opens over Home, never navigates away (2026-08-18). */}
       <IndicatorDrillModal indId={drillInd} onClose={() => setDrillInd(null)} />
       <ReleaseCalendarModal open={calOpen} events={calAll} todayISO={todayISO} meta={calMeta} impactOf={impactOf}

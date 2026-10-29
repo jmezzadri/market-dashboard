@@ -241,7 +241,7 @@ export default function MethodologyPage() {
             <div className="mt-eyebrow">{PAGE_NAME.macro}</div>
             <h2 className="me-h2">Six categories · {liveIndicatorCount} indicators</h2>
             <p className="me-body-p">
-              Every indicator on MacroTilt is sorted into one of the six tiles on the Macro Landscape
+              Every indicator on MacroTilt is sorted into one of the six panels on the Macro Landscape
               page: <b>Rates</b>, <b>Credit</b>, <b>Equities</b>, <b>Commodities</b>,
               <b> FX</b>, and <b>Financial Conditions &amp; Economy</b>. Within a category, each indicator is
               tagged by where it sits in the business cycle — <b>Lead</b>, <b>Coincident</b>, or <b>Lag</b>.
@@ -258,20 +258,22 @@ export default function MethodologyPage() {
               unusually calm for corporate bonds and a 3-year rank labelled an ordinary reading distressed.
             </p>
             <p className="me-body-p">
-              Each <b>tile</b> shows three counts for its category: how many of its gauges — the
+              The <b>summary strip</b> above the panels shows three counts for each category: how many of its gauges — the
               indicators and the positioning rows together — are <b>stretched</b> (Extreme), how many are
               <b>elevated</b>, and how many indicators just printed a <b>big move</b> (the latest one-step change,
               divided by the indicator's median move over its trailing 60 observations, ranks in the
               top 10% of that same ratio over the last 3 years). The
-              tile with the largest share of its gauges stretched — plus half the share elevated — is
-              marked the <b>hot spot</b>; when no gauge anywhere is stretched, no tile is. Clicking a tile
-              opens its full list under that row of tiles, one category at a time; clicking any row
-              opens the chart.
+              category with the largest share of its gauges stretched — plus half the share elevated — is
+              marked the <b>hot spot</b>; when no gauge anywhere is stretched, no category is. Every panel
+              lists its indicators with the last reading, the one-step change, the 3-year percentile (PCTL, 0 lowest
+              to 100 highest; amber at the top or bottom 10%) and the flag word for a stretched or elevated reading,
+              then its speculator positioning rows from the CFTC. On a phone the panels fold, one open at a time.
+              Clicking any row opens the chart.
             </p>
             <div className="me-formula" data-mono="code">
               state(today) = bin(percentile_3y(value); high-warns [75, 85] · low-warns [25, 15] · two-sided both ends)<br />
               big_move     = |Δ| ÷ median(|Δ|, trailing 60 obs) ≥ 90th percentile of the same ratio over 3 years<br />
-              hot_spot     = argmax over tiles of (stretched + 0.5 · elevated) / gauges, if stretched &gt; 0
+              hot_spot     = argmax over categories of (stretched + 0.5 · elevated) / gauges, if stretched &gt; 0
             </div>
 
             {/* The Engine — lives on the Macro page; folded into this section

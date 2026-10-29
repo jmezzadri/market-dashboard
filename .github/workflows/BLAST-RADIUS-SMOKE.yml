@@ -23,7 +23,10 @@ on:
 jobs:
   smoke:
     name: Open each surface and verify real content
-    runs-on: ubuntu-latest
+    # 2026-10-28: pinned to 24.04. `ubuntu-latest` moved to 26.04, which the
+    # pinned Playwright below cannot install a browser on ("does not support
+    # chromium on ubuntu26.04-x64"), and the check went red on every branch.
+    runs-on: ubuntu-24.04
     # On deployment_status, only run for a successful PREVIEW deploy.
     if: >
       github.event_name == 'workflow_dispatch' ||

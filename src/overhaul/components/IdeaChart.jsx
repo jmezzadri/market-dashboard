@@ -114,7 +114,12 @@ function niceTicks(min, max, n = 4) {
    gold ring on the same axis, so the reader sees "last print, then what the
    forecaster expects next" with nothing invented between. Two-series charts
    stay rejected (see the header); one extra point is not a series. */
-export default function IdeaChart({ spec, series, asOf = null, width: widthProp = 620, height = 220, compact = false, expected = null }) {
+/* `accentFrom` (2026-10-28 redesign, Home only): the stretch of the line on
+   and after this ISO date is drawn in the accent colour — what has happened
+   since the call — and, with `animate`, draws itself second, after the ink
+   line, then the end dot fades in. Nothing about the data changes; it is the
+   same series split at a date the note already carries. */
+export default function IdeaChart({ spec, series, asOf = null, width: widthProp = 620, height = 220, compact = false, expected = null, accentFrom = null, animate = false }) {
   const [hover, setHover] = useState(null);
   const [tableOpen, setTableOpen] = useState(false);
   /* One user unit = one CSS pixel. The canvas used to be a fixed 620 units
@@ -168,6 +173,18 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
   const Y = (v) => PAD.t + ih - ((v - lo) / (hi - lo)) * ih;
 
   const path = draw.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(' ');
+  /* The accent stretch: from the last point BEFORE accentFrom (so the two
+     segments join) through the end. Empty when the date is after the series. */
+  const accentCut = accentFrom ? String(accentFrom).slice(0, 10) : null;
+  const accentIdx = accentCut ? draw.findIndex((p) => p[0] >= accentCut) : -1;
+  const accentPts = accentIdx > 0 ? draw.slice(accentIdx - 1) : (accentIdx === 0 ? draw : []);
+  const accentPath = accentPts.length >= 2
+    ? accentPts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(' ')
+    : null;
+  const inkPts = accentPath ? draw.slice(0, Math.max(accentIdx, 1)) : draw;
+  const inkPath = accentPath
+    ? inkPts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(' ')
+    : path;
   const area = `${path} L${X(draw[draw.length - 1][0]).toFixed(1)} ${Y(Math.max(lo, Math.min(hi, 0))).toFixed(1)} L${X(draw[0][0]).toFixed(1)} ${Y(Math.max(lo, Math.min(hi, 0))).toFixed(1)} Z`;
 
   const last = all[all.length - 1];
@@ -251,10 +268,13 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
           )}
 
           <path className="ic-area" d={area} />
-          <path className="ic-line" d={path} />
+          <path className={`ic-line${animate ? ' ic-draw' : ''}`} d={inkPath} pathLength={animate ? 1 : undefined} />
+          {accentPath && (
+            <path className={`ic-line ic-line--accent${animate ? ' ic-draw ic-draw2' : ''}`} d={accentPath} pathLength={animate ? 1 : undefined} />
+          )}
 
           {/* emphasis: the accent is spent on the current reading only */}
-          <circle className="ic-dot" cx={X(last[0])} cy={Y(last[1])} r="4.5" />
+          <circle className={`ic-dot${animate ? ' ic-pop' : ''}`} cx={X(last[0])} cy={Y(last[1])} r="4.5" />
           {/* With a forecaster's point one period to the right, the end label
               would run straight through it — the latest value is in the header
               readout, so the label yields to the ring. */}

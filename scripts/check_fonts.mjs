@@ -201,18 +201,39 @@ for (const file of files) {
 
 /* ── 3 — every declared family is actually loaded ──────────────────────── */
 const typeCss = readFileSync(join(ROOT, TYPE_CSS), 'utf8');
-const declared = new Set();
+const declared = new Set();   // the three root families
+const scoped = new Set();     // a role's variant cut inside ONE named skin (2026-10-28)
 for (const line of typeCss.split('\n')) {
-  if (!/^\s*--mt-type-(sans|serif|mono)\s*:/.test(line)) continue;
+  const root = /^\s*--mt-type-(sans|serif|mono)\s*:/.test(line);
+  /* 2026-10-28 redesign: the terminal skin keeps the sans ROLE but uses the
+     condensed cut of it. The only shape allowed is a one-line scoped
+     redeclaration of an existing token: `.mt-terminal { --mt-type-sans: ... }`.
+     Anything else that names a family outside the three root lines is a
+     fourth family and fails below. */
+  const skin = /^\s*\.mt-terminal\s*\{\s*--mt-type-(sans|serif|mono)\s*:[^}]*\}\s*$/.test(line);
+  if (!root && !skin) continue;
   let m;
   QUOTED_NAME.lastIndex = 0;
   while ((m = QUOTED_NAME.exec(line))) {
-    if (!GENERIC.has(m[1].toLowerCase())) declared.add(m[1]);
+    if (GENERIC.has(m[1].toLowerCase())) continue;
+    if (root) declared.add(m[1]);
+    else if (!declared.has(m[1])) scoped.add(m[1]);
   }
 }
 if (declared.size !== 3) {
   fail(TYPE_CSS, `expected exactly 3 chosen families, found ${declared.size}: ${[...declared].join(', ') || '(none)'}`);
 }
+if (scoped.size > 1) {
+  fail(TYPE_CSS, `the terminal skin may swap ONE role for a sibling cut; found ${scoped.size}: ${[...scoped].join(', ')}`);
+}
+for (const fam of scoped) {
+  if (![...declared].some((d) => fam.startsWith(d.split(' ')[0]) || d.startsWith(fam.split(' ')[0]))) {
+    fail(TYPE_CSS, `"${fam}" is scoped to the terminal skin but is not a cut of one of the three families (${[...declared].join(', ')}).`);
+  }
+}
+/* From here on a scoped cut is a declared face: it must be loaded, it may
+   render, and nothing else may. */
+for (const fam of scoped) declared.add(fam);
 
 const html = readFileSync(join(ROOT, INDEX_HTML), 'utf8');
 const linkTags = [...html.matchAll(/<link[^>]+fonts\.googleapis\.com[^>]*>/g)].map((m) => m[0]);
@@ -270,7 +291,15 @@ if (base) {
            data-mono="code" on a formula or code block. Never a quiet special
            case inside this script. <code> and <pre> count as declared too. */
         const isCode = !!el.closest('[data-mono="code"], code, pre');
-        if (isMono && !numeric && !isCode && wordCount >= words) {
+        /* 2026-10-28, the terminal skin (Macro Landscape, Paper Portfolio):
+           mono carries its LABELS too — panel titles, group headings, column
+           heads, the marks line — set in capitals, the way a terminal reads.
+           A capitalised line inside a terminal root is a label, not prose;
+           sentence-case text there (a note, a footnote) is still prose and
+           must still be sans. */
+        const inTerminal = !!el.closest('.mt-terminal, [data-skin="terminal"]');
+        const isCapsLabel = inTerminal && (cs.textTransform === 'uppercase' || text === text.toUpperCase());
+        if (isMono && !numeric && !isCode && !isCapsLabel && wordCount >= words) {
           prose.push({ sel: el.tagName + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : ''), text: text.slice(0, 70) });
         }
       }
@@ -351,4 +380,4 @@ if (fails.length) {
   console.error('  The site has three typefaces and three tokens. See docs/TYPOGRAPHY_STANDARD.md.\n');
   process.exit(1);
 }
-console.log(`Font check passed. ${declared.size} families, all loaded: ${[...declared].join(', ')}.`);
+console.log(`Font check passed. ${declared.size} faces, all loaded: ${[...declared].join(', ')}${scoped.size ? ` (${[...scoped].join(', ')} is the terminal skin's cut of the sans role)` : ''}.`);

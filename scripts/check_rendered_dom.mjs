@@ -130,9 +130,10 @@ function scanCommonText(name, text) {
 // verify they are styled: content padded, axis ticks positioned, text clean.
 async function checkMacroModals(browser) {
   const page = await renderPage(browser, '/macro');
-  const opened = await page.click('.mac-hist--click', { timeout: 15_000 }).then(() => true).catch(() => false);
+  // 2026-10-28 redesign: the regime-history strip is .tm-hist on the terminal page.
+  const opened = await page.click('.tm-hist', { timeout: 15_000 }).then(() => true).catch(() => false);
   if (!opened) {
-    violations.push('[macro] engine track-record trigger (.mac-hist--click) not found');
+    violations.push('[macro] engine track-record trigger (.tm-hist) not found');
     await page.close();
     return;
   }
@@ -162,11 +163,12 @@ async function checkHome(browser) {
   section('HOME', text.slice(0, 6000));
 
   // Tape tiles: label / value / stamp, straight from the DOM the reader sees.
-  const tiles = await page.$$eval('.tape .row:not([aria-hidden]) .t', (nodes) =>
+  // (2026-10-28 redesign: the bar is .rd-tape, one .rd-tile per market.)
+  const tiles = await page.$$eval('.rd-tape .rd-tape-strip:not([aria-hidden]) .rd-tile', (nodes) =>
     nodes.map((n) => ({
-      label: n.querySelector('.tk')?.textContent?.trim() ?? null,
-      value: n.querySelector('.tv')?.textContent?.trim() ?? null,
-      stamp: n.querySelector('.td small')?.textContent?.trim() ?? null,
+      label: n.querySelector('.rd-tile-l')?.textContent?.trim() ?? null,
+      value: n.querySelector('.rd-tile-v')?.textContent?.trim() ?? null,
+      stamp: n.querySelector('.rd-tile-s')?.textContent?.trim() ?? null,
     })).filter((t) => t.label),
   ).catch(() => []);
 

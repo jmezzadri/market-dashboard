@@ -15,13 +15,22 @@ explains the rule; the script is the rule.
 
 | Role | Token | Face | Used for |
 |---|---|---|---|
-| sans | `--mt-type-sans` | IBM Plex Sans | Every control, label, eyebrow, chip, button, table cell, tile heading and body line. The default for everything. |
-| serif | `--mt-type-serif` | IBM Plex Serif | Editorial prose and the wordmark. The morning brief, the trade-idea note, page H1s that carry a written headline. **Nothing else is serif.** |
-| mono | `--mt-type-mono` | IBM Plex Mono | Numerals only — prices, percentages, levels, dates in tables, tickers, counts. Always `tabular-nums`. |
+| sans | `--mt-type-sans` | Inter | Every control, label, eyebrow, chip, button, table cell, tile heading and body line. The default for everything. |
+| serif | `--mt-type-serif` | Newsreader | Editorial headlines and the wordmark. The morning brief headline, the trade-idea headline, the regime call on Home. **Nothing else is serif.** |
+| mono | `--mt-type-mono` | IBM Plex Mono | Numerals — prices, percentages, levels, dates in tables, tickers, counts. Always `tabular-nums`. On the terminal pages (below) it also carries the capitalised labels. |
 
-All three are IBM Plex. That is the point: one superfamily shares a skeleton,
-widths and vertical rhythm, so a card holding a serif headline, a sans label
-and a mono figure reads as one voice instead of three.
+**2026-10-28 — the redesign changed the faces, not the rule.** Joe's approved
+"MacroTilt Redesign" canvas sets Home as an editorial front page (Newsreader
+headlines, Inter everything else) and Macro Landscape and Paper Portfolio as a
+dark terminal (IBM Plex Mono figures and labels, IBM Plex Sans Condensed
+headlines and indicator names). The three roles and three tokens are unchanged.
+The one addition is a **scoped cut of the sans role**: inside a terminal page
+root (`.mt-terminal`) `--mt-type-sans` resolves to IBM Plex Sans Condensed. It
+is declared on one line in `type.css`, loaded by the one `<link>`, and
+`check_fonts.mjs` allows exactly that one scoped line and nothing else. The
+shared header sits outside the page root, so its menu stays Inter everywhere.
+
+Before 2026-10-28 all three roles were IBM Plex (Sans / Serif / Mono).
 
 ## The four hard lines
 
@@ -37,7 +46,12 @@ and a mono figure reads as one voice instead of three.
    nothing else. A family we ask for but never load renders as the visitor's
    system face, which is a typeface nobody chose.
 4. **Mono is for figures.** A monospace face on a sentence is a defect, not a
-   style. If a value is prose, it is sans.
+   style. If a value is prose, it is sans. The terminal skin's exception is
+   the **capitalised label** — a panel title, group heading, column head or
+   marks line set in capitals, the way a terminal reads; the check treats a
+   capitalised mono line inside `.mt-terminal` as a label. Sentence-case text
+   on a terminal page (a note, a footnote, a description) is still prose and
+   is still sans.
 
 ## Fallbacks
 
@@ -71,7 +85,13 @@ Round one fixed WHICH faces and left the sizes alone. Home was rendering 14
 distinct sizes — 8 of them off the declared scale — and 4 weights with no rule
 about which meant what.
 
-### Six steps. There is no seventh.
+### Six steps, plus two display steps. There is no ninth.
+
+(`--v13-t7` 34px and `--v13-t8` 44px were added 2026-10-01 for the two
+display sizes — the section headline and the regime call. The redesign of
+2026-10-28 uses the same eight steps: Home's brief headline and regime call
+are t8, its trade-idea headline t7; every terminal figure and label sits on
+t1–t6.)
 
 | Token | Size | Role |
 |---|---|---|
