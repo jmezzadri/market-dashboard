@@ -1129,7 +1129,7 @@ def score_option(idea: dict, base: dict, sc: dict, hist: dict, legs_out: list, e
     label = f"{und} {strike:g} {structure}, {exp_short}"
     legs_report = [{**leg, "return_pct": round(100.0 * (last_close / leg["entry_value"] - 1.0), 4)}]
     if status == "open":
-        state = f"open — modelled value {last_value:.2f} a share on {last_date}, {days_left} days to expiry"
+        state = f"open — {days_left} days to expiry"
     elif status == "closed_horizon" and last_date >= expiry:
         state = "settled at expiry at intrinsic value from the underlying's close"
     elif status == "closed_horizon":
