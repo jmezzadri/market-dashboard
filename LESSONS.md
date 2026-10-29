@@ -263,6 +263,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.28` A page never computes a risk figure on load — a nightly producer stores it; a tile is judged by its OWN edge (no overhang, no inner scroll) at every desktop width, and a column's slack goes into a chart, never a blank band
 - `9.29` A dashboard is a tear sheet — Performance · Risk · Composition, one row of primary tiles per chapter, secondary tiles folded; every figure has exactly one home on the page, the ribbon included
 - `9.30` A box that moves its own content (the market banner) is never also a hand scroller — the two motions add and can carry the strip out of the window; the smoke test treats a clipped box with an animated child as a marquee, not cut-off text
+- `9.31` A site-wide element (the market banner) takes one skin on every page; and a rule that sizes anything off a phone-only token is wrapped in that token's own breakpoint, because the token is 0 everywhere else
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2733,6 +2734,17 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 **Rules:**
 1. A box whose content moves on its own is clipped, never scrollable. The banner window is `overflow-x: hidden` while the strip animates, and a scroll event on it snaps the position back to 0 (focus moving to a tile can scroll an `overflow: hidden` box). Hand scrolling returns only under `prefers-reduced-motion`, where nothing slides.
 2. RENDERED-DOM-SMOKE's "text cut off by an overflow:hidden box" rule exempts a marquee: a clipped box whose direct child carries a CSS animation is a deliberate scroller, because every tile passes the reader in turn. The exemption is by behaviour, not by class name, so it holds if the banner is restyled.
+
+**Applies to:** UX Designer (lead), Lead Developer.
+
+### 9.31 (2026-10-29) — A site-wide element takes one skin on every page; a phone-only token never sizes anything outside its own breakpoint
+
+**What happened:** Joe: "Why are the scrolling tickers different on the home page than they are on the other pages?" The market banner was one component on every page, but it took the page's skin: tall two-line sans tiles on Home, a single 32px monospace amber row on Macro Landscape, Paper Portfolio, Macro Scorecard and the ticker pages. Same 33 series, same detail panels, two looks; he asked whether the assets were even the same. Checking it on the live site found worse: on the terminal pages the band was 1px tall at every width between 431 and 860 — the phone rule set the band's height to `--mt-tap`, which is 44px only under 430px and 0px above it, so on a tablet or a narrow desktop window the band vanished.
+
+**Rules:**
+1. An element that appears on every page is one surface with one look. It does not take the page skin. The banner now uses the editorial styling everywhere; the terminal overrides and their two tokens are gone.
+2. A phone-only token (`--mt-tap`) is read only inside the breakpoint that sets it. A rule outside that breakpoint that sizes anything off it is sizing it to zero.
+3. "Is it the same on every page" is checked on the live site at 390, 820 and 1440, not by reading that the component is mounted once.
 
 **Applies to:** UX Designer (lead), Lead Developer.
 
