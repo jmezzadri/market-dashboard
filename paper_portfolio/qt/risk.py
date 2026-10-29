@@ -26,7 +26,16 @@ in paper_portfolio/qt/research/risk_cockpit_2026-10-20/:
   mctr       per name: (Σw) / σ
   beta, market, style, specific   two-stage regression: book on the S&P 500
              fund; the residual on five style funds minus the market
-  shocks     S&P 500 fund peak-to-trough in four episodes × beta
+  shocks     per episode: the S&P 500 fund's peak-to-trough fall; the book at
+             beta with NO brake (the old, index-mirroring figure); and the book
+             at beta WITH the live crash brake replayed day by day through the
+             episode (paper_portfolio/qt/brake.py rule: MOVE rank vs its last
+             5 years > 0.95 two closes running -> cash at the next open; < 0.80
+             -> back in). Cash earns nothing. The brake needs MOVE history,
+             which starts 2002-11-12, so the 2000-02 row has no brake figure.
+             Joe, 2026-10-29: the old table "basically mirrored the index" —
+             it ignored the book's own risk control. Replay study:
+             research/risk_cockpit_2026-10-20/shock_brake_replay.py.
   vix        S&P fund elasticity to Δln(VIX) since 2006 × ln(40 / VIX) × beta
   alerts     the exception rules the page prints (same thresholds); leverage
              fires at 105% gross, never on a small margin debit
@@ -70,6 +79,42 @@ def _get(q: str):
     return r.json()
 
 
+def brake_states(move: pd.Series) -> pd.Series:
+    """ON/OFF after each close, evaluated exactly as the live brake does it:
+    percentile of the close within the trailing window, two consecutive readings
+    above ON to switch on, one reading below OFF to switch off."""
+    from .brake import next_state, pct_rank_last
+    from paper_portfolio.strategy_config import CONFIG
+    vals = [float(v) for v in move.values]
+    out, prev, on = [], None, False
+    for i in range(len(vals)):
+        try:
+            r = pct_rank_last(vals[: i + 1], CONFIG.BRAKE_WINDOW)
+        except ValueError:
+            out.append(False); prev = None; continue
+        on = next_state(r, prev, on, CONFIG.BRAKE_ON, CONFIG.BRAKE_OFF)
+        out.append(on); prev = r
+    return pd.Series(out, index=move.index, dtype=bool)
+
+
+def shock_with_brake(spy: pd.Series, state: pd.Series, beta: float, a: str, b: str) -> dict | None:
+    """Replay one episode: the index's peak-to-trough fall over [a, b], the book at
+    beta with no brake, and the book at beta with the brake applied day by day.
+    The state decided at close t governs day t+1's return (acts at the next open).
+    Returns None when the window has no S&P or MOVE data."""
+    j = pd.concat([spy.rename("spy"), state.rename("on")], axis=1, sort=True).dropna()
+    win = j.loc[a:b]
+    if len(win) < 2:
+        return None
+    ret = j.spy.pct_change()
+    invested = (~j.on.shift(1).fillna(False).astype(bool)).astype(float)
+    idx = (1 + ret).loc[a:b].cumprod()
+    book = (1 + beta * ret * invested).loc[a:b].cumprod()
+    p2t = lambda s: float((s / s.cummax() - 1).min())
+    return {"index": p2t(idx), "book": beta * p2t(idx), "book_brake": p2t(book),
+            "sessions": int(len(win)), "sessions_in_cash": int((invested.loc[a:b] == 0).sum())}
+
+
 def closes(ticker: str, since: str) -> pd.Series:
     """One ticker's closes since a date, paged — one index probe per name."""
     df = D._sb_select("prices_eod", {"select": "trade_date,close", "ticker": f"eq.{ticker}",
@@ -92,7 +137,7 @@ def book_meta(rebalance_date: str) -> pd.DataFrame:
 
 
 def compute(nav: dict, vix: pd.Series | None, brake: dict | None, meta: pd.DataFrame,
-            n_book: int) -> dict:
+            n_book: int, move: pd.Series | None = None) -> dict:
     equity = float(nav["equity"])
     w = pd.Series({p["symbol"]: float(p["mv"]) / equity for p in nav["positions"]})
     syms = list(w.index)
@@ -144,16 +189,22 @@ def compute(nav: dict, vix: pd.Series | None, brake: dict | None, meta: pd.DataF
     out.update({"beta": beta, "market": market, "style": style, "specific": specific,
                 "r2_market": 1 - float(np.var(e1, ddof=1)) / var_p,
                 "loadings": {k: round(float(b2[i + 1]), 6) for i, k in enumerate(FACT)}})
-    # shocks off the full SPY history
+    # shocks off the full SPY history, with the live brake replayed through each
     spy = closes("SPY", "1996-01-01")
+    state = brake_states(move) if move is not None and len(move) else None
     shocks = []
     for sid, label, a, b in EPISODES:
         try:
             ia, ib = float(spy[:a].iloc[-1]), float(spy[:b].iloc[-1])
             idx = ib / ia - 1
-            shocks.append({"id": sid, "label": label, "index": idx, "book": beta * idx})
+            row = {"id": sid, "label": label, "index": idx, "book": beta * idx, "book_brake": None}
+            rep = shock_with_brake(spy, state, beta, a, b) if state is not None else None
+            if rep:
+                row.update({"book_brake": rep["book_brake"], "sessions": rep["sessions"],
+                            "sessions_in_cash": rep["sessions_in_cash"]})
+            shocks.append(row)
         except IndexError:
-            shocks.append({"id": sid, "label": label, "index": None, "book": None})
+            shocks.append({"id": sid, "label": label, "index": None, "book": None, "book_brake": None})
     out["shocks"] = shocks
     if vix is not None and len(vix):
         j = pd.concat([spy.rename("spy"), vix.rename("vix")], axis=1, sort=True).dropna()
@@ -235,18 +286,21 @@ def main() -> int:
     rd = book[0]["rebalance_date"] if book else None
     meta = book_meta(rd) if rd else pd.DataFrame()
     brake = (_get("qt_brake_state?select=stress_on,composite&order=d.desc&limit=1") or [None])[0]
-    vix = None
+    vix = move = None
     try:
-        # The repo's own VIX history (the workflow runs on a checkout); the
+        # The repo's own indicator history (the workflow runs on a checkout); the
         # live site's copy is the fallback. Its absence costs one line, not the run.
+        # MOVE is the same series the live brake reads, so the replayed brake in
+        # the shock table and the real brake see identical data.
         from pathlib import Path
         f = Path(__file__).resolve().parents[2] / "public" / "indicator_history.json"
-        v = (json.loads(f.read_text()) if f.exists()
-             else requests.get("https://www.macrotilt.com/indicator_history.json", timeout=60).json())["vix"]["points"]
-        vix = pd.Series({pd.Timestamp(d): float(c) for d, c in v})
+        hist = (json.loads(f.read_text()) if f.exists()
+                else requests.get("https://www.macrotilt.com/indicator_history.json", timeout=60).json())
+        vix = pd.Series({pd.Timestamp(d): float(c) for d, c in hist["vix"]["points"] if c is not None}).sort_index()
+        move = pd.Series({pd.Timestamp(d): float(c) for d, c in hist["move"]["points"] if c is not None}).sort_index()
     except Exception as e:  # noqa: BLE001
-        print(f"vix history unavailable ({e}); VIX shock omitted", flush=True)
-    row = compute(nav, vix, brake, meta, len(meta))
+        print(f"indicator history unavailable ({e}); VIX shock and brake replay omitted", flush=True)
+    row = compute(nav, vix, brake, meta, len(meta), move)
     summary = {k: row.get(k) for k in ("d", "as_of", "n_sessions", "vol", "var1", "var10", "beta", "market", "style", "specific", "excluded")}
     print(json.dumps(summary, indent=1, default=str), flush=True)
     if args.dry_run:

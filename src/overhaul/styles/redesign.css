@@ -647,7 +647,8 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-riskcell .tm-v.down { color: var(--tm-red); }
 .mt-overhaul .tm-riskcell .tm-v.is-amber { color: var(--tm-amber); }
 .mt-overhaul .tm-riskcell .tm-s { font-family: var(--mt-type-mono); font-size: var(--v13-t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mt-overhaul .tm-cols--shock, .mt-overhaul .tm-row--shock, .mt-overhaul .tm-cols--bt, .mt-overhaul .tm-row--bt { grid-template-columns: minmax(0, 1fr) 70px 70px; gap: var(--sp-6); }
+.mt-overhaul .tm-cols--bt, .mt-overhaul .tm-row--bt { grid-template-columns: minmax(0, 1fr) 70px 70px; gap: var(--sp-6); }
+.mt-overhaul .tm-cols--shock, .mt-overhaul .tm-row--shock { grid-template-columns: minmax(0, 1fr) 58px 72px 84px; gap: var(--sp-4); }
 .mt-overhaul .tm-row--shock, .mt-overhaul .tm-row--bt { cursor: default; }
 .mt-overhaul .tm-row--shock .tm-c-name, .mt-overhaul .tm-row--bt .tm-c-name { white-space: normal; overflow: visible; }
 /* TILT */
