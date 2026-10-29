@@ -27,8 +27,9 @@ SOURCES (all free, no vendor, no key beyond the FRED key we already hold)
    FINAL dates (bug #1251 found the Sep 11 2026 prelim missing). The prelim
    lands two Fridays before its final, 10:00 AM ET — computed off the FRED
    final dates; see build_umich_prelim_events for the seam proof.
-(Later sources — ECB/BoE/BoJ, USDA, the US election and the Treasury
- quarterly refunding — are documented at their own blocks below.)
+(Later sources — ECB/BoE/BoJ, USDA, the US election, the Treasury
+ quarterly refunding and the G7 sovereign rating reviews — are documented at
+ their own blocks below.)
 
 RULES THIS SCRIPT OBEYS (LESSONS 4.21 — sourced-or-omitted)
 -----------------------------------------------------------
@@ -979,6 +980,159 @@ def build_treasury_refunding_events(start: dt.date, end: dt.date):
     return events, problems
 
 
+# ── source 10: scheduled sovereign rating reviews, G7 (bug #1276) ──────────
+# The 2026-10-23 Trade Idea sweep found the day's dominant event — Moody's
+# scheduled review of France, the evening OATs crossed 5% — absent from this
+# feed. Joe's scope call (2026-10-28): G7 only, and the brief calls a review
+# out only when it can actually move a market: the outlook is not stable, or
+# the rating sits on a threshold so the next cut crosses it (the AA line,
+# the investment-grade floor). Everything else is background (tier 3).
+#
+# WHAT IS SCHEDULED AND WHAT IS NOT. EU regulation 1060/2009 art. 8a obliges
+# each agency to publish, every December, the Friday dates on which it will
+# publish its EU-domiciled sovereign ratings the following year — two or
+# three per sovereign per agency. That covers France, Germany and Italy and
+# (by the agencies' practice) the UK. The United States, Canada and Japan are
+# rated outside that rule and have NO published dates: their reviews are
+# unscheduled and cannot be in a calendar, so they are deliberately absent
+# here — not missing. Dates fall on Fridays and publish after the European
+# close (17:30 CET ≈ 11:30 AM / 12:30 PM ET across DST).
+#
+# ONE TABLE PER YEAR, FILLED FROM THE AGENCIES' DECEMBER PUBLICATION. The
+# calendars are a once-a-year publication, not a live page: the agencies'
+# own PDFs are not fetchable from the build runner, so the dated rows are
+# carried here with their verification trail, the way the US election rule
+# is carried in code. The guard below names the window: from Dec 10 the
+# builder reports a problem until the next year's rows are on file, so a
+# stale table fails loud instead of silently ending the feed (LESSONS 4.33).
+#
+# Dates verified 2026-10-28 against the agencies' published 2026 calendars as
+# republished by Ora Finanza (full S&P / Moody's / Fitch EU tables) and
+# cross-checked at three points against primary reporting: Fitch France
+# 2026-08-28, Moody's France 2026-10-23, S&P France 2026-11-27 (MNI, Mizuho).
+SOVEREIGN_REVIEWS = {
+    2026: [
+        # (country, agency, [dates])
+        ("France",  "S&P",     ["2026-05-29", "2026-11-27"]),
+        ("France",  "Moody's", ["2026-04-10", "2026-10-23"]),
+        ("France",  "Fitch",   ["2026-03-06", "2026-08-28"]),
+        ("Germany", "S&P",     ["2026-04-24", "2026-10-23"]),
+        ("Germany", "Moody's", ["2026-03-13", "2026-09-18"]),
+        ("Germany", "Fitch",   ["2026-01-09", "2026-05-15"]),
+        ("Italy",   "S&P",     ["2026-01-30", "2026-05-15", "2026-11-13"]),
+        ("Italy",   "Moody's", ["2026-03-27", "2026-09-25"]),
+        ("Italy",   "Fitch",   ["2026-03-13", "2026-09-11"]),
+        ("UK",      "S&P",     ["2026-04-10", "2026-10-09"]),
+        ("UK",      "Fitch",   ["2026-02-20", "2026-08-14"]),
+        # Moody's publishes no EU-rule calendar date for the UK in 2026.
+    ],
+}
+
+# Current rating and outlook per (country, agency): the agency's last rating
+# action, as reported. A scheduled review that changes nothing does not move
+# as_of; a rating or outlook change does — update the row from the agency's
+# press release the day it lands.
+SOVEREIGN_RATINGS = {
+    ("France", "S&P"):     dict(rating="A+",   outlook="stable",   as_of="2025-10-17"),
+    ("France", "Moody's"): dict(rating="Aa3",  outlook="negative", as_of="2025-10-24"),
+    ("France", "Fitch"):   dict(rating="A+",   outlook="stable",   as_of="2025-09-12"),
+    ("Germany", "S&P"):    dict(rating="AAA",  outlook="stable",   as_of="2024-10-25"),
+    ("Germany", "Moody's"): dict(rating="Aaa", outlook="stable",   as_of="2024-09-20"),
+    ("Germany", "Fitch"):  dict(rating="AAA",  outlook="stable",   as_of="2024-11-15"),
+    ("Italy", "S&P"):      dict(rating="BBB+", outlook="positive", as_of="2026-01-30"),
+    ("Italy", "Moody's"):  dict(rating="Baa2", outlook="stable",   as_of="2025-11-21"),
+    ("Italy", "Fitch"):    dict(rating="BBB+", outlook="stable",   as_of="2025-09-19"),
+    ("UK", "S&P"):         dict(rating="AA",   outlook="stable",   as_of="2020-10-23"),
+    ("UK", "Fitch"):       dict(rating="AA-",  outlook="stable",   as_of="2024-11-29"),
+    ("UK", "Moody's"):     dict(rating="Aa3",  outlook="stable",   as_of="2020-10-16"),
+}
+
+# Notch scale (higher = stronger). Letters for S&P/Fitch, Moody's alongside.
+_NOTCHES = ["D", "C", "CC", "CCC-", "CCC", "CCC+", "B-", "B", "B+", "BB-", "BB", "BB+",
+            "BBB-", "BBB", "BBB+", "A-", "A", "A+", "AA-", "AA", "AA+", "AAA"]
+_MOODYS = {"C": "C", "Ca": "CC", "Caa3": "CCC-", "Caa2": "CCC", "Caa1": "CCC+",
+           "B3": "B-", "B2": "B", "B1": "B+", "Ba3": "BB-", "Ba2": "BB", "Ba1": "BB+",
+           "Baa3": "BBB-", "Baa2": "BBB", "Baa1": "BBB+", "A3": "A-", "A2": "A", "A1": "A+",
+           "Aa3": "AA-", "Aa2": "AA", "Aa1": "AA+", "Aaa": "AAA"}
+# The lines a downgrade through actually changes who can hold the paper:
+# the AA line (central-bank collateral haircuts, many mandate floors) and the
+# investment-grade floor (index membership, forced selling).
+_THRESHOLDS = {"AA-": "the AA line", "BBB-": "the investment-grade floor"}
+_FLAG_TIER, _QUIET_TIER = 2, 3
+
+
+def _notch(rating: str) -> int | None:
+    r = _MOODYS.get(rating, rating)
+    return _NOTCHES.index(r) if r in _NOTCHES else None
+
+
+def sovereign_watch(rating: str, outlook: str):
+    """(watch, reason) — the Joe rule: non-stable outlook, or sitting ON a
+    threshold, where one more cut changes who may hold the paper."""
+    if outlook.lower() != "stable":
+        return True, f"{outlook.lower()} outlook"
+    n = _notch(rating)
+    if n is None:
+        return True, "unrecognised rating"
+    for line, why in _THRESHOLDS.items():
+        if n == _NOTCHES.index(line):
+            return True, f"on {why} — the next cut crosses it"
+    return False, "stable outlook, clear of every threshold"
+
+
+def build_sovereign_review_events(start: dt.date, end: dt.date, today: dt.date | None = None):
+    events, problems = [], []
+    today = today or dt.datetime.now(dt.timezone.utc).date()
+    years_needed = sorted({start.year, end.year})
+    for y in years_needed:
+        if y in SOVEREIGN_REVIEWS:
+            continue
+        # The agencies publish next year's dates in the first half of
+        # December; before then the gap is the seam between two publication
+        # clocks, not a missing table (LESSONS 4.33).
+        if today >= dt.date(y - 1, 12, 10):
+            problems.append(f"sovereign review calendar {y} not on file — the agencies publish it in "
+                            f"early December; add SOVEREIGN_REVIEWS[{y}] from the S&P / Moody's / Fitch "
+                            f"EU sovereign calendars")
+    for year, rows in SOVEREIGN_REVIEWS.items():
+        for country, agency, dates in rows:
+            meta = SOVEREIGN_RATINGS.get((country, agency))
+            if meta is None:
+                problems.append(f"sovereign review: no rating on file for {agency} / {country}")
+                continue
+            watch, why = sovereign_watch(meta["rating"], meta["outlook"])
+            poss = agency if agency.endswith("'s") else agency + "'s"
+            for ds in dates:
+                try:
+                    d = dt.date.fromisoformat(ds)
+                except ValueError:
+                    problems.append(f"sovereign review row unparsed: {agency} {country} {ds}")
+                    continue
+                if d.year != year or d.weekday() != 4:
+                    # Every EU-rule publication date is a Friday of its own year.
+                    problems.append(f"sovereign review: {agency} {country} {ds} is not a Friday of {year} — rejected")
+                    continue
+                if not (start <= d <= end):
+                    continue
+                as_of = dt.date.fromisoformat(meta["as_of"])
+                standing = (f"{meta['rating']}, {meta['outlook']} outlook since "
+                            f"{as_of.strftime('%b %-d, %Y')}")
+                events.append(dict(
+                    date=d.isoformat(), time_et="12:00 PM",
+                    name=f"{agency} {country} rating review", short=f"{agency} {country}",
+                    tier=_FLAG_TIER if watch else _QUIET_TIER, category="Sovereign",
+                    blurb=(f"{poss} scheduled review of {country} ({standing}). Published after the "
+                           f"European close on a date fixed a year ahead under EU rules. "
+                           + ("Worth watching: " + why + "." if watch
+                              else "Background: " + why + " — an affirmation is the base case.")),
+                    source=f"{agency} published sovereign rating calendar {year} (EU regulation 1060/2009 art. 8a)",
+                    time_source="EU publication rule — after the European close",
+                    country=country, agency=agency, rating=meta["rating"], outlook=meta["outlook"],
+                    rating_as_of=meta["as_of"], watch=watch, watch_reason=why,
+                ))
+    return events, problems
+
+
 # ── assemble ───────────────────────────────────────────────────────────────
 def build(today: dt.date | None = None, key: str | None = None):
     today = today or dt.datetime.now(dt.timezone.utc).date()
@@ -1014,6 +1168,9 @@ def build(today: dt.date | None = None, key: str | None = None):
     qr, qr_problems = build_treasury_refunding_events(start, end)
     events += qr
     problems += qr_problems
+    sov, sov_problems = build_sovereign_review_events(start, end, today)
+    events += sov
+    problems += sov_problems
 
     # De-dupe on (date, name); sort by date then time then tier.
     seen, out = set(), []
@@ -1049,6 +1206,8 @@ def build(today: dt.date | None = None, key: str | None = None):
             "USDA OCE WASDE schedule (usda.gov) — monthly WASDE dates",
             "US federal election day — Tuesday after the first Monday in November, even years (2 U.S.C. section 7), computed",
             "US Treasury quarterly refunding documents (home.treasury.gov) — next refunding announcement date",
+            "S&P / Moody's / Fitch published EU sovereign rating calendars — scheduled G7 reviews (France, Germany, "
+            "Italy, UK; the US, Canada and Japan have no scheduled review dates)",
         ],
         "notes": [
             "Times are US Eastern and come from each agency's standing release policy, not from the wire.",
