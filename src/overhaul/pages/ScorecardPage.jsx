@@ -219,6 +219,19 @@ function eventTxt(ev) {
     prem ? `premium ${prem} is the most it can lose` : '', ratio ? `pays ${ratio}` : '', odds].filter(Boolean).join(' · ');
 }
 
+/* The option-vehicle line (2026-10-29, #1277): the contract, the premium it
+   is marked against and where it stands — modelled, and said so. */
+function optionTxt(op) {
+  if (!op) return null;
+  const strike = op.strike != null ? Number(op.strike).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '';
+  const prem = op.premium != null ? `$${Number(op.premium).toFixed(2)} a share` : '';
+  const basis = /modelled/i.test(String(op.premium_basis || '')) ? ' (modelled at the entry close)' : '';
+  const now = op.value_per_share != null ? `worth $${Number(op.value_per_share).toFixed(2)} on ${dShort(op.underlying_as_of)}` : '';
+  const und = op.underlying_close != null ? `${op.underlying || ''} at ${Number(op.underlying_close).toFixed(2)}` : '';
+  return [`${op.underlying || ''} ${strike} ${op.structure || ''}, expiry ${dShort(op.expiry)}`.trim(),
+    prem ? `premium ${prem}${basis} is the most it can lose` : '', now, und, 'valued with a model, not a quote'].filter(Boolean).join(' · ');
+}
+
 function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
   const b = r.book || {};
   const ret = b.return_pct ?? r.mark;
@@ -232,8 +245,8 @@ function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
     ? `${VERDICT_LABEL[review.verdict] || review.verdict} · ${dShort(review.review_date)}`
     : 'Not yet reviewed';
   const why = isOpen ? reviewTxt : (r.close_reason || '—');
-  const ev = r.event ? eventTxt(r.event) : null;
-  const evState = r.event?.state;
+  const ev = r.event ? eventTxt(r.event) : (r.option ? optionTxt(r.option) : null);
+  const evState = r.event?.state || r.option?.state;
   const open = () => { if (idea) onOpenNote(idea); };
   return (
     <tr className="sc-trow" onClick={open}>
@@ -540,6 +553,10 @@ export default function ScorecardPage() {
             <div>
               <dt>Event ideas</dt>
               <dd>An event idea is a defined-risk options spread on a named event with a date. It is sized by the premium paid, which is the most it can lose. It is marked at expiry from the underlying&rsquo;s closing price against its strikes: the return runs from a loss of the whole premium to the stated payoff. Before expiry it is shown as open with the underlying&rsquo;s distance to the long strike. It closes early only if the weekly review finds the event has been decided, at the spread&rsquo;s value that day.</dd>
+            </div>
+            <div>
+              <dt>Option ideas</dt>
+              <dd>When a note tells the reader to buy a listed put or call, the position is marked as that option, not as the index or fund it is on. Its value is modelled every day with a Black-Scholes model from the underlying&rsquo;s closing price, an implied-volatility index (the VIX for S&amp;P 500 funds) and the 2-year Treasury yield; at expiry it is the option&rsquo;s intrinsic value. The return is on the premium paid, which is the most it can lose. The premium is the price the note stated or, if it stated none, the same model&rsquo;s price at the entry close, and the row says which. These values are a model, not quotes: listed options carry a volatility skew the index does not. The exit level on the underlying still closes the position, at that day&rsquo;s modelled value.</dd>
             </div>
             <div>
               <dt>Last review</dt>

@@ -681,6 +681,14 @@ export default function MethodologyPage() {
               It is exempt from the pace bar and the two-to-one rule: the premium is the stop.
             </p>
             <p className="me-body-p">
+              <b>Option vehicles.</b> A directional note may tell the reader to buy a listed put or call
+              instead of shares. Then the note states the contract — the fund, put or call, strike and
+              expiry — the Scorecard marks that option (see below), and the expected return and the
+              loss at the exit level are stated on the premium, so the bar and the two-to-one rule are
+              judged on the trade the reader actually holds. The move in the underlying the note calls
+              for is stated separately, and that is what the book test paces.
+            </p>
+            <p className="me-body-p">
               <b>The book.</b> The book is a notional 100. A standard idea is sized at <b>10</b>, an
               idea published under the fewer-than-five-cases rule at <b>5</b>, an event idea at{' '}
               <b>1 to 2</b> of premium; the rest is cash. A candidate is rejected if its daily returns
@@ -718,7 +726,13 @@ export default function MethodologyPage() {
               at expiry from the underlying&rsquo;s closing price against its strikes — the payoff
               divided by the premium, so the result runs from a loss of the whole premium to the stated
               payoff ratio — shown as open before expiry, and closed early only when the weekly review
-              finds the event decided, at the spread&rsquo;s value that day.
+              finds the event decided, at the spread&rsquo;s value that day. A note that tells the
+              reader to buy a listed <b>put or call</b> outright is marked as that option, never as the
+              index or fund it is on: its value is modelled every day (Black-Scholes from the
+              underlying&rsquo;s close, an implied-volatility index such as the VIX, and the 2-year
+              Treasury yield; intrinsic value at expiry) and the return is on the premium, which is the
+              most it can lose. The premium is the price the note stated or the model&rsquo;s price at the
+              entry close, and the row says which. The exit level on the underlying still closes it.
             </p>
             <p className="me-body-p">
               <b>The book figures.</b> A call&rsquo;s <b>contribution</b> is its weight multiplied by its
@@ -737,6 +751,7 @@ export default function MethodologyPage() {
               benchmark    = S&amp;P 500 over the same days, read on or before the mark date (blank if &gt; 4 days stale)<br />
               close        = exit level printed · weekly review finds a critical claim broken · planned close date<br />
               event mark   = intrinsic value at expiry ÷ premium − 1 (−100% to the payoff ratio)<br />
+              option mark  = modelled put/call value ÷ premium − 1 (Black-Scholes from the underlying's close, VIX-type vol, 2-year yield; intrinsic at expiry)<br />
               contribution = weight × return ÷ 100 · realized + unrealized = total · no hit rate below 10 closed calls
             </div>
           </div>

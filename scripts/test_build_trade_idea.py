@@ -51,6 +51,8 @@ def _history():
         "cmdty_brent": {"points": _days("2025-07-01", n, lambda i: 80 + 0.1 * i + 4 * math.sin(i / 11))},
         "ust_20y": {"points": _days("2025-07-01", n, lambda i: 4.6 + 0.3 * math.sin(i / 13))},
         "ust_10y": {"points": _days("2025-07-01", n, lambda i: 4.3 + 0.3 * math.sin(i / 13))},
+        "ust_2y": {"points": _days("2025-07-01", n, lambda i: 4.0 + 0.3 * math.sin(i / 13))},
+        "vix": {"points": _days("2025-07-01", n, lambda i: 17 + 3 * math.sin(i / 10))},
     }
 
 
@@ -321,6 +323,99 @@ class TestDecision3Shorts(Base):
         n["call"] = "The S&P 500 is likely to give back its October gain over the next 4 weeks as the hike is priced in full."
         n["expected_return"] = {"pct": 4.0, "loss_at_stop_pct": 1.5, "basis": "the median four-week fall in the nine cases, on SH shares, which is what the Scorecard marks", "instrument": "SH shares held four weeks"}
         B.validate(n, [])
+
+
+def option_note(**kw):
+    """A short-horizon S&P note whose vehicle is a listed put (bug #1277)."""
+    n = standard_note(date="2026-10-29", kind="cross-asset", instrument="SPY 773 put, Nov 13 expiry",
+                      horizon="2–3 weeks", position_type="outright long",
+                      call="Over the next 2–3 weeks the S&P 500 is likely to fall about 3%, to 7,510, as credit leads it lower.",
+                      the_trade={"buy": "SPY at-the-money puts, Nov 13 expiry.", "buy_line": "SPY 773 put, Nov 13 expiry",
+                                 "sizing": "5 of 100 (half size).",
+                                 "option": {"underlying": "SPY", "structure": "put", "strike": 773, "expiry": "2026-11-13"}},
+                      scorecard={"legs": [{"series": "ticker:SPY", "side": "short", "measure": "pct_change", "label": "SPY", "short_label": "SPY"}],
+                                 "horizon_weeks": 3,
+                                 "invalidation": {"series": "spx_index", "op": ">", "level": 99999, "basis": "close"}},
+                      levels={"trigger": "credit 40bp wider in six weeks", "invalidation": "a close above 7,818", "target": "7,510 within three weeks"},
+                      expected_return={"pct": 109.0, "loss_at_stop_pct": 30.0, "underlying_pct": 3.2,
+                                       "basis": "the put's modelled value if the index falls the median 3.2% by the planned close, against the premium",
+                                       "instrument": "SPY 773 put, Nov 13 expiry — the return is on the premium"},
+                      charts=[{"series": "spx_index", "title": "S&P 500", "caption": "index", "source": "MacroTilt", "window": "1y"},
+                              {"series": "cmdty_brent", "title": "Brent", "caption": "oil", "source": "ICE", "window": "3y"}])
+    n.update(kw)
+    return n
+
+
+class TestOptionVehicle(Base):
+    """2026-10-29 (bug #1277): a note that tells the reader to buy a put or a
+    call is marked as that option, never as its underlying."""
+
+    def test_option_note_derives_the_option_block_and_the_ticker_leg(self):
+        n = option_note()
+        B.validate(n, [])
+        sc = n["scorecard"]
+        self.assertEqual(sc["legs"][0]["series"], "ticker:SPY")
+        self.assertEqual(sc["legs"][0]["side"], "short")
+        self.assertEqual(sc["legs"][0]["short_label"], "SPY 773 put, Nov 13")
+        self.assertEqual(sc["option"]["structure"], "put")
+        self.assertEqual(sc["option"]["iv_series"], "vix")
+        self.assertEqual(sc["option"]["rate_series"], "ust_2y")
+        self.assertEqual(sc["option"]["expiry"], "2026-11-13")
+        self.assertIsNone(sc["option"]["premium"])          # modelled at the entry close by the scorer
+        self.assertIn("Black-Scholes", sc["note"])
+
+    def test_a_put_named_in_the_trade_without_an_option_block_is_refused(self):
+        n = option_note()
+        del n["the_trade"]["option"]
+        n["scorecard"]["legs"] = [{"series": "spx_index", "side": "short", "measure": "pct_change", "label": "S&P 500", "short_label": "S&P 500"}]
+        with self.assertRaisesRegex(B.ContractError, "the_trade.option"):
+            B.validate(n, [])
+
+    def test_shares_as_the_vehicle_with_options_as_an_alternative_is_marked_on_the_shares(self):
+        n = option_note()
+        del n["the_trade"]["option"]
+        n["the_trade"]["buy"] = "SH shares, or SPY at-the-money puts for defined risk."
+        n["the_trade"]["shares_primary"] = "Shares are the vehicle; the puts are an alternative for a reader who wants defined risk."
+        n["scorecard"]["legs"] = [{"series": "spx_index", "side": "short", "measure": "pct_change", "label": "S&P 500", "short_label": "S&P 500"}]
+        n["expected_return"] = {"pct": 3.2, "loss_at_stop_pct": 0.8, "basis": "the median fall in the five cases, on the index, which is what the Scorecard marks", "instrument": "SH shares held three weeks"}
+        B.validate(n, [])
+        self.assertNotIn("option", n["scorecard"])
+
+    def test_the_leg_must_be_the_fund_the_option_is_on(self):
+        n = option_note()
+        n["scorecard"]["legs"] = [{"series": "spx_index", "side": "short", "measure": "pct_change", "label": "S&P 500", "short_label": "S&P 500"}]
+        with self.assertRaisesRegex(B.ContractError, "ticker:SPY"):
+            B.validate(n, [])
+
+    def test_option_note_states_the_underlying_move_for_the_book_test(self):
+        n = option_note()
+        del n["expected_return"]["underlying_pct"]
+        with self.assertRaisesRegex(B.ContractError, "underlying_pct"):
+            B.validate(n, [])
+        n = option_note()
+        B.validate(n, [])
+        self.assertAlmostEqual(B._annual_pace(n), 3.2 * 12 / B._scored_months({"horizon_weeks": 3}), places=6)
+
+    def test_loss_at_stop_cannot_exceed_the_premium(self):
+        n = option_note()
+        n["expected_return"]["loss_at_stop_pct"] = 120
+        with self.assertRaisesRegex(B.ContractError, "cannot exceed 100"):
+            B.validate(n, [])
+
+    def test_a_note_dated_before_the_rule_without_an_option_block_is_grandfathered(self):
+        n = option_note(date="2026-10-22")
+        del n["the_trade"]["option"]
+        n["scorecard"]["legs"] = [{"series": "spx_index", "side": "short", "measure": "pct_change", "label": "S&P 500", "short_label": "S&P 500"}]
+        n["expected_return"] = {"pct": 3.2, "loss_at_stop_pct": 0.8, "basis": "the median fall in the five cases, on the index, which is what the Scorecard marks", "instrument": "SPY ATM puts, Nov 13 expiry"}
+        B.validate(n, [])
+
+    def test_a_restated_pre_rule_note_warns_instead_of_failing_the_two_to_one_rule(self):
+        n = option_note(date="2026-10-22")
+        n["expected_return"]["loss_at_stop_pct"] = 57.0      # 109 < 2 x 57: refused for a new note, warned for a re-statement
+        with self.assertRaisesRegex(B.ContractError, "loss at the stop is 57%"):
+            B.validate(option_note(expected_return=dict(n["expected_return"])), [])
+        w = B.validate(n, [])
+        self.assertTrue(any("GRANDFATHERED" in x for x in w))
 
 
 class TestDecision4Event(Base):

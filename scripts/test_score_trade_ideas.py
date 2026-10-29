@@ -596,6 +596,112 @@ class TestEventNotes(unittest.TestCase):
         self.assertAlmostEqual(p["total_return_pct"], p["realized_contribution_pct"], places=3)
 
 
+class TestOptionNotes(unittest.TestCase):
+    """2026-10-29 (bug #1277): a note whose vehicle is a listed put or call is
+    marked as that option — Black-Scholes from the underlying's close, the
+    named implied-volatility series and the named rate series, intrinsic at
+    expiry — never as its underlying."""
+
+    SPX = days("2026-01-05", [100] * 12)
+    VIX = days("2026-01-05", [16.0] * 12)
+    R2 = days("2026-01-05", [4.0] * 12)
+
+    def _opt(self, spy, **kw):
+        op = {"underlying": "SPY", "structure": "put", "strike": 100.0, "expiry": "2026-01-16",
+              "iv_series": "vix", "rate_series": "ust_2y", "dividend_yield_pct": 0}
+        op.update(kw)
+        h = hist(**{"ticker:SPY": days("2026-01-05", spy), "spx_index": self.SPX, "vix": self.VIX, "ust_2y": self.R2})
+        i = idea(sizing={"weight": 5},
+                 scorecard={"legs": [{"series": "ticker:SPY", "side": "short", "measure": "pct_change", "short_label": "SPY 100 put, Jan 16"}],
+                            "horizon_weeks": 3, "invalidation": {"series": "spx_index", "op": ">", "level": 103, "basis": "close"},
+                            "option": op})
+        return i, h
+
+    def test_black_scholes_put_call_parity_and_intrinsic_at_expiry(self):
+        c = S.black_scholes("call", 100, 100, 0.25, 0.2, 0.04)
+        p = S.black_scholes("put", 100, 100, 0.25, 0.2, 0.04)
+        import math
+        self.assertAlmostEqual(c - p, 100 - 100 * math.exp(-0.04 * 0.25), places=9)     # parity
+        self.assertAlmostEqual(c, 4.485, places=2)      # by hand: d1 0.15, d2 0.05 -> 55.96 - 51.47
+        self.assertAlmostEqual(S.black_scholes("put", 95, 100, 0.0, 0.2), 5.0, places=9)   # intrinsic at expiry
+        self.assertAlmostEqual(S.black_scholes("call", 95, 100, 0.0, 0.2), 0.0, places=9)
+
+    def test_the_premium_is_modelled_at_the_entry_close_and_the_mark_is_on_the_premium(self):
+        i, h = self._opt([100, 100, 98, 96])
+        r = S.score_row(i, h, "2026-01-08")
+        self.assertEqual(r["status"], "open")
+        self.assertEqual(r["entry_date"], "2026-01-05")
+        self.assertEqual(r["trade_label"], "Long SPY 100 put, Jan 16")
+        prem = S.black_scholes("put", 100, 100, 11 / 365, 0.16, 0.04)
+        self.assertAlmostEqual(r["option"]["premium"], round(prem, 4), places=4)
+        self.assertIn("modelled at the entry close", r["option"]["premium_basis"])
+        v = S.black_scholes("put", 96, 100, 8 / 365, 0.16, 0.04)
+        self.assertAlmostEqual(r["mark"], round(100 * (v / prem - 1), 4), places=3)
+        self.assertGreater(r["mark"], 100.0)                       # a 4% fall roughly doubles an ATM put
+        self.assertAlmostEqual(r["legs"][0]["return_pct"], -4.0, places=6)   # the underlying's own return is still shown
+        self.assertAlmostEqual(r["contribution_pct"], 5 / 100 * r["mark"], places=4)
+        self.assertIsNone(r["single_leg_note"])
+
+    def test_a_stated_premium_is_used_as_the_base(self):
+        i, h = self._opt([100, 100, 98, 96], premium=2.0)
+        r = S.score_row(i, h, "2026-01-08")
+        self.assertEqual(r["option"]["premium"], 2.0)
+        self.assertIn("stated by the note", r["option"]["premium_basis"])
+        v = S.black_scholes("put", 96, 100, 8 / 365, 0.16, 0.04)
+        self.assertAlmostEqual(r["mark"], round(100 * (v / 2.0 - 1), 4), places=3)
+
+    def test_an_unmoved_underlying_bleeds_time_value(self):
+        i, h = self._opt([100] * 8)
+        r = S.score_row(i, h, "2026-01-14")
+        self.assertLess(r["mark"], 0.0)
+        self.assertLess(r["max_adverse"]["value"], 0.0)
+        self.assertEqual(r["max_favourable"]["value"], 0.0)            # entry day
+
+    def test_at_expiry_the_put_settles_at_intrinsic_value(self):
+        i, h = self._opt([100, 99, 98, 97, 96, 95, 94, 93, 92, 90])      # Jan 5 .. Jan 16
+        r = S.score_row(i, h, "2026-01-19")
+        self.assertEqual(r["status"], "closed_horizon")
+        self.assertEqual(r["close_date"], "2026-01-16")
+        self.assertAlmostEqual(r["option"]["intrinsic_per_share"], 10.0, places=6)
+        self.assertAlmostEqual(r["mark"], 100 * (10.0 / r["option"]["premium"] - 1), places=1)   # premium shown rounded
+        self.assertEqual(r["option"]["state"], "settled at expiry at intrinsic value from the underlying's close")
+        self.assertAlmostEqual(r["result"], r["mark"], places=6)
+
+    def test_the_planned_close_comes_before_expiry_when_the_horizon_is_shorter(self):
+        i, h = self._opt([100] * 12, expiry="2026-03-20")
+        r = S.score_row(i, h, "2026-01-20")
+        self.assertEqual(r["target_date"], "2026-01-26")                 # entry + 3 weeks, not the March expiry
+        self.assertEqual(r["status"], "open")
+
+    def test_an_expired_put_out_of_the_money_loses_the_whole_premium(self):
+        i, h = self._opt([100, 101, 102, 102, 102, 102, 102, 102, 102, 102])
+        r = S.score_row(i, h, "2026-01-19")
+        self.assertAlmostEqual(r["mark"], -100.0, places=6)
+        self.assertAlmostEqual(r["contribution_pct"], -5.0, places=6)
+
+    def test_the_exit_level_on_the_underlying_still_closes_the_call(self):
+        i, h = self._opt([100, 101, 102, 102, 102, 102, 102, 102, 102, 102])
+        h["spx_index"] = days("2026-01-05", [100, 101, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104])
+        r = S.score_row(i, h, "2026-01-19")
+        self.assertEqual(r["status"], "closed_invalidated")
+        self.assertEqual(r["close_date"], "2026-01-07")
+        self.assertGreater(r["mark"], -100.0)                               # time value remained on the day it closed
+        self.assertEqual(r["invalidation"]["date"], "2026-01-07")
+
+    def test_a_missing_vol_series_is_unscoreable_with_the_reason(self):
+        i, h = self._opt([100, 99, 98], iv_series="vix9d")
+        r = S.score_row(i, h, "2026-01-08")
+        self.assertEqual(r["status"], "unscoreable")
+        self.assertIn("vix9d", r["reason"])
+
+    def test_a_call_is_marked_long_the_underlying(self):
+        i, h = self._opt([100, 102, 104, 106], structure="call")
+        i["scorecard"]["legs"][0]["side"] = "long"
+        r = S.score_row(i, h, "2026-01-08")
+        self.assertGreater(r["mark"], 100.0)
+        self.assertEqual(r["trade_label"], "Long SPY 100 call, Jan 16")
+
+
 class TestMain(unittest.TestCase):
     SPX = TestPortfolio.SPX
     def test_main_writes_the_portfolio_and_drops_the_working_path(self):
