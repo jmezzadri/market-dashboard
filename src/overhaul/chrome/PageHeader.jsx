@@ -13,7 +13,7 @@
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useFreshnessRollup } from '../../hooks/useFreshness';
-import { NYSE_HOLIDAYS } from '../../lib/freshnessClock';
+import { NYSE_HOLIDAYS, latestTradingSessionDate } from '../../lib/freshnessClock';
 import useMarketLevels from '../lib/useMarketLevels';
 import { TAPE_ITEMS } from './MarketTape';
 
@@ -226,8 +226,20 @@ export default function PageHeader() {
   const today = formatToday();
   const { level } = useMarketLevels();
   const newestAsOf = useMemo(() => {
-    const ds = TAPE_ITEMS.map((r) => level(r.key)?.asOf).filter(Boolean).sort();
-    return ds.length ? ds[ds.length - 1] : null;
+    // 2026-10-29: the tape also carries series that are stamped ahead of the
+    // US session — Nikkei closes ~2am ET, uranium is dated the same morning —
+    // so at 6am Thursday this line read "prices as of Thursday's close" while
+    // every US row was Wednesday's. The line describes the US session: cap the
+    // newest as-of at the last COMPLETED US session (the same clock the
+    // freshness code uses). A feed older than that still shows its own day.
+    const ds = TAPE_ITEMS.map((r) => level(r.key)?.asOf).filter(Boolean)
+      .map((s) => String(s).slice(0, 10)).sort();
+    if (!ds.length) return null;
+    const newest = ds[ds.length - 1];
+    const last = latestTradingSessionDate();
+    const pad = (n) => String(n).padStart(2, '0');
+    const lastIso = `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`;
+    return newest > lastIso ? lastIso : newest;
   }, [level]);
   const wd = closeWeekday(newestAsOf);
   const prices = ms.open
