@@ -188,6 +188,7 @@ const TIPS = {
    Joe, 2026-10-20: every risk metric carries both. Term renders them as two
    lines; the holdings table's headers get the same text flattened to a
    string (its tooltip is an instant CSS one — LESSONS 7.13). */
+const SHOCK_NOTE = 'Each episode is the S&P 500 fund\u2019s actual peak-to-trough fall, scaled by the book\u2019s beta. "With brake" replays the book\u2019s crash brake through the episode day by day, cash earning nothing — a projection of the rule, not a backtest of today\u2019s names. The brake reads bond-market stress, which the site has from November 2002, so 2000\u201302 has no brake figure.';
 const RISK_TIPS = {
   var: 'The most the book would be expected to lose over the next ten trading days on a bad-but-not-extreme stretch — a loss this size or worse should happen about one ten-day period in a hundred. Based on how this book’s own holdings moved over the past year. Formulas are on the Methodology page.',
   sharpe: 'Return earned per unit of risk taken, above what cash pays. Rule of thumb: 0.5 is decent, 1.0 is very good. Prints after 60 trading days — a ratio from a few days is noise.',
@@ -201,7 +202,7 @@ const RISK_TIPS = {
   specific: 'The share of the book’s swings that come from company-specific news — earnings, deals, drug trials — that neither the market nor the style tilts explain. Pure stock-picking risk. The three shares add up to 100%.',
   mctr: 'How much of the whole book’s day-to-day swings come from this one stock. The twenty shares add up to 100%. A stock whose share of risk is double its share of the money (for example 10% of the risk on 5% of the money) is flagged in amber — it moves the book more than its size suggests.',
   factor: 'The style this stock brings to the book most strongly — momentum, quality, buybacks, small size or value — compared with the 500 largest US stocks. “None dominant” means it does not stand out on any of them.',
-  stress: 'What the book would be expected to lose if that past crash repeated in full, assuming the book keeps moving about as much as the market as it has over the past year. A projection, not a forecast.',
+  stress: 'What the book would be expected to lose if that past crash repeated in full, assuming the book keeps moving about as much as the market as it has over the past year. "No brake" ignores the book\u2019s crash brake; "with brake" replays it day by day through the episode — out of the market when bond-market stress ran above its 95th percentile for two closes, back in below the 80th. A projection, not a forecast.',
   vixshock: 'What the book would be expected to lose if the VIX — the market’s fear gauge — jumped to 40 in a single day from where it is now. Based on how the S&P 500 has reacted to VIX moves since 2006.',
 };
 const flatTip = (t) => t;
@@ -1019,8 +1020,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     ['The whole market moving', dc.market, 'market'], ['Company-specific news', dc.specific, 'specific'], ['The book’s style tilts', dc.style, 'style'],
   ] : null;
   const shockRows = cockpit.shocks ? [
-    ...cockpit.shocks.map((e) => ({ k: e.id, n: e.label, a: e.index, b: e.book, tip: RISK_TIPS.stress })),
-    ...(cockpit.vix ? [{ k: 'vix', n: `VIX spike to 40 (from ${Number(cockpit.vix.vix_now ?? cockpit.vix.vixNow).toFixed(1)})`, a: cockpit.vix.index, b: cockpit.vix.book, tip: RISK_TIPS.vixshock }] : []),
+    ...cockpit.shocks.map((e) => ({ k: e.id, n: e.label, a: e.index, b: e.book, c: e.book_brake, tip: RISK_TIPS.stress })),
+    ...(cockpit.vix ? [{ k: 'vix', n: `VIX spike to 40 (from ${Number(cockpit.vix.vix_now ?? cockpit.vix.vixNow).toFixed(1)})`, a: cockpit.vix.index, b: cockpit.vix.book, c: null, tip: RISK_TIPS.vixshock }] : []),
   ] : null;
 
   const notice = (
@@ -1109,15 +1110,16 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <div className="tm-ghead">SHOCK SCENARIOS · IF IT HAPPENED AGAIN</div>
           {shockRows ? (
             <>
-              <div className="tm-cols tm-cols--shock rd-num"><span>SCENARIO</span><span className="r">S&amp;P 500</span><span className="r">BOOK</span></div>
+              <div className="tm-cols tm-cols--shock rd-num"><span>SCENARIO</span><span className="r">S&amp;P 500</span><span className="r">NO BRAKE</span><span className="r">WITH BRAKE</span></div>
               {shockRows.map((e) => (
                 <div key={e.k} className="tm-row tm-row--shock rd-num">
                   <span className="tm-c-name"><Term tip={e.tip} placement="bottom" wide labelOpacity={0.95}>{e.n}</Term></span>
                   <span className="r fl">{e.a == null ? '—' : fmtPct(e.a, 1)}</span>
-                  <span className="r down tm-strong">{e.b == null ? '—' : fmtPct(e.b, 1)}</span>
+                  <span className="r fl">{e.b == null ? '—' : fmtPct(e.b, 1)}</span>
+                  <span className={`r tm-strong ${e.c == null ? 'fl' : e.c < 0 ? 'down' : ''}`}>{e.c == null ? '—' : fmtPct(e.c, 1)}</span>
                 </div>
               ))}
-              <div className="tm-pnote tm-pnote--block">Each episode is the S&P 500 fund’s actual peak-to-trough fall, scaled by the book’s beta — a projection, not a backtest.{cockpit.vix ? ' The VIX line uses how much the fund has historically fallen when fear jumped.' : ''}</div>
+              <div className="tm-pnote tm-pnote--block">{SHOCK_NOTE}{cockpit.vix ? ' The VIX line uses how much the fund has historically fallen when fear jumped; a one-day jump does not trip the brake.' : ''}</div>
             </>
           ) : <div className="tm-empty">{riskNote || needsDays(250)}</div>}
         </>
@@ -1274,10 +1276,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   <div className="tm-phead"><span className="tm-code">RISK</span><span className="tm-ptitle">SHOCK SCENARIOS · IF IT HAPPENED AGAIN</span></div>
                   {shockRows ? (
                     <>
-                      <div className="tm-cols tm-cols--shock rd-num"><span>SCENARIO</span><span className="r">S&amp;P 500</span><span className="r">BOOK</span></div>
+                      <div className="tm-cols tm-cols--shock rd-num"><span>SCENARIO</span><span className="r">S&amp;P 500</span><span className="r">NO BRAKE</span><span className="r">WITH BRAKE</span></div>
                       {shockRows.map((e) => (
-                        <div key={e.k} className="tm-row tm-row--shock rd-num"><span className="tm-c-name">{e.n}</span><span className="r fl">{e.a == null ? '—' : fmtPct(e.a, 1)}</span><span className="r down tm-strong">{e.b == null ? '—' : fmtPct(e.b, 1)}</span></div>
+                        <div key={e.k} className="tm-row tm-row--shock rd-num"><span className="tm-c-name">{e.n}</span><span className="r fl">{e.a == null ? '—' : fmtPct(e.a, 1)}</span><span className="r fl">{e.b == null ? '—' : fmtPct(e.b, 1)}</span><span className={`r tm-strong ${e.c == null ? 'fl' : e.c < 0 ? 'down' : ''}`}>{e.c == null ? '—' : fmtPct(e.c, 1)}</span></div>
                       ))}
+                      <div className="tm-pnote tm-pnote--block">{SHOCK_NOTE}</div>
                     </>
                   ) : <div className="tm-empty">{riskNote || needsDays(250)}</div>}
                 </section>

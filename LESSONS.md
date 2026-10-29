@@ -202,6 +202,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `6.24` Two series compared "over the same days" rarely end on the same day; ask for the yardstick on or BEFORE the mark, never on or after
 - `6.25` The book test is risk-adjusted return, not a volatility cap; and the Trade Idea and the X Chart are one piece of research with two outputs, both behind Joe's approval
 - `6.26` Contract v2 (Oct 21): the conditions test gets a fallback, the ten-year rule gives way to full history plus a threshold scan, shorts are unrestricted but lagging is not falling, event notes pay premium for a regime change, the book is a notional 100, Joe reads two plain-English tables, and the run reads a named list of managers every morning
+- `6.27` A stress figure for the book must include the book's own risk controls; beta × an index fall is a figure for the index, not the book — replay the brake through the episode and show both
 
 **7 · CODE & RELEASE DISCIPLINE**
 
@@ -2061,6 +2062,14 @@ Two things went wrong on the way to shipping it that are worth keeping. (1) The 
 Settled in the script where the spec was wrong: an event idea cannot raise the book's excess-return-per-unit-of-volatility (a 3.5-to-1 binary payoff is dispersed by construction), so for an event idea that ratio is reported and the binding tests are positive expected value, the premium band and the correlation cap. Tests: `scripts/test_build_trade_idea.py`, `scripts/test_score_trade_ideas.py` (event fixtures, contribution arithmetic).
 
 **Applies to:** the Trade Idea + X Chart session, Senior Quant, Lead Developer, the weekly thesis review, the Scorecard.
+
+### 6.27 (2026-10-29) — A stress figure for the book must include the book's own risk controls
+
+**What happened:** The Paper Portfolio cockpit's "if it happened again" table printed the S&P 500's fall in 2008, 2000–02, 2020 and 2022 multiplied by the book's one-year beta (1.03): −58.1%, −50.5%, −35.1%, −26.1%. Joe read it at once for what it was — "it looks like it's basically mirroring the index" — and asked why the brake that takes the book to cash when the MOVE Index spikes was not in it. It was not: the figure described a passive index holder with 3% more beta, not this book. Replaying the live brake rule day by day through each episode (same MOVE series the brake reads, cash earning nothing, state at close t governing day t+1) gives −34.5% for 2008 (three on/off cycles; it caught Lehman but re-entered on 13 Jan 2009, before the final leg), −13.1% for 2020 (on after the 28 Feb close, sat out the rest) and 0.0% for 2022 (already in cash since November 2021). 2000–02 cannot be replayed: the site's MOVE history starts November 2002.
+
+**Rule:** Any published stress, scenario or drawdown figure for a book is computed with the book's own rules applied — the brake, the exit band, the sizing — and the table shows both the figure without them and the figure with them, so a reader can see what the control is worth and where it failed. A beta-scaled index number alone is a figure for the index and is labelled as such, never as "the book". The replay reads the same data the live control reads, acts with the live lag, assumes nothing on cash the account does not earn, and says plainly which episodes the data cannot cover instead of leaving a blank. The replay is a test in the repository (`paper_portfolio/qt/test_risk_shocks.py`) pinned to the numbers above; the study is `paper_portfolio/qt/research/risk_cockpit_2026-10-20/shock_brake_replay.py`.
+
+**Applies to:** Senior Quant (owns the figures), Lead Developer (the risk job and the cockpit), UX Designer (both columns always shown).
 
 # 7 · CODE & RELEASE DISCIPLINE
 ### 7.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component

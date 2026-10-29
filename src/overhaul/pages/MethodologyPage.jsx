@@ -581,10 +581,17 @@ export default function MethodologyPage() {
               2.5th/97.5th percentile; the page shows the book&rsquo;s weighted z minus the
               baseline&rsquo;s cap-weighted z, rebuilt at each monthly scoring from the same data as
               the score. <b>Shock scenarios:</b> the S&amp;P 500 fund&rsquo;s actual peak-to-trough fall
-              in 2000&ndash;02, 2008&ndash;09, 2020 and 2022, read from the price feed and multiplied by
-              the book&rsquo;s one-year beta; and an instant VIX-to-40 shock sized by the fund&rsquo;s
-              measured elasticity to the VIX since 2006. These are projections, labelled as such
-              &mdash; they assume the beta holds. <b>Alerts</b> fire on exactly the rules printed
+              in 2000&ndash;02, 2008&ndash;09, 2020 and 2022, read from the price feed, shown three ways:
+              the index itself; the book at its one-year beta with <i>no</i> brake; and the book at
+              that beta <i>with</i> the crash brake replayed day by day through the episode &mdash;
+              the live rule exactly (MOVE Index rank against its last five years above 0.95 on two
+              consecutive closes sends the book to cash at the next open, below 0.80 brings it
+              back; cash earns nothing). MOVE history starts in November 2002, so 2000&ndash;02 has
+              no brake figure. The instant VIX-to-40 shock is sized by the fund&rsquo;s measured
+              elasticity to the VIX since 2006 and has no brake figure, because a one-day jump
+              cannot trip a two-close rule. These are projections of the rule, labelled as such
+              &mdash; they assume the beta holds and are not a backtest of today&rsquo;s names.
+              <b>Alerts</b> fire on exactly the rules printed
               under the alert log, and nothing else.
             </p>
             <div className="me-formula" data-mono="code">
@@ -594,7 +601,7 @@ export default function MethodologyPage() {
               book     = top 20 · equal weight · monthly rebalance at the open · hold until out of the top 25%<br />
               brake    = daily, after the close · MOVE Index rank vs its last 5 years · &gt; 0.95 two days running → all to cash · then &lt; 0.80 → all back in<br />
               risk     = no leverage · ~5% per name · the monthly exit band · the brake — no per-stock stops<br />
-              cockpit  = 1y daily closes at today's weights · VaR₁ = −quantile₀.₀₁(book daily return), VaR₁₀ = VaR₁·√10 · risk share = w·(Σw)/σ² · market = β²σ²ₘ/σ², style = residual explained by (MTUM, QUAL, PKW, IWM, VLUE) − SPY, specific = the rest · z vs 500 largest US stocks, winsorised 2.5/97.5 · shocks = β × SPY peak-to-trough
+              cockpit  = 1y daily closes at today's weights · VaR₁ = −quantile₀.₀₁(book daily return), VaR₁₀ = VaR₁·√10 · risk share = w·(Σw)/σ² · market = β²σ²ₘ/σ², style = residual explained by (MTUM, QUAL, PKW, IWM, VLUE) − SPY, specific = the rest · z vs 500 largest US stocks, winsorised 2.5/97.5 · shocks = β × SPY peak-to-trough, with and without the brake replayed (state at close t governs day t+1; cash = 0)
             </div>
           </div>
         </article>
