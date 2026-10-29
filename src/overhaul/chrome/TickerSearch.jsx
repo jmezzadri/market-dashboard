@@ -7,7 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
-export default function TickerSearch() {
+export default function TickerSearch({ className = '', autoFocus = false }) {
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [res, setRes] = useState([]);
@@ -56,13 +56,20 @@ export default function TickerSearch() {
   const fmtCap = (c) => { const n = Number(c); if (!Number.isFinite(n) || n <= 0) return ''; if (n >= 1e12) return '$' + (n/1e12).toFixed(1) + 'T'; if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B'; if (n >= 1e6) return '$' + (n/1e6).toFixed(0) + 'M'; return ''; };
 
   return (
-    <div ref={boxRef} className="mt-tickersearch" style={{ position: 'relative', flex: '1 1 280px', maxWidth: 420, margin: '0 var(--sp-16)' }}>
+    /* 2026-10-28: the box's width and placement belong to the header that
+       holds it (styles/redesign.css), not to an inline style here — the
+       editorial header gives it 260px, the terminal header 280px with a
+       prompt and a blinking cursor, the phone its own full-width row. */
+    <div ref={boxRef} className={`mt-tickersearch ${className}`}>
+      <span className="rd-search-prompt" aria-hidden="true">&gt;</span>
+      <svg className="rd-search-glyph" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
       <input
+        autoFocus={autoFocus}
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onKeyDown={onKey}
         onFocus={() => { if (res.length) setOpen(true); }}
-        placeholder="Search any ticker or company…"
+        placeholder="Search ticker or company"
         aria-label="Search tickers"
         spellCheck={false}
         autoComplete="off"
@@ -71,20 +78,21 @@ export default function TickerSearch() {
            not touch it and the search stayed a cream-era pill on a v13 page.
            This is one of the 147 inline style objects the redesign is retiring:
            a style that cannot be themed is a style that will drift. */
-        className="v13-search-input"
+        className="v13-search-input rd-search-input"
       />
+      <span className="rd-search-cursor" aria-hidden="true" />
       {open && res.length > 0 && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--mt-surface)', border: '1px solid var(--mt-line-1)', borderRadius: 'var(--r-12)', boxShadow: 'var(--sh-26)', overflow: 'hidden', zIndex: 9999 }}>
+        <div className="rd-search-menu">
           {res.map((r, i) => (
             <div
               key={r.ticker}
               onMouseDown={() => go(r.ticker)}
               onMouseEnter={() => setHi(i)}
-              style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-10)', padding: 'var(--sp-8) var(--sp-13)', cursor: 'pointer', background: i === hi ? 'var(--mt-surface-2)' : 'transparent' }}
+              className={`rd-search-item${i === hi ? ' is-hi' : ''}`}
             >
-              <span style={{ fontWeight: 'var(--fw-700)', fontFamily: 'var(--mt-type-mono)', fontSize: 'var(--v13-t3)', minWidth: 58, color: 'var(--mt-ink-0)' }}>{r.ticker}</span>
-              <span style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{r.name}</span>
-              <span style={{ fontSize: 'var(--v13-t1)', color: 'var(--mt-ink-3)', fontFamily: 'var(--mt-type-mono)' }}>{fmtCap(r.market_cap)}</span>
+              <span className="rd-search-tk">{r.ticker}</span>
+              <span className="rd-search-nm">{r.name}</span>
+              <span className="rd-search-cap">{fmtCap(r.market_cap)}</span>
             </div>
           ))}
         </div>

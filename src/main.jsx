@@ -8,6 +8,10 @@ import OverhaulApp from './overhaul/OverhaulApp.jsx'
 // Liquid Glass look (2026-10-01). Imported AFTER the app so it is the last
 // stylesheet in the bundle and wins over every page sheet it restyles.
 import './overhaul/styles/glass.css'
+// The 2026-10-28 redesign (editorial Home, terminal Macro Landscape and
+// Paper Portfolio, the shared header / status line / ticker bar / footer).
+// Imported LAST so it wins over glass.css and every page sheet it restyles.
+import './overhaul/styles/redesign.css'
 import { installClientErrorLog } from './lib/clientErrorLog'
 
 // Start collecting browser errors before anything renders, so a bug filed

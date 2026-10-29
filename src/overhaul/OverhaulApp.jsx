@@ -59,7 +59,7 @@ import './styles/mobile-v12.css';
 import './styles/v13.css';
 import './styles/chrome-v13.css';
 
-import { TweaksProvider } from './tweaks/TweaksContext';
+import { TweaksProvider, useTweaks } from './tweaks/TweaksContext';
 
 import TopNav from './chrome/TopNav';
 import PageHeader from './chrome/PageHeader';
@@ -186,21 +186,46 @@ function RequireAuth({ children }) {
   return children;
 }
 
+/* Which skin a route wears (2026-10-28 redesign).
+     editorial  Home — the newspaper front page, light or dark by the toggle.
+     terminal   Macro Landscape and Paper Portfolio — dark only.
+     legacy     every other page: the new header, status line, ticker bar and
+                footer, over the page's own existing look.
+   The attribute goes on the shell AND on <html>, so the ground behind an
+   overscrolled page is the skin's colour too. */
+function skinFor(pathname) {
+  if (pathname === '/') return 'editorial';
+  if (pathname === '/macro' || pathname === '/paper') return 'terminal';
+  return 'legacy';
+}
+
 function Shell() {
-  // The Home route is the full-bleed Daily-Brief design (its own header +
-  // ribbon). Every other route keeps the standard sidebar + top chrome until
-  // Phase 2 brings them onto the same system.
+  const { pathname } = useLocation();
+  const { tweaks } = useTweaks();
+  const skin = skinFor(pathname);
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute('data-skin', skin);
+    /* The terminal pages are dark by design, and the shared drill modals read
+       the theme tokens — so while a terminal page is up, the theme attribute
+       reads dark whatever the toggle says; leaving it restores the choice. */
+    root.setAttribute('data-mt-theme', skin === 'terminal' ? 'navy' : tweaks.theme);
+    return () => { root.removeAttribute('data-skin'); };
+  }, [skin, tweaks.theme]);
   return (
-    <div className="mt-overhaul">
-      {/* Liquid Glass ground: four drifting light blobs behind every page
-          (presentational only; styled in glass.css, frozen under
-          prefers-reduced-motion). */}
-      <div className="lg-ground" aria-hidden="true">
-        <span className="lg-blob lg-blob-1" />
-        <span className="lg-blob lg-blob-2" />
-        <span className="lg-blob lg-blob-3" />
-        <span className="lg-blob lg-blob-4" />
-      </div>
+    <div className="mt-overhaul" data-skin={skin}>
+      {/* Liquid Glass ground: drifting light blobs behind the pages that
+          still wear the glass look (presentational only; styled in
+          glass.css, frozen under prefers-reduced-motion). The redesigned
+          pages draw their own ground (Home: two faint blobs; terminal: none). */}
+      {skin === 'legacy' && (
+        <div className="lg-ground" aria-hidden="true">
+          <span className="lg-blob lg-blob-1" />
+          <span className="lg-blob lg-blob-2" />
+          <span className="lg-blob lg-blob-3" />
+          <span className="lg-blob lg-blob-4" />
+        </div>
+      )}
       <div className="mt-app">
         <main className="mt-main">
           <TopNav />

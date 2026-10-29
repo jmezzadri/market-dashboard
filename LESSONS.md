@@ -2523,6 +2523,8 @@ Plus self-hosted Fraunces and Inter `@font-face` rules in `theme.css` and four `
 
 **Applies to:** UX Designer on every sign-off; Lead Developer on every PR touching `src/` or `index.html`. See `docs/TYPOGRAPHY_STANDARD.md`.
 
+**2026-10-28 — the faces changed, the rule did not.** Joe's approved "MacroTilt Redesign" canvas sets the serif to Newsreader, the sans to Inter and keeps IBM Plex Mono; the three roles, the three tokens, the one declaration site and the one `<link>` are exactly as above. The terminal pages (Macro Landscape, Paper Portfolio) add one scoped cut of the sans role — `.mt-terminal { --mt-type-sans: 'IBM Plex Sans Condensed' … }` on one line of `type.css` — and set their capitalised labels in mono, the way a terminal reads; `check_fonts.mjs` allows that one scoped line and treats a capitalised mono line inside a terminal root as a label. Sentence-case text on a terminal page is still prose and still sans.
+
 ### 9.18 (2026-09-08, hours after 9.17) — Six steps, three weights, no clamp(); same role declared together, or the two tiles drift apart
 
 **What happened:** Joe, on the same page, the same day: *"Are you shitting me? The fonts are not fixed!!! They're all different fucking sizes! Why all different sizes, some bold, others not. Im lost on how you operate this way."*

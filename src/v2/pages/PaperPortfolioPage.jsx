@@ -1,5 +1,20 @@
-/* PaperPortfolioPage — Quality Trend cockpit, in the site's own skin.
+/* PaperPortfolioPage — Quality Trend, terminal skin (2026-10-28 redesign,
+   from Joe's approved "MacroTilt Redesign" canvas: Portfolio /
+   PortfolioMobile boards). Dark, dense, data-first; no light theme.
 
+   Desktop: the title bar, six key figures, then three columns — PERF (growth
+   of $1,000,000 + the returns table) over HOLD (the ledger); ATTR over RISK;
+   TILT, SRC and BT. Phone: title, figures 2×3, chart + returns, a four-
+   column holdings list, risk 2×2, tilts, today's attribution, and one tap
+   row to shock scenarios, sectors and the backtest.
+
+   VISUAL REBUILD ONLY. Every figure is the one v6 computed: liveStats,
+   perfTable, the risk cockpit row, factor loadings, attribution, the book
+   roll-ups, the validated backtest constants. The ledger is the same shared
+   DataTable with the same columns, sorting, column controls and amber rule.
+   Styling lives in src/overhaul/styles/redesign.css.
+
+   ── history ──
    v6 (2026-10-20, Joe: "more of a dashboard/cockpit"). Same data, same
    tokens, same glass; the page is now a pinned four-figure ribbon over three
    columns — performance · style factors and risk budget · the holdings ledger
@@ -34,12 +49,10 @@
    Data (read-only, RLS public): qt_target_book, qt_orders, qt_nav_daily, qt_brake_state.
    Backtest constant BT is the validated run, verbatim (LESSONS 8.3). */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import useChartWidth from '../../overhaul/lib/useChartWidth';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import '../../overhaul/styles/v13.css';
-import '../../overhaul/styles/pages-v13.css';
 import DataTable from '../../overhaul/components/DataTable';
 import { ALERT_RULES, primaryFactor } from '../lib/paperRisk';
 
@@ -270,169 +283,6 @@ function useRiskCockpit({ latestNav, rebalDate }) {
   return state;
 }
 
-/* ── injected CSS: layout + density of the cockpit (tokens only) ─────────── */
-const CSS = `
-.paper-v12 .qtt * { box-sizing: border-box; }
-.paper-v12 .qtt-card { transition: background var(--dur-500); }
-.paper-v12 .qtt-row { transition: background var(--dur-120) ease; }
-.paper-v12 .qtt-row:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
-.paper-v12 .qtt-pill { transition: background var(--dur-120) ease, color var(--dur-120) ease; cursor: pointer; border: 1px solid var(--hair); background: transparent; color: var(--ink-soft); border-radius: var(--r-999); padding: var(--sp-2) var(--sp-9); font-size:var(--v13-t1); font-weight: var(--fw-600); letter-spacing: .04em; font-family: var(--mt-type-sans); }
-.paper-v12 .qtt-pill:hover { color: var(--ink); }
-.paper-v12 .qtt-pill.on { background: color-mix(in srgb, var(--gold-deep) 16%, transparent); border-color: var(--gold-deep); color: var(--gold-deep); }
-.paper-v12 .qtt-search { background: var(--bg2); border: 1px solid var(--hair); border-radius: var(--r-10); color: var(--ink); padding: var(--sp-4) var(--sp-10); font-size:var(--v13-t2); width: 150px; outline: none; font-family: var(--mt-type-sans); }
-.paper-v12 .qtt-search:focus { border-color: var(--gold-deep); }
-.paper-v12 .qtt-search::placeholder { color: var(--mut); }
-
-/* the ribbon — the page's ONE ink surface, pinned under the top bar */
-.paper-v12 .ck-ribbon { position: sticky; top: calc(var(--ch-nav-h) + var(--lg-gap)); z-index: 30; background: var(--lg-sheet); color: var(--cream-text); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-10) var(--sp-18); align-items: start; margin-bottom: var(--lg-gap); }
-.paper-v12 .ck-stat { min-width: 0; }
-.paper-v12 .ck-eyebrow { font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: color-mix(in srgb, var(--cream-text) 72%, transparent); margin-bottom: var(--sp-3); white-space: nowrap; }
-.paper-v12 .ck-hero { font-size: var(--v13-t5); font-weight: var(--fw-600); letter-spacing: -.01em; color: var(--cream-text); line-height: 1.15; white-space: nowrap; }
-.paper-v12 .ck-sub { font-size: var(--v13-t2); color: color-mix(in srgb, var(--cream-text) 72%, transparent); margin-top: var(--sp-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.paper-v12 .ck-ribbon .term-u { border-bottom-color: var(--cream-text); }
-
-/* the tear sheet: three chapters, each a row of equal-height tiles plus
-   collapsed secondary tiles beneath. Rows reflow 3→2→1 (and 4→2→1). */
-.paper-v12 .ck-section { margin-top: var(--sp-28); }
-.paper-v12 .ck-section-head { display: flex; align-items: baseline; gap: var(--sp-12); margin-bottom: var(--sp-12); min-width: 0; }
-.paper-v12 .ck-section-title { font-family: var(--mt-type-sans); font-size: var(--v13-t5); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); margin: 0; line-height: 1.2; white-space: nowrap; }
-.paper-v12 .ck-section-sub { font-size: var(--v13-t2); color: var(--mut); min-width: 0; }
-.paper-v12 .ck-section-rule { flex: 1 1 24px; height: 1px; background: var(--hair); align-self: center; }
-.paper-v12 .ck-row3 { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--lg-gap); align-items: stretch; }
-.paper-v12 .ck-row4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--lg-gap); align-items: stretch; }
-.paper-v12 .ck-comp { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: var(--lg-gap); align-items: stretch; }
-.paper-v12 .ck-row3 > .qtt-card, .paper-v12 .ck-row4 > .qtt-card, .paper-v12 .ck-comp > .qtt-card { margin-bottom: 0 !important; }
-.paper-v12 .ck-col { display: flex; flex-direction: column; gap: var(--lg-gap); min-width: 0; }
-.paper-v12 .ck-col > .qtt-card { margin-bottom: 0 !important; }
-.paper-v12 .ck-col > .qtt-card.ck-fill { flex: 1 1 auto; }
-.paper-v12 .ck-fold { margin: var(--lg-gap) 0 0 !important; }
-.paper-v12 .ck-fold-sum { list-style: none; display: flex; align-items: baseline; gap: var(--sp-10); padding: var(--sp-10) var(--sp-14); cursor: pointer; min-width: 0; }
-.paper-v12 .ck-fold-sum::-webkit-details-marker { display: none; }
-.paper-v12 .ck-fold-sum::marker { content: ""; }
-.paper-v12 .ck-fold-chev { flex: none; width: 7px; height: 7px; border-right: 1.5px solid var(--mut); border-bottom: 1.5px solid var(--mut); transform: translateY(-2px) rotate(-45deg); transition: transform var(--dur-200) var(--ease); align-self: center; }
-.paper-v12 .ck-fold[open] > .ck-fold-sum .ck-fold-chev { transform: translateY(-3px) rotate(45deg); }
-.paper-v12 .ck-fold-right { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.paper-v12 .ck-fold-hint { flex: none; margin-left: auto; font-size: var(--v13-t1); font-weight: var(--fw-600); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); }
-.paper-v12 .ck-fold-hint::after { content: "Show"; }
-.paper-v12 .ck-fold[open] > .ck-fold-sum .ck-fold-hint::after { content: "Hide"; }
-.paper-v12 .ck-fold-sum:hover .ck-card-title, .paper-v12 .ck-fold-sum:hover .ck-fold-hint { color: var(--ink); }
-.paper-v12 .ck-fold-body { padding: 0 var(--sp-14) var(--sp-14); }
-.paper-v12 .ck-fold-bt { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--lg-gap); align-items: start; }
-.paper-v12 .ck-factors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--sp-28); }
-.paper-v12 .qtt-secgrid.ck-indgrid { columns: 4; }
-.paper-v12 .ck-sublabel { font-size: var(--v13-t1); font-weight: var(--fw-600); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); margin-bottom: var(--sp-4); }
-.paper-v12 .ck-narrow-only { display: none; }
-@media (max-width: 1360px) {
-  .paper-v12 .ck-row3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .paper-v12 .ck-row3 > .qtt-card:last-child { grid-column: 1 / -1; }
-  .paper-v12 .ck-row4 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .paper-v12 .ck-comp { grid-template-columns: minmax(0, 1fr); }
-  .paper-v12 .ck-compside { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .paper-v12 .ck-compside .ck-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .paper-v12 .ck-fold-bt { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .paper-v12 .ck-fold-bt > div:first-child { grid-column: 1 / -1; }
-  .paper-v12 .qtt-secgrid.ck-indgrid { columns: 3; }
-}
-@media (max-width: 780px) {
-  .paper-v12 .ck-row3, .paper-v12 .ck-row4, .paper-v12 .ck-compside, .paper-v12 .ck-fold-bt { grid-template-columns: minmax(0, 1fr); }
-  .paper-v12 .ck-factors { grid-template-columns: minmax(0, 1fr); }
-  .paper-v12 .qtt-secgrid.ck-indgrid { columns: 2; }
-  .paper-v12 .ck-section-head { flex-wrap: wrap; }
-  .paper-v12 .ck-section-rule { display: none; }
-  .paper-v12 .ck-fold-right { display: none; }
-  .paper-v12 .ck-wide-only { display: none; }
-  .paper-v12 .ck-narrow-only { display: table; }
-  .paper-v12 .ck-ribbon { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .paper-v12 .ck-hero { white-space: normal; }
-  .paper-v12 .ck-eyebrow { white-space: normal; }
-  /* the cockpit's own tables are narrow by design: keep them one full-width
-     grid rather than the site's phone head/body split (which left them
-     hugging the left edge) */
-  .mt-overhaul .paper-v12 .ck-table { display: table; width: 100%; max-width: 100%; overflow: visible; -webkit-mask-image: none; mask-image: none; }
-  .mt-overhaul .paper-v12 .ck-table.ck-wide-only { display: none; }
-  .mt-overhaul .paper-v12 .ck-table thead { display: table-header-group; width: auto; min-width: 0; }
-  .mt-overhaul .paper-v12 .ck-table tbody { display: table-row-group; width: auto; min-width: 0; }
-  .mt-overhaul .paper-v12 .ck-table th, .mt-overhaul .paper-v12 .ck-table td { padding: var(--sp-4) var(--sp-6); }
-  .mt-overhaul .paper-v12 .ck-table th:first-child, .mt-overhaul .paper-v12 .ck-table td:first-child { padding-left: 0; }
-  .mt-overhaul .paper-v12 .dt-scroll { -webkit-mask-image: linear-gradient(to right, var(--c-000000) calc(100% - 18px), transparent 100%); mask-image: linear-gradient(to right, var(--c-000000) calc(100% - 18px), transparent 100%); }
-  .mt-overhaul .paper-v12 .dt-table td { padding-top: var(--sp-3); padding-bottom: var(--sp-3); }
-}
-@media (max-width: 480px) { .paper-v12 .qtt-secgrid.ck-indgrid { columns: 1; } }
-
-/* density: one card anatomy, tight rows, tabular numerals */
-.paper-v12 .ck-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-10); margin-bottom: var(--sp-8); flex-wrap: wrap; }
-.paper-v12 .ck-card-title { font-size: var(--v13-t2); font-weight: var(--fw-700); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
-.paper-v12 .ck-card-right { font-size: var(--v13-t2); color: var(--mut); }
-.paper-v12 .ck-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.paper-v12 .ck-table th { text-align: right; padding: var(--sp-4) var(--sp-6); font-size: var(--v13-t1); font-weight: var(--fw-600); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); white-space: nowrap; border-bottom: 1px solid var(--hair); vertical-align: bottom; }
-.paper-v12 .ck-table th > span { white-space: normal; }
-.paper-v12 .ck-table td { text-align: right; padding: var(--sp-4) var(--sp-6); font-size: var(--v13-t3); white-space: nowrap; border-bottom: 1px solid color-mix(in srgb, var(--hair) 60%, transparent); }
-.paper-v12 .ck-table th:first-child, .paper-v12 .ck-table td:first-child { text-align: left; padding-left: 0; white-space: normal; }
-.paper-v12 .ck-table th:last-child, .paper-v12 .ck-table td:last-child { padding-right: 0; }
-.paper-v12 .ck-table tr.ck-strong td { font-weight: var(--fw-700); }
-.paper-v12 .ck-table.ck-tight th, .paper-v12 .ck-table.ck-tight td { padding-left: var(--sp-3); padding-right: var(--sp-3); font-size: var(--v13-t2); }
-.paper-v12 .ck-table.ck-tight td:first-child { font-size: var(--v13-t3); }
-.paper-v12 .ck-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-8) var(--sp-10); }
-.paper-v12 .ck-stats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.paper-v12 .ck-stats.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.paper-v12 .ck-stat-k { font-size: var(--v13-t1); font-weight: var(--fw-600); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); margin-bottom: var(--sp-2); line-height: 1.2; display: flex; align-items: flex-end; min-height: 2.4em; }
-.paper-v12 .ck-stat-v { font-size: var(--v13-t4); font-weight: var(--fw-700); font-variant-numeric: tabular-nums; }
-.paper-v12 .ck-stat-s { font-size: var(--v13-t1); color: var(--mut); margin-top: var(--sp-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.paper-v12 .ck-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) auto; gap: var(--sp-8); align-items: center; padding: var(--sp-5) 0; border-bottom: 1px solid color-mix(in srgb, var(--hair) 60%, transparent); font-size: var(--v13-t3); }
-.paper-v12 .ck-row:last-child { border-bottom: 0; }
-.paper-v12 .ck-bar { position: relative; height: 6px; border-radius: var(--r-999); background: color-mix(in srgb, var(--ink) 10%, transparent); overflow: hidden; }
-.paper-v12 .ck-bar > span { position: absolute; top: 0; height: 100%; border-radius: var(--r-999); }
-.paper-v12 .ck-bar.diverge::after { content: ""; position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: var(--mut); }
-.paper-v12 .ck-stack { display: flex; height: 10px; border-radius: var(--r-999); overflow: hidden; margin: var(--sp-6) 0 var(--sp-8); }
-.paper-v12 .ck-legend { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-8); font-size: var(--v13-t2); }
-.paper-v12 .ck-alert { display: grid; grid-template-columns: auto 1fr; gap: var(--sp-8); align-items: start; padding: var(--sp-6) 0; border-bottom: 1px solid color-mix(in srgb, var(--hair) 60%, transparent); font-size: var(--v13-t2); line-height: 1.45; color: var(--ink-soft); }
-.paper-v12 .ck-alert:last-child { border-bottom: 0; }
-.paper-v12 .ck-alert-code { font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: .1em; text-transform: uppercase; padding: var(--sp-1) var(--sp-6); border-radius: var(--r-4); white-space: nowrap; margin-top: var(--sp-1); }
-.paper-v12 .ck-alert.red .ck-alert-code { color: var(--down); background: color-mix(in srgb, var(--down) 12%, transparent); }
-.paper-v12 .ck-alert.amber .ck-alert-code { color: var(--gold-deep); background: color-mix(in srgb, var(--gold-deep) 14%, transparent); }
-.paper-v12 .ck-alert.grey .ck-alert-code { color: var(--mut); background: color-mix(in srgb, var(--ink) 8%, transparent); }
-.paper-v12 .ck-scroll { overflow-x: auto; }
-.paper-v12 .ck-twoup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--sp-16); }
-@media (max-width: 560px) { .paper-v12 .ck-twoup { grid-template-columns: minmax(0, 1fr); } }
-.paper-v12 .dt-table th, .paper-v12 .dt-table td { padding: var(--sp-4) var(--sp-5); }
-.paper-v12 .ck-note { font-size: var(--v13-t1); color: var(--mut); margin-top: var(--sp-8); line-height: 1.5; }
-.paper-v12 .ck-link { color: var(--ink-soft); border-bottom: 1px solid var(--hair); text-decoration: none; }
-.paper-v12 .ck-fill { display: flex; flex-direction: column; }
-.paper-v12 .ck-fill > .ck-body { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
-.paper-v12 .ck-fill > .ck-body > * { flex: none; }
-.paper-v12 .ck-fill > .ck-body > .ck-chartfill { flex: 1 1 0; min-height: 204px; }
-.paper-v12 .ck-fill > .ck-body > .ck-pin { margin-top: auto; padding-top: var(--sp-8); }
-/* the holdings ledger: the shared table control, tightened to the cockpit's row height */
-.paper-v12 .dt-table th, .paper-v12 .dt-table td { padding: var(--sp-4) var(--sp-6); font-size: var(--v13-t3); }
-.paper-v12 .dt-table th { font-size: var(--v13-t1); letter-spacing: .06em; text-transform: uppercase; }
-.paper-v12 .dt-toolbar { padding-bottom: var(--sp-6); }
-.paper-v12 .dt-colbtn { padding: var(--sp-3) var(--sp-9); font-size: var(--v13-t2); }
-.paper-v12 .qtt-secgrid { columns: 2; column-gap: var(--lg-gap); }
-.paper-v12 .qtt-sectile { break-inside: avoid; -webkit-column-break-inside: avoid; background: var(--bg2); border-radius: var(--r-14); padding: var(--sp-8) var(--sp-10); margin: 0 0 var(--sp-10); }
-/* phone/tablet overrides, declared LAST so they beat the density rules above */
-@media (max-width: 1180px) { .paper-v12 .ck-sub { white-space: normal; } }
-@media (max-width: 480px) { .paper-v12 .ck-stats, .paper-v12 .ck-stats.four, .paper-v12 .ck-stats.two { grid-template-columns: repeat(2, minmax(0, 1fr)); } .paper-v12 .ck-legend { grid-template-columns: 1fr; } }
-`;
-
-/* A chart that fills the height its tile has left over, so the column it sits
-   in ends on the same line as its neighbours without a blank band (LESSONS
-   9.25 rule 3: size the chart to the stack, never to a fixed number). The
-   wrapper's height is set by flex, not by the chart, so measuring it is stable. */
-function useFillHeight(min = 170) {
-  // A callback ref, not useRef: the tile mounts AFTER the page's loading
-  // state, so an effect keyed on mount would observe nothing.
-  const [node, setNode] = useState(null);
-  const [h, setH] = useState(min);
-  useEffect(() => {
-    if (!node || typeof ResizeObserver === 'undefined') return undefined;
-    const ro = new ResizeObserver(([e]) => setH(Math.max(min, Math.floor(e.contentRect.height))));
-    ro.observe(node);
-    return () => ro.disconnect();
-  }, [node, min]);
-  return [setNode, h];
-}
-
-/* ── small primitives ─────────────────────────────────────────────────── */
 
 function Term({ children, tip, placement = 'top', alignRight = false, labelOpacity = 1, wide = false }) {
   const [open, setOpen] = useState(false);
@@ -456,73 +306,17 @@ function Term({ children, tip, placement = 'top', alignRight = false, labelOpaci
   );
 }
 
-/* One card anatomy for every tile on the page: a header band (title left,
-   context right) and a body. `fill` makes the body a flex column so a chart
-   can absorb a row's slack and a footnote can pin to the bottom; every card
-   in a row stretches to the row's height, so the row ends on one line
-   (LESSONS 9.25 rule 3, 9.28). */
-function Card({ title, right, children, style, className, fill = false }) {
-  return (
-    <div className={`qtt-card ${fill ? 'ck-fill' : ''} ${className || ''}`} style={{ background: CARD, borderRadius: 'var(--r-card)', padding: 'var(--sp-12) var(--sp-14)', ...style }}>
-      {(title || right) && (
-        <div className="ck-card-head">
-          <div className="ck-card-title">{title}</div>
-          {right ? <div className="ck-card-right">{right}</div> : null}
-        </div>
-      )}
-      <div className="ck-body">{children}</div>
-    </div>
-  );
-}
 
-/* The tear sheet's three chapters — Performance, Risk, Portfolio composition
-   (Joe, 2026-10-21). The chapter title is the page's largest label after the
-   ribbon so the eye lands on it first; tiles inside carry smaller titles. */
-function Section({ title, sub, children }) {
-  return (
-    <section className="ck-section" aria-label={title}>
-      <div className="ck-section-head">
-        <h2 className="ck-section-title">{title}</h2>
-        {sub ? <span className="ck-section-sub">{sub}</span> : null}
-        <span className="ck-section-rule" aria-hidden="true" />
-      </div>
-      {children}
-    </section>
-  );
-}
-
-/* A secondary tile: a full-width bar that opens on click. Native
-   details/summary — keyboard and screen-reader behaviour for free, no state
-   to lose. Closed by default so a chapter shows a handful of tiles, not a
-   wall (Joe, 2026-10-21: "only a handful of select tiles on screen"). */
-function Fold({ title, right, children, open = false }) {
-  return (
-    <details className="qtt-card ck-fold" open={open || undefined} style={{ background: CARD, borderRadius: 'var(--r-card)' }}>
-      <summary className="ck-fold-sum">
-        <span className="ck-fold-chev" aria-hidden="true" />
-        <span className="ck-card-title">{title}</span>
-        {right ? <span className="ck-card-right ck-fold-right">{right}</span> : null}
-        <span className="ck-fold-hint" aria-hidden="true" />
-      </summary>
-      <div className="ck-fold-body">{children}</div>
-    </details>
-  );
-}
-function Meter({ frac, color = BLUE }) {
-  return (
-    <div style={{ height: 5, borderRadius: 'var(--r-999)', background: 'color-mix(in srgb, var(--ink) 12%, transparent)', overflow: 'hidden', marginTop: 'var(--sp-5)' }}>
-      <div style={{ width: `${Math.max(0, Math.min(100, frac * 100))}%`, height: '100%', background: color, borderRadius: 'var(--r-999)' }} />
-    </div>
-  );
-}
-
-function LineChart({ series, dates, height = 250, log = false, yFmt }) {
+/* ── the PERF chart: growth of $1,000,000, book in amber and S&P 500 in
+   grey, end-value price tags on the right edge, crosshair readout on hover
+   and arrow keys (2026-10-28 terminal board). One SVG unit = one CSS pixel
+   (LESSONS 9.20), so the axis labels render on the type scale. The lines
+   draw themselves left to right on load; the tags fade in after. */
+function TmLineChart({ series, dates, height = 240, log = false, yFmt, animate = true }) {
   const [hov, setHov] = useState(null);
-  /* One user unit = one CSS pixel — a fixed 1000-unit canvas stretched to the
-     card rendered these labels at 16.3px (Joe, 2026-09-09). */
-  const [wrapRef, W] = useChartWidth(1000);
-  const H = height, padL = 8, padR = 74, padT = 12, padB = 26;
-  const all = series.flatMap((s) => s.values).filter((v) => v > 0);
+  const [wrapRef, W] = useChartWidth(800);
+  const H = height, padL = 12, padR = 64, padT = 10, padB = 22;
+  const all = series.flatMap((s) => s.values).filter((v) => v != null && v > 0);
   if (!all.length) return null;
   const t = (v) => (log ? Math.log(v) : v);
   const lo = Math.min(...all.map(t)), hi = Math.max(...all.map(t));
@@ -532,9 +326,8 @@ function LineChart({ series, dates, height = 250, log = false, yFmt }) {
   const path = (vals) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
   const gridVals = [0.25, 0.5, 0.75].map((f) => (log ? Math.exp(lo + f * (hi - lo)) : lo + f * (hi - lo)));
   const fmt = yFmt || ((v) => (v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${Math.round(v / 1000).toLocaleString()}k`));
-  const endYs = series.map((s) => y(s.values[s.values.length - 1]));
   const dateLbl = (i) => (dates && dates[i]
-    ? new Date(`${String(dates[i]).slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric', ...(n < 60 ? { day: 'numeric' } : {}) })
+    ? new Date(`${String(dates[i]).slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(n > 400 ? { year: 'numeric', day: undefined } : {}) }).toUpperCase()
     : '');
   const xTicks = n > 1 ? [0, Math.floor(n / 2), n - 1] : [0];
   const idxFromEvent = (e) => {
@@ -550,73 +343,54 @@ function LineChart({ series, dates, height = 250, log = false, yFmt }) {
   };
   const tipLeftPct = hov != null ? (x(hov) / W) * 100 : 0;
   const flip = tipLeftPct > 62;
+  // Price tags: keep two tags from overlapping by nudging the lower one down.
+  const tags = series.map((s, i) => ({ s, i, cy: y(s.values[s.values.length - 1]), txt: fmt(s.values[s.values.length - 1]) }))
+    .sort((a, b) => a.cy - b.cy);
+  for (let i = 1; i < tags.length; i++) if (tags[i].cy - tags[i - 1].cy < 20) tags[i].cy = tags[i - 1].cy + 20;
   return (
-    <div ref={wrapRef} style={{ position: 'relative' }} tabIndex={0} role="application"
+    <div ref={wrapRef} className="tm-chart" tabIndex={0} role="application"
       aria-label="Performance chart — arrow keys move the readout"
       onKeyDown={onKey} onPointerMove={(e) => setHov(idxFromEvent(e))}
       onPointerLeave={() => setHov(null)} onBlur={() => setHov(null)}>
-      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: 'block', maxWidth: '100%' }} role="img" aria-label="performance chart">
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label="performance chart">
         {gridVals.map((gv, i) => (
           <g key={i}>
-            <line x1={padL} x2={W - padR} y1={y(gv)} y2={y(gv)} stroke={HAIR} />
-            {endYs.every((ey) => Math.abs(y(gv) - ey) > 16) ? (
-              <text x={W - padR + 6} y={y(gv) + 4} fontSize="11" fill={INK3}>{fmt(gv)}</text>
+            <line className="tm-chart-grid" x1={padL} x2={W - padR} y1={y(gv)} y2={y(gv)} />
+            {tags.every((tg) => Math.abs(y(gv) - tg.cy) > 14) ? (
+              <text className="tm-chart-lbl" x={W - padR + 6} y={y(gv) + 4}>{fmt(gv)}</text>
             ) : null}
           </g>
         ))}
         {xTicks.map((i) => (
-          <text key={i} x={x(i)} y={H - 6} fontSize="11" fill={INK3}
+          <text key={i} className="tm-chart-lbl" x={x(i)} y={H - 6}
             textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}>{dateLbl(i)}</text>
         ))}
         {series.map((s) => (
-          <path key={s.name} d={path(s.values)} fill="none" stroke={s.color} strokeWidth={s.width || 2.2} strokeLinejoin="round" strokeLinecap="round" opacity={s.opacity || 1} />
+          <path key={s.name} className={`tm-chart-line${animate ? ' tm-draw' : ''}`} d={path(s.values)} fill="none" stroke={s.color} strokeWidth={s.width || 2} strokeLinejoin="round" strokeLinecap="round" opacity={s.opacity || 1} pathLength={animate ? 1 : undefined} />
         ))}
-        {series.map((s) => (
-          <text key={`${s.name}-end`} x={W - padR + 6} y={y(s.values[s.values.length - 1]) + 4} fontSize="13" fontWeight="600" fill={s.color}>
-            {fmt(s.values[s.values.length - 1])}
-          </text>
+        {tags.map((tg) => (
+          <g key={`${tg.s.name}-tag`} className={animate ? 'tm-pop' : ''}>
+            <rect x={W - padR + 4} y={tg.cy - 9} width={padR - 6} height={18} fill={tg.s.tagBg || tg.s.color} />
+            <text className="tm-chart-tag" x={W - padR + 4 + (padR - 6) / 2} y={tg.cy + 4} textAnchor="middle" fill={tg.s.tagInk || 'var(--tm-page)'}>{tg.txt}</text>
+          </g>
         ))}
         {hov != null && (
           <g>
-            <line x1={x(hov)} x2={x(hov)} y1={padT} y2={H - padB} stroke="var(--mut)" strokeWidth="1" opacity="0.7" />
+            <line x1={x(hov)} x2={x(hov)} y1={padT} y2={H - padB} className="tm-chart-cross" />
             {series.map((s) => (
-              <circle key={`${s.name}-dot`} cx={x(hov)} cy={y(s.values[hov])} r="4" fill={s.color} stroke={CARD} strokeWidth="2" />
+              <circle key={`${s.name}-dot`} cx={x(hov)} cy={y(s.values[hov])} r="4" fill={s.color} className="tm-chart-hovdot" />
             ))}
           </g>
         )}
       </svg>
       {hov != null && (
-        <div style={{
-          position: 'absolute', top: 6,
-          left: flip ? undefined : `calc(${tipLeftPct}% + 12px)`,
-          right: flip ? `calc(${100 - tipLeftPct}% + 12px)` : undefined,
-          background: CARD2, border: `1px solid ${EDGE}`, borderRadius: 'var(--r-10)',
-          padding: 'var(--sp-8) var(--sp-11)', pointerEvents: 'none', boxShadow: 'var(--sh)',
-          fontSize: 'var(--v13-t3)', whiteSpace: 'nowrap', zIndex: 5, color: INK,
-        }}>
-          <div style={{ color: INK3, marginBottom: 'var(--sp-4)' }}>{dateLbl(hov)}</div>
+        <div className="tm-chart-tip" style={{ left: flip ? undefined : `calc(${tipLeftPct}% + 12px)`, right: flip ? `calc(${100 - tipLeftPct}% + 12px)` : undefined }}>
+          <div className="tm-chart-tip-d">{dateLbl(hov)}</div>
           {series.map((s) => (
-            <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-7)', padding: 'var(--sp-1) 0' }}>
-              <span style={{ width: 12, height: 2.5, background: s.color, borderRadius: 'var(--r-2)', flex: 'none' }} />
-              <span style={{ fontWeight: 'var(--fw-600)', fontVariantNumeric: 'tabular-nums' }}>{fmt(s.values[hov])}</span>
-              <span style={{ color: INK3 }}>{s.name}</span>
-            </div>
+            <div key={s.name} className="tm-chart-tip-r"><span className="tm-chart-sw" style={{ background: s.color }} /><b>{fmt(s.values[hov])}</b><span>{s.name}</span></div>
           ))}
         </div>
       )}
-    </div>
-  );
-}
-function ChartLegend({ items }) {
-  return (
-    // A legend sits at its natural width under its chart — declared so the
-    // layout check does not read it as a jammed row. See scripts/check_layout.mjs.
-    <div data-layout="natural" style={{ display: 'flex', gap: 'var(--sp-20)', flexWrap: 'wrap', marginTop: 'var(--sp-10)' }}>
-      {items.map(([name, color]) => (
-        <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-7)', fontSize: 'var(--v13-t3)', color: INK2 }}>
-          <span style={{ width: 16, height: 3, background: color, borderRadius: 'var(--r-2)', display: 'inline-block' }} />{name}
-        </div>
-      ))}
     </div>
   );
 }
@@ -747,10 +521,6 @@ function perfTable(nav, heldIdx) {
   });
   return { rows, ytdFromStart, year };
 }
-
-const th = { textAlign: 'right', padding: 'var(--sp-9) var(--sp-10)', fontSize: 'var(--v13-t1)', fontWeight: 'var(--fw-600)', letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' };
-const td = { textAlign: 'right', padding: 'var(--sp-10) var(--sp-10)', fontSize: 'var(--v13-t3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' };
-
 
 export default function PaperPortfolioPage({ onOpenTicker }) {
   const [book, setBook] = useState(null);
@@ -1032,19 +802,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   }, [btRange]);
 
   const needs = (have, want) => `needs ${Math.max(want - have, 0)} more trading days`;
-  // 2026-09-01: `auto-fit` fits as many 1fr tracks as the width allows, so a
-  // six-item row in a 1432px frame got EIGHT equal tracks and two of them sat
-  // empty — 440px of dead space. When the item count is known, state it; pass
-  // `n` and the row spreads across exactly that many columns and no more.
-  // scripts/check_layout.mjs fails the build on an empty track.
-  const grid = (min, gap = 14, n = null) => ({ // kept for the stat grids
-    display: 'grid',
-    gridTemplateColumns: n
-      ? `repeat(${n}, minmax(0, 1fr))`
-      : `repeat(auto-fit, minmax(${min}px, 1fr))`,
-    gap,
-  });
-
   const fillCell = (r) => {
     const o = orders[r.symbol]; const m = marks[r.symbol];
     const px = m?.avg_entry ? Number(m.avg_entry) : (o?.status === 'filled' ? Number(o.filled_avg_price) : null);
@@ -1069,7 +826,6 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   }, [book, marks]);
 
   const cockpit = useRiskCockpit({ latestNav, rebalDate });
-  const [growthRef, growthH] = useFillHeight(204);
   const riskAsOf = cockpit.asOf ? fmtDate(cockpit.asOf).replace(/, \d{4}$/, '') : null;
 
   const filteredBook = useMemo(() => {
@@ -1138,29 +894,37 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     ];
   }, [cockpit.risk, cockpit.factorZ, marks, orders, equity, onOpenTicker, fillCell, dtlBySym]);
 
+
+  // Phone layout: the holdings ledger becomes a four-column tap list and the
+  // secondary panels sit behind one tap row (the approved PortfolioMobile board).
+  const [phone, setPhone] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 860 : false));
+  useEffect(() => {
+    const on = () => setPhone(window.innerWidth <= 860);
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [btOpen, setBtOpen] = useState(false);
+
   if (loading) {
     return (
-      <div className="home-v12 v13 paper-v12">
-        <style>{CSS}</style>
-        <div className="wrap qtt" style={{ padding: 'var(--sp-44) var(--sp-40) var(--sp-96)', minHeight: '70vh' }}>
-          <h1 className="serif" style={{ fontSize: 'var(--v13-t7)', fontWeight: 'var(--fw-700)', lineHeight: 1.08, margin: 0 }}>
-            Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
-          </h1>
-          <div aria-live="polite" style={{ marginTop: 'var(--sp-26)', fontSize: 'var(--v13-t3)', color: INK3 }}>{err ? `The book could not be loaded (${err}). Refresh to retry.` : 'Loading the book…'}</div>
-        </div>
+      <div className="mt-terminal tm-paper">
+        <main className="tm-main">
+          <section className="tm-titlebar"><span className="tm-title">QUALITY TREND</span><span className="tm-tag">PAPER BOOK</span></section>
+          <div aria-live="polite" className="tm-loading">{err ? `The book could not be loaded (${err}). Refresh to retry.` : 'LOADING THE BOOK…'}</div>
+        </main>
       </div>
     );
   }
 
   const periods = [
-    { id: 'day', label: 'Day', sub: dayShort },
-    { id: 'ytd', label: 'YTD', sub: perf ? (perf.ytdFromStart ? (inceptionShort ? `from ${inceptionShort}` : 'from start') : perf.year) : '' },
-    { id: 'since', label: 'Inception', sub: inceptionShort ? `since ${inceptionShort}` : '' },
+    { id: 'day', label: 'DAY' },
+    { id: 'ytd', label: 'YTD' },
+    { id: 'since', label: 'INCEPT' },
   ];
   const perfRows = perf ? perf.rows : PERF_ROWS.map((r) => ({ ...r, day: {}, ytd: {}, since: {} }));
-  const cellUsd = (c) => (c?.usd == null ? '—' : fmtSignedUsd(c.usd));
   const cellPct = (c) => (c?.pct == null ? '—' : fmtPct(c.pct, 2));
-  const cellTone = (c) => (c?.usd == null ? INK : upDown(c.usd));
+  const cellCls = (c) => (c?.pct == null ? 'fl' : c.pct >= 0 ? 'up' : 'down');
   const cr = cockpit.risk; const dc = cockpit.decomp;
   const riskNote = cockpit.status === 'loading' ? 'loading…'
     : cockpit.status === 'error' ? 'risk figures could not be loaded — refresh to retry'
@@ -1168,10 +932,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         : null;
   const needsDays = (want) => `prints after ${Math.max(want - (cockpit.have || 0), 0)} more sessions of price history`;
 
-  // Monthly returns: one row per year, one column per month on a wide screen;
-  // transposed (one row per month) on a phone. No year-to-date column — that
-  // figure lives once, in the Returns table (Joe, 2026-10-21: "literally the
-  // same number, three different tiles").
+  // Monthly returns, one cell per month (the first month runs from inception).
   const monthly = (() => {
     const months = {};
     (nav || []).forEach((r, i) => {
@@ -1186,542 +947,448 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       const dayOne = Number(first.equity) / 1_000_000 - 1;
       months[key] = (1 + dayOne) * (1 + (months[key] ?? 0)) - 1;
     }
-    const years = [...new Set(Object.keys(months).map((k) => k.slice(0, 4)))].sort();
     const keys = Object.keys(months).sort();
-    const firstMonth = keys.length && years.length === 1 ? Number(keys[0].slice(5, 7)) - 1 : null;
-    return { months, years, firstMonth, n: keys.length };
+    return { months, keys, n: keys.length };
   })();
   const MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const monthCell = (y, i) => {
-    const v = monthly.months[`${y}-${String(i + 1).padStart(2, '0')}`];
-    return <td key={`${y}-${i}`} style={{ color: v == null ? INK3 : upDown(v) }}>{v == null ? '·' : fmtPct(v, 1)}</td>;
-  };
+  const oneYear = new Set(monthly.keys.map((k) => k.slice(0, 4))).size <= 1;
+  const monthLbl = (k) => `${MN[Number(k.slice(5, 7)) - 1].toUpperCase()}${oneYear ? '' : ` ${k.slice(2, 4)}`}`;
 
-  // The backtest's own statistics — a different book (40 names, 2017–26), so
-  // none of these is a live figure repeated.
+  // The backtest's own statistics — a different book (40 names, 2017–26).
   const btRows = [
-    ['ret', 'Return / yr', null, BT_STATS.cagr, BT_SPX.cagr], ['vol', 'Volatility', TIPS.vol, BT_STATS.vol, BT_SPX.vol],
-    ['sharpe', 'Sharpe', TIPS.sharpe, BT_STATS.sharpe, BT_SPX.sharpe], ['sortino', 'Sortino', TIPS.sortino, BT_STATS.sortino, BT_SPX.sortino],
-    ['maxdd', 'Max drawdown', TIPS.maxdd, BT_STATS.maxdd, BT_SPX.maxdd], ['worst', 'Worst year', TIPS.worst, BT_STATS.worst, BT_SPX.worst],
-    ['ir', 'Information ratio', TIPS.ir, BT_STATS.ir, '—'],
+    ['ret', 'Return per year', BT_STATS.cagr, BT_SPX.cagr], ['vol', 'Volatility', BT_STATS.vol, BT_SPX.vol],
+    ['sharpe', 'Sharpe', BT_STATS.sharpe, BT_SPX.sharpe], ['sortino', 'Sortino', BT_STATS.sortino, BT_SPX.sortino],
+    ['maxdd', 'Max drawdown', BT_STATS.maxdd, BT_SPX.maxdd], ['worst', 'Worst year', BT_STATS.worst, BT_SPX.worst],
+    ['ir', 'Information ratio', BT_STATS.ir, '—'],
   ];
 
-  // Concentration facts for the composition section. Effective names =
-  // 1 / Σw² — how many equal-sized positions the book behaves like.
-  const effN = weights.length ? 1 / weights.reduce((s, x) => s + x.w * x.w, 0) : null;
   const rsSorted = Object.entries(cockpit.risk?.riskShare || {}).map(([s, v]) => ({ s, v: Number(v) })).filter((x) => Number.isFinite(x.v)).sort((a, b) => b.v - a.v);
-  const top5Risk = rsSorted.length >= 5 ? rsSorted.slice(0, 5).reduce((s, x) => s + x.v, 0) : null;
   const topRisk = rsSorted[0] || null;
   const bookBeta = dc?.beta ?? ls?.beta ?? null;
-  const bookBetaSub = dc?.beta != null ? '1-yr daily, today’s weights' : (ls?.beta != null ? 'daily marks' : needs(ls?.n ?? 0, 20));
+  const nSectors = bookMeta ? bookMeta.secList.length : null;
+  const marksN = (ls?.n ?? 0) + 1;
+  const signPct = (v, dp = 2) => (v == null || !Number.isFinite(Number(v)) ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(Number(v) * 100).toFixed(dp)}%`);
+  const signCls = (v) => (v == null || !Number.isFinite(Number(v)) ? 'fl' : v > 0 ? 'up' : v < 0 ? 'down' : 'fl');
+  const alerts = cockpit.alerts || null;
+  const nAlerts = alerts ? alerts.length : null;
 
-  const contribBlock = (label, blk) => (
-    <div key={label}>
-      <div className="ck-sublabel">{label}</div>
-      <div className="ck-twoup">
-        {[['Top 5', blk.top], ['Bottom 5', blk.bottom]].map(([lbl, rows]) => (
-          <table className="ck-table num" key={lbl}>
-            <thead><tr><th>{lbl}</th><th>bp</th><th>$</th></tr></thead>
-            <tbody>
-              {rows.map((p) => (
-                <tr key={p.s} className="qtt-row" onClick={() => onOpenTicker && onOpenTicker(p.s)} style={{ cursor: 'pointer' }}>
-                  <td style={{ fontWeight: 'var(--fw-700)', color: INK }}>{p.s}</td>
-                  <td style={{ color: upDown(p.bp) }}>{p.bp > 0 ? '+' : ''}{p.bp.toFixed(1)}</td>
-                  <td style={{ color: upDown(p.bp) }}>{fmtSignedUsd(p.usd)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  const kpis = [
+    { l: 'PORTFOLIO VALUE', v: fmtUsd(equity), s: priceBasis ? (bookIsLive ? priceBasis : `final · ${priceBasis}`) : 'at inception', cls: '' },
+    { l: `TOTAL RETURN${inceptionShort ? ` SINCE ${inceptionShort.toUpperCase()}` : ''}`, v: ls ? signPct(ls.since) : '—', s: ls?.spxSince != null ? `S&P 500 ${signPct(ls.spxSince)} over the same period` : 'S&P 500 comparison prints with the first mark', cls: ls ? signCls(ls.since) : 'fl' },
+    { l: 'EXPOSURE', v: latestNav ? fmtPctPlain(invested, 1) : '—', s: `Gross, net long · cash ${fmtUsd(cash)}`, cls: '' },
+    { l: 'INFORMATION RATIO', v: ls?.ir != null ? ls.ir.toFixed(2) : '—', s: ls?.ir == null ? needs(ls?.n ?? 0, 20) : 'vs S&P 500, annualized', cls: '' },
+    { l: 'SHARPE RATIO', v: ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—', s: ls?.sharpe == null ? `${marksN} of 60 marks; prints at 60` : 'since inception · vs ~4% cash', cls: ls?.sharpe == null ? 'fl' : '' },
+    { l: '10-DAY VALUE AT RISK', v: cr ? `−${fmtUsd(cr.var10 * equity)}` : '—', s: cr ? `${fmtPctPlain(cr.var10, 1)} of the book · 99% · as of ${riskAsOf}` : (riskNote || needsDays(250)), cls: cr ? 'down' : 'fl' },
+  ];
+
+  const attrBlock = (title, blk) => (
+    <div key={title}>
+      <div className="tm-ghead">{title}</div>
+      <div className="tm-attrcols">
+        {[blk.top, blk.bottom].map((rows, k) => (
+          <div key={k} className="tm-attr-col">
+            {rows.map((p) => (
+              <button key={p.s} type="button" className="tm-row tm-attr-row rd-num" onClick={() => onOpenTicker && onOpenTicker(p.s)}>
+                <span className="tm-attr-t">{p.s}</span>
+                <span className={signCls(p.bp)}>{p.bp > 0 ? '+' : p.bp < 0 ? '−' : ''}{Math.abs(p.bp).toFixed(1)}</span>
+                <span className={signCls(p.bp)}>{fmtSignedUsd(p.usd)}</span>
+              </button>
+            ))}
+          </div>
         ))}
       </div>
     </div>
   );
 
-  const barRow = (name, weight, n, frac, color, key) => (
-    <div key={key || name} style={{ padding: 'var(--sp-3) 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--v13-t2)', marginBottom: 'var(--sp-2)', gap: 'var(--sp-8)' }}>
-        <span style={{ color: INK2 }}>{name}</span>
-        <span className="num" style={{ fontWeight: 'var(--fw-600)', whiteSpace: 'nowrap' }}>{fmtPctPlain(weight, 1)} <span style={{ color: INK3, fontWeight: 'var(--fw-400)' }}>· {n}</span></span>
+  const riskCells = [
+    ['VOLATILITY', ls?.vol != null ? fmtPctPlain(ls.vol) : '—', ls?.vol == null ? needs(ls?.n ?? 0, 20) : 'annualized', ''],
+    ['BETA VS S&P', bookBeta != null ? bookBeta.toFixed(2) : '—', dc?.beta != null ? '1-yr daily' : (ls?.beta != null ? 'daily marks' : needs(ls?.n ?? 0, 20)), ''],
+    ['TRACKING ERROR', ls?.te != null ? fmtPctPlain(ls.te) : '—', ls?.te == null ? needs(ls?.n ?? 0, 20) : 'annualized', ''],
+    ['MAX DRAWDOWN', ls ? fmtPctPlain(ls.maxdd) : '—', 'mark-to-mark', ls && ls.maxdd < 0 ? 'down' : ''],
+    ['OFF PEAK', ls ? fmtPctPlain(ls.ddFromPeak, 2) : '—', 'vs own high', ls && ls.ddFromPeak < 0 ? 'down' : ''],
+    ['LARGEST RISK SHARE', topRisk ? fmtPctPlain(topRisk.v, 1) : '—', topRisk ? `${topRisk.s} · ${fmtPctPlain(weights.find((w) => w.s === topRisk.s)?.w ?? 0, 1)} of money` : (riskNote || needsDays(250)), topRisk ? 'is-amber' : ''],
+  ];
+
+  const tiltRows = FACTOR_ORDER.map((f) => {
+    const L = cockpit.factorLoading?.[f];
+    const a = L?.active;
+    const w = a == null ? 0 : Math.min(Math.abs(a) / 2.5, 1) * 50;
+    return { f, name: FACTOR_NAMES[f], a, w, left: a == null ? 50 : a >= 0 ? 50 : 50 - w, L };
+  });
+  const srcRows = dc ? [
+    ['The whole market moving', dc.market, 'market'], ['Company-specific news', dc.specific, 'specific'], ['The book’s style tilts', dc.style, 'style'],
+  ] : null;
+  const shockRows = cockpit.shocks ? [
+    ...cockpit.shocks.map((e) => ({ k: e.id, n: e.label, a: e.index, b: e.book, tip: RISK_TIPS.stress })),
+    ...(cockpit.vix ? [{ k: 'vix', n: `VIX spike to 40 (from ${Number(cockpit.vix.vix_now ?? cockpit.vix.vixNow).toFixed(1)})`, a: cockpit.vix.index, b: cockpit.vix.book, tip: RISK_TIPS.vixshock }] : []),
+  ] : null;
+
+  const notice = (
+    <>
+      {!bookIsLive && (
+        <section className="tm-panel tm-notice rd-rise d1">
+          <div className="tm-phead"><span className="tm-code tm-code--red">RETIRED</span><span className="tm-ptitle">NOTHING HERE IS TRADING</span></div>
+          <div className="tm-notice-body">
+            <b>The paper account today holds $1,000,000 in cash and owns nothing.</b> Every number below belongs to a DIFFERENT,
+            now-deleted account — the one that ran {bookRan || 'until it was closed'}. It is history, not a position, and nobody is down any money today.
+            {' '}Quality Trend was retired on {RETIRED_ON}. Read the closing figure with one caveat: the book was liquidated in error on its
+            final day, so a large part of that last move is an operating mistake rather than the strategy losing money.
+          </div>
+        </section>
+      )}
+      {nothingHeld && !err && book && book.length ? (
+        <section className="tm-panel tm-notice rd-rise d1">
+          <div className="tm-notice-body"><b>These are not holdings.</b> The account holds no shares — the list is what the model scored, i.e. what it intends to buy.</div>
+        </section>
+      ) : null}
+    </>
+  );
+
+  const returnsBlock = (
+    <div className="tm-returns">
+      <div className="tm-cols tm-cols--ret rd-num"><span>RETURNS</span>{periods.map((p) => <span key={p.id} className="r">{p.label}</span>)}</div>
+      {perfRows.map((r) => (
+        <div key={r.id} className="tm-row tm-row--ret rd-num">
+          <span className={r.id === 'paper' ? 'is-amber' : ''}>{r.id === 'paper' ? 'Book' : r.label}</span>
+          {periods.map((p) => <span key={p.id} className={`r ${cellCls(r[p.id])}`}>{cellPct(r[p.id])}</span>)}
+        </div>
+      ))}
+      <div className="tm-retstats rd-num">
+        <div><div className="tm-k">BEST DAY</div><div className={`tm-v ${ls?.bestDay != null ? signCls(ls.bestDay) : 'fl'}`}>{ls?.bestDay != null ? signPct(ls.bestDay) : '—'}</div></div>
+        <div><div className="tm-k">WORST DAY</div><div className={`tm-v ${ls?.worstDay != null ? signCls(ls.worstDay) : 'fl'}`}>{ls?.worstDay != null ? signPct(ls.worstDay) : '—'}</div></div>
+        <div><div className="tm-k">UP DAYS</div><div className="tm-v">{ls?.pctUp != null ? fmtPctPlain(ls.pctUp, 0) : '—'}</div></div>
+        <div><div className="tm-k">MONTHLY{monthly.n ? ` · ${monthly.keys.map(monthLbl).join(' / ')}` : ''}</div><div className="tm-v tm-monthly">{monthly.n ? monthly.keys.map((k) => <span key={k} className={signCls(monthly.months[k])}>{signPct(monthly.months[k], 1)}</span>) : '—'}</div></div>
       </div>
-      <div className="ck-bar"><span style={{ left: 0, width: `${Math.min(frac * 100, 100)}%`, background: color }} /></div>
+      {perf && perf.ytdFromStart && <div className="tm-pnote tm-pnote--block">Index rows: $1,000,000 in each index’s fund (SPY, QQQ, DIA) at the close before the book’s first day. The book started this year, so YTD and inception match until January.</div>}
     </div>
   );
 
-  const empty = (text, dim = true) => <div style={{ fontSize: 'var(--v13-t3)', color: dim ? INK3 : INK2, lineHeight: 1.6 }}>{text}</div>;
+  const holdingsPhone = (
+    <div className="tm-hold-phone">
+      <div className="tm-cols tm-cols--hp rd-num"><span>NAME</span><span className="r">WEIGHT</span><span className="r">P&amp;L $</span><span className="r">P&amp;L %</span></div>
+      {(book || []).slice().sort((a, b) => (marks[b.symbol] ? Number(marks[b.symbol].mv) : 0) - (marks[a.symbol] ? Number(marks[a.symbol].mv) : 0)).map((r) => {
+        const m = marks[r.symbol];
+        return (
+          <button key={r.symbol} type="button" className="tm-row tm-row--hp rd-num" onClick={() => onOpenTicker && onOpenTicker(r.symbol)}>
+            <span className="tm-hp-name"><span className="is-amber">{r.symbol}</span><span className="tm-hp-co">{shortName(r.company)}</span></span>
+            <span className="r">{m ? fmtPctPlain(Number(m.mv) / equity, 1) : '—'}</span>
+            <span className={`r ${m ? signCls(Number(m.upl)) : 'fl'}`}>{m ? fmtSignedUsd(Number(m.upl)) : '—'}</span>
+            <span className={`r ${m ? signCls(Number(m.uplpc)) : 'fl'}`}>{m ? fmtPct(m.uplpc, 1) : '—'}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const riskPanel = (
+    <section className="tm-panel rd-rise d4" aria-label="Risk measures">
+      <div className="tm-phead">
+        <span className="tm-code">RISK</span><span className="tm-ptitle">RISK MEASURES{riskAsOf ? ` · AFTER ${riskAsOf.toUpperCase()} CLOSE` : ''}</span>
+        <span className="tm-pfill" />
+        {phone && nAlerts != null && <span className={`tm-alerts ${nAlerts ? 'is-red' : 'is-green'}`}>{nAlerts} ALERT{nAlerts === 1 ? '' : 'S'}</span>}
+      </div>
+      {!phone && (
+        <div className="tm-alertline">
+          {nAlerts != null ? <span className={`tm-alerts ${nAlerts ? 'is-red' : 'is-green'}`}>{nAlerts} ALERT{nAlerts === 1 ? '' : 'S'}</span> : <span className="tm-alerts is-grey">—</span>}
+          <span className="tm-alerttext">
+            {alerts
+              ? (alerts.length
+                ? alerts.map((a, i) => <span key={`${a.code}-${a.sym || i}`}>{i ? ' · ' : ''}{a.sym ? <button type="button" className="tm-tklink" onClick={() => onOpenTicker && onOpenTicker(a.sym)}>{a.sym}</button> : null}{a.sym ? ' ' : ''}{a.text.replace(new RegExp(`^${a.sym} `), '')}</span>)
+                : 'Every name inside its risk, weight and liquidity limits; cash positive; crash brake off.')
+              : (riskNote || 'Alerts print with the risk figures.')}
+          </span>
+        </div>
+      )}
+      <div className="tm-riskgrid rd-num">
+        {riskCells.map(([k, v, s, cls]) => (
+          <div key={k} className="tm-riskcell"><div className="tm-k">{k}</div><div className={`tm-v ${cls}`}>{v}</div><div className="tm-s">{s}</div></div>
+        ))}
+      </div>
+      {!phone && (
+        <>
+          <div className="tm-ghead">SHOCK SCENARIOS · IF IT HAPPENED AGAIN</div>
+          {shockRows ? (
+            <>
+              <div className="tm-cols tm-cols--shock rd-num"><span>SCENARIO</span><span className="r">S&amp;P 500</span><span className="r">BOOK</span></div>
+              {shockRows.map((e) => (
+                <div key={e.k} className="tm-row tm-row--shock rd-num">
+                  <span className="tm-c-name"><Term tip={e.tip} placement="bottom" wide labelOpacity={0.95}>{e.n}</Term></span>
+                  <span className="r fl">{e.a == null ? '—' : fmtPct(e.a, 1)}</span>
+                  <span className="r down tm-strong">{e.b == null ? '—' : fmtPct(e.b, 1)}</span>
+                </div>
+              ))}
+              <div className="tm-pnote tm-pnote--block">Each episode is the S&P 500 fund’s actual peak-to-trough fall, scaled by the book’s beta — a projection, not a backtest.{cockpit.vix ? ' The VIX line uses how much the fund has historically fallen when fear jumped.' : ''}</div>
+            </>
+          ) : <div className="tm-empty">{riskNote || needsDays(250)}</div>}
+        </>
+      )}
+    </section>
+  );
+
+  const tiltBlock = (
+    <div className="tm-tilts">
+      {cockpit.factorLoading && FACTOR_ORDER.some((f) => cockpit.factorLoading[f]) ? tiltRows.map((t) => (
+        <div key={t.f} className="tm-tilt rd-num">
+          <span className="tm-tilt-n"><Term tip={RISK_TIPS[t.f]} placement="bottom" wide labelOpacity={0.95}>{t.name}</Term></span>
+          <span className="tm-tilt-bar" aria-hidden="true"><span className="tm-tilt-mid" />{t.a != null && <span className={`tm-tilt-fill tm-grow ${t.a >= 0 ? 'is-pos' : 'is-neg'}`} style={{ left: `${t.left}%`, width: `${t.w}%` }} />}</span>
+          <span className={`tm-tilt-v ${t.a == null ? 'fl' : t.a >= 0 ? 'is-amber' : 'is-slate'}`}>{t.a == null ? '—' : `${t.a >= 0 ? '+' : '−'}${Math.abs(t.a).toFixed(2)}`}</span>
+        </div>
+      )) : <div className="tm-empty">{cockpit.status === 'loading' ? 'Loading…' : 'Factor scores print with the next monthly scoring.'}</div>}
+      <div className="tm-pnote tm-pnote--block">±1 = one standard deviation of that universe. Amber = more than the index, slate = less.{rebalDate ? ` Scored ${fmtDate(rebalDate)}.` : ''}</div>
+    </div>
+  );
+
+  const srcBlock = (
+    <>
+      <div className="tm-src">
+        {srcRows ? srcRows.map(([n, v, k]) => (
+          <div key={k} className="tm-srcrow rd-num">
+            <div className="tm-srchead"><span><Term tip={RISK_TIPS[k]} placement="bottom" wide labelOpacity={0.95}>{n}</Term></span><b>{fmtPctPlain(v, 1)}</b></div>
+            <div className="tm-srcbar"><div className="tm-srcfill tm-grow" style={{ width: `${Math.max(0, Math.min(100, v * 100))}%` }} /></div>
+          </div>
+        )) : <div className="tm-empty">{riskNote || needsDays(250)}</div>}
+        {dc && <div className="tm-pnote tm-pnote--block">Shares of the book’s day-to-day swings. The market alone explains {fmtPctPlain(dc.r2Market, 0)} of its daily moves.</div>}
+      </div>
+      <div className="tm-ghead">SECTOR · SHARE OF BOOK</div>
+      <div className="tm-sectors">
+        {bookMeta ? bookMeta.secList.map((sec) => (
+          <div key={sec.name} className="tm-sector rd-num">
+            <span className="tm-sector-n">{sec.name}</span>
+            <span className="tm-sector-bar"><span className="tm-sector-fill tm-grow" style={{ width: `${(sec.weight / (bookMeta.secList[0]?.weight || 1)) * 100}%` }} /></span>
+            <span className="tm-sector-v">{fmtPctPlain(sec.weight, 1)} · {sec.n}</span>
+          </div>
+        )) : <div className="tm-empty">Loading…</div>}
+      </div>
+    </>
+  );
+
+  const btBlock = (
+    <>
+      <div className="tm-cols tm-cols--bt rd-num"><span>ANNUALIZED</span><span className="r">BOOK</span><span className="r">S&amp;P 500</span></div>
+      {btRows.map(([k, label, a, b]) => (
+        <div key={k} className="tm-row tm-row--bt rd-num">
+          <span className="tm-c-name">{label}</span>
+          <span className="r tm-strong">{a}</span>
+          <span className="r fl">{b}</span>
+        </div>
+      ))}
+      <div className="tm-pnote tm-pnote--block">40 names, survivorship-free, after 40bp of costs. A backtest is not a live record and the live book should be expected to run below it.</div>
+      {btOpen && (
+        <div className="tm-btdetail">
+          <div className="tm-ghead">GROWTH OF $1,000,000 · LOG SCALE</div>
+          <div className="tm-btrange">
+            {['1Y', '3Y', '5Y', 'All'].map((r) => (
+              <button key={r} type="button" className={`tm-pill${btRange === r ? ' on' : ''}`} onClick={() => setBtRange(r)}>{r}</button>
+            ))}
+          </div>
+          <div className="tm-chartwrap">
+            <TmLineChart log height={220} animate={false}
+              series={[
+                { name: 'Book', color: 'var(--tm-amber)', values: btSlice.strategy, width: 2 },
+                { name: 'S&P 500', color: 'var(--tm-text-5)', values: btSlice.spx, width: 1.75, tagBg: 'var(--tm-midline)', tagInk: 'var(--tm-num)' },
+              ]}
+              dates={btSlice.dates}
+            />
+          </div>
+          <div className="tm-ghead">CALENDAR YEARS</div>
+          <div className="tm-cols tm-cols--bt rd-num"><span>YEAR</span><span className="r">BOOK</span><span className="r">S&amp;P 500</span></div>
+          {Object.entries(BT.years).map(([y, r]) => (
+            <div key={y} className="tm-row tm-row--bt rd-num">
+              <span className="tm-c-name">{y === '2026' ? '2026*' : y}</span>
+              <span className={`r ${r.strategy >= 0 ? (r.strategy >= r.spx ? 'tm-strong' : '') : 'down'}`}>{r.strategy > 0 ? '+' : ''}{r.strategy.toFixed(1)}%</span>
+              <span className={`r ${r.spx >= 0 ? 'fl' : 'down'}`}>{r.spx > 0 ? '+' : ''}{r.spx.toFixed(1)}%</span>
+            </div>
+          ))}
+          <div className="tm-pnote tm-pnote--block">*2026 through Aug 11. Bold = beat the index that year.</div>
+        </div>
+      )}
+    </>
+  );
 
   return (
-    <div className="home-v12 v13 paper-v12">
-      <style>{CSS}</style>
-      <div className="wrap qtt" style={{ padding: 'var(--sp-44) var(--sp-40) var(--sp-96)' }}>
+    <div className="mt-terminal tm-paper">
+      <main className="tm-main">
 
-        {/* ── page header — title and one italic line, nothing else (Joe, 2026-10-22) ── */}
-        <div style={{ marginBottom: 'var(--lg-gap)' }}>
-          <h1 className="serif" style={{ fontSize: 'var(--v13-t7)', fontWeight: 'var(--fw-700)', lineHeight: 1.08, margin: 0 }}>
-            Quality Trend<em style={{ fontStyle: 'italic', color: GOLD }}>.</em>
-          </h1>
-          <div style={{ marginTop: 'var(--sp-6)', fontSize: 'var(--v13-t3)', fontStyle: 'italic', color: INK2, lineHeight: 1.5 }}>
-            An AI-driven automated portfolio rebalancer — focused on high quality names with strong momentum{' '}
-            (<Link to="/methodology#portfolio" className="ck-link">Read full methodology here</Link>)
+        {/* ── title bar ───────────────────────────────────────────────── */}
+        <section className="tm-titlebar rd-rise d1" aria-label="Quality Trend paper book">
+          <div className="tm-titleleft">
+            <span className="tm-title">QUALITY TREND</span>
+            <span className="tm-tag">{phone ? 'PAPER' : 'PAPER BOOK'}</span>
           </div>
-        </div>
+          <div className="tm-titledesc">
+            An AI-driven automated portfolio rebalancer — high-quality names with strong momentum.{' '}
+            <Link to="/methodology#portfolio" className="tm-plink">Methodology ▸</Link>
+          </div>
+          <div className="tm-pfill" />
+          <div className="tm-marks rd-num">{priceBasis ? priceBasis.toUpperCase() : 'NO MARKS YET'}{ls ? ` · ${marksN} DAILY ${marksN === 1 ? 'MARK' : 'MARKS'}${inceptionShort ? ` SINCE ${inceptionShort.toUpperCase()}` : ''}` : ''}</div>
+        </section>
 
-        {/* ── retired notice (closed book only) ─────────────────────────── */}
-        {!bookIsLive && <div style={{
-          border: `1px solid ${EDGE}`, borderLeft: `3px solid ${GOLD}`,
-          borderRadius: 'var(--card-r)', background: CARD2,
-          padding: 'var(--sp-14) var(--sp-18)', marginBottom: 'var(--lg-gap)', maxWidth: '96ch',
-        }}>
-          <div style={{ fontSize: 'var(--v13-t1)', fontWeight: 'var(--fw-700)', letterSpacing: '0.14em', textTransform: 'uppercase', color: GOLD, marginBottom: 'var(--sp-6)' }}>
-            Retired — nothing here is trading
-          </div>
-          <div style={{ fontSize: 'var(--v13-t3)', lineHeight: 1.6, color: INK2, maxWidth: '72ch' }}>
-            <strong style={{ color: CREAM_INK }}>The paper account today holds $1,000,000
-            in cash and owns nothing.</strong> Every number below belongs to a DIFFERENT,
-            now-deleted account — the one that ran {bookRan || 'until it was closed'}. It is
-            history, not a position, and nobody is down any money today.
-            <br /><br />
-            Quality Trend was retired on {RETIRED_ON}. Read the closing figure with one
-            caveat: the book was liquidated in error on its final day, so a large part of
-            that last move is an operating mistake rather than the strategy losing money.
-          </div>
-        </div>}
+        {notice}
 
-        {/* ── the ribbon: four facts, pinned under the top bar ──────────── */}
-        <div className="qtt-card ck-ribbon" style={{ borderRadius: 'var(--card-r)', boxShadow: 'var(--sh)', padding: 'var(--sp-12) var(--sp-18)' }}>
-          <div className="ck-stat">
-            <div className="ck-eyebrow">Portfolio value</div>
-            <div className="num ck-hero">{fmtUsd(equity)}</div>
-            <div className="ck-sub">{priceBasis ? (bookIsLive ? priceBasis : `final · ${priceBasis}`) : 'at inception'}</div>
-          </div>
-          <div className="ck-stat">
-            <div className="ck-eyebrow">Exposure</div>
-            <div className="num ck-hero">{latestNav ? fmtPctPlain(invested, 1) : '—'}</div>
-            <div className="ck-sub">gross · net long · cash {fmtUsd(cash)}</div>
-          </div>
-          <div className="ck-stat">
-            <div className="ck-eyebrow"><Term tip={RISK_TIPS.sharpe} placement="bottom" wide labelOpacity={1}>Sharpe ratio</Term></div>
-            <div className="num ck-hero">{ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—'}</div>
-            <div className="ck-sub">{ls?.sharpe == null ? `${(ls?.n ?? 0) + 1} of 60 marks — prints at 60` : 'since inception · vs ~4% cash'}</div>
-          </div>
-          <div className="ck-stat">
-            <div className="ck-eyebrow"><Term tip={RISK_TIPS.var} placement="bottom" wide alignRight labelOpacity={1}>10-day Value at Risk</Term></div>
-            <div className="num ck-hero">{cr ? `−${fmtUsd(cr.var10 * equity)}` : '—'}</div>
-            <div className="ck-sub">{cr ? `${fmtPctPlain(cr.var10, 1)} of the book · 99% · as of ${riskAsOf}` : (riskNote || needsDays(250))}</div>
-          </div>
-        </div>
+        {/* ── six key figures ─────────────────────────────────────────── */}
+        <section className="tm-kpis rd-rise d2" aria-label="Key figures">
+          {kpis.map((k) => (
+            <div key={k.l} className="tm-kpi">
+              <div className="tm-k">{k.l}</div>
+              <div className={`tm-kpi-v rd-num ${k.cls}`}>{k.v}</div>
+              <div className="tm-s">{k.s}</div>
+            </div>
+          ))}
+        </section>
 
-        {/* ══════════════════════ 1 · PERFORMANCE ══════════════════════ */}
-        <Section title="Performance" sub={ls ? `${(ls.n ?? 0) + 1} daily ${(ls.n ?? 0) + 1 === 1 ? 'mark' : 'marks'} since ${inceptionShort || 'inception'}` : 'no marks yet'}>
-          <div className="ck-row3 ck-perf">
-            <Card title="Returns" right="book vs the index funds" fill>
-              <table className="ck-table num">
-                <thead>
-                  <tr>
-                    <th />
-                    {periods.map((p) => (
-                      <th key={p.id}>{p.label}<span style={{ display: 'block', fontWeight: 'var(--fw-400)', letterSpacing: 0, textTransform: 'none' }}>{p.sub}</span></th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {perfRows.map((r) => (
-                    <tr key={r.id} className={r.id === 'paper' ? 'ck-strong' : ''}>
-                      <td style={{ color: r.id === 'paper' ? INK : INK2 }}>{r.label}</td>
-                      {periods.map((p) => (
-                        <td key={p.id} style={{ color: cellTone(r[p.id]) }}>
-                          {cellPct(r[p.id])}
-                          <span style={{ display: 'block', fontSize: 'var(--v13-t1)', fontWeight: 'var(--fw-400)', opacity: 0.8 }}>{cellUsd(r[p.id])}</span>
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="ck-stats four" style={{ borderTop: `1px solid ${HAIR}`, paddingTop: 'var(--sp-8)', marginTop: 'var(--sp-10)' }}>
-                {[
-                  [<Term key="i" tip={TIPS.ir} labelOpacity={0.9}>Information ratio</Term>, ls?.ir != null ? ls.ir.toFixed(2) : '—', ls?.ir == null ? needs(ls?.n ?? 0, 20) : 'vs S&P, annualized'],
-                  ['Best day', ls?.bestDay != null ? fmtPct(ls.bestDay, 2) : '—', ls?.bestDay == null ? needs(ls?.n ?? 0, 2) : 'close-to-close'],
-                  ['Worst day', ls?.worstDay != null ? fmtPct(ls.worstDay, 2) : '—', ls?.worstDay == null ? needs(ls?.n ?? 0, 2) : 'close-to-close'],
-                  ['% up days', ls?.pctUp != null ? fmtPctPlain(ls.pctUp, 0) : '—', ls?.pctUp == null ? needs(ls?.n ?? 0, 2) : 'of trading days'],
-                ].map(([label, value, sub], i) => (
-                  <div key={i}>
-                    <div className="ck-stat-k">{label}</div>
-                    <div className="ck-stat-v">{value}</div>
-                    <div className="ck-stat-s">{sub}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="ck-note ck-pin">
-                Index rows: $1,000,000 in each index’s fund (SPY, QQQ, DIA) at the close before the book’s first day.
-                {perf && perf.ytdFromStart ? ' The book started this year, so YTD and Inception match until January.' : ''}
-              </div>
-            </Card>
-
-            <Card title="Growth of $1,000,000" right={priceBasis ? `indexed to 100 · ${priceBasis}` : 'indexed to 100'} fill>
-              <div ref={growthRef} className="ck-chartfill">
+        {phone ? (
+          <>
+            <section className="tm-panel rd-rise d3" aria-label="Performance">
+              <div className="tm-phead"><span className="tm-code">PERF</span><span className="tm-ptitle">GROWTH OF $1M</span><span className="tm-pfill" /><span className="tm-legend"><span className="is-amber">━ BOOK</span> <span className="fl">━ S&amp;P</span></span></div>
+              <div className="tm-chartwrap">
                 {liveCurve ? (
-                  <>
-                    <LineChart
-                      height={Math.max(growthH - 34, 150)}
-                      series={[
-                        { name: 'Quality Trend', color: GOLD, values: liveCurve.strategy },
-                        ...(liveCurve.spx ? [{ name: 'S&P 500', color: BLUE, values: liveCurve.spx, width: 1.8, opacity: 0.9 }] : []),
-                      ]}
-                      dates={heldNav.map((r) => r.d)}
-                      yFmt={(v) => v.toFixed(1)}
-                    />
-                    <ChartLegend items={[['Quality Trend', GOLD], ['S&P 500', BLUE]]} />
-                  </>
-                ) : empty('The live line starts drawing at the second daily mark.', false)}
+                  <TmLineChart height={220}
+                    series={[
+                      { name: 'Book', color: 'var(--tm-amber)', values: liveCurve.strategy, width: 2.25 },
+                      ...(liveCurve.spx ? [{ name: 'S&P 500', color: 'var(--tm-text-5)', values: liveCurve.spx, width: 1.75, tagBg: 'var(--tm-midline)', tagInk: 'var(--tm-num)' }] : []),
+                    ]}
+                    dates={heldNav.map((r) => r.d)} yFmt={(v) => v.toFixed(1)} />
+                ) : <div className="tm-empty">The live line starts drawing at the second daily mark.</div>}
               </div>
-            </Card>
-
-            <Card title="Contributors & detractors" right={<Term tip={TIPS.contrib} labelOpacity={0.9}>bp of portfolio</Term>} fill>
-              {attribution ? (
-                <div style={{ display: 'grid', gap: 'var(--sp-12)' }}>
-                  {attribution.day ? contribBlock(daySession === 'today' ? 'Today' : `${daySession[0].toUpperCase()}${daySession.slice(1)}`, attribution.day) : null}
-                  {attribution.since ? contribBlock('Since entry', attribution.since) : null}
-                </div>
-              ) : empty('Populates from the first broker marks.')}
-              <div className="ck-note ck-pin">
-                {attribution && !attribution.day
-                  ? 'Session movers print while the market is open; the after-close snapshot carries each position’s total P&L only. '
-                  : ''}
-                Click a ticker to open it.
-              </div>
-            </Card>
-          </div>
-
-          <Fold title="Monthly returns" right={monthly.n ? `net paper returns · ${monthly.n} ${monthly.n === 1 ? 'month' : 'months'}` : ''}>
-            {monthly.years.length ? (
+              {returnsBlock}
+            </section>
+            <section className="tm-panel rd-rise d3" aria-label="Holdings">
+              <div className="tm-phead"><span className="tm-code">HOLD</span><span className="tm-ptitle">{nothingHeld ? `TARGET BOOK · ${book?.length ?? 0} NAMES SCORED, NOT OWNED` : `HOLDINGS · ${nHeld} NAMES`}</span></div>
+              {err ? <div className="tm-empty">The book could not be loaded ({err}). Refresh to retry.</div> : !book ? <div className="tm-empty">Loading…</div> : holdingsPhone}
+            </section>
+            {riskPanel}
+            <section className="tm-panel rd-rise d4" aria-label="Style tilts">
+              <div className="tm-phead"><span className="tm-code">TILT</span><span className="tm-ptitle">STYLE TILTS VS 500 LARGEST US STOCKS</span></div>
+              {tiltBlock}
+            </section>
+            <section className="tm-panel rd-rise d4" aria-label="Attribution">
+              <div className="tm-phead"><span className="tm-code">ATTR</span><span className="tm-ptitle">{attribution?.day ? `${daySession === 'today' ? 'TODAY' : daySession.toUpperCase()} · BP OF BOOK` : 'SINCE ENTRY · BP OF BOOK'}</span></div>
+              {attribution ? (attribution.day ? attrBlock('TOP 5 / BOTTOM 5', attribution.day) : attribution.since ? attrBlock('TOP 5 / BOTTOM 5', attribution.since) : null) : <div className="tm-empty">Populates from the first broker marks.</div>}
+            </section>
+            <button type="button" className="tm-morebtn" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen}>
+              {moreOpen ? 'HIDE' : 'SHOCK SCENARIOS · SECTORS · BACKTEST ▸'}
+            </button>
+            {moreOpen && (
               <>
-                <table className="ck-table num ck-wide-only">
-                  <thead><tr><th>Year</th>{MN.map((m) => <th key={m}>{m}</th>)}</tr></thead>
-                  <tbody>
-                    {monthly.years.map((y) => (
-                      <tr key={y}><td style={{ color: INK2, fontWeight: 'var(--fw-700)' }}>{y}</td>{MN.map((_, i) => monthCell(y, i))}</tr>
-                    ))}
-                  </tbody>
-                </table>
-                <table className="ck-table num ck-narrow-only">
-                  <thead><tr><th>Month</th>{monthly.years.map((y) => <th key={y}>{y}</th>)}</tr></thead>
-                  <tbody>
-                    {MN.map((m, i) => (monthly.firstMonth != null && i < monthly.firstMonth ? null : (
-                      <tr key={m}><td style={{ color: INK2 }}>{m}</td>{monthly.years.map((y) => monthCell(y, i))}</tr>
-                    )))}
-                  </tbody>
-                </table>
-                <div className="ck-note">Each month is the change in the paper account’s value from the last close of the prior month, after costs. The first month runs from inception.</div>
-              </>
-            ) : empty('The first month prints after the first close.')}
-          </Fold>
-
-          <Fold title="Backtest" right="40 names · Feb 2017 – Aug 2026 · 40bp costs · not a live record">
-            <div className="ck-fold-bt">
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--sp-8)', marginBottom: 'var(--sp-6)', flexWrap: 'wrap' }}>
-                  <div className="ck-sublabel" style={{ margin: 0 }}>Growth of $1,000,000 · log scale</div>
-                  <span style={{ display: 'inline-flex', gap: 'var(--sp-4)', alignItems: 'center' }}>
-                    {['1Y', '3Y', '5Y', 'All'].map((r) => (
-                      <button key={r} type="button" className={`qtt-pill${btRange === r ? ' on' : ''}`} onClick={() => setBtRange(r)}>{r}</button>
-                    ))}
-                  </span>
-                </div>
-                <LineChart
-                  log
-                  height={236}
-                  series={[
-                    { name: 'Quality Trend', color: GOLD, values: btSlice.strategy },
-                    { name: 'S&P 500', color: BLUE, values: btSlice.spx, width: 1.8, opacity: 0.9 },
-                  ]}
-                  dates={btSlice.dates}
-                />
-                <ChartLegend items={[['Quality Trend', GOLD], ['S&P 500', BLUE]]} />
-              </div>
-              <div>
-                <div className="ck-sublabel">Statistics · annualized</div>
-                <table className="ck-table">
-                  <thead><tr><th /><th>Book</th><th>S&P 500</th></tr></thead>
-                  <tbody>
-                    {btRows.map(([k, label, tip, a, b]) => (
-                      <tr key={k} className={k === 'ret' ? 'ck-strong' : ''}>
-                        <td style={{ color: INK2 }}>{tip ? <Term tip={tip} labelOpacity={0.9}>{label}</Term> : label}</td>
-                        <td className="num" style={{ color: INK }}>{a}</td>
-                        <td className="num" style={{ color: INK2 }}>{b}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div>
-                <div className="ck-sublabel">Calendar years</div>
-                <table className="ck-table num">
-                  <thead><tr><th>Year</th><th>Book</th><th>S&P 500</th></tr></thead>
-                  <tbody>
-                    {Object.entries(BT.years).map(([y, r]) => (
-                      <tr key={y}>
-                        <td style={{ color: INK2 }}>{y === '2026' ? '2026*' : y}</td>
-                        <td style={{ color: r.strategy >= 0 ? INK : BADBR, fontWeight: r.strategy >= r.spx ? 'var(--fw-700)' : 'var(--fw-400)' }}>{r.strategy > 0 ? '+' : ''}{r.strategy.toFixed(1)}%</td>
-                        <td style={{ color: r.spx >= 0 ? INK2 : BADBR }}>{r.spx > 0 ? '+' : ''}{r.spx.toFixed(1)}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div className="ck-note">
-              *2026 through Aug 11. Bold = beat the index that year (7 of 10). Survivorship-free, after 40bp of costs;
-              a backtest is not a live record and the live book should be expected to run below it.
-            </div>
-          </Fold>
-        </Section>
-
-        {/* ══════════════════════ 2 · RISK ══════════════════════ */}
-        <Section title="Risk" sub={riskAsOf ? `computed after the ${riskAsOf} close · one year of daily closes at today’s weights` : (riskNote || '')}>
-          <div className="ck-row4">
-            <Card title="Exception alerts" right={cockpit.alerts ? `${cockpit.alerts.length} flagged` : ''} fill>
-              {cockpit.alerts ? (
-                cockpit.alerts.length ? cockpit.alerts.map((a, i) => (
-                  <div className={`ck-alert ${a.level}`} key={`${a.code}-${a.sym || i}`}>
-                    <span className="ck-alert-code">{a.code}</span>
-                    <span>{a.sym ? <button type="button" onClick={() => onOpenTicker && onOpenTicker(a.sym)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: INK, fontWeight: 'var(--fw-700)' }}>{a.sym}</button> : null}{a.sym ? ' — ' : ''}{a.text.replace(new RegExp(`^${a.sym} `), '')}</span>
-                  </div>
-                )) : empty('No exceptions — every name inside its risk, weight and liquidity limits; cash positive; brake off.', false)
-              ) : empty(riskNote || 'Alerts print with the risk figures.')}
-              <div className="ck-note ck-pin">
-                What gets flagged: a stock whose share of the book’s risk is more than double its share of the money · a position more than 1.5× its 5% target · the book 10% below its own high · the book more than 105% invested (borrowing over 5% of its equity) · the crash brake switched on · a stock that would take more than a day to sell · a stock with less than a year of price history.
-              </div>
-            </Card>
-
-            <Card title="Risk measures" right="live book" fill>
-              <div className="ck-stats two">
-                {[
-                  [<Term key="v" tip={TIPS.vol} labelOpacity={0.9}>Volatility</Term>, ls?.vol != null ? fmtPctPlain(ls.vol) : '—', ls?.vol == null ? needs(ls?.n ?? 0, 20) : 'annualized'],
-                  [<Term key="b" tip={TIPS.beta} labelOpacity={0.9}>Beta vs S&P</Term>, bookBeta != null ? bookBeta.toFixed(2) : '—', bookBetaSub],
-                  [<Term key="t" tip={TIPS.te} labelOpacity={0.9}>Tracking error</Term>, ls?.te != null ? fmtPctPlain(ls.te) : '—', ls?.te == null ? needs(ls?.n ?? 0, 20) : 'ann., vs S&P'],
-                  [<Term key="d" tip={TIPS.maxdd} labelOpacity={0.9}>Max drawdown</Term>, ls ? fmtPctPlain(ls.maxdd) : '—', 'mark-to-mark'],
-                  [<Term key="p" tip={TIPS.ddpeak} labelOpacity={0.9}>Off peak</Term>, ls ? fmtPctPlain(ls.ddFromPeak, 2) : '—', 'equity vs own high'],
-                  [<Term key="r" tip={RISK_TIPS.mctr} labelOpacity={0.9}>Largest risk share</Term>, topRisk ? fmtPctPlain(topRisk.v, 1) : '—', topRisk ? `${topRisk.s} · ${fmtPctPlain(weights.find((w) => w.s === topRisk.s)?.w ?? 0, 1)} of money` : (riskNote || needsDays(250))],
-                ].map(([label, value, sub], i) => (
-                  <div key={i}>
-                    <div className="ck-stat-k">{label}</div>
-                    <div className="ck-stat-v">{value}</div>
-                    <div className="ck-stat-s">{sub}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="ck-note ck-pin">Volatility, tracking error and drawdown are measured from the daily marks and need 20 of them; beta is estimated from one year of daily closes at today’s weights.</div>
-            </Card>
-
-            <Card title="Where the risk comes from" right={dc ? `252 sessions to ${riskAsOf}` : ''} fill>
-              {dc ? (
-                <>
-                  <div className="ck-stack">
-                    <span style={{ width: `${dc.market * 100}%`, background: GOLD }} />
-                    <span style={{ width: `${dc.style * 100}%`, background: BLUE }} />
-                    <span style={{ width: `${dc.specific * 100}%`, background: 'color-mix(in srgb, var(--ink) 22%, transparent)' }} />
-                  </div>
-                  {[
-                    ['market', 'The whole market moving', dc.market, GOLD],
-                    ['style', 'The book’s style tilts', dc.style, BLUE],
-                    ['specific', 'Company-specific news', dc.specific, 'color-mix(in srgb, var(--ink) 22%, transparent)'],
-                  ].map(([k, label, v, color]) => (
-                    <div className="ck-row" key={k} style={{ gridTemplateColumns: 'auto minmax(0, 1fr) auto' }}>
-                      <span style={{ width: 10, height: 10, borderRadius: 'var(--r-2)', background: color, display: 'inline-block' }} />
-                      <div><Term tip={RISK_TIPS[k]} placement="bottom" wide labelOpacity={0.95}>{label}</Term></div>
-                      <div className="num" style={{ fontWeight: 'var(--fw-700)' }}>{fmtPctPlain(v, 1)}</div>
-                    </div>
-                  ))}
-                  <div className="ck-note ck-pin">
-                    Shares of the book’s day-to-day swings. The market alone explains {fmtPctPlain(dc.r2Market, 0)} of its daily moves; the style tilts are measured against the momentum, quality, buyback, small-cap and value index funds.
-                  </div>
-                </>
-              ) : empty(riskNote || needsDays(250))}
-            </Card>
-
-            <Card title="Shock scenarios" right="if it happened again" fill>
-              {cockpit.shocks ? (
-                <>
-                  <table className="ck-table">
-                    <thead><tr><th>Scenario</th><th>S&P 500</th><th>Book</th></tr></thead>
-                    <tbody>
-                      {cockpit.shocks.map((e) => (
-                        <tr key={e.id}>
-                          <td style={{ color: INK2, whiteSpace: 'normal' }}><Term tip={RISK_TIPS.stress} placement="bottom" wide labelOpacity={0.95}>{e.label}</Term></td>
-                          <td className="num" style={{ color: INK2 }}>{e.index == null ? '—' : fmtPct(e.index, 1)}</td>
-                          <td className="num" style={{ color: BADBR, fontWeight: 'var(--fw-700)' }}>{e.book == null ? '—' : fmtPct(e.book, 1)}</td>
-                        </tr>
+                <section className="tm-panel" aria-label="Shock scenarios">
+                  <div className="tm-phead"><span className="tm-code">RISK</span><span className="tm-ptitle">SHOCK SCENARIOS · IF IT HAPPENED AGAIN</span></div>
+                  {shockRows ? (
+                    <>
+                      <div className="tm-cols tm-cols--shock rd-num"><span>SCENARIO</span><span className="r">S&amp;P 500</span><span className="r">BOOK</span></div>
+                      {shockRows.map((e) => (
+                        <div key={e.k} className="tm-row tm-row--shock rd-num"><span className="tm-c-name">{e.n}</span><span className="r fl">{e.a == null ? '—' : fmtPct(e.a, 1)}</span><span className="r down tm-strong">{e.b == null ? '—' : fmtPct(e.b, 1)}</span></div>
                       ))}
-                      {cockpit.vix && (
-                        <tr>
-                          <td style={{ color: INK2, whiteSpace: 'normal' }}><Term tip={RISK_TIPS.vixshock} placement="bottom" wide labelOpacity={0.95}>VIX spike to 40 (from {Number(cockpit.vix.vix_now ?? cockpit.vix.vixNow).toFixed(1)})</Term></td>
-                          <td className="num" style={{ color: INK2 }}>{fmtPct(cockpit.vix.index, 1)}</td>
-                          <td className="num" style={{ color: BADBR, fontWeight: 'var(--fw-700)' }}>{fmtPct(cockpit.vix.book, 1)}</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                  <div className="ck-note ck-pin">
-                    Each episode is the S&P 500 fund’s actual peak-to-trough fall, scaled by the book’s beta — a projection, not a backtest.
-                    {cockpit.vix ? ' The VIX line uses how much the fund has historically fallen when fear jumped.' : ''}
-                  </div>
-                </>
-              ) : empty(riskNote || needsDays(250))}
-            </Card>
-          </div>
-
-          <Fold title="Style factor tilts" right={cockpit.factorLoading ? `vs the 500 largest US stocks · scored ${fmtDate(rebalDate)}` : ''}>
-            {cockpit.factorLoading && FACTOR_ORDER.some((f) => cockpit.factorLoading[f]) ? (
-              <>
-                <div className="ck-factors">
-                  {FACTOR_ORDER.map((f) => {
-                    const L = cockpit.factorLoading[f];
-                    const a = L?.active;
-                    const pct = a == null ? 0 : Math.min(Math.abs(a) / 2.5, 1) * 50;
-                    return (
-                      <div className="ck-row" key={f}>
-                        <div><Term tip={RISK_TIPS[f]} placement="bottom" wide labelOpacity={0.95}>{FACTOR_NAMES[f]}</Term></div>
-                        <div className="ck-bar diverge">
-                          {a != null && <span style={{ left: a >= 0 ? '50%' : `${50 - pct}%`, width: `${pct}%`, background: a >= 0 ? GOLD : BLUE }} />}
-                        </div>
-                        <div className="num" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 'var(--fw-700)' }}>{a == null ? '—' : `${a >= 0 ? '+' : '−'}${Math.abs(a).toFixed(2)}`}</span>
-                          <span style={{ display: 'block', fontSize: 'var(--v13-t1)', color: INK3 }}>{L ? `book ${L.book >= 0 ? '+' : '−'}${Math.abs(L.book).toFixed(2)} · index ${L.bench >= 0 ? '+' : '−'}${Math.abs(L.bench).toFixed(2)}` : 'no data'}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="ck-note">
-                  Each bar is how far the book leans toward a style compared with the 500 largest US stocks (the site holds no official S&P 500 list; this is the nearest honest proxy).
-                  Gold = more than the index, slate = less. ±1 is one standard deviation of that universe.
-                </div>
+                    </>
+                  ) : <div className="tm-empty">{riskNote || needsDays(250)}</div>}
+                </section>
+                <section className="tm-panel" aria-label="Where the risk comes from">
+                  <div className="tm-phead"><span className="tm-code">SRC</span><span className="tm-ptitle">WHERE THE RISK COMES FROM</span></div>
+                  {srcBlock}
+                </section>
+                <section className="tm-panel" aria-label="Backtest">
+                  <div className="tm-phead"><span className="tm-code">BT</span><span className="tm-ptitle">BACKTEST · FEB 2017 – AUG 2026</span><span className="tm-pfill" /><button type="button" className="tm-plink" onClick={() => setBtOpen((v) => !v)}>{btOpen ? 'LESS ▴' : 'DETAIL ▸'}</button></div>
+                  {btBlock}
+                </section>
               </>
-            ) : empty(cockpit.status === 'loading' ? 'Loading…' : 'Factor scores print with the next monthly scoring.')}
-          </Fold>
-        </Section>
-
-        {/* ══════════════════════ 3 · PORTFOLIO COMPOSITION ══════════════════════ */}
-        <Section title="Portfolio composition" sub={bookMeta ? `${nHeld || book?.length || 0} names · ${bookMeta.secList.length} sectors · ${bookMeta.nIndustries} of 74 industries` : ''}>
-          <div className="ck-comp">
-            <Card
-              title={nothingHeld ? 'Target book — nothing held' : 'Holdings'}
-              right={nothingHeld
-                ? `${book?.length ?? 0} names scored, not owned · ${fmtDate(rebalDate)}`
-                : bookIsLive ? (priceBasis || 'no marks yet') : `final holdings · ${priceBasis || ''}`}
-              fill
-            >
-              {nothingHeld && !err && book && book.length ? (
-                <div style={{ margin: '0 0 var(--sp-10)', padding: 'var(--sp-8) var(--sp-10)', borderRadius: 'var(--r-10)', background: 'var(--c-b8975c-a10)', border: '1px solid var(--c-b8975c-a45)', fontSize: 'var(--v13-t2)', lineHeight: 1.5, color: INK2 }}>
-                  <strong>These are not holdings.</strong> The account holds no shares — the list is what the model scored, i.e. what it intends to buy.
-                </div>
-              ) : null}
-              {err ? (
-                <div style={{ padding: 'var(--sp-12)', fontSize: 'var(--v13-t3)', color: INK2 }}>The book could not be loaded ({err}). Refresh to retry.</div>
-              ) : !book ? (
-                <div style={{ padding: 'var(--sp-12)', fontSize: 'var(--v13-t3)', color: INK3 }}>Loading…</div>
-              ) : (
-                <>
-                  <DataTable
-                    id="paper-cockpit-holdings"
-                    columns={holdingsColumns}
-                    rows={filteredBook}
-                    rowKey={(r) => r.symbol}
-                    initialSort={{ key: 'weight', dir: 'desc' }}
-                    toolbarLeft={
-                      <input className="qtt-search" type="search" placeholder="Filter ticker or name…"
-                        value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Filter holdings" />
-                    }
-                  />
-                  {query && filteredBook.length === 0 && (
-                    <div style={{ padding: 'var(--sp-10)', fontSize: 'var(--v13-t3)', color: INK3 }}>No holdings match “{query}”.</div>
-                  )}
-                  <div className="ck-note ck-pin">
-                    Risk share is how much of the book’s day-to-day swings come from each stock (the twenty add up to 100%); amber = more than double its share of the money. Style = the tilt the stock brings most strongly. Marks and P&L are the paper broker’s official records at the last sync. Columns can be sorted, dragged,
-                    resized and shown or hidden under “Columns”.
+            )}
+          </>
+        ) : (
+          <div className="tm-paper-grid">
+            {/* ── left: PERF + HOLD ──────────────────────────────────────── */}
+            <div className="tm-col">
+              <section className="tm-panel rd-rise d3" aria-label="Performance">
+                <div className="tm-phead"><span className="tm-code">PERF</span><span className="tm-ptitle">GROWTH OF $1,000,000 · INDEXED TO 100</span><span className="tm-pfill" /><span className="tm-legend"><span className="is-amber">━ BOOK</span> <span className="fl">━ S&amp;P 500</span></span></div>
+                <div className="tm-perf">
+                  <div className="tm-chartwrap">
+                    {liveCurve ? (
+                      <TmLineChart height={236}
+                        series={[
+                          { name: 'Book', color: 'var(--tm-amber)', values: liveCurve.strategy, width: 2.25 },
+                          ...(liveCurve.spx ? [{ name: 'S&P 500', color: 'var(--tm-text-5)', values: liveCurve.spx, width: 1.75, tagBg: 'var(--tm-midline)', tagInk: 'var(--tm-num)' }] : []),
+                        ]}
+                        dates={heldNav.map((r) => r.d)} yFmt={(v) => v.toFixed(1)} />
+                    ) : <div className="tm-empty">The live line starts drawing at the second daily mark.</div>}
                   </div>
-                </>
-              )}
-            </Card>
-
-            <div className="ck-col ck-compside">
-              <Card title="Concentration" right={effN != null ? 'how spread out the book is' : ''}>
-                <div className="ck-stats">
-                  {[
-                    ['Names held', nHeld || '—', 'equal weight targets'],
-                    [<Term key="e" tip="How many equal-sized positions the book behaves like, given its actual weights. Twenty names at exactly 5% each would read 20.0." labelOpacity={0.9}>Effective names</Term>, effN != null ? effN.toFixed(1) : '—', 'from today’s weights'],
-                    ['Top 5 weight', weights.length ? fmtPctPlain(top5, 1) : '—', 'share of the money'],
-                    ['Top 5 risk share', top5Risk != null ? fmtPctPlain(top5Risk, 1) : '—', top5Risk != null ? 'share of the swings' : (riskNote || 'with the risk figures')],
-                    ['Largest position', largest ? fmtPctPlain(largest.w, 1) : '—', largest ? largest.s : '—'],
-                    [<Term key="x" tip={TIPS.dtl} labelOpacity={0.9}>Slowest exit</Term>, bookMeta?.worstDtl != null ? `${bookMeta.worstDtl < 0.01 ? '<0.01' : bookMeta.worstDtl.toFixed(2)} days` : '—', 'the least liquid name'],
-                  ].map(([label, value, sub], i) => (
-                    <div key={i}>
-                      <div className="ck-stat-k">{label}</div>
-                      <div className="ck-stat-v">{value}</div>
-                      <div className="ck-stat-s">{sub}</div>
-                    </div>
-                  ))}
+                  {returnsBlock}
                 </div>
-              </Card>
+              </section>
 
-              <Card title="Market cap" right={bookMeta?.medMcap ? <span>median <Term tip={TIPS.mcap} labelOpacity={0.9}>${(bookMeta.medMcap / 1e9).toFixed(0)}B</Term></span> : ''}>
-                {bookMeta ? (
-                  <>
-                    {bookMeta.caps.map((b) => barRow(b.name, b.weight, b.n, b.weight, BLUE))}
-                    <div className="ck-note">Share of the book by company size; the count is names in the bucket.</div>
-                  </>
-                ) : empty('Loading…')}
-              </Card>
+              <section className="tm-panel rd-rise d4" aria-label="Holdings">
+                <div className="tm-phead">
+                  <span className="tm-code">HOLD</span>
+                  <span className="tm-ptitle">{nothingHeld ? `TARGET BOOK · ${book?.length ?? 0} NAMES SCORED, NOT OWNED` : `HOLDINGS · ${nHeld} NAMES${nSectors != null ? ` · ${nSectors} SECTORS` : ''}${bookMeta ? ` · ${bookMeta.nIndustries} OF 74 INDUSTRIES` : ''}`}</span>
+                  <span className="tm-pfill" />
+                  <span className="tm-pnote">{bookIsLive ? (priceBasis || 'no marks yet') : `final holdings · ${priceBasis || ''}`}</span>
+                </div>
+                <div className="tm-holdbody">
+                  {err ? (
+                    <div className="tm-empty">The book could not be loaded ({err}). Refresh to retry.</div>
+                  ) : !book ? (
+                    <div className="tm-empty">Loading…</div>
+                  ) : (
+                    <>
+                      <DataTable
+                        id="paper-cockpit-holdings"
+                        columns={holdingsColumns}
+                        rows={filteredBook}
+                        rowKey={(r) => r.symbol}
+                        initialSort={{ key: 'weight', dir: 'desc' }}
+                        toolbarLeft={
+                          <input className="tm-search" type="search" placeholder="Filter ticker or name…"
+                            value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Filter holdings" />
+                        }
+                      />
+                      {query && filteredBook.length === 0 && (
+                        <div className="tm-empty">No holdings match “{query}”.</div>
+                      )}
+                      <div className="tm-pnote tm-pnote--block">
+                        Risk = the stock’s share of the book’s day-to-day swings (the names add to 100%); amber = more than double its share of the money. Style = the tilt the stock brings most strongly. Marks and P&L are the paper broker’s official records at the last sync. Columns can be sorted, dragged, resized and shown or hidden under “Columns”.
+                      </div>
+                    </>
+                  )}
+                </div>
+              </section>
+            </div>
 
-              <Card title="Sector" right={bookMeta ? `${bookMeta.secList.length} sectors` : ''} fill>
-                {bookMeta ? (
+            {/* ── middle: ATTR + RISK ────────────────────────────────────── */}
+            <div className="tm-col">
+              <section className="tm-panel rd-rise d3" aria-label="Contributors and detractors">
+                <div className="tm-phead"><span className="tm-code">ATTR</span><span className="tm-ptitle">CONTRIBUTORS &amp; DETRACTORS · BP</span></div>
+                {attribution ? (
                   <>
-                    {bookMeta.secList.map((sec) => barRow(sec.name, sec.weight, sec.n, sec.weight / (bookMeta.secList[0]?.weight || 1), GOLD))}
-                    <div className="ck-note ck-pin">Share of the book by sector; the count is names in the sector. Bars are scaled to the largest sector.</div>
+                    {attribution.day ? attrBlock(`${daySession === 'today' ? 'TODAY' : daySession.toUpperCase()} · TOP 5 / BOTTOM 5`, attribution.day) : null}
+                    {attribution.since ? attrBlock('SINCE ENTRY · TOP 5 / BOTTOM 5', attribution.since) : null}
+                    {!attribution.day && <div className="tm-pnote tm-pnote--block">Session movers print while the market is open; the after-close snapshot carries each position’s total P&amp;L only.</div>}
                   </>
-                ) : empty('Loading…')}
-              </Card>
+                ) : <div className="tm-empty">Populates from the first broker marks.</div>}
+              </section>
+              {riskPanel}
+            </div>
+
+            {/* ── right: TILT + SRC + BT ─────────────────────────────────── */}
+            <div className="tm-col">
+              <section className="tm-panel rd-rise d3" aria-label="Style tilts">
+                <div className="tm-phead"><span className="tm-code">TILT</span><span className="tm-ptitle">STYLE TILTS VS 500 LARGEST US STOCKS</span></div>
+                {tiltBlock}
+              </section>
+              <section className="tm-panel rd-rise d4" aria-label="Where the risk comes from">
+                <div className="tm-phead"><span className="tm-code">SRC</span><span className="tm-ptitle">WHERE THE RISK COMES FROM</span></div>
+                {srcBlock}
+              </section>
+              <section className="tm-panel rd-rise d5" aria-label="Backtest">
+                <div className="tm-phead"><span className="tm-code">BT</span><span className="tm-ptitle">BACKTEST · FEB 2017 – AUG 2026</span><span className="tm-pfill" /><button type="button" className="tm-plink" onClick={() => setBtOpen((v) => !v)}>{btOpen ? 'LESS ▴' : 'DETAIL ▸'}</button></div>
+                {btBlock}
+              </section>
             </div>
           </div>
+        )}
 
-          <Fold title="Industry detail" right={bookMeta ? `${bookMeta.nIndustries} of 74 industries · click a ticker to open it` : ''}>
-            {bookMeta ? (
-              <div className="qtt-secgrid ck-indgrid">
-                {bookMeta.secList.map((sec) => (
-                  <div className="qtt-sectile" key={sec.name}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--sp-2)' }}>
-                      <span style={{ fontWeight: 'var(--fw-700)', fontSize: 'var(--v13-t2)', color: INK }}>{sec.name}</span>
-                      <span style={{ fontSize: 'var(--v13-t1)', color: INK3 }}>{sec.n} {sec.n === 1 ? 'name' : 'names'}</span>
-                    </div>
-                    {sec.industries.map((ind) => (
-                      <div key={ind.name} style={{ padding: 'var(--sp-3) 0', borderTop: `1px solid ${HAIR}`, fontSize: 'var(--v13-t1)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--sp-6)' }}>
-                          <span style={{ color: INK2 }}>{ind.name}</span>
-                          <span className="num" style={{ color: INK2, whiteSpace: 'nowrap' }}>{fmtPctPlain(ind.weight, 1)}</span>
-                        </div>
-                        <div style={{ color: INK3, marginTop: 'var(--sp-1)' }}>
-                          {ind.syms.map((sym, i) => (
-                            <React.Fragment key={sym}>
-                              <button type="button" onClick={() => onOpenTicker && onOpenTicker(sym)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: INK3 }}>{sym}</button>
-                              {i < ind.syms.length - 1 ? ' · ' : ''}
-                            </React.Fragment>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ) : empty('Loading…')}
-          </Fold>
-        </Section>
-
-        <div style={{ fontSize: 'var(--v13-t1)', color: INK3, marginTop: 'var(--lg-gap)', lineHeight: 1.6 }}>
-          Scored on 12- and 6-month momentum (skipping the most recent month), trend consistency, drawdown resilience, gross profitability, cash generation and buybacks from point-in-time
-          SEC filings, plus a bonus for meaningful insider buying. Risk figures are computed once after each close from one year of daily closes at that close’s weights, and re-derived in the repository’s calibration check;
-          this page never estimates prices itself. Signal columns are as-of the scoring date.
-        </div>
-      </div>
+        <p className="tm-footnote">
+          Marks and P&amp;L are the paper broker’s official records at the last sync. Scored on 12- and 6-month momentum (skipping the most recent month),
+          trend consistency, drawdown resilience, gross profitability, cash generation and buybacks from point-in-time SEC filings, plus a bonus for meaningful
+          insider buying. Risk figures are computed once after each close from one year of daily closes at that close’s weights; this page never estimates prices itself.
+        </p>
+      </main>
     </div>
   );
 }

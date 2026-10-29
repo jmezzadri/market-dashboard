@@ -152,20 +152,22 @@ function Tile({ r, t, onOpen }) {
   const d = r.pct ? ddParts(t?.pct, 2) : ddParts(t?.dd, r.dec);
   const inner = (
     <>
-      <span className="tk">{r.label}</span>
-      <span className="tv">{t ? fmt(t.value, r.dec) + (r.suffix || '') : '—'}</span>
-      <span className={`td ${d.cls || 'fl'}`}>
-        {d.txt ? `${d.arrow} ${d.txt}${r.pct ? '%' : ''}` : '—'}{' '}
-        <small>{t?.stamp || 'close'}</small>
+      <span className="rd-tile-l">{r.label}</span>
+      <span className="rd-tile-v">{t ? fmt(t.value, r.dec) + (r.suffix || '') : '—'}</span>
+      <span className={`rd-tile-c ${d.cls || 'fl'}`}>
+        {d.txt ? `${d.cls === 'up' ? '+' : '−'}${d.txt}${r.pct ? '%' : ''}` : '0'}
+        {/* the session the move belongs to, in the same element as the move
+            (LESSONS 4.26 rule 1 / 4.32) */}
+        <small className="rd-tile-s">{t?.stamp || 'close'}</small>
       </span>
     </>
   );
   return onOpen ? (
-    <button type="button" className="t t--drill" onClick={onOpen} aria-label={`${r.label} — open detail`}>
+    <button type="button" className="rd-tile rd-tile--drill" onClick={onOpen} aria-label={`${r.label} — open detail`}>
       {inner}
     </button>
   ) : (
-    <div className="t t--static">{inner}</div>
+    <div className="rd-tile">{inner}</div>
   );
 }
 
@@ -209,9 +211,9 @@ export default function MarketTape() {
      copy's width — that is what makes the loop seamless. The second copy is
      decoration: hidden from assistive tech and out of the tab order. */
   const strip = (dup) => (
-    <div className="row" aria-hidden={dup ? 'true' : undefined} inert={dup ? '' : undefined}>
+    <div className="rd-tape-strip" aria-hidden={dup ? 'true' : undefined} inert={dup ? '' : undefined}>
       {groups.map((g) => (
-        <div className="tgroup" key={g.group} role={dup ? undefined : 'group'} aria-label={dup ? undefined : g.group}>
+        <div className="rd-tape-group" key={g.group} role={dup ? undefined : 'group'} aria-label={dup ? undefined : g.group}>
           {g.items.map(({ r, t }) => <Tile key={r.key} r={r} t={t} onOpen={dup ? null : openFor(r)} />)}
         </div>
       ))}
@@ -219,17 +221,18 @@ export default function MarketTape() {
   );
 
   return (
-    <div className="home-v12 v13 home-cockpit mt-tape-host">
-      <div className="tape" role="region" aria-label="Market prices">
-        <div className="wrap tape-view" tabIndex={0} onScroll={snapBackWhileSliding}>
-          <div className="tape-track" style={{ '--tape-n': TAPE_ITEMS.length }}>
+    <>
+      <section className="rd-tape" role="region" aria-label="Markets, scrolling">
+        <div className="rd-tape-view" tabIndex={0} onScroll={snapBackWhileSliding}>
+          <div className="rd-tape-track" style={{ '--tape-n': TAPE_ITEMS.length }}>
             {strip(false)}
             {strip(true)}
           </div>
         </div>
-      </div>
+      </section>
+      {/* The drill modals portal into the shell and keep their own skin. */}
       <IndicatorDrillModal indId={drillInd} onClose={() => setDrillInd(null)} />
       <IndexDrillModal indexKey={drillIdx} hist={hist} onClose={() => setDrillIdx(null)} />
-    </div>
+    </>
   );
 }

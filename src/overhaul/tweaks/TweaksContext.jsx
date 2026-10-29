@@ -74,7 +74,11 @@ export function TweaksProvider({ children }) {
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
-    root.setAttribute('data-mt-theme', tweaks.theme);
+    // 2026-10-28: the terminal pages (Macro Landscape, Paper Portfolio) are
+    // dark only. OverhaulApp stamps data-skin on the root before this runs;
+    // while a terminal page is up the theme attribute reads dark whatever
+    // the saved choice is, and the choice itself is untouched.
+    root.setAttribute('data-mt-theme', root.getAttribute('data-skin') === 'terminal' ? 'navy' : tweaks.theme);
     root.setAttribute('data-mt-accent', tweaks.accent);
     root.setAttribute('data-mt-density', tweaks.density);
     root.setAttribute('data-mt-sidebar', 'top'); // sidebar retired 2026-07-07 — always top nav

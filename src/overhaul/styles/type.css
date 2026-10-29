@@ -39,9 +39,13 @@
    ========================================================================= */
 
 :root {
-  /* ── THE THREE. The only font stacks defined anywhere in the repo. ── */
-  --mt-type-sans:  'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --mt-type-serif: 'IBM Plex Serif', 'Iowan Old Style', Georgia, serif;
+  /* ── THE THREE. The only font stacks defined anywhere in the repo. ──
+     2026-10-28 redesign (Joe's approved "MacroTilt Redesign" canvas): the
+     serif is Newsreader (headlines and the wordmark), the sans is Inter
+     (everything else), the mono stays IBM Plex Mono (figures only). Same
+     three roles, same three tokens, same single declaration site. */
+  --mt-type-sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mt-type-serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
   --mt-type-mono:  'IBM Plex Mono', ui-monospace, Menlo, monospace;
 
   /* ── Aliases. Older stylesheets reference these names; they all resolve
@@ -65,3 +69,12 @@
   --font-body:       var(--mt-type-sans);
   --font-mono:       var(--mt-type-mono);
 }
+
+/* ── The terminal skin (Macro Landscape, Paper Portfolio). ──────────────
+   The sans ROLE is kept; its face is the condensed cut the approved terminal
+   boards use for headlines and indicator names. It is a scoped variant of
+   the same token, not a fourth token: inside a terminal page root the sans
+   token resolves here, everywhere else it resolves to Inter above. The
+   shared header sits outside the page root, so its menu stays Inter.
+   scripts/check_fonts.mjs knows this one scoped line and nothing else. */
+.mt-terminal { --mt-type-sans: 'IBM Plex Sans Condensed', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
