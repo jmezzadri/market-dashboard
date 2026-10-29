@@ -263,6 +263,20 @@ SCORE_SIDES = {"long", "short"}
 SCORE_OPS = {">=", "<=", ">", "<"}
 SCORE_BASES = {"close", "weekly_close"}
 
+# Bug #1277 (Joe, 2026-10-29). The Oct 22 note told the reader to buy SPY
+# at-the-money puts and its scorecard leg marked the S&P 500 index, short.
+# The index drifted +0.2%; the put lost a tenth of its premium. LESSONS
+# 6.18(a): the scorecard grades the vehicle the reader is told to trade.
+# From OPTION_LEG_FROM, a note whose the_trade names puts or calls (and is
+# not a kind: event note, which has its own block) MUST carry a scorecard
+# leg with an `option` block — kind, strike in the series' units, expiry,
+# the implied-vol series it is priced from — and the scorer marks that
+# option by Black-Scholes every session. A plain underlying leg on an
+# options note is refused. Notes before that date are grandfathered so
+# --check stays green on the archive; the Oct 22 note itself was corrected.
+OPTION_LEG_FROM = "2026-10-22"
+OPTION_WORDS = re.compile(r"\b(puts?|calls?)\b", re.I)
+
 # 2026-08-14 (Joe): "Making a call 10 years out is not helpful. I want more
 # trades ideas... next several quarters. This bond idea is not profound at all.
 # You could look at Buffet Indicator or CAPE alone and say 'stocks are expensive
@@ -680,7 +694,14 @@ def _leg_closes(leg: dict, hist: dict):
         return None
     pts = hist[key].get("points") if isinstance(hist[key], dict) else hist[key]
     m = _points_map(pts or [])
-    return (m, measure, maturity, 1) if m else None
+    # An option leg (bug #1277) moves with its underlying for the book's
+    # correlation check: a put the other way, a call the same way. The
+    # leverage does not matter to a correlation; the sign does.
+    sign = 1
+    opt = leg.get("option")
+    if isinstance(opt, dict) and str(opt.get("kind", "")).lower() == "put":
+        sign = -1
+    return (m, measure, maturity, sign) if m else None
 
 
 def _correlation(a: dict, b: dict):
@@ -1503,6 +1524,49 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                 raise ContractError(
                     f"scorecard.legs[{i}] names series {leg.get('series')!r}, which is not in "
                     "indicator_history.json — a position we do not carry data for cannot be marked")
+        if leg.get("option") is not None:
+            # Bug #1277 — an option leg is parsed by the scorer's own parser
+            # so the contract and the marker cannot disagree about its shape.
+            if event:
+                raise ContractError(f"scorecard.legs[{i}] carries an option block on a kind: event note — "
+                                    "an event note's structure lives in scorecard.event, not on a leg")
+            if meas != "pct_change":
+                raise ContractError(f"scorecard.legs[{i}] is an option leg; its underlying must be a price series (pct_change)")
+            from score_trade_ideas import option_spec, ScoreError
+            try:
+                spec = option_spec(leg)
+            except ScoreError as e:
+                raise ContractError(f"scorecard.legs[{i}].option: {e}")
+            if spec["expiry"] <= str(idea.get("date", ""))[:10]:
+                raise ContractError(f"scorecard.legs[{i}].option.expiry ({spec['expiry']}) is not after the note's date")
+            if hist is not None and spec["iv_series"] not in hist:
+                raise ContractError(f"scorecard.legs[{i}].option.iv_series names {spec['iv_series']!r}, which is not in "
+                                    "indicator_history.json — an option cannot be priced without its implied vol")
+            if not str(leg.get("short_label") or leg.get("label") or "").strip():
+                raise ContractError(f"scorecard.legs[{i}] is an option leg and must carry a label naming the contract "
+                                    "(e.g. 'SPY 773 put, Nov 13') — the Scorecard row names the vehicle")
+    # Bug #1277 — the vehicle and the leg are the same thing. A note that
+    # tells the reader to hold puts or calls is marked on those options; a
+    # leg on the underlying would grade a trade nobody was told to make.
+    if not event and str(idea.get("date", ""))[:10] >= OPTION_LEG_FROM:
+        named = []
+        for k in ("buy", "short"):
+            m = OPTION_WORDS.search(str(trade.get(k, "") or ""))
+            if m:
+                named.append(m.group(1).lower().rstrip("s"))
+        option_legs = [l for l in legs if isinstance(l, dict) and l.get("option") is not None]
+        if named and not option_legs:
+            raise ContractError(
+                f"the_trade names {named[0]}s as the vehicle but no scorecard leg carries an option block — the "
+                "Scorecard grades what the reader is told to hold, so the leg must be the option "
+                "(kind, strike in the series' units, expiry, iv_series), not the underlying (bug #1277)")
+        if option_legs and not named:
+            raise ContractError("scorecard carries an option leg but the_trade names no puts or calls — the leg must be "
+                                "the vehicle the note names")
+        kinds = {str((l.get("option") or {}).get("kind", "")).lower() for l in option_legs}
+        if named and kinds and named[0] not in kinds:
+            raise ContractError(f"the_trade names {named[0]}s but the option leg is a {sorted(kinds)[0]} — the leg must be "
+                                "the vehicle the note names")
     if sc.get("horizon_weeks") not in (None, ""):
         if str(idea.get("date", "")) < BOOK_RULES_FROM:
             raise ContractError("scorecard.horizon_weeks is only accepted on notes dated from " + BOOK_RULES_FROM)

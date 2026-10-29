@@ -602,7 +602,7 @@ export default function MethodologyPage() {
         {/* 04 — Macro Scorecard: the Trade Idea contract and how every call is
             marked. Every number here is quoted from scripts/build_trade_idea.py
             and scripts/score_trade_ideas.py (LESSONS 9.3); rewritten 2026-10-21
-            for Contract v2 (LESSONS 6.26). */}
+            for Contract v2 (LESSONS 6.26); option legs added 2026-10-29 (bug #1277). */}
         <article id="scorecard" className="me-section">
           <div className="me-num">04</div>
           <div>
@@ -714,6 +714,19 @@ export default function MethodologyPage() {
               finds the event decided, at the spread&rsquo;s value that day.
             </p>
             <p className="me-body-p">
+              <b>A call is marked on the vehicle the note names.</b> When the note tells the reader to
+              hold an <b>option</b> — a put or a call on a fund or an index — the Scorecard marks that
+              option, never the underlying: each session the option is valued by the Black-Scholes
+              formula from the underlying&rsquo;s closing level, the implied-volatility series the note
+              names (the VIX for an S&amp;P 500 option), the calendar days left to expiry, and the
+              interest rate and dividend yield written in the note at publication; at expiry it is worth
+              its intrinsic value. The return is that value against the option&rsquo;s model value at
+              the entry close (or the premium the note stated). It is a model value, not a fill, and
+              the most the position can lose is its premium. The stated exit level on the underlying
+              still closes the call, at the option&rsquo;s value that day. A note that names puts or
+              calls without an option leg does not publish.
+            </p>
+            <p className="me-body-p">
               <b>The book figures.</b> A call&rsquo;s <b>contribution</b> is its weight multiplied by its
               own return, in points of the 100: a call at weight 10 that returns 20% contributes 2.
               Realized is the sum for closed calls, shown by the year they closed; unrealized is the sum
@@ -726,10 +739,11 @@ export default function MethodologyPage() {
             </p>
             <div className="me-formula" data-mono="code">
               entry        = last settled close before publication (settled from 5 PM ET)<br />
-              mark         = price return of the named series, long minus short, no costs<br />
+              mark         = price return of the named vehicle, long minus short, no costs<br />
               benchmark    = S&amp;P 500 over the same days, read on or before the mark date (blank if &gt; 4 days stale)<br />
               close        = exit level printed · weekly review finds a critical claim broken · planned close date<br />
               event mark   = intrinsic value at expiry ÷ premium − 1 (−100% to the payoff ratio)<br />
+              option mark  = Black-Scholes(underlying close, strike, days to expiry, implied vol, rate, yield) ÷ premium at entry − 1<br />
               contribution = weight × return ÷ 100 · realized + unrealized = total · no hit rate below 10 closed calls
             </div>
           </div>

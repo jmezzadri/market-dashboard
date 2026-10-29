@@ -219,6 +219,19 @@ function eventTxt(ev) {
     prem ? `premium ${prem} is the most it can lose` : '', ratio ? `pays ${ratio}` : '', odds].filter(Boolean).join(' · ');
 }
 
+/* The option-leg line (bug #1277, 2026-10-29): what the reader was told to
+   hold, the premium at entry and the model value now in the vehicle's own
+   units, and that it is priced, not filled. Reuses the event line's style. */
+function optionTxt(o) {
+  if (!o) return null;
+  const unit = o.display_unit ? ` ${o.display_unit}` : '';
+  const prem = o.premium_at_entry_display != null ? `premium $${Number(o.premium_at_entry_display).toFixed(2)}${unit} at entry` : '';
+  const now = o.value_now_display != null ? `$${Number(o.value_now_display).toFixed(2)} at the ${dShort(o.as_of)} close` : '';
+  const left = o.days_to_expiry > 0 ? `${o.days_to_expiry} days to expiry` : (o.state ? String(o.state) : '');
+  return [o.label || `${o.kind || ''} ${o.strike_display ?? o.strike ?? ''}`.trim(), prem, now, left, 'model value, not a fill']
+    .filter(Boolean).join(' · ');
+}
+
 function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
   const b = r.book || {};
   const ret = b.return_pct ?? r.mark;
@@ -232,7 +245,7 @@ function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
     ? `${VERDICT_LABEL[review.verdict] || review.verdict} · ${dShort(review.review_date)}`
     : 'Not yet reviewed';
   const why = isOpen ? reviewTxt : (r.close_reason || '—');
-  const ev = r.event ? eventTxt(r.event) : null;
+  const ev = r.event ? eventTxt(r.event) : (r.option ? optionTxt(r.option) : null);
   const evState = r.event?.state;
   const open = () => { if (idea) onOpenNote(idea); };
   return (
@@ -540,6 +553,10 @@ export default function ScorecardPage() {
             <div>
               <dt>Event ideas</dt>
               <dd>An event idea is a defined-risk options spread on a named event with a date. It is sized by the premium paid, which is the most it can lose. It is marked at expiry from the underlying&rsquo;s closing price against its strikes: the return runs from a loss of the whole premium to the stated payoff. Before expiry it is shown as open with the underlying&rsquo;s distance to the long strike. It closes early only if the weekly review finds the event has been decided, at the spread&rsquo;s value that day.</dd>
+            </div>
+            <div>
+              <dt>Options</dt>
+              <dd>When a note tells the reader to hold an option &mdash; a put or a call on a fund or an index &mdash; the position is marked on that option, not on the fund or index. Each session the option is valued by the Black-Scholes formula from the underlying&rsquo;s closing level, the implied-volatility series named in the note (the VIX for an S&amp;P 500 option), the calendar days left to expiry, and the interest rate and dividend yield written in the note; at expiry it is worth its intrinsic value. The return is that value against the option&rsquo;s value at the entry close. It is a model value, not a traded price: a reader&rsquo;s fill will differ with the bid-ask spread and the time of day. The most an option position can lose is its premium.</dd>
             </div>
             <div>
               <dt>Last review</dt>

@@ -554,7 +554,7 @@ do not publish a multi-quarter outright short of an asset in a strong uptrend
 
 | expression | when | what the Scorecard marks |
 |---|---|---|
-| puts or a put spread on a listed fund or stock | headline or gap risk is real; borrow is doubtful; the thesis has a date | the underlying, with the premium stated as the most the trade can lose |
+| puts or a put spread on a listed fund or stock | headline or gap risk is real; borrow is doubtful; the thesis has a date | THE PUT ITSELF (bug #1277, 2026-10-29): an `option` leg, valued by Black-Scholes from the underlying's close and the implied-vol series the leg names; the premium is the most the trade can lose |
 | pair: short fund A, long fund B (or long SPY) | the edge is relative — A lags B | both legs, no benchmark (the pair is already relative) |
 | short the fund or stock outright | liquid, borrowable, the edge is an absolute decline | the fund or stock, against the S&P |
 | inverse fund | only when no put market exists; `horizon_weeks` ≤ 4 (daily-reset drift) — the contract refuses longer | the inverse fund itself |
@@ -1253,6 +1253,35 @@ machine-readable form:
 - `measure` is `pct_change` for a price or a ratio, `level_change` for a yield
   or a spread. Marking one as the other is silently wrong: a breakeven going
   2.30 to 2.45 is +0.15pp, not +6.5%.
+- **An option is marked as the option, never as its underlying (bug #1277,
+  2026-10-29; LESSONS 6.18).** The Oct 22 call said "Buy: SPY ATM puts" and
+  marked the index short: +0.2% on the page while the put had lost a tenth of
+  its premium. On any note dated 2026-10-22 or later whose `the_trade` names
+  puts or calls, a leg MUST carry an `option` block, and the contract refuses
+  the note otherwise. The leg's `series` is the underlying it is priced from
+  (`spx_index` for SPY options — strike and premium in index points, with a
+  `display_scale` to show them as dollars a share); `short_label` names the
+  contract the reader holds:
+
+  ```json
+  {"series": "spx_index", "side": "long", "measure": "pct_change",
+   "short_label": "SPY 773 put, Nov 13",
+   "option": {"kind": "put", "strike": 7756.3, "expiry": "2026-11-13",
+              "iv_series": "vix", "rate_pct": 4.0, "dividend_yield_pct": 1.2,
+              "display_scale": 0.099661, "display_unit": "a SPY share",
+              "label": "SPY 773 put, Nov 13"}}
+  ```
+
+  The scorer values it every session by Black-Scholes from the underlying's
+  close, the vol series' close (the VIX for an S&P 500 option), the calendar
+  days left to expiry and the rate and dividend yield written here; at expiry
+  it is intrinsic. The return is that value against the model value at the
+  entry close — or `premium_at_entry` (in the series' units) if the note
+  states the premium it was written at. `side` is `long` for a bought put or
+  call. The exit level still goes on the underlying (`invalidation`), and it
+  closes the call at the option's value that day. Stated expected return and
+  loss at the stop are in option terms (a 3% index fall roughly doubles a
+  three-week at-the-money put; the stop is what the put is worth there).
 - A leg's `series` may be a stock: `"series": "ticker:ACDC"` (2026-08-31).
   Closes come from the `prices_eod` table at scoring time; entry, stop, path
   and the S&P benchmark apply unchanged. Confirm the ticker actually has rows

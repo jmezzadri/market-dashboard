@@ -51,6 +51,7 @@ def _history():
         "cmdty_brent": {"points": _days("2025-07-01", n, lambda i: 80 + 0.1 * i + 4 * math.sin(i / 11))},
         "ust_20y": {"points": _days("2025-07-01", n, lambda i: 4.6 + 0.3 * math.sin(i / 13))},
         "ust_10y": {"points": _days("2025-07-01", n, lambda i: 4.3 + 0.3 * math.sin(i / 13))},
+        "vix": {"points": _days("2025-07-01", n, lambda i: 17 + 4 * math.sin(i / 17))},
     }
 
 
@@ -277,15 +278,15 @@ class TestDecision3Shorts(Base):
         n = standard_note(sizing={"weight": 10}, position_type="outright short",
                           title="Regional banks fall, not just lag",
                           instrument="KRE, the regional bank fund, sold short")
-        n["the_trade"] = {"buy": "Nothing is bought; the position is a short.", "short": "KRE shares sold short, or KRE puts three months out.",
-                          "short_line": "KRE puts, three months"}
+        n["the_trade"] = {"buy": "Nothing is bought; the position is a short.", "short": "KRE shares sold short, held three months.",
+                          "short_line": "KRE shares, sold short"}
         n["edge"]["backtest"]["regime_match"] = {"factor": "the dollar at a one-year high (today 108)", "matching_cases": 9,
                                                  "result": "inside the nine matching cases: median -4% over 126 sessions, 7 of 9 negative, against +4.2% unconditional"}
         n["edge"]["backtest"]["absolute"] = {"median": median, "win_rate": 59}
         n["edge"]["vs_market"] = "The position is expected to return +12% over six months while the S&P returns about +5%: the gap is the expected excess, net of borrow of about 1%."
         n["scorecard"] = {"legs": [{"series": "px_b", "side": "short", "measure": "pct_change", "label": "KRE", "short_label": "KRE"}],
                           "horizon_months": 6}
-        n["expected_return"] = {"pct": 12.0, "loss_at_stop_pct": 5.0, "basis": "the median fall of the fund itself in the nine cases, on KRE shares, which is what the Scorecard marks", "instrument": "KRE shares sold short, or KRE puts"}
+        n["expected_return"] = {"pct": 12.0, "loss_at_stop_pct": 5.0, "basis": "the median fall of the fund itself in the nine cases, on KRE shares, which is what the Scorecard marks", "instrument": "KRE shares sold short for three months"}
         return n
 
     def test_outright_short_refused_when_the_asset_rose_while_lagging(self):
@@ -414,6 +415,63 @@ class TestDecision5Weights(Base):
         n["evidence"] = [{**e, "as_of": "2026-10-14"} for e in n["evidence"]] + [{"claim": "platinum low", "value": "$880", "source": "LBMA fix", "as_of": "2026-10-10"}]
         n["edge"]["backtest"]["regime_match"] = "The named cause is oil above $90; 6 matching episodes: median +24% over 126 sessions, 5 of 6 higher, against +4.2%."
         B.validate(n, [])
+
+
+class TestOptionLegs(Base):
+    """Bug #1277 (2026-10-29): a note that tells the reader to hold puts or
+    calls is marked on those options. The leg carries an option block; a
+    plain underlying leg on an options note is refused."""
+
+    def _puts(self, **opt):
+        n = standard_note(title="Credit broke first; the S&P 500 catches down",
+                          instrument="SPY 773 put, Nov 13 expiry", kind="cross-asset", horizon="3 weeks")
+        n["the_trade"] = {"buy": "SPY 773 puts, Nov 13 expiry.", "buy_line": "SPY 773 puts, Nov 13", "sizing": "5 of 100."}
+        o = {"kind": "put", "strike": 7756.3, "expiry": "2026-11-13", "iv_series": "vix", "rate_pct": 4.0,
+             "dividend_yield_pct": 1.2, "display_scale": 0.099661, "display_unit": "a SPY share", "label": "SPY 773 put, Nov 13"}
+        o.update(opt)
+        n["scorecard"] = {"legs": [{"series": "spx_index", "side": "long", "measure": "pct_change",
+                                    "label": "SPY 773 put, Nov 13", "short_label": "SPY 773 put, Nov 13", "option": o}],
+                          "horizon_weeks": 3, "invalidation": {"series": "spx_index", "op": ">", "level": 7818, "basis": "close"}}
+        n["charts"] = [{"series": "spx_index", "title": "S&P 500", "caption": "index", "source": "S&P", "window": "1y"},
+                       {"series": "cmdty_brent", "title": "Brent", "caption": "oil", "source": "ICE", "window": "1y"}]
+        n["expected_return"] = {"pct": 3.2, "loss_at_stop_pct": 0.8, "basis": "the median index fall in the five cases, which roughly doubles a three-week at-the-money put",
+                                "instrument": "SPY 773 puts, Nov 13 expiry"}
+        return n
+
+    def test_an_options_note_with_an_option_leg_passes(self):
+        B.validate(self._puts(), [])
+
+    def test_an_options_note_marked_on_the_underlying_is_refused(self):
+        n = self._puts()
+        n["scorecard"]["legs"][0].pop("option")
+        n["scorecard"]["legs"][0]["side"] = "short"
+        self.refuse(n, "names puts as the vehicle but no scorecard leg carries an option block", "bug #1277")
+
+    def test_the_option_kind_must_match_the_vehicle(self):
+        self.refuse(self._puts(kind="call"), "names puts but the option leg is a call")
+
+    def test_an_option_leg_on_a_note_that_names_no_option_is_refused(self):
+        n = self._puts()
+        n["the_trade"] = {"buy": "SH shares, the inverse S&P 500 fund.", "buy_line": "SH shares, three weeks", "sizing": "5 of 100."}
+        self.refuse(n, "option leg but the_trade names no puts or calls")
+
+    def test_the_option_block_is_checked_by_the_scorers_own_parser(self):
+        self.refuse(self._puts(kind="straddle"), "option.kind must be put or call")
+        self.refuse(self._puts(expiry="2026-10-01"), "is not after the note's date")
+        self.refuse(self._puts(iv_series="vix9d"), "iv_series names 'vix9d'")
+
+    def test_notes_before_the_rule_are_grandfathered(self):
+        n = self._puts(); n["date"] = "2026-10-20"
+        n["evidence"][0]["as_of"] = "2026-10-19"
+        n["scorecard"]["legs"][0].pop("option"); n["scorecard"]["legs"][0]["side"] = "short"
+        B.validate(n, [])
+
+    def test_a_put_leg_counts_against_the_underlying_for_the_book_correlation(self):
+        hist = json.load(open(os.environ["INDICATOR_HISTORY_PATH"]))
+        leg = self._puts()["scorecard"]["legs"][0]
+        closes, measure, _, sign = B._leg_closes(leg, hist)
+        self.assertEqual((measure, sign), ("pct_change", -1))
+        self.assertTrue(closes)
 
 
 class TestBookTestWithWeights(Base):

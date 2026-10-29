@@ -80,6 +80,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import math
 import os
 import re
 import sys
@@ -351,6 +352,141 @@ class ScoreError(Exception):
     pass
 
 
+# ------------------------------------------------------------- option legs
+#
+# Bug #1277 (Joe, 2026-10-29): the Oct 22 call told the reader to buy SPY
+# at-the-money puts, Nov 13 expiry, and the Scorecard marked the S&P 500
+# index itself, short — +0.2% on the page while the put had lost a tenth of
+# its premium from the entry close and a third or more for anyone who bought
+# at the open after the note went out. LESSONS 6.18(a): the scorecard grades
+# the VEHICLE the reader is told to trade. An option is not its underlying.
+#
+# An option leg carries, next to the underlying series it is marked from:
+#
+#   "option": {"kind": "put"|"call", "strike": <in the series' units>,
+#              "expiry": "YYYY-MM-DD", "iv_series": "vix",
+#              "rate_pct": 4.0, "dividend_yield_pct": 1.2,
+#              "premium_at_entry": <optional, in the series' units>,
+#              "display_scale": 0.1, "display_unit": "a share",
+#              "label": "SPY 773 put, Nov 13"}
+#
+# Every session the leg is marked at the Black-Scholes value of that option
+# from the underlying's close, the implied-vol series' close (the VIX for an
+# S&P 500 option: a 30-day at-the-money vol, which is what a two-to-four-week
+# at-the-money put trades near), the calendar days to expiry, and the rate
+# and dividend yield written into the note. At and after expiry the mark is
+# intrinsic value. The leg's return is value ÷ premium − 1, where the premium
+# is the model value at the entry close unless the note states the premium
+# it was written at. Both are recorded on the row. The model is the model of
+# record — it is not a fill — and the page says so.
+OPTION_KINDS = {"put", "call"}
+OPTION_DEFAULT_RATE_PCT = 4.0
+OPTION_DEFAULT_DIV_PCT = 0.0
+DAYS_PER_YEAR = 365.0
+
+
+def norm_cdf(x: float) -> float:
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def black_scholes(kind: str, spot: float, strike: float, t_years: float, vol: float,
+                  rate: float = 0.0, div_yield: float = 0.0) -> float:
+    """European option value per unit of the underlying. `vol`, `rate` and
+    `div_yield` are decimals; `t_years` is calendar time. At or past expiry,
+    or with no vol, the value is intrinsic. Put-call parity holds exactly:
+    call - put = S e^{-qT} - K e^{-rT}."""
+    if kind not in OPTION_KINDS:
+        raise ScoreError(f"unknown option kind {kind!r}")
+    if t_years <= 0 or vol <= 0:
+        return max(0.0, spot - strike) if kind == "call" else max(0.0, strike - spot)
+    sq = vol * math.sqrt(t_years)
+    d1 = (math.log(spot / strike) + (rate - div_yield + 0.5 * vol * vol) * t_years) / sq
+    d2 = d1 - sq
+    disc_s = spot * math.exp(-div_yield * t_years)
+    disc_k = strike * math.exp(-rate * t_years)
+    if kind == "call":
+        return disc_s * norm_cdf(d1) - disc_k * norm_cdf(d2)
+    return disc_k * norm_cdf(-d2) - disc_s * norm_cdf(-d1)
+
+
+def option_spec(leg: dict) -> dict:
+    """Parse and validate a leg's option block. Raises ScoreError with the
+    reason, which the caller reports as `unscoreable`."""
+    o = leg.get("option")
+    if not isinstance(o, dict):
+        raise ScoreError("option block must be an object")
+    kind = str(o.get("kind", "")).lower()
+    if kind not in OPTION_KINDS:
+        raise ScoreError(f"option.kind must be put or call, got {o.get('kind')!r}")
+    try:
+        strike = float(o.get("strike"))
+    except (TypeError, ValueError):
+        raise ScoreError("option.strike must be a number in the underlying series' own units")
+    if strike <= 0:
+        raise ScoreError("option.strike must be positive")
+    try:
+        expiry = dt.date.fromisoformat(str(o.get("expiry"))[:10])
+    except (TypeError, ValueError):
+        raise ScoreError("option.expiry must be an ISO date")
+    iv_series = o.get("iv_series")
+    if not isinstance(iv_series, str) or not iv_series:
+        raise ScoreError("option.iv_series must name the implied-volatility series the option is priced from")
+    try:
+        rate = float(o.get("rate_pct", OPTION_DEFAULT_RATE_PCT)) / 100.0
+        div = float(o.get("dividend_yield_pct", OPTION_DEFAULT_DIV_PCT)) / 100.0
+    except (TypeError, ValueError):
+        raise ScoreError("option.rate_pct and option.dividend_yield_pct must be numbers (per cent a year)")
+    premium = o.get("premium_at_entry")
+    if premium is not None:
+        try:
+            premium = float(premium)
+        except (TypeError, ValueError):
+            raise ScoreError("option.premium_at_entry must be a number in the underlying series' own units")
+        if premium <= 0:
+            raise ScoreError("option.premium_at_entry must be positive")
+    try:
+        scale = float(o.get("display_scale", 1.0))
+    except (TypeError, ValueError):
+        raise ScoreError("option.display_scale must be a number")
+    return {"kind": kind, "strike": strike, "expiry": expiry.isoformat(), "iv_series": iv_series,
+            "rate_pct": rate * 100.0, "dividend_yield_pct": div * 100.0,
+            "premium_stated": premium, "display_scale": scale,
+            "display_unit": str(o.get("display_unit") or ""),
+            "label": str(o.get("label") or leg.get("short_label") or leg.get("label") or "")}
+
+
+def option_value_on(spec: dict, date: str, spot: float, iv_pct: float) -> float:
+    """The option's model value on `date` from the underlying close and the
+    implied-vol series' close (in per cent). Intrinsic at or after expiry."""
+    t = (dt.date.fromisoformat(spec["expiry"]) - dt.date.fromisoformat(date)).days / DAYS_PER_YEAR
+    return black_scholes(spec["kind"], spot, spec["strike"], t, float(iv_pct) / 100.0,
+                         spec["rate_pct"] / 100.0, spec["dividend_yield_pct"] / 100.0)
+
+
+def iv_on_or_before(iv_series: list, date: str):
+    """The implied-vol series' last close on or before `date`."""
+    out = None
+    for d, v in iv_series:
+        if d > date:
+            break
+        out = (d, v)
+    return out
+
+
+def option_leg_values(leg: dict, spec: dict, hist: dict, start: str, end: str | None = None) -> dict:
+    """{date: (model value, spot, iv)} for every session from `start` where the
+    underlying has a close; the implied vol is read on or before that day so a
+    vol series that prints a day late cannot hide a session."""
+    out = {}
+    ivs = hist.get(spec["iv_series"]) or []
+    for d, spot in window(hist[leg["series"]], start, end):
+        iv = iv_on_or_before(ivs, d)
+        if iv is None:
+            continue
+        out[d] = (option_value_on(spec, d, spot, iv[1]), spot, iv[1])
+    return out
+
+
 # ---------------------------------------------------------------- data access
 
 def load_review_closes(path: str = REVIEWS_PATH) -> dict:
@@ -549,6 +685,24 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
                 return {**base, "status": "unscoreable",
                         "reason": f"legs[{i}].measure is bond_return but maturity_years is missing or not a "
                                   f"number — duration cannot be inferred from a yield alone"}
+        if leg.get("option") is not None:
+            # Bug #1277: an option on the series, marked as the option, not as
+            # the series. Parsed here so a malformed block is unscoreable with
+            # its reason rather than silently marked as the underlying.
+            if measure != "pct_change":
+                return {**base, "status": "unscoreable",
+                        "reason": f"legs[{i}] is an option leg; the underlying must be a price series (pct_change)"}
+            try:
+                spec = option_spec(leg)
+            except ScoreError as e:
+                return {**base, "status": "unscoreable", "reason": f"legs[{i}].option: {e}"}
+            if spec["iv_series"] not in hist:
+                return {**base, "status": "unscoreable",
+                        "reason": f"legs[{i}].option.iv_series names {spec['iv_series']!r}, which is not in indicator_history.json"}
+            if spec["expiry"] <= ed:
+                return {**base, "status": "unscoreable",
+                        "reason": f"legs[{i}].option expired ({spec['expiry']}) on or before the entry close ({ed})"}
+            rec["option"] = spec
         legs_out.append(rec)
         entry_dates.append(ed)
 
@@ -563,6 +717,33 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
             if d <= entry_date:
                 leg["entry_date"], leg["entry_value"] = d, v
                 break
+
+    # Option legs: the premium the return is measured against is the model
+    # value at the entry close (the implied vol read on or before that day),
+    # unless the note wrote down the premium it was published at. The
+    # underlying's entry close stays on the leg as `entry_value` so the page
+    # can show the level the reader was looking at.
+    for leg in legs_out:
+        spec = leg.get("option")
+        if not spec:
+            continue
+        iv = iv_on_or_before(hist[spec["iv_series"]], leg["entry_date"])
+        if iv is None:
+            return {**base, "status": "pending_entry",
+                    "reason": (f"No entry price: {spec['iv_series']} has no close on or before the entry close "
+                               f"({leg['entry_date']}), so the option cannot be priced yet."),
+                    "waiting_on": {"series": spec["iv_series"], "published_at": pub_ts}}
+        model = option_value_on(spec, leg["entry_date"], leg["entry_value"], iv[1])
+        if model <= 0:
+            return {**base, "status": "unscoreable",
+                    "reason": f"the {spec['kind']} at {spec['strike']:g} expiring {spec['expiry']} had no model value at the entry close"}
+        spec["entry_spot"] = leg["entry_value"]
+        spec["entry_iv_pct"] = iv[1]
+        spec["entry_iv_date"] = iv[0]
+        spec["premium_model_at_entry"] = model
+        spec["premium_at_entry"] = spec["premium_stated"] if spec["premium_stated"] else model
+        spec["premium_source"] = ("stated in the note" if spec["premium_stated"] else
+                                  "Black-Scholes value at the entry close")
 
     if horizon_weeks:
         target_date = (dt.date.fromisoformat(entry_date) + dt.timedelta(days=7 * horizon_weeks)).isoformat()
@@ -588,7 +769,15 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
     # on trust. The risk-sized figure is still computed and still carried, on
     # its own labelled line, and it is what the eventual track record will be
     # weighted by — but it is a second number, not the first one.
-    sizing = spread_size(legs_out, hist, entry_date)
+    option_legs = [leg for leg in legs_out if leg.get("option")]
+    if option_legs:
+        # An option is sized by the premium at risk, like an event note; a
+        # vol-targeted multiple on a premium return is meaningless.
+        sizing = {"method": "option", "multiple": 1.0, "spread_vol_pct": None,
+                  "target_vol_pct": None, "observations": None,
+                  "basis": "an option leg is sized by premium at risk (sizing.weight), not by volatility"}
+    else:
+        sizing = spread_size(legs_out, hist, entry_date)
     mult = float(sizing.get("multiple", 1.0))
 
     # The mark on a given date: each leg's own % price return, signed by its
@@ -597,16 +786,27 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
     # a move. Per-leg returns are carried through so the page can show what the
     # thing we said to BUY did, what the thing we said to SELL did, and the net
     # — rather than one opaque number off a pre-computed ratio (Joe 2026-08-18).
+    # An option leg's return is its model value against the entry premium
+    # (bug #1277); its sessions are the underlying's sessions on which the
+    # implied-vol series had printed.
+    option_vals = {id(leg): option_leg_values(leg, leg["option"], hist, entry_date) for leg in option_legs}
     common = None
     for leg in legs_out:
-        ds = {d for d, _ in window(hist[leg["series"]], entry_date, None)}
+        if leg.get("option"):
+            ds = set(option_vals[id(leg)])
+        else:
+            ds = {d for d, _ in window(hist[leg["series"]], entry_date, None)}
         common = ds if common is None else (common & ds)
     vmaps = {id(leg): dict(hist[leg["series"]]) for leg in legs_out}
     marks, leg_paths = [], {id(leg): {} for leg in legs_out}
     for d in sorted(common or []):
         total = 0.0
         for leg in legs_out:
-            r = leg_return_pct(leg, vmaps[id(leg)][d])
+            if leg.get("option"):
+                val = option_vals[id(leg)][d][0]
+                r = 100.0 * (val / leg["option"]["premium_at_entry"] - 1.0)
+            else:
+                r = leg_return_pct(leg, vmaps[id(leg)][d])
             leg_paths[id(leg)][d] = r
             total += SIDES[leg["side"]] * leg["weight"] * r
         marks.append((d, round(total, 4)))       # position return, unsized
@@ -674,8 +874,36 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
     legs_report = []
     for leg in legs_out:
         r = leg_paths[id(leg)].get(last_date)
-        legs_report.append({**{k: v for k, v in leg.items()},
-                            "return_pct": None if r is None else round(r, 4)})
+        rep = {**{k: v for k, v in leg.items()}, "return_pct": None if r is None else round(r, 4)}
+        spec = leg.get("option")
+        if spec:
+            val, spot, iv = option_vals[id(leg)][last_date]
+            days_left = (dt.date.fromisoformat(spec["expiry"]) - dt.date.fromisoformat(last_date)).days
+            sc_ = spec["display_scale"]
+            rep["option"] = {
+                **{k: spec[k] for k in ("kind", "strike", "expiry", "iv_series", "rate_pct", "dividend_yield_pct",
+                                        "label", "display_scale", "display_unit", "entry_spot", "entry_iv_pct",
+                                        "entry_iv_date", "premium_at_entry", "premium_model_at_entry", "premium_source")},
+                "premium_at_entry": round(spec["premium_at_entry"], 4),
+                "premium_model_at_entry": round(spec["premium_model_at_entry"], 4),
+                "value_now": round(val, 4),
+                "spot_now": spot,
+                "iv_now_pct": iv,
+                "as_of": last_date,
+                "days_to_expiry": max(0, days_left),
+                "intrinsic_now": round(black_scholes(spec["kind"], spot, spec["strike"], 0.0, 0.0), 4),
+                # The same figures in the vehicle's own units for the page
+                # (an S&P 500 index put shown as dollars a SPY share).
+                "premium_at_entry_display": round(spec["premium_at_entry"] * sc_, 2),
+                "value_now_display": round(val * sc_, 2),
+                "strike_display": round(spec["strike"] * sc_, 2),
+                "model": ("Black-Scholes from the underlying's close, the implied-volatility series' close, "
+                          "calendar days to expiry, and the rate and dividend yield written in the note; "
+                          "intrinsic value at expiry. A model value, not a fill."),
+                "state": ("expired — marked at intrinsic value" if days_left <= 0 else
+                          f"open — {days_left} calendar days to expiry"),
+            }
+        legs_report.append(rep)
     buy = [l for l in legs_report if l["side"] == "long"]
     sell = [l for l in legs_report if l["side"] == "short"]
 
@@ -726,6 +954,12 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
         "close_reason": CLOSE_REASONS.get(status),
         "days_held": (dt.date.fromisoformat(last_date) - dt.date.fromisoformat(entry_date)).days,
         "path": [[d, m] for d, m in scored],
+        # Bug #1277: the vehicle, when it is an option, on the row itself so the
+        # Scorecard page can say what was actually held and what it is worth.
+        "option": next((l["option"] for l in legs_report if l.get("option")), None),
+        # The note's own line about what is marked and why (LESSONS 6.18(a): a
+        # corrected leg carries the correction in words).
+        "scorecard_note": sc.get("note") or None,
     }
 
     # Benchmark — the passive alternative in this call's own asset class, over
@@ -1245,7 +1479,12 @@ def main(argv=None) -> int:
             "of premium for an event idea), the rest is cash, and a call's contribution is its weight times its own "
             "return. An event idea — a defined-risk options spread on a named event — is marked at expiry from the "
             "underlying's closing price against its strikes; the premium paid is the most it can lose, and before "
-            "expiry it is shown as open. Nothing on this page is typed in by hand."),
+            "expiry it is shown as open. When a note tells the reader to hold an option — a put or a call on a "
+            "fund or index — the call is marked on that option, not on the underlying: each session the option is "
+            "valued by the Black-Scholes formula from the underlying's close, the implied-volatility series the "
+            "note names (the VIX for an S&P 500 option), the days left to expiry and the rate and dividend yield "
+            "written in the note, and the return is that value against the premium at the entry close. It is a "
+            "model value, not a fill. Nothing on this page is typed in by hand."),
         "disclaimer": ("MacroTilt research is published for information only. It is not investment advice and it "
                        "is not a recommendation to buy or sell any security. These marks are the movement of the "
                        "named reference series; they are not the returns of any account and include no costs, "

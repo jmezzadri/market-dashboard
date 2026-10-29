@@ -144,12 +144,30 @@ def mark_increments(row: dict, hist: dict, end_date: str, sessions: int) -> list
     legs = row.get("legs") or []
     if not legs:
         return []
+    # Option legs (bug #1277): the mark is the option's model value against
+    # the entry premium, so its one-session changes are the option's, not the
+    # underlying's. Valued over the trailing window with the same function the
+    # scorer uses, from the underlying and the implied-vol series.
+    opt_vals = {}
+    for leg in legs:
+        spec = leg.get("option")
+        if not isinstance(spec, dict):
+            continue
+        if not hist.get(leg["series"]) or not hist.get(spec.get("iv_series")):
+            return []
+        start = sorted(d for d, _ in hist[leg["series"]] if d <= end_date)[-(sessions + 1):]
+        if not start:
+            return []
+        opt_vals[leg["series"]] = sc.option_leg_values(leg, spec, hist, start[0], end_date)
     common = None
     for leg in legs:
-        s = hist.get(leg["series"])
-        if not s:
-            return []
-        ds = {d for d, _ in s if d <= end_date}
+        if leg["series"] in opt_vals:
+            ds = set(opt_vals[leg["series"]])
+        else:
+            s = hist.get(leg["series"])
+            if not s:
+                return []
+            ds = {d for d, _ in s if d <= end_date}
         common = ds if common is None else (common & ds)
     dates = sorted(common or [])[-(sessions + 1):]
     if len(dates) < 2:
@@ -160,12 +178,16 @@ def mark_increments(row: dict, hist: dict, end_date: str, sessions: int) -> list
         d0, d1 = dates[i - 1], dates[i]
         total = 0.0
         for leg in legs:
-            v0, v1 = vmaps[leg["series"]][d0], vmaps[leg["series"]][d1]
-            ev = float(leg["entry_value"])
-            if leg.get("measure") == "bond_return":
-                inc = -sc.modified_duration(ev, leg.get("maturity_years", 10)) * (v1 - v0)
+            if leg["series"] in opt_vals:
+                v0, v1 = opt_vals[leg["series"]][d0][0], opt_vals[leg["series"]][d1][0]
+                inc = 100.0 * (v1 - v0) / float(leg["option"]["premium_at_entry"])
             else:
-                inc = 100.0 * (v1 - v0) / ev
+                v0, v1 = vmaps[leg["series"]][d0], vmaps[leg["series"]][d1]
+                ev = float(leg["entry_value"])
+                if leg.get("measure") == "bond_return":
+                    inc = -sc.modified_duration(ev, leg.get("maturity_years", 10)) * (v1 - v0)
+                else:
+                    inc = 100.0 * (v1 - v0) / ev
             total += sc.SIDES[leg["side"]] * float(leg.get("weight", 1.0)) * inc
         out.append(total)
     return out
@@ -352,8 +374,13 @@ def quant_one(row: dict, idea: dict, hist: dict, called_for_pct: float | None, u
     if sd and left > 0:
         w = sd * math.sqrt(left)
         rng = {f"p{k}": round(mark + z * w, 2) for k, z in Z.items()}
-        out["range_at_horizon"] = {**rng, "width_pct": round(w, 3),
-                                   "basis": "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"}
+        basis = "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"
+        if isinstance(row.get("option"), dict):
+            # Bug #1277: a bought option cannot lose more than its premium,
+            # so the range floors at -100%; the premium is the stop.
+            rng = {k: max(-100.0, v) for k, v in rng.items()}
+            basis += "; floored at -100%, the premium paid, for an option position"
+        out["range_at_horizon"] = {**rng, "width_pct": round(w, 3), "basis": basis}
         out["p_finish_positive"] = round(1.0 - norm_cdf((0.0 - mark) / w), 3)
         if called_for_pct is not None:
             out["called_for_pct"] = called_for_pct

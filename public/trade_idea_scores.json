@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-29T02:01:33Z",
+  "generated_at": "2026-10-29T11:27:02Z",
   "as_of": "2026-10-29",
-  "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. The book is a notional 100: each call is held at the weight its note stated when it was published (10 for a standard idea, 5 for one published with fewer than five matching past cases, 1 to 2 of premium for an event idea), the rest is cash, and a call's contribution is its weight times its own return. An event idea — a defined-risk options spread on a named event — is marked at expiry from the underlying's closing price against its strikes; the premium paid is the most it can lose, and before expiry it is shown as open. Nothing on this page is typed in by hand.",
+  "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. The book is a notional 100: each call is held at the weight its note stated when it was published (10 for a standard idea, 5 for one published with fewer than five matching past cases, 1 to 2 of premium for an event idea), the rest is cash, and a call's contribution is its weight times its own return. An event idea — a defined-risk options spread on a named event — is marked at expiry from the underlying's closing price against its strikes; the premium paid is the most it can lose, and before expiry it is shown as open. When a note tells the reader to hold an option — a put or a call on a fund or index — the call is marked on that option, not on the underlying: each session the option is valued by the Black-Scholes formula from the underlying's close, the implied-volatility series the note names (the VIX for an S&P 500 option), the days left to expiry and the rate and dividend yield written in the note, and the return is that value against the premium at the entry close. It is a model value, not a fill. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
     "published": 9,
@@ -16,11 +16,11 @@
       "marked": 9,
       "open": 5,
       "closed": 4,
-      "avg_mark_pct": -0.31,
+      "avg_mark_pct": -1.39,
       "best": {
         "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
         "trade_label": "Short WEAT (Teucrium wheat fund)",
-        "mark": 15.63
+        "mark": 16.5
       },
       "worst": {
         "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
@@ -28,10 +28,10 @@
         "mark": -12.23
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": 0.2,
-      "ahead_of_spx": 5,
-      "behind_spx": 4,
-      "line": "9 calls marked (5 open, 4 closed). Taken as one book they average -0.3% a call and sit 0.2 points ahead of the S&P 500 over the same days — 5 ahead of the index, 4 behind. Best: Short WEAT (Teucrium wheat fund), +15.6%. Worst: Long KBW / Short NASDAQ, -12.2%."
+      "avg_vs_spx_pp": -1.01,
+      "ahead_of_spx": 4,
+      "behind_spx": 5,
+      "line": "9 calls marked (5 open, 4 closed). Taken as one book they average -1.4% a call and sit 1.0 points behind the S&P 500 over the same days — 4 ahead of the index, 5 behind. Best: Short WEAT (Teucrium wheat fund), +16.5%. Worst: Long KBW / Short NASDAQ, -12.2%."
     },
     "stats_withheld": true,
     "stats_withheld_reason": "4 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless.",
@@ -44,15 +44,15 @@
       "book_base": 100.0,
       "invested_now": 45.0,
       "cash_now": 55.0,
-      "total_return_pct": -0.2899,
+      "total_return_pct": -0.7851,
       "benchmark_total_pct": -0.2985,
-      "excess_total_pct": 0.0085,
-      "annualized_pct": -1.3848,
+      "excess_total_pct": -0.4867,
+      "annualized_pct": -3.7149,
       "benchmark_annualized_pct": -1.4254,
-      "excess_annualized_pct": 0.0406,
+      "excess_annualized_pct": -2.2895,
       "annualized_withheld_reason": null,
       "realized_contribution_pct": -1.7782,
-      "unrealized_contribution_pct": 1.4883,
+      "unrealized_contribution_pct": 0.9931,
       "realized_by_year": {
         "2026": -1.7782
       },
@@ -362,31 +362,31 @@
     ],
     [
       "2026-10-22",
-      -0.2169,
+      2.3668,
       -0.7717,
       5
     ],
     [
       "2026-10-23",
-      -0.2259,
+      3.3154,
       -1.0051,
       5
     ],
     [
       "2026-10-26",
-      -0.1538,
+      1.4603,
       -0.6917,
       5
     ],
     [
       "2026-10-27",
-      -0.2762,
+      -0.0304,
       -0.4231,
       5
     ],
     [
       "2026-10-28",
-      -0.2899,
+      -0.7851,
       -0.2985,
       5
     ]
@@ -409,28 +409,56 @@
       "legs": [
         {
           "series": "spx_index",
-          "side": "short",
+          "side": "long",
           "measure": "pct_change",
           "weight": 1.0,
           "entry_date": "2026-10-21",
           "entry_value": 7757.17,
-          "label": "S&P 500 index, short",
-          "short_label": "S&P 500 (short)",
-          "return_pct": -0.17
+          "label": "SPY 773 put, Nov 13 expiry (one contract; priced on the S&P 500 index with the VIX as implied vol)",
+          "short_label": "SPY 773 put, Nov 13",
+          "option": {
+            "kind": "put",
+            "strike": 7756.3,
+            "expiry": "2026-11-13",
+            "iv_series": "vix",
+            "rate_pct": 4.0,
+            "dividend_yield_pct": 1.2,
+            "label": "SPY 773 put, Nov 13",
+            "display_scale": 0.099661,
+            "display_unit": "a SPY share",
+            "entry_spot": 7757.17,
+            "entry_iv_pct": 16.68,
+            "entry_iv_date": "2026-10-21",
+            "premium_at_entry": 122.2118,
+            "premium_model_at_entry": 122.2118,
+            "premium_source": "Black-Scholes value at the entry close",
+            "value_now": 110.7428,
+            "spot_now": 7743.98,
+            "iv_now_pct": 16.91,
+            "as_of": "2026-10-28",
+            "days_to_expiry": 16,
+            "intrinsic_now": 12.32,
+            "premium_at_entry_display": 12.18,
+            "value_now_display": 11.04,
+            "strike_display": 773.0,
+            "model": "Black-Scholes from the underlying's close, the implied-volatility series' close, calendar days to expiry, and the rate and dividend yield written in the note; intrinsic value at expiry. A model value, not a fill.",
+            "state": "open — 16 calendar days to expiry"
+          },
+          "return_pct": -9.3845
         }
       ],
-      "buy_pct": null,
-      "sell_pct": -0.17,
-      "trade_label": "Short S&P 500 (short)",
-      "position_pct": 0.17,
-      "risk_sized_pct": 0.1338,
+      "buy_pct": -9.3845,
+      "sell_pct": null,
+      "trade_label": "Long SPY 773 put, Nov 13",
+      "position_pct": -9.3845,
+      "risk_sized_pct": -9.3845,
       "sizing": {
-        "method": "risk_parity",
-        "multiple": 0.787,
-        "spread_vol_pct": 12.702,
-        "target_vol_pct": 10.0,
-        "observations": 251,
-        "basis": "trailing 365d daily vol of the unlevered spread to 2026-10-21, annualised x sqrt(252), frozen at entry"
+        "method": "option",
+        "multiple": 1.0,
+        "spread_vol_pct": null,
+        "target_vol_pct": null,
+        "observations": null,
+        "basis": "an option leg is sized by premium at risk (sizing.weight), not by volatility"
       },
       "single_leg_note": "One leg, because buying EUR/USD already sells dollars — there is nothing separate to short.",
       "benchmark": {
@@ -440,19 +468,19 @@
         "entry_value": 7757.17,
         "as_of": "2026-10-28",
         "move": -0.17,
-        "difference": 0.34,
+        "difference": -9.2145,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 0.17,
+      "mark": -9.3845,
       "mark_date": "2026-10-28",
       "sessions_held": 6,
       "max_favourable": {
-        "value": 1.7209,
+        "value": 72.5474,
         "date": "2026-10-23"
       },
       "max_adverse": {
-        "value": 0.0,
-        "date": "2026-10-21"
+        "value": -9.3845,
+        "date": "2026-10-28"
       },
       "invalidation": {
         "rule": "spx_index > 7818 (close)",
@@ -463,17 +491,46 @@
       "close_date": null,
       "close_reason": null,
       "days_held": 7,
+      "option": {
+        "kind": "put",
+        "strike": 7756.3,
+        "expiry": "2026-11-13",
+        "iv_series": "vix",
+        "rate_pct": 4.0,
+        "dividend_yield_pct": 1.2,
+        "label": "SPY 773 put, Nov 13",
+        "display_scale": 0.099661,
+        "display_unit": "a SPY share",
+        "entry_spot": 7757.17,
+        "entry_iv_pct": 16.68,
+        "entry_iv_date": "2026-10-21",
+        "premium_at_entry": 122.2118,
+        "premium_model_at_entry": 122.2118,
+        "premium_source": "Black-Scholes value at the entry close",
+        "value_now": 110.7428,
+        "spot_now": 7743.98,
+        "iv_now_pct": 16.91,
+        "as_of": "2026-10-28",
+        "days_to_expiry": 16,
+        "intrinsic_now": 12.32,
+        "premium_at_entry_display": 12.18,
+        "value_now_display": 11.04,
+        "strike_display": 773.0,
+        "model": "Black-Scholes from the underlying's close, the implied-volatility series' close, calendar days to expiry, and the rate and dividend yield written in the note; intrinsic value at expiry. A model value, not a fill.",
+        "state": "open — 16 calendar days to expiry"
+      },
+      "scorecard_note": "Vehicle: SPY 773 put, Nov 13 expiry — the at-the-money strike at the Oct 21 close (SPY 773.09). Corrected Oct 29, 2026 (bug #1277): from publication to Oct 28 the Scorecard marked the S&P 500 index itself, short, which is not what the reader was told to hold; the put had lost a tenth of its premium while the row showed +0.2%. The leg is now the put, valued each session by Black-Scholes from the S&P 500 close (strike 7,756 index points = SPY 773) and the VIX, against its model value at the Oct 21 close. The entry date is unchanged. The index exit level above 7,818 still closes the call.",
       "weight": 5.0,
       "weight_stated": true,
       "weight_note": null,
-      "contribution_pct": 0.0085,
+      "contribution_pct": -0.4692,
       "book": {
         "as_of": "2026-10-28",
         "weight": 5.0,
-        "return_pct": 0.17,
+        "return_pct": -9.3845,
         "benchmark_pct": -0.17,
-        "excess_pct": 0.34,
-        "contribution_pct": 0.0085,
+        "excess_pct": -9.2145,
+        "contribution_pct": -0.4692,
         "days_held": 7
       }
     },
@@ -501,14 +558,14 @@
           "entry_value": 65.24,
           "label": "US energy sector fund (XLE)",
           "short_label": "US energy stocks (XLE)",
-          "return_pct": 4.5524
+          "return_pct": 4.9203
         }
       ],
-      "buy_pct": 4.5524,
+      "buy_pct": 4.9203,
       "sell_pct": null,
       "trade_label": "Long US energy stocks (XLE)",
-      "position_pct": 4.5524,
-      "risk_sized_pct": 2.0577,
+      "position_pct": 4.9203,
+      "risk_sized_pct": 2.224,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.452,
@@ -523,14 +580,14 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7765.36,
-        "as_of": "2026-10-27",
-        "move": -0.5507,
-        "difference": 5.1031,
+        "as_of": "2026-10-28",
+        "move": -0.2753,
+        "difference": 5.1956,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 4.5524,
-      "mark_date": "2026-10-27",
-      "sessions_held": 14,
+      "mark": 4.9203,
+      "mark_date": "2026-10-28",
+      "sessions_held": 15,
       "max_favourable": {
         "value": 6.7443,
         "date": "2026-10-26"
@@ -547,18 +604,20 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 19,
+      "days_held": 20,
+      "option": null,
+      "scorecard_note": "Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged.",
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
-      "contribution_pct": 0.4552,
+      "contribution_pct": 0.492,
       "book": {
         "as_of": "2026-10-28",
         "weight": 10.0,
-        "return_pct": 4.5524,
+        "return_pct": 4.9203,
         "benchmark_pct": -0.2753,
-        "excess_pct": 4.8277,
-        "contribution_pct": 0.4552,
+        "excess_pct": 5.1956,
+        "contribution_pct": 0.492,
         "days_held": 20
       }
     },
@@ -586,14 +645,14 @@
           "entry_value": 58.2,
           "label": "Japanese yen via FXY",
           "short_label": "Japanese yen via FXY",
-          "return_pct": -0.1718
+          "return_pct": -0.2062
         }
       ],
-      "buy_pct": -0.1718,
+      "buy_pct": -0.2062,
       "sell_pct": null,
       "trade_label": "Long Japanese yen via FXY",
-      "position_pct": -0.1718,
-      "risk_sized_pct": -0.1718,
+      "position_pct": -0.2062,
+      "risk_sized_pct": -0.2062,
       "sizing": {
         "method": "none",
         "multiple": 1.0,
@@ -608,14 +667,14 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7764.7,
-        "as_of": "2026-10-27",
-        "move": -0.5422,
-        "difference": 0.3704,
+        "as_of": "2026-10-28",
+        "move": -0.2668,
+        "difference": 0.0606,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -0.1718,
-      "mark_date": "2026-10-27",
-      "sessions_held": 27,
+      "mark": -0.2062,
+      "mark_date": "2026-10-28",
+      "sessions_held": 28,
       "max_favourable": {
         "value": 0.4124,
         "date": "2026-10-22"
@@ -632,18 +691,20 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 36,
+      "days_held": 37,
+      "option": null,
+      "scorecard_note": "Levels and the stop are stated on the dollar-yen rate (fx_jpy), the series the analysis runs on; the return is marked on FXY, the vehicle the note names. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged.",
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
-      "contribution_pct": -0.0172,
+      "contribution_pct": -0.0206,
       "book": {
         "as_of": "2026-10-28",
         "weight": 10.0,
-        "return_pct": -0.1718,
+        "return_pct": -0.2062,
         "benchmark_pct": -0.2668,
-        "excess_pct": 0.095,
-        "contribution_pct": -0.0172,
+        "excess_pct": 0.0606,
+        "contribution_pct": -0.0206,
         "days_held": 37
       }
     },
@@ -671,14 +732,14 @@
           "entry_value": 10.17,
           "label": "US natural gas fund (UNG)",
           "short_label": "US natural gas (UNG)",
-          "return_pct": -5.2114
+          "return_pct": -6.588
         }
       ],
-      "buy_pct": -5.2114,
+      "buy_pct": -6.588,
       "sell_pct": null,
       "trade_label": "Long US natural gas (UNG)",
-      "position_pct": -5.2114,
-      "risk_sized_pct": -1.3029,
+      "position_pct": -6.588,
+      "risk_sized_pct": -1.647,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.25,
@@ -695,21 +756,21 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7656.98,
-        "as_of": "2026-10-27",
-        "move": 0.857,
-        "difference": -6.0684,
+        "as_of": "2026-10-28",
+        "move": 1.1362,
+        "difference": -7.7242,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -5.2114,
-      "mark_date": "2026-10-27",
-      "sessions_held": 33,
+      "mark": -6.588,
+      "mark_date": "2026-10-28",
+      "sessions_held": 34,
       "max_favourable": {
         "value": 13.5693,
         "date": "2026-09-24"
       },
       "max_adverse": {
-        "value": -5.998,
-        "date": "2026-10-26"
+        "value": -6.588,
+        "date": "2026-10-28"
       },
       "invalidation": {
         "rule": "cmdty_natgas <= 2.45 (weekly close)",
@@ -719,18 +780,20 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 46,
+      "days_held": 47,
+      "option": null,
+      "scorecard_note": "Return is marked on UNG, the fund the note names (changed 2026-10-09 on Joe's instruction: the front-month series overstated what a holder of the fund earned, because the fund pays a cost each month to roll its contracts). The exit level is still checked on the front-month Henry Hub series the note's levels are stated on. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged.",
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
-      "contribution_pct": -0.5211,
+      "contribution_pct": -0.6588,
       "book": {
         "as_of": "2026-10-28",
         "weight": 10.0,
-        "return_pct": -5.2114,
+        "return_pct": -6.588,
         "benchmark_pct": 1.1362,
-        "excess_pct": -6.3476,
-        "contribution_pct": -0.5211,
+        "excess_pct": -7.7242,
+        "contribution_pct": -0.6588,
         "days_held": 47
       }
     },
@@ -758,14 +821,14 @@
           "entry_value": 26.49,
           "label": "WEAT (Teucrium wheat fund)",
           "short_label": "WEAT (Teucrium wheat fund)",
-          "return_pct": -15.6285
+          "return_pct": -16.4968
         }
       ],
       "buy_pct": null,
-      "sell_pct": -15.6285,
+      "sell_pct": -16.4968,
       "trade_label": "Short WEAT (Teucrium wheat fund)",
-      "position_pct": 15.6285,
-      "risk_sized_pct": 6.4546,
+      "position_pct": 16.4968,
+      "risk_sized_pct": 6.8132,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.413,
@@ -780,17 +843,17 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7718.6,
-        "as_of": "2026-10-27",
-        "move": 0.0518,
-        "difference": 15.5767,
+        "as_of": "2026-10-28",
+        "move": 0.3288,
+        "difference": 16.168,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 15.6285,
-      "mark_date": "2026-10-27",
-      "sessions_held": 37,
+      "mark": 16.4968,
+      "mark_date": "2026-10-28",
+      "sessions_held": 38,
       "max_favourable": {
-        "value": 15.6285,
-        "date": "2026-10-27"
+        "value": 16.4968,
+        "date": "2026-10-28"
       },
       "max_adverse": {
         "value": -1.7743,
@@ -804,18 +867,20 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 53,
+      "days_held": 54,
+      "option": null,
+      "scorecard_note": "Corrected 2026-09-09: the marked leg is WEAT, the fund the note tells the reader to trade, replacing the front-month wheat series. Entry is unchanged — the last close before the original 2026-09-06 publication. The 767 stop stays on front-month Chicago wheat, the signal series. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged.",
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
-      "contribution_pct": 1.5629,
+      "contribution_pct": 1.6497,
       "book": {
         "as_of": "2026-10-28",
         "weight": 10.0,
-        "return_pct": 15.6285,
+        "return_pct": 16.4968,
         "benchmark_pct": 0.3288,
-        "excess_pct": 15.2997,
-        "contribution_pct": 1.5629,
+        "excess_pct": 16.168,
+        "contribution_pct": 1.6497,
         "days_held": 54
       }
     },
@@ -893,6 +958,8 @@
       "close_date": "2026-09-18",
       "close_reason": "Exit level reached",
       "days_held": 24,
+      "option": null,
+      "scorecard_note": "Scored as the price return of a 10-year par bond from the yield series, against the alternative the term-premium argument competes with: staying in short-dated Treasuries. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged.",
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
@@ -992,6 +1059,8 @@
       "close_date": "2026-09-30",
       "close_reason": "Weekly review",
       "days_held": 47,
+      "option": null,
+      "scorecard_note": "Re-cut 2026-08-18 under the two-leg contract. The previous block scored a single leg on bkx_spx — banks divided by the S&P 500 — while the note funds the position by trimming Nasdaq-100 leadership. That graded a different trade than the one recommended. The short leg is now the Nasdaq, matching the funding paragraph. CAVEAT ON THE PROXY: our ndx_index series is the Nasdaq COMPOSITE, not the Nasdaq-100 the note named — a close but not exact stand-in, recorded here rather than glossed. The long leg is the bank complex level itself (bkx_spx × spx_index), so the two sides can be shown separately. Entry levels are unchanged. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged.",
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
@@ -1093,6 +1162,8 @@
       "close_date": "2026-09-30",
       "close_reason": "Weekly review",
       "days_held": 47,
+      "option": null,
+      "scorecard_note": "Re-cut 2026-08-18. The previous block scored the 10-year breakeven as a level change and reported it in pp, so a 1bp widening printed as “+0.01pp” next to equity returns in per cent — not comparable in unit or in size. The trade is now its two actual sides: long 10y TIPS, short duration-matched 10y nominals, each converted from its own yield to a price return via the modified duration of a par bond at that yield. The net is arithmetically the breakeven move times duration, but it can now be netted, sized and benchmarked. Price return only: the carry on this pair is the realised-versus-breakeven inflation accrual, which we do not observe daily and therefore do not claim. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged.",
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
@@ -1181,6 +1252,8 @@
       "close_date": "2026-10-08",
       "close_reason": "Weekly review",
       "days_held": 56,
+      "option": null,
+      "scorecard_note": "Reviewed 2026-08-18 and deliberately left as ONE leg. The note frames it as “long EUR against a short dollar-index position”, but the dollar is the quote currency of EUR/USD — buying the pair already sells dollars. Adding a short DXY leg would double-count the same exposure, since the euro is roughly 57% of that index. The short-dollar side is inside the instrument. Benchmarked against the dollar index, which is what the consensus position was. Weight backfilled to 10 of 100 on 2026-10-21, when the book gained its capital base (Trade Idea Contract v2, Decision 5); the note itself did not state a weight. Entry, exit level and return are unchanged.",
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",

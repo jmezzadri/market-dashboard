@@ -255,7 +255,7 @@
       "expected_return": {
         "pct": 3.2,
         "loss_at_stop_pct": 0.8,
-        "basis": "median S&P 500 fall over fifteen sessions in the five cases (3.2%), as a short of the index, which is what the Scorecard marks; the stop is the 0.8% rise to a close above 7,818. Held through SPY puts, the premium is the most the position can lose.",
+        "basis": "median S&P 500 fall over fifteen sessions in the five cases (3.2%), which on a three-week at-the-money SPY put is roughly a doubling of the premium; the stop is a close above 7,818 (a 0.8% rise), at which the put is closed at its model value. Held through SPY puts, the premium is the most the position can lose. The Scorecard marks the put itself (corrected Oct 29, 2026).",
         "instrument": "SPY ATM puts, Nov 13 expiry"
       },
       "sizing": {
@@ -266,10 +266,21 @@
         "legs": [
           {
             "series": "spx_index",
-            "side": "short",
+            "side": "long",
             "measure": "pct_change",
-            "label": "S&P 500 index, short",
-            "short_label": "S&P 500 (short)"
+            "label": "SPY 773 put, Nov 13 expiry (one contract; priced on the S&P 500 index with the VIX as implied vol)",
+            "short_label": "SPY 773 put, Nov 13",
+            "option": {
+              "kind": "put",
+              "strike": 7756.3,
+              "expiry": "2026-11-13",
+              "iv_series": "vix",
+              "rate_pct": 4.0,
+              "dividend_yield_pct": 1.2,
+              "display_scale": 0.099661,
+              "display_unit": "a SPY share",
+              "label": "SPY 773 put, Nov 13"
+            }
           }
         ],
         "horizon_weeks": 3,
@@ -282,7 +293,7 @@
         "benchmark": {
           "series": "spx_index"
         },
-        "note": "Vehicle: SPY ATM puts, Nov 13 expiry. The Scorecard marks the index itself, short, from the Oct 21 close. The put premium is not machine-checkable; the index stop is."
+        "note": "Vehicle: SPY 773 put, Nov 13 expiry — the at-the-money strike at the Oct 21 close (SPY 773.09). Corrected Oct 29, 2026 (bug #1277): from publication to Oct 28 the Scorecard marked the S&P 500 index itself, short, which is not what the reader was told to hold; the put had lost a tenth of its premium while the row showed +0.2%. The leg is now the put, valued each session by Black-Scholes from the S&P 500 close (strike 7,756 index points = SPY 773) and the VIX, against its model value at the Oct 21 close. The entry date is unchanged. The index exit level above 7,818 still closes the call."
       },
       "book": {
         "stance": "Five positions: long US energy (XLE), long natural gas (UNG), long yen (FXY), short wheat (WEAT), and this S&P 500 short at half size for 2–3 weeks. Highest conviction: the wheat short (eleven tested episodes). Lowest: this one (five). The short has moved with the energy call day to day (correlation +0.37 over 126 sessions), under the 0.60 limit. Adding it raises the book's expected excess return over the S&P 500 per unit of risk from 0.69 to 1.06; book volatility 5.92 points a year against the S&P's 5.37 at 45 of 100 invested.",
@@ -291,7 +302,7 @@
       "status": "live",
       "sections": [],
       "published_at": "2026-10-22T10:25:45Z",
-      "corrected_at": "2026-10-22T11:04:12Z"
+      "corrected_at": "2026-10-29T11:16:17Z"
     },
     {
       "date": "2026-10-09",
