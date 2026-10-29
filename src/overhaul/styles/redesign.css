@@ -464,7 +464,7 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-blk--amber { background: var(--tm-amber-dim); } .mt-overhaul .tm-blk--amber.is-lit { background: var(--tm-amber); }
 .mt-overhaul .tm-blk--red { background: var(--tm-red-dim); } .mt-overhaul .tm-blk--red.is-lit { background: var(--tm-red); }
 .mt-overhaul .tm-blk--blue { background: var(--tm-blue-dim); } .mt-overhaul .tm-blk--blue.is-lit { background: var(--tm-blue); }
-.mt-overhaul .tm-blk--grey { background: var(--tm-grey-dim); } .mt-overhaul .tm-blk--grey.is-lit { background: var(--tm-text-3); }
+.mt-overhaul .tm-blk--grey { background: var(--tm-grey-dim); } .mt-overhaul .tm-blk--grey.is-lit { background: var(--tm-bar-mid); }
 @keyframes tm-blk { from { opacity: 0; transform: scaleY(0.3); } to { opacity: 1; transform: none; } }
 .mt-overhaul .tm-meter-scale { display: flex; justify-content: space-between; margin-top: var(--sp-6); font-size: var(--v13-t1); color: var(--tm-text-2); }
 .mt-overhaul .tm-meter-read { margin-top: var(--sp-6); font-family: var(--mt-type-sans); font-size: var(--v13-t3); color: var(--tm-text-3); }

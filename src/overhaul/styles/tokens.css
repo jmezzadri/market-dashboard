@@ -2134,11 +2134,11 @@
    REDESIGN (2026-10-28) — Joe's approved "MacroTilt Redesign" canvas.
    Two skins, one site:
      editorial  Home — a newspaper front page. `--ed-*`, light AND dark.
-     terminal   Macro Landscape and Paper Portfolio — dark, dense, data-first.
-                `--tm-*`. The terminal has no light theme (Joe), so these
-                values are the same under both theme attributes; they are
-                still declared under both so the one-tokens-file rule holds
-                and a future light terminal is one block away.
+     terminal   Macro Landscape and Paper Portfolio — dense, data-first.
+                `--tm-*`, light AND dark (Joe, 2026-10-28 20:47: "i need
+                light and dark on every page"). The light terminal is the
+                same panels on warm paper; every signal colour is re-picked
+                for ≥4.5:1 on white.
    Every colour, size, duration and radius the three rebuilt pages and the
    shared chrome use lives here. redesign.css references these and nothing
    else. See docs/TYPOGRAPHY_STANDARD.md for the faces.
@@ -2165,6 +2165,12 @@
   --ed-blob-1: rgba(168, 78, 14, 0.08);
   --ed-blob-2: rgba(40, 80, 150, 0.07);
   --ed-veil: rgba(18, 20, 23, 0.55);
+  --ed-warn: #9A5A00;
+  --ed-cool: #1F63B8;
+  --ed-accent-soft: rgba(168, 78, 14, 0.10);
+  --ed-up-bg: rgba(11, 113, 72, 0.10);
+  --ed-down-bg: rgba(180, 35, 24, 0.10);
+  --ed-warn-bg: rgba(154, 90, 0, 0.12);
   /* the ticker bar's edge fade is an alpha ramp, not a colour: solid in, clear out */
   --ed-mask-solid: black;
   --ed-mask-clear: transparent;
@@ -2201,40 +2207,40 @@
   --ed-ease-draw: cubic-bezier(0.3, 0.6, 0.2, 1);
   --ed-ping-ring: 7px;
 
-  /* — terminal (dark only) — */
-  --tm-page: #000000;
-  --tm-panel: #08090B;
-  --tm-head: #15181C;
-  --tm-group: #0E1013;
-  --tm-border: #262A30;
-  --tm-border-2: #1E2228;
-  --tm-rowline: #121519;
-  --tm-text: #E8E8E8;
-  --tm-num: #FFFFFF;
-  --tm-text-2: #9AA0A6;
-  --tm-text-3: #C9CDD2;
-  --tm-text-4: #AEB4BB;
-  --tm-text-5: #7D848C;
-  --tm-amber: #FFB02E;
-  --tm-green: #34D07F;
-  --tm-red: #FF5C50;
-  --tm-blue: #5AB0FF;
-  --tm-slate: #8FA3B8;
-  --tm-hover: #15191E;
-  --tm-bar-track: #1E2228;
-  --tm-bar-mid: #6B727A;
-  --tm-midline: #3A3F46;
-  --tm-tape-bg: #050607;
-  --tm-head-bg: #0B0D10;
-  --tm-input-border: #33383F;
-  --tm-ping: rgba(52, 208, 127, 0.55);
-  --tm-green-dim: #12301F;
-  --tm-amber-dim: #3A2A0E;
-  --tm-red-dim: #3A1512;
-  --tm-blue-dim: #132A40;
-  --tm-grey-dim: #24282D;
-  --tm-nav-ink: #ECEEF1;
-  --tm-nav-ink-2: #B4BBC6;
+  /* — terminal, light — */
+  --tm-page: #F4F3EF;
+  --tm-panel: #FFFFFF;
+  --tm-head: #ECEBE6;
+  --tm-group: #F5F4F0;
+  --tm-border: #D6D3CB;
+  --tm-border-2: #E4E1DA;
+  --tm-rowline: #ECEAE4;
+  --tm-text: #121417;
+  --tm-num: #0B0D10;
+  --tm-text-2: #5B626C;
+  --tm-text-3: #3A4049;
+  --tm-text-4: #4E555E;
+  --tm-text-5: #6E757E;
+  --tm-amber: #9A5A00;
+  --tm-green: #0B7148;
+  --tm-red: #B42318;
+  --tm-blue: #1F63B8;
+  --tm-slate: #5A6E85;
+  --tm-hover: #F1EFE9;
+  --tm-bar-track: #E6E3DC;
+  --tm-bar-mid: #8A9099;
+  --tm-midline: #BFC4CC;
+  --tm-tape-bg: #FAF9F6;
+  --tm-head-bg: #FFFFFF;
+  --tm-input-border: #C9C5BB;
+  --tm-ping: rgba(11, 113, 72, 0.45);
+  --tm-green-dim: #D6EEE1;
+  --tm-amber-dim: #F3E3C2;
+  --tm-red-dim: #F7D9D5;
+  --tm-blue-dim: #D7E6F7;
+  --tm-grey-dim: #E4E1DA;
+  --tm-nav-ink: #121417;
+  --tm-nav-ink-2: #454B55;
 
   /* — terminal geometry — */
   --tm-gutter: 8px;
@@ -2285,8 +2291,14 @@
   --ed-blob-1: rgba(232, 137, 74, 0.07);
   --ed-blob-2: rgba(80, 130, 220, 0.08);
   --ed-veil: rgba(0, 0, 0, 0.6);
+  --ed-warn: #E0A84A;
+  --ed-cool: #6FAEFF;
+  --ed-accent-soft: rgba(232, 137, 74, 0.14);
+  --ed-up-bg: rgba(65, 192, 142, 0.14);
+  --ed-down-bg: rgba(242, 118, 106, 0.14);
+  --ed-warn-bg: rgba(224, 168, 74, 0.16);
 
-  /* — terminal: identical in both themes (dark only, by design) — */
+  /* — terminal, dark — */
   --tm-page: #000000;
   --tm-panel: #08090B;
   --tm-head: #15181C;
@@ -2346,4 +2358,136 @@
   --sh: none;
   --sh-12: none;
   --sh-13: none;
+}
+
+/* ── Every other page wears one of the two skins (2026-10-28, Joe 20:53:
+   "Please harmonize all pages!!! Scorecard too!") ─────────────────────────
+   The older pages (Scorecard, Ticker, Data, Methodology, the reference and
+   sign-in pages, Bugs) run on the v13 names, which resolve through the
+   Liquid Glass `--lg-*` family. Under a skin attribute that family is
+   repointed at the skin's own tokens, so the pages wear the editorial paper
+   or the terminal panels with no component touched: flat surfaces, the
+   skin's rules, inks and signal colours, no frosted blur, no drifting
+   blobs. Light and dark both come from the `--ed-*` / `--tm-*` blocks above. */
+html[data-skin='editorial'], .mt-overhaul[data-skin='editorial'] {
+  --lg-ground: var(--ed-bg);
+  --lg-fg: var(--ed-ink);
+  --lg-fg2: var(--ed-ink-2);
+  --lg-fg3: var(--ed-ink-3);
+  --lg-link: var(--ed-accent);
+  --lg-accent: var(--ed-accent);
+  --lg-accent-soft: var(--ed-accent-soft);
+  --lg-accent-mid: var(--ed-accent-soft);
+  --lg-nav-on-bg: var(--ed-accent);
+  --lg-nav-on-fg: var(--ed-surface);
+  --lg-up: var(--ed-up);
+  --lg-down: var(--ed-down);
+  --lg-warn: var(--ed-warn);
+  --lg-cool: var(--ed-accent);
+  --lg-cool-soft: var(--ed-accent-soft);
+  --lg-up-bg: var(--ed-up-bg);
+  --lg-down-bg: var(--ed-down-bg);
+  --lg-warn-bg: var(--ed-warn-bg);
+  --lg-glass-a: var(--ed-surface);
+  --lg-glass-b: var(--ed-surface);
+  --lg-glass-line: var(--ed-rule);
+  --lg-glass-line-hover: var(--ed-ink-3);
+  --lg-glass-hi: var(--ed-surface);
+  --lg-glass-shadow: transparent;
+  --lg-sheen: transparent;
+  --lg-panel: var(--ed-surface);
+  --lg-panel-on: var(--ed-surface);
+  --lg-line: var(--ed-rule-2);
+  --lg-line-on: var(--ed-rule);
+  --lg-line-2: var(--ed-rule);
+  --lg-veil: var(--ed-veil);
+  --lg-sheet: var(--ed-surface);
+  --lg-track: var(--ed-track);
+  --lg-row: var(--ed-hover);
+  --lg-blob: 0;
+  --lg-card-shadow: none;
+  --lg-card-shadow-hover: none;
+  --mt-tip-bg: var(--ed-surface);
+  --mt-tip-line: var(--ed-rule);
+  --blur-glass: 0px;
+  --r-card: 4px;
+  --r-panel: 4px;
+  --r-panel-sm: 3px;
+  /* the older pages' card radii collapse to the skin's corner: paper = 4px */
+  --r-8: 4px;
+  --r-9: 4px;
+  --r-10: 4px;
+  --r-12: 4px;
+  --r-14: 4px;
+  --r-16: 4px;
+  --r-18: 4px;
+  --r-20: 4px;
+  --r-22: 4px;
+  --r-24: 4px;
+  --r-26: 4px;
+  --r-28: 4px;
+  --r-32: 4px;
+  --r-36: 4px;
+  --r-40: 4px;
+}
+html[data-skin='terminal'], .mt-overhaul[data-skin='terminal'] {
+  --lg-ground: var(--tm-page);
+  --lg-fg: var(--tm-text);
+  --lg-fg2: var(--tm-text-2);
+  --lg-fg3: var(--tm-text-5);
+  --lg-link: var(--tm-blue);
+  --lg-accent: var(--tm-amber);
+  --lg-accent-soft: var(--tm-amber-dim);
+  --lg-accent-mid: var(--tm-amber-dim);
+  --lg-nav-on-bg: var(--tm-amber);
+  --lg-nav-on-fg: var(--tm-page);
+  --lg-up: var(--tm-green);
+  --lg-down: var(--tm-red);
+  --lg-warn: var(--tm-amber);
+  --lg-cool: var(--tm-amber);
+  --lg-cool-soft: var(--tm-amber-dim);
+  --lg-up-bg: var(--tm-green-dim);
+  --lg-down-bg: var(--tm-red-dim);
+  --lg-warn-bg: var(--tm-amber-dim);
+  --lg-glass-a: var(--tm-panel);
+  --lg-glass-b: var(--tm-panel);
+  --lg-glass-line: var(--tm-border);
+  --lg-glass-line-hover: var(--tm-text-5);
+  --lg-glass-hi: var(--tm-panel);
+  --lg-glass-shadow: transparent;
+  --lg-sheen: transparent;
+  --lg-panel: var(--tm-panel);
+  --lg-panel-on: var(--tm-group);
+  --lg-line: var(--tm-rowline);
+  --lg-line-on: var(--tm-border);
+  --lg-line-2: var(--tm-border-2);
+  --lg-veil: var(--ed-veil);
+  --lg-sheet: var(--tm-panel);
+  --lg-track: var(--tm-bar-track);
+  --lg-row: var(--tm-hover);
+  --lg-blob: 0;
+  --lg-card-shadow: none;
+  --lg-card-shadow-hover: none;
+  --mt-tip-bg: var(--tm-head);
+  --mt-tip-line: var(--tm-border);
+  --blur-glass: 0px;
+  --r-card: 0px;
+  --r-panel: 0px;
+  --r-panel-sm: 0px;
+  /* the older pages' card radii collapse to the skin's corner: terminal = square */
+  --r-8: 0px;
+  --r-9: 0px;
+  --r-10: 0px;
+  --r-12: 0px;
+  --r-14: 0px;
+  --r-16: 0px;
+  --r-18: 0px;
+  --r-20: 0px;
+  --r-22: 0px;
+  --r-24: 0px;
+  --r-26: 0px;
+  --r-28: 0px;
+  --r-32: 0px;
+  --r-36: 0px;
+  --r-40: 0px;
 }

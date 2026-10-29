@@ -2,7 +2,7 @@
 
    One 64px row: the serif wordmark, the menu (Home and the three main areas,
    from chrome/siteNav.js), then on the right the ticker search, the theme
-   toggle (Home only — the terminal pages are dark by design) and Sign in.
+   toggle (every page) and Sign in.
    The active page carries a 2px accent underline. Styling lives in
    styles/redesign.css and reads the editorial tokens; under the terminal
    skin (data-skin on the shell) the same markup goes dark.
@@ -71,11 +71,9 @@ export default function TopNav() {
     if (typeof window !== 'undefined') window.location.assign('/');
   }
 
-  /* Light and dark, Home only (Joe: the terminal pages have no light theme,
-     so the toggle lives where it does something). 'navy' is the site's dark. */
+  /* Light and dark on every page (Joe, 2026-10-28). 'navy' is the site's dark. */
   const isDark = tweaks.theme !== 'light';
   const flipTheme = () => setTweak('theme', isDark ? 'light' : 'navy');
-  const isHome = pathname === '/';
   const current = pageName(pathname);
 
   const auth = (cls) => (loading ? (
@@ -115,20 +113,18 @@ export default function TopNav() {
 
           <div className="rd-head-right">
             <TickerSearch className="rd-search rd-search--desk" />
-            {isHome && (
-              <button
-                type="button"
-                className="rd-theme"
-                onClick={flipTheme}
-                aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-              >
-                {isDark ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
-                )}
-              </button>
-            )}
+            <button
+              type="button"
+              className="rd-theme"
+              onClick={flipTheme}
+              aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            >
+              {isDark ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
+              )}
+            </button>
             <div className="rd-auth">{auth('rd-auth')}</div>
           </div>
 
@@ -181,11 +177,9 @@ export default function TopNav() {
                 {item.label}
               </NavLink>
             ))}
-            {isHome && (
-              <button type="button" className="rd-drawer-link rd-drawer-link--ref" onClick={flipTheme}>
-                {isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-              </button>
-            )}
+            <button type="button" className="rd-drawer-link rd-drawer-link--ref" onClick={flipTheme}>
+              {isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            </button>
             <div className="rd-drawer-auth">{auth('rd-drawer-auth')}</div>
           </nav>
         </div>
