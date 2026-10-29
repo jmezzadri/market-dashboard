@@ -40,16 +40,14 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          for v in SMTP_USER SMTP_PASSWORD EMAIL_TO EMAIL_FROM ANTHROPIC_API_KEY SUPABASE_SERVICE_ROLE_KEY; do
+          for v in SMTP_USER SMTP_PASSWORD EMAIL_TO EMAIL_FROM SUPABASE_SERVICE_ROLE_KEY; do
             if [[ -n "${!v}" ]]; then echo "$v: PRESENT (${#-} chars hidden)"; else echo "$v: MISSING"; fi
           done
 
       - name: Generate a corrected brief and email it to Joe (test mode)
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}

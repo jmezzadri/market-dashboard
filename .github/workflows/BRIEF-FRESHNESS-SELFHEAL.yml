@@ -9,7 +9,7 @@ name: BRIEF-FRESHNESS-SELFHEAL
 # outcome catches every cause. (Froze the homepage on 2026-06-29; never again.)
 #
 # Pipeline name (Data Steward convention): commentary-daily-brief-selfheal
-# Required secrets: ANTHROPIC_API_KEY, SMTP_USER, SMTP_PASSWORD, EMAIL_TO,
+# Required secrets: SMTP_USER, SMTP_PASSWORD, EMAIL_TO,
 #   EMAIL_FROM (optional), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, MACROTILT_BOT_PAT
 
 on:
@@ -40,7 +40,6 @@ jobs:
 
       - name: Check live brief is current; regenerate + alert if stale
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
