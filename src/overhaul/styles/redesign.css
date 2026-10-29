@@ -515,7 +515,9 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-panel--econ .tm-pbody { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--sp-24); padding: var(--sp-4) 0; }
 .mt-overhaul .tm-panel--econ .tm-cols { display: none; }
 .mt-overhaul .tm-panel--econ .tm-ghead, .mt-overhaul .tm-panel--econ .tm-empty { grid-column: 1 / -1; }
-.mt-overhaul .tm-counts { display: block; font-size: var(--v13-t1); color: var(--tm-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The counts wrap rather than clip: on a 360px phone the HOT SPOT badge
+   leaves them less than a line, and "2 bi…" told the reader nothing. */
+.mt-overhaul .tm-counts { display: block; font-size: var(--v13-t1); color: var(--tm-text-2); white-space: normal; line-height: 1.4; }
 .mt-overhaul .tm-phead--btn { width: 100%; min-height: 52px; height: auto; padding: var(--sp-8) var(--sp-10); border: 0; border-bottom: 1px solid var(--tm-border); color: var(--tm-text); font: inherit; text-align: left; cursor: pointer; }
 .mt-overhaul .tm-phead-main { flex: 1; min-width: 0; }
 .mt-overhaul .tm-phead--btn .tm-ptitle { display: block; font-weight: var(--fw-600); letter-spacing: 0.06em; }
