@@ -123,7 +123,7 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 
 /* ── ticker bar ──────────────────────────────────────────────────────── */
 .mt-overhaul .rd-tape { position: relative; background: var(--ed-surface); border-bottom: 1px solid var(--ed-rule); overflow: hidden; font-family: var(--mt-type-sans); }
-.mt-overhaul[data-skin='editorial'] .rd-tape {
+.mt-overhaul .rd-tape {
   -webkit-mask-image: linear-gradient(90deg, var(--ed-mask-clear), var(--ed-mask-solid) 48px, var(--ed-mask-solid) calc(100% - 48px), var(--ed-mask-clear));
   mask-image: linear-gradient(90deg, var(--ed-mask-clear), var(--ed-mask-solid) 48px, var(--ed-mask-solid) calc(100% - 48px), var(--ed-mask-clear));
 }
@@ -192,16 +192,10 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul[data-skin='terminal'] .rd-marketdot.is-open { background: var(--tm-green); }
 .mt-overhaul[data-skin='terminal'] .rd-feeds { color: var(--tm-nav-ink-2); font-size: var(--v13-t2); }
 .mt-overhaul[data-skin='terminal'] .rd-feeds--green .rd-feeds-dot { background: var(--tm-green); --rd-ping: var(--tm-ping); --rd-ping-ring: var(--tm-ping-ring); }
-.mt-overhaul[data-skin='terminal'] .rd-tape { background: var(--tm-tape-bg); border-bottom-color: var(--tm-border); height: var(--tm-tape-h); font-family: var(--mt-type-mono); }
-.mt-overhaul[data-skin='terminal'] .rd-tape-track { animation-duration: var(--ed-dur-tape); }
-.mt-overhaul[data-skin='terminal'] .rd-tile { flex-direction: row; align-items: center; gap: var(--sp-6); height: var(--tm-tape-h); padding: 0 var(--sp-14); border-right-color: var(--tm-border-2); color: var(--tm-num); font-family: var(--mt-type-mono); font-size: var(--v13-t3); }
-.mt-overhaul[data-skin='terminal'] .rd-tile--drill:hover { background: var(--tm-hover); }
-.mt-overhaul[data-skin='terminal'] .rd-tile-l { font-size: var(--v13-t3); color: var(--tm-amber); }
-.mt-overhaul[data-skin='terminal'] .rd-tile-v { font-size: var(--v13-t3); font-weight: var(--fw-600); color: var(--tm-num); }
-.mt-overhaul[data-skin='terminal'] .rd-tile-c { font-size: var(--v13-t3); color: var(--tm-text-2); }
-.mt-overhaul[data-skin='terminal'] .rd-tile-c.up { color: var(--tm-green); }
-.mt-overhaul[data-skin='terminal'] .rd-tile-c.down { color: var(--tm-red); }
-.mt-overhaul[data-skin='terminal'] .rd-tile-s { color: var(--tm-text-5); }
+/* 2026-10-29 (Joe: "They should look the same"): the ticker band is ONE
+   surface on every page. It no longer takes the terminal skin — the
+   terminal override also collapsed the band to 1px between 431 and 860px
+   wide, because it sized the band off --mt-tap, which is 0 above 430px. */
 .mt-overhaul[data-skin='terminal'] .rd-foot { background: var(--tm-page); border-top-color: var(--tm-border); }
 .mt-overhaul[data-skin='terminal'] .rd-foot-in { max-width: none; padding: var(--sp-14) var(--sp-24) var(--sp-24); color: var(--tm-text-5); font-size: var(--v13-t1); font-family: var(--mt-type-mono); letter-spacing: 0.04em; text-transform: uppercase; }
 .mt-overhaul[data-skin='terminal'] .rd-foot-logo { color: var(--tm-nav-ink); text-transform: none; letter-spacing: 0; }
@@ -243,12 +237,10 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
   .mt-overhaul .rd-status-in, .mt-overhaul[data-skin='terminal'] .rd-status-in { flex-wrap: nowrap; justify-content: space-between; }
   .mt-overhaul .rd-feeds { margin-left: auto; }
   .mt-overhaul .rd-tape-track { animation-duration: var(--ed-dur-tape-phone); }
-  .mt-overhaul[data-skin='editorial'] .rd-tape { -webkit-mask-image: linear-gradient(90deg, var(--ed-mask-clear), var(--ed-mask-solid) 24px, var(--ed-mask-solid) calc(100% - 24px), var(--ed-mask-clear)); mask-image: linear-gradient(90deg, var(--ed-mask-clear), var(--ed-mask-solid) 24px, var(--ed-mask-solid) calc(100% - 24px), var(--ed-mask-clear)); }
+  .mt-overhaul .rd-tape { -webkit-mask-image: linear-gradient(90deg, var(--ed-mask-clear), var(--ed-mask-solid) 24px, var(--ed-mask-solid) calc(100% - 24px), var(--ed-mask-clear)); mask-image: linear-gradient(90deg, var(--ed-mask-clear), var(--ed-mask-solid) 24px, var(--ed-mask-solid) calc(100% - 24px), var(--ed-mask-clear)); }
   .mt-overhaul .rd-tile { padding: var(--sp-10) var(--sp-16); }
   .mt-overhaul .rd-tile-v { font-size: var(--v13-t4); }
   /* every tap target is at least 44px tall on a phone, the ticker tiles included */
-  .mt-overhaul[data-skin='terminal'] .rd-tape, .mt-overhaul[data-skin='terminal'] .rd-tile { height: var(--mt-tap, 44px); }
-  .mt-overhaul[data-skin='terminal'] .rd-tile { padding: 0 var(--sp-12); }
   .mt-overhaul .rd-foot-in { flex-direction: column; gap: var(--sp-10); padding: var(--sp-24) var(--sp-16) var(--sp-32); }
   .mt-overhaul .rd-foot-nav { gap: var(--sp-4) var(--sp-18); }
   .mt-overhaul .rd-foot-nav a { display: inline-flex; align-items: center; min-height: var(--mt-tap, 44px); }
@@ -722,5 +714,5 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
   .mt-overhaul .rd-tile, .mt-overhaul .rd-navlink, .mt-overhaul .ed-link, .mt-overhaul .tm-row, .mt-overhaul .tm-sum { animation: none !important; transition: none !important; }
   /* with the slide off, the bar is a hand scroller */
   .mt-overhaul .rd-tape-view { overflow-x: auto; }
-  .mt-overhaul[data-skin='editorial'] .rd-tape { -webkit-mask-image: none; mask-image: none; }
+  .mt-overhaul .rd-tape { -webkit-mask-image: none; mask-image: none; }
 }

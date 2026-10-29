@@ -2220,7 +2220,6 @@
   --tm-bar-track: #E6E3DC;
   --tm-bar-mid: #8A9099;
   --tm-midline: #BFC4CC;
-  --tm-tape-bg: #FAF9F6;
   --tm-head-bg: #FFFFFF;
   --tm-input-border: #C9C5BB;
   --tm-ping: rgba(11, 113, 72, 0.45);
@@ -2236,8 +2235,6 @@
   --tm-gutter: 8px;
   --tm-head-h: 56px;
   --tm-panel-head-h: 28px;
-  --tm-tape-h: 32px;
-  --tm-tape-h-phone: 34px;
   --tm-block-h: 16px;
   --tm-block-h-phone: 14px;
   --tm-pctbar-w: 46px;
@@ -2311,7 +2308,6 @@
   --tm-bar-track: #1E2228;
   --tm-bar-mid: #6B727A;
   --tm-midline: #3A3F46;
-  --tm-tape-bg: #050607;
   --tm-head-bg: #0B0D10;
   --tm-input-border: #33383F;
   --tm-ping: rgba(52, 208, 127, 0.55);
