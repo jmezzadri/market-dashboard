@@ -494,10 +494,24 @@ def _txt(x) -> str:
     return str(x or "").strip()
 
 
-def validate_submission(sub: dict, scores: dict, ideas: list, prior: dict | None) -> list[dict]:
+THESIS_CHECKS_PATH = "public/thesis_checks.json"
+
+
+def load_trips(path: str = THESIS_CHECKS_PATH) -> set:
+    """Ids the daily thesis check (LESSONS 6.28) has tripped. Missing file = none."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return set(json.load(f).get("tripped") or [])
+    except (OSError, ValueError):
+        return set()
+
+
+def validate_submission(sub: dict, scores: dict, ideas: list, prior: dict | None,
+                        trips: set | None = None) -> list[dict]:
     """Every rule a Monday session could be tempted to skip, checked here.
     Returns the cleaned review list; raises ReviewError with every failure."""
     errs = []
+    trips = load_trips() if trips is None else trips
     if not isinstance(sub, dict):
         raise ReviewError("submission must be a JSON object")
     rd = _txt(sub.get("review_date"))
@@ -568,6 +582,14 @@ def validate_submission(sub: dict, scores: dict, ideas: list, prior: dict | None
         # Verdict must follow from the checks — not the other way round.
         if verdict == "intact" and any_fail:
             errs.append(f"{tag}: verdict 'intact' but a driver check has failed")
+        # 2026-10-30 (LESSONS 6.28): a call the daily check tripped is never
+        # waved through as "intact" in silence — say, with a dated number, why
+        # the trip does not reach the thesis.
+        if nid in trips and verdict == "intact":
+            ta = _txt(rv.get("trip_answer"))
+            if len(ta) < 40 or not re.search(r"\d", ta):
+                errs.append(f"{tag}: the daily thesis check tripped this call; 'intact' needs trip_answer — "
+                            "why the trip does not reach the thesis, with a dated number (40+ characters)")
         if verdict == "broken" and not crit_fail:
             errs.append(f"{tag}: verdict 'broken' requires a CRITICAL driver check that has failed")
         if verdict == "weakened" and not any_fail and not _txt(rv.get("weakened_reason")):
@@ -616,6 +638,7 @@ def validate_submission(sub: dict, scores: dict, ideas: list, prior: dict | None
             "called_for_pct": called,
             "called_for_basis": _txt(rv.get("called_for_basis")),
             "action_reason": _txt(rv.get("action_reason")),
+            "trip_answer": _txt(rv.get("trip_answer")) or None,
         })
     missing = sorted(set(open_rows) - seen)
     if missing:

@@ -525,5 +525,67 @@ class TestBookTestWithWeights(Base):
         self.assertIn("event idea at weight 1.5", line)
 
 
+class TestDailyCheckContract(Base):
+    """2026-10-30 (LESSONS 6.28): critical conditions carry their machine form,
+    and the headline states dated facts, on notes from REVIEW_CHECKS_FROM."""
+
+    def _late(self, **kw):
+        n = standard_note(**kw)
+        n["date"] = B.REVIEW_CHECKS_FROM
+        return n
+
+    def test_present_tense_trend_in_the_title_is_refused(self):
+        with self.assertRaises(B.ContractError) as e:
+            B.validate(self._late(title="Credit spreads widening, S&P 500 likely to close the gap"), [])
+        self.assertIn("widening", str(e.exception))
+
+    def test_present_tense_trend_in_the_dek_is_refused(self):
+        with self.assertRaises(B.ContractError):
+            B.validate(self._late(dek="Yields are surging and oil is in the top tenth of its range."), [])
+
+    def test_dated_fact_title_is_not_caught_by_the_tense_rule(self):
+        self.assertIsNone(B.TREND_TENSE_RE.search("High-yield spreads 66bp wider in six weeks; the S&P 500 is 0.8% from its record"))
+
+    def test_older_notes_keep_their_titles(self):
+        n = standard_note(title="Credit spreads widening, S&P 500 likely to close the gap")
+        self.assertIsNone(B.TREND_TENSE_RE.search(n["date"]))   # date is before the rule
+        self.assertLess(n["date"], B.REVIEW_CHECKS_FROM)
+
+    def _rc(self, **kw):
+        c = {"claim": "Brent stays high", "measure": "Brent front month", "at_publication": "90 on 2026-10-20",
+             "holds_while": "at or above 85", "critical": True,
+             "check": {"series": "cmdty_brent", "op": ">=", "level": 85},
+             "driver": {"series": "cmdty_brent", "direction": "up", "move_start": {"date": "2026-08-01", "value": 80}}}
+        c.update(kw)
+        return [c]
+
+    def _contract_error_for(self, rc):
+        n = self._late()
+        n["review_conditions"] = rc
+        try:
+            B.validate(n, [])
+        except B.ContractError as e:
+            return str(e)
+        return ""
+
+    def test_critical_condition_without_a_check_is_refused(self):
+        rc = self._rc()
+        rc[0].pop("check")
+        self.assertIn("needs `check`", self._contract_error_for(rc))
+
+    def test_critical_condition_without_a_driver_is_refused(self):
+        rc = self._rc()
+        rc[0].pop("driver")
+        self.assertIn("needs `driver`", self._contract_error_for(rc))
+
+    def test_check_on_a_series_we_do_not_carry_is_refused(self):
+        rc = self._rc(check={"series": "not_a_series", "op": ">=", "level": 1})
+        self.assertIn("not in indicator_history.json", self._contract_error_for(rc))
+
+    def test_well_formed_machine_form_passes_the_review_block(self):
+        err = self._contract_error_for(self._rc())
+        self.assertNotIn("review_conditions", err)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

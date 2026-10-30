@@ -79,6 +79,8 @@ jobs:
           # Contract v2 fixtures (2026-10-21, LESSONS 6.26): the contract that
           # writes the notes the scorer marks is tested in the same run.
           python scripts/test_build_trade_idea.py
+          # Daily thesis check (2026-10-30, LESSONS 6.28).
+          python scripts/test_daily_thesis_check.py
 
       # Fail loudly on a note that cannot be marked. `pending_entry` (a note
       # whose entry close has not printed yet) is NOT a failure and does not
@@ -96,6 +98,32 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python scripts/score_trade_ideas.py --check
 
+      # Daily thesis check (Joe, 2026-10-30: "we need a check that proves the
+      # posted idea is still factual"). Re-measures every open call's review
+      # conditions and the move it was built on, after the scores, against the
+      # same indicator history; writes public/thesis_checks.json. Code only — no
+      # model, no judgment. A trip is an alert, never a close.
+      - name: Re-measure every open call's thesis
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scripts/daily_thesis_check.py
+
+      # Email Joe only when a call trips, once per (call, reason). Only on the
+      # 7:00 PM ET run (and manual runs): the 5:15 PM run can still be missing
+      # the late FRED publishers — the high-yield spread among them — and an
+      # alert must be read off the authoritative close.
+      - name: Alert on a tripped thesis (evening run only)
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 23 * * 1-5'
+        env:
+          SMTP_USER:                 ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:             ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM:                ${{ secrets.EMAIL_FROM }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RUN_ID:                    ${{ github.run_id }}
+        run: python scripts/send_thesis_check_alert.py
+
       - name: Configure git
         run: |
           git config user.name  "Market Dashboard Bot"
@@ -103,10 +131,11 @@ jobs:
 
       - name: Commit the scores if changed
         run: |
-          if git diff --quiet -- public/trade_idea_scores.json; then
-            echo "No change to public/trade_idea_scores.json — skipping commit."
+          git add -N public/thesis_checks.json 2>/dev/null || true
+          if git diff --quiet -- public/trade_idea_scores.json public/thesis_checks.json; then
+            echo "No change to the scores or the thesis checks — skipping commit."
           else
-            git add public/trade_idea_scores.json
+            git add public/trade_idea_scores.json public/thesis_checks.json
             git commit -m "Trade Idea scorecard refresh [skip ci]
 
             Marked by .github/workflows/TRADE-IDEA-SCORECARD-DAILY.yml from
@@ -120,6 +149,8 @@ jobs:
         uses: actions/upload-artifact@v4.4.3
         with:
           name: trade-idea-scores-${{ github.run_id }}
-          path: public/trade_idea_scores.json
+          path: |
+            public/trade_idea_scores.json
+            public/thesis_checks.json
           retention-days: 30
           if-no-files-found: ignore

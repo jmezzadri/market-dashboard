@@ -180,6 +180,15 @@ class TestContract(unittest.TestCase):
             T.validate_submission(sub, scores or self.scores(), self.ideas(), prior)
         self.assertIn(needle, str(cm.exception))
 
+    def test_tripped_call_cannot_be_intact_without_a_dated_answer(self):
+        with self.assertRaises(T.ReviewError) as cm:
+            T.validate_submission(submission(), self.scores(), self.ideas(), None, trips={"n1"})
+        self.assertIn("trip_answer", str(cm.exception))
+        out = T.validate_submission(
+            submission(review(trip_answer="The 10-year gave back 38% of its jump, but oil sat at the 97th percentile on Oct 29.")),
+            self.scores(), self.ideas(), None, trips={"n1"})
+        self.assertEqual(out[0]["verdict"], "intact")
+
     def test_intact_with_a_failed_check_is_rejected(self):
         ck = dict(review()["driver_checks"][0], holds=False)
         self.assertRejected(submission(review(driver_checks=[ck])), "'intact' but a driver check has failed")

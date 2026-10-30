@@ -93,6 +93,21 @@ VALID_KINDS = {
 # Notes dated from here carry machine-checkable review_conditions (see 3f-bis)
 # and an expected_return block that clears the expected-return hurdle (3f-ter).
 REVIEW_CONDITIONS_FROM = "2026-10-01"
+# 2026-10-30 (LESSONS 6.28) — Joe: "we need a check that proves the posted idea
+# is still factual." The Oct 22 note's title said spreads were "widening" for a
+# week after they had started tightening, and its 300bp line sat halfway back
+# through the 66bp move, so the review would have called it intact. From this
+# date: (a) every CRITICAL review condition carries its machine form —
+# `check {series, op, level, transform?, basis?}` and `driver {series,
+# direction, move_start {date, value}, max_giveback?}` — which
+# scripts/daily_thesis_check.py re-measures every evening; (b) the title and
+# dek state dated facts, never a present-tense trend ("widening", "surging").
+REVIEW_CHECKS_FROM = "2026-10-31"
+TREND_TENSE_RE = re.compile(
+    r"\b(widening|tightening|rising|falling|surging|soaring|climbing|sliding|slipping|sinking|plunging|"
+    r"plummeting|tumbling|dropping|collapsing|crashing|spiking|jumping|rallying|selling off|breaking (?:out|down)|"
+    r"accelerating|decelerating|slowing|cooling|heating up|easing|firming|weakening|strengthening|"
+    r"steepening|flattening|melting up|unwinding|deteriorating|improving|worsening)\b", re.I)
 # 2026-10-02 — positioning edges are measured on the full record, with no
 # look-ahead, and counted in independent episodes. The Aug 14 euro note passed
 # this contract with "n=26" — 26 WEEKS inside a 156-week window, about four
@@ -1328,6 +1343,19 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
     missing = [k for k in REQUIRED if not idea.get(k)]
     if missing:
         raise ContractError(f"missing required field(s): {', '.join(missing)}")
+
+    # 0b — dated facts in the headline (2026-10-30, LESSONS 6.28). A title in
+    # the present tense ("Credit spreads widening") is true the day it is
+    # written and stays on the tile for weeks; the Oct 22 one was false within
+    # a week. Write the move with its size and window ("66bp wider in six
+    # weeks") — a dated fact stays true.
+    if str(idea.get("date", "")) >= REVIEW_CHECKS_FROM:
+        for fld in ("title", "dek"):
+            m = TREND_TENSE_RE.search(str(idea.get(fld) or ""))
+            if m:
+                raise ContractError(
+                    f"{fld} uses the present-tense trend {m.group(0)!r} — it goes stale while the note is live. "
+                    "State the dated fact instead: the move, its size and its window (e.g. '66bp wider in six weeks')")
     if not event:
         # 2026-10-29 (#1277) — a directional note whose vehicle is a listed
         # option is marked as that option; derives the scorecard leg.
@@ -1761,6 +1789,30 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             crit = crit or c["critical"]
         if not crit:
             raise ContractError("review_conditions: at least one condition must be critical")
+        if str(idea.get("date", "")) >= REVIEW_CHECKS_FROM:
+            import daily_thesis_check as _DTC
+            _h = _history()
+            known = set(_h) if _h is not None else None
+            for i, c in enumerate(rc):
+                if not c.get("critical") and not c.get("check"):
+                    continue
+                try:
+                    if not c.get("check"):
+                        raise _DTC.CheckError(
+                            f"review_conditions[{i}] is critical and needs `check` {{series, op, level}} — the machine "
+                            "form of holds_while that the daily thesis check re-measures every evening")
+                    _DTC.validate_check(c["check"], f"review_conditions[{i}]", known)
+                    if c.get("critical"):
+                        if not c.get("driver"):
+                            raise _DTC.CheckError(
+                                f"review_conditions[{i}] is critical and needs `driver` {{series, direction, "
+                                "move_start {date, value}} — where the move the call rests on began, so the daily "
+                                "check can flag the call when more than a third of that move is handed back")
+                        _DTC.validate_driver(c["driver"], f"review_conditions[{i}]", known)
+                    elif c.get("driver"):
+                        _DTC.validate_driver(c["driver"], f"review_conditions[{i}]", known)
+                except _DTC.CheckError as e:
+                    raise ContractError(str(e))
 
     # 3f-ter — the expected-return hurdle (2026-09-30; 15% since 2026-10-02).
     # Joe, on finding the live book called for +0.9% and +3.7% over six

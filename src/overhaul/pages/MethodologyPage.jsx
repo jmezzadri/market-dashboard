@@ -772,6 +772,36 @@ export default function MethodologyPage() {
               option mark  = modelled put/call value ÷ premium − 1 (Black-Scholes from the underlying's close, VIX-type vol, 2-year yield; intrinsic at expiry)<br />
               contribution = weight × return ÷ 100 · realized + unrealized = total · no hit rate below 10 closed calls
             </div>
+
+            <h3 className="me-h3" id="scorecard-daily-check" style={{ scrollMarginTop: 120 }}>
+              The daily thesis check
+            </h3>
+            <p className="me-body-p">
+              Every weekday after the close, in code and with no judgment, each open call&rsquo;s
+              written conditions are re-measured against the latest data. Two tests run. The{' '}
+              <b>level test</b> reads each condition the note wrote down at publication (for example
+              &ldquo;high-yield spreads at or above 300bp&rdquo;). The <b>give-back test</b> reads the
+              move the call was built on — from where the note says it began to its best reading since
+              publication — and trips the call when more than a third of that move has been handed back,
+              even while the level test still passes. A note may set that limit anywhere from 10% to 50%.
+              A call trips when a critical condition breaks or the move is given back; Joe is emailed
+              once per trip, and nothing is sent on a quiet day.
+            </p>
+            <p className="me-body-p">
+              A trip is a warning, not a close: the call still closes only at its exit level, its planned
+              date, or the weekly review&rsquo;s verdict, and the next Trade Idea run and the Monday review
+              must each say whether a tripped call stands. A reading more than five business days old is
+              reported as stale, never as a pass. Notes published before October 31, 2026 take their
+              conditions and starting levels from their own text and evidence, copied once. From that
+              date every critical condition must carry its machine form, and a note&rsquo;s title states
+              dated facts (&ldquo;66bp wider in six weeks&rdquo;) rather than a present-tense trend
+              (&ldquo;widening&rdquo;) that can go stale while the note is live.
+            </p>
+            <div className="me-formula" data-mono="code">
+              level test = each condition's series vs its stated line, on the latest settled reading (stale after 5 business days)<br />
+              give-back  = (best reading since publication − latest) ÷ (best − move start) &gt; 1/3 → trip<br />
+              alert      = once per call and reason, after the 7 PM ET mark · a trip never closes a call by itself
+            </div>
           </div>
         </article>
 
