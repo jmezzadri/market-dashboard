@@ -190,11 +190,15 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
             <div className="num" style={{ fontFamily: 'var(--mt-type-sans)', fontSize: 'var(--v13-t6)', lineHeight: 1.05 }}>{fmtLevel(headline)}</div>
             {dayPct != null && (
               <div className={`num ${dayPct >= 0 ? 'up' : 'down'}`} style={{ fontWeight: 'var(--fw-600)', fontSize: 'var(--v13-t3)', marginTop: 'var(--sp-2)' }}>
-                {dayPct >= 0 ? '▲' : '▼'} {fmtPct(dayPct).replace(/^[+-]/, '')} today
+                {dayPct >= 0 ? '▲' : '▼'} {fmtPct(dayPct).replace(/^[+-]/, '')} {live.marketOpen === true ? 'today' : 'on the day'}
               </div>
             )}
             <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)', marginTop: 'var(--sp-3)' }}>
-              {livePrice != null ? <>live · vs prev close {fmtLevel(prevClose)}</> : (asOf ? <>close {asOf}</> : null)}
+              {/* "live" only while the market is open (LESSONS 4.32; 2026-10-29: this
+                  read "live" at 10 PM). After the bell the same quote is the close. */}
+              {livePrice != null
+                ? (live.marketOpen === true ? <>live · vs prev close {fmtLevel(prevClose)}</> : <>close · vs prev close {fmtLevel(prevClose)}</>)
+                : (asOf ? <>close {asOf}</> : null)}
             </div>
           </div>
         </div>
@@ -255,9 +259,6 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
 
         <div style={{ marginTop: 'var(--sp-20)', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>Source: {def.source}</div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--sp-18)' }}>
-          <button type="button" className="mt-btn mt-btn--ghost" onClick={onClose}>Close</button>
-        </div>
       </div>
     </DetailModal>
   );

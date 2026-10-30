@@ -64,10 +64,16 @@ function linkifyFred(text) {
   );
 }
 
+const TF_WORDS = { '1Y': '1-year', '3Y': '3-year', '5Y': '5-year', '10Y': '10-year', Max: 'full-history' };
+
 export default function IndicatorDetail({ ind, onClose, catalog = [], indexSeries = [] }) {
-  // A full-history pill (lib/pctWindow.js) opens on Max, so the drawer's
-  // "where today sits" read uses the same history as the pill it came from.
-  const [tf, setTf] = useState(() => (Number.isFinite(pctWindowDays(ind?.id)) ? '5Y' : 'Max'));
+  // The drawer opens on the SAME window as the percentile on the row it came
+  // from: 3 years for a 3-year pill, Max for a full-history one
+  // (lib/pctWindow.js). 2026-10-29: it opened on 5 years, so the 10-year
+  // yield read "98th" in the drawer beside "96" on its row, and its shaded
+  // bands (3-year) and its headline percentile (5-year) disagreed.
+  const [tf, setTf] = useState(() => (Number.isFinite(pctWindowDays(ind?.id)) ? '3Y' : 'Max'));
+  const ROW_TF = Number.isFinite(pctWindowDays(ind?.id)) ? '3Y' : 'Max';
   const [overlayKey, setOverlayKey] = useState('');
   const [idxOn, setIdxOn] = useState({});
   const navigate = useNavigate();
@@ -311,7 +317,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
             marginBottom: 'var(--sp-8)',
           }}
         >
-          <div className="mt-eyebrow">Where today sits in the {tf} distribution</div>
+          <div className="mt-eyebrow">Where today sits in its {TF_WORDS[tf] || tf} range{tf === ROW_TF ? ' · the same window as the Landscape row' : ''}</div>
           {/* The tail word, same vocabulary as the tile row this was opened
               from (LESSONS 7.18). Derived from slicePct, not the 3-year pct,
               so it always describes the timeframe actually on screen. */}
@@ -421,9 +427,6 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
           onClick={() => navigate(`/methodology#${ind.familyId || ind.id}`)}
         >
           Methodology →
-        </button>
-        <button type="button" className="mt-btn" onClick={onClose}>
-          Close
         </button>
       </div>
     </div>

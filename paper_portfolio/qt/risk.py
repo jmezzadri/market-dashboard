@@ -265,8 +265,11 @@ def write(row: dict) -> None:
         "var1_norm": row.get("var1_norm"), "beta": row.get("beta"), "market": row.get("market"),
         "style": row.get("style"), "specific": row.get("specific"), "r2_market": row.get("r2_market"),
         "dd_from_peak": row.get("dd_from_peak"),
+        # gross_exposure is the figure the leverage alert was checked against;
+        # the Paper page prints it in the all-clear line (2026-10-29), so the
+        # sentence can never contradict the Exposure tile beside it.
         "detail": {k: row.get(k) for k in ("weights", "risk_share", "mctr", "loadings", "shocks", "vix",
-                                           "alerts", "excluded", "exit_days")},
+                                           "alerts", "excluded", "exit_days", "gross_exposure")},
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     r = requests.post(f"{SB_URL}/rest/v1/qt_risk_daily?on_conflict=d,account_number",

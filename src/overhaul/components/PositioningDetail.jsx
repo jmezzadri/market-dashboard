@@ -199,9 +199,6 @@ export default function PositioningDetail({ item, domain, blurb, onClose }) {
         <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>
           Source: <b style={{ color: 'var(--mt-ink-2)' }}>CFTC</b> · Commitments of Traders, published Fridays for the prior Tuesday
         </div>
-        {onClose && (
-          <button type="button" className="mt-btn" onClick={onClose}>Close</button>
-        )}
       </div>
     </div>
   );

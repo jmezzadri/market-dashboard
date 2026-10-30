@@ -477,9 +477,12 @@ function liveStats(nav, spyBase = null) {
 const START_CAPITAL = 1_000_000;
 const PERF_ROWS = [
   { id: 'paper', label: 'Paper' },
-  { id: 'spx', label: 'S&P 500', col: 'spy_close' },
-  { id: 'ndx', label: 'Nasdaq 100', col: 'qqq_close' },
-  { id: 'dji', label: 'Dow', col: 'dia_close' },
+  // Each row names the FUND it is computed from (2026-10-29 audit: "Nasdaq
+  // 100" here and "NASDAQ" — the Composite — on the banner read as the same
+  // number disagreeing).
+  { id: 'spx', label: 'S&P 500 · SPY', col: 'spy_close' },
+  { id: 'ndx', label: 'Nasdaq-100 · QQQ', col: 'qqq_close' },
+  { id: 'dji', label: 'Dow · DIA', col: 'dia_close' },
 ];
 function perfTable(nav, heldIdx) {
   if (!nav || !nav.length) return null;
@@ -701,13 +704,38 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   // A mark taken inside the regular session (9:30-16:00 ET) is a live price;
   // anything later is the day's close (the 16:50 ET snapshot) and is labelled
   // with the day it closed.
-  const markIsLivePrice = (() => {
+  //
+  // 2026-10-29: "live" is a claim about the SESSION, not the mark (LESSONS
+  // 4.32). A 3:50 PM mark read at 9 PM is not a live price: the market is
+  // closed. And the after-close snapshot reads the broker's marks at the
+  // moment it runs (5:10 PM or later), which include after-hours trading —
+  // it is not the official close, so it is never called one. States —
+  //   in session, market open        → "live prices · 2:10 PM ET"
+  //   in session, market now closed  → "prices at 3:50 PM ET · after-close snapshot not taken yet"
+  //   taken after the session        → "after-hours prices · 8:51 PM ET" (+ the day when not today)
+  //   stamped exactly at the close   → "closing prices · Thu, Oct 29"
+  const hhmmET = (ts) => new Date(ts).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hourCycle: 'h23', hour: '2-digit', minute: '2-digit' });
+  const nowET = hhmmET(Date.now());
+  const marketOpenNow = (() => {
+    const dow = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'short' });
+    return !['Sat', 'Sun'].includes(dow) && nowET >= '09:30' && nowET < '16:00';
+  })();
+  const markInSession = (() => {
     if (!latestNav?.created_at || !markIsToday) return false;
-    const t = new Date(latestNav.created_at).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit' });
+    const t = hhmmET(latestNav.created_at);
     return t >= '09:30' && t < '16:01';
   })();
+  const markIsLivePrice = markInSession && marketOpenNow;
+  const markHM = latestNav?.created_at ? hhmmET(latestNav.created_at) : null;
+  const markAtClose = markHM === '16:00';
   const priceBasis = latestNav?.created_at
-    ? (markIsLivePrice ? `live prices · ${fmtTimeET(latestNav.created_at)}` : `closing prices · ${markDayET || fmtDayET(latestNav.created_at)}`)
+    ? (markIsLivePrice
+      ? `live prices · ${fmtTimeET(latestNav.created_at)}`
+      : markAtClose
+        ? `closing prices · ${markDayET || fmtDayET(latestNav.created_at)}`
+        : markInSession
+          ? `prices at ${fmtTimeET(latestNav.created_at)} · after-close snapshot not taken yet`
+          : `after-hours prices · ${markIsToday ? '' : `${markDayET}, `}${fmtTimeET(latestNav.created_at)}`)
     : null;
 
   const weights = (latestNav?.positions || [])
@@ -947,6 +975,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       const key = String(first.d).slice(0, 7);
       const dayOne = Number(first.equity) / 1_000_000 - 1;
       months[key] = (1 + dayOne) * (1 + (months[key] ?? 0)) - 1;
+      // The base mark taken before the book's first day is not a month the
+      // book was invested in: "AUG 0.0%" for a book that began Sep 1 is a
+      // month that did not happen (2026-10-29). Drop it.
+      const onlyBase = nav.filter((r) => String(r.d).slice(0, 7) === key).length === 1;
+      if (onlyBase && Math.abs(dayOne) < 1e-9) delete months[key];
     }
     const keys = Object.keys(months).sort();
     return { months, keys, n: keys.length };
@@ -967,11 +1000,35 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const topRisk = rsSorted[0] || null;
   const bookBeta = dc?.beta ?? ls?.beta ?? null;
   const nSectors = bookMeta ? bookMeta.secList.length : null;
+  /* The holdings header counts what the table shows. Filtered to one name it
+     used to keep reading "20 NAMES · 5 SECTORS" over a one-row table
+     (2026-10-29); now it says "SHOWING 1 OF 20 NAMES" and counts the sectors
+     and industries of the rows in view. */
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 'S'}`;
+  const holdTitle = (() => {
+    if (nothingHeld) return `TARGET BOOK · ${book?.length ?? 0} NAMES SCORED, NOT OWNED`;
+    if (query.trim() && book) {
+      const secs = new Set(filteredBook.map((r) => r.sector || 'Unclassified')).size;
+      const inds = new Set(filteredBook.map((r) => r.industry).filter(Boolean)).size;
+      return `HOLDINGS · SHOWING ${filteredBook.length} OF ${plural(book.length, 'NAME')} · ${plural(secs, 'SECTOR')} · ${inds} OF 74 INDUSTRIES`;
+    }
+    return `HOLDINGS · ${plural(nHeld, 'NAME')}${nSectors != null ? ` · ${plural(nSectors, 'SECTOR')}` : ''}${bookMeta ? ` · ${bookMeta.nIndustries} OF 74 INDUSTRIES` : ''}`;
+  })();
   const marksN = (ls?.n ?? 0) + 1;
   const signPct = (v, dp = 2) => (v == null || !Number.isFinite(Number(v)) ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(Number(v) * 100).toFixed(dp)}%`);
   const signCls = (v) => (v == null || !Number.isFinite(Number(v)) ? 'fl' : v > 0 ? 'up' : v < 0 ? 'down' : 'fl');
   const alerts = cockpit.alerts || null;
   const nAlerts = alerts ? alerts.length : null;
+  /* The cash rule is a leverage rule (LESSONS 9.28 rule 5): the risk job
+     alerts at gross exposure of 105% of equity, never on a small margin
+     debit. Until 2026-10-29 the all-clear sentence said "cash positive" —
+     printed beside a −$213 cash balance in the Exposure tile. It now states
+     the rule the risk job actually checked, with the figure it checked when
+     the row carries one. */
+  const grossChecked = Number(cockpit.row?.detail?.gross_exposure);
+  const grossLine = Number.isFinite(grossChecked)
+    ? `invested ${fmtPctPlain(grossChecked, 1)} of equity, under the 105% borrowing limit`
+    : 'invested under the 105% borrowing limit';
 
   const kpis = [
     { l: 'PORTFOLIO VALUE', v: fmtUsd(equity), s: priceBasis ? (bookIsLive ? priceBasis : `final · ${priceBasis}`) : 'at inception', cls: '' },
@@ -1095,7 +1152,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             {alerts
               ? (alerts.length
                 ? alerts.map((a, i) => <span key={`${a.code}-${a.sym || i}`}>{i ? ' · ' : ''}{a.sym ? <button type="button" className="tm-tklink" onClick={() => onOpenTicker && onOpenTicker(a.sym)}>{a.sym}</button> : null}{a.sym ? ' ' : ''}{a.text.replace(new RegExp(`^${a.sym} `), '')}</span>)
-                : 'Every name inside its risk, weight and liquidity limits; cash positive; crash brake off.')
+                : `Every name inside its risk, weight and liquidity limits; ${grossLine}; crash brake off.`)
               : (riskNote || 'Alerts print with the risk figures.')}
           </span>
         </div>
@@ -1319,7 +1376,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               <section className="tm-panel rd-rise d4" aria-label="Holdings">
                 <div className="tm-phead">
                   <span className="tm-code">HOLD</span>
-                  <span className="tm-ptitle">{nothingHeld ? `TARGET BOOK · ${book?.length ?? 0} NAMES SCORED, NOT OWNED` : `HOLDINGS · ${nHeld} NAMES${nSectors != null ? ` · ${nSectors} SECTORS` : ''}${bookMeta ? ` · ${bookMeta.nIndustries} OF 74 INDUSTRIES` : ''}`}</span>
+                  <span className="tm-ptitle">{holdTitle}</span>
                   <span className="tm-pfill" />
                   <span className="tm-pnote">{bookIsLive ? (priceBasis || 'no marks yet') : `final holdings · ${priceBasis || ''}`}</span>
                 </div>

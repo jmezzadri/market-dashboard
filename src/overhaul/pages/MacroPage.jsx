@@ -54,6 +54,7 @@ import '../styles/macro-v13.css';   /* the hover tooltip (.mac-tip) and the deta
 import '../styles/modal.css';
 import { STRESS_THRESH, YIELD_THRESH } from '../lib/useEngineRegime';
 import DetailModal from '../components/DetailModal';
+import EngineTrackRecord from '../components/EngineTrackRecord';
 
 const DOMAINS = ['Rates', 'Credit', 'Equities', 'Commodities', 'FX', 'Financial Conditions & Economy'];
 // Path-A exception #3 (Joe 2026-05-27): design copy, never gets stale, keep.
@@ -108,135 +109,15 @@ const MARKET_BLURB = {
    THAT'S ALL, I DON'T NEED ALL THE SUPERFLUOUS WORDS." One line, the rule,
    nothing else. Do not add a sentence of explanation here again. Thresholds
    mirror MOVE_FLAG_PCTILE and stateFor() in useIndicators.js. */
-const BIG_MOVE_TIP = 'Top 10% move \u00b7 3y lookback';
-const STRETCHED_TIP = 'Top/bottom 10% level \u00b7 3y lookback \u00b7 the row says which end';
-const ELEVATED_TIP = 'Top/bottom 25% level \u00b7 3y lookback \u00b7 the row says which end';
+/* 2026-10-29 audit: these said "top/bottom 10%" while an indicator counts as
+   stretched in the outer 15% of its 3-year range (stateFor in useIndicators,
+   85th/15th on the side that signals risk); positioning rows use 10/90. The
+   tips and the legend under the strip now say what the code counts. */
+const BIG_MOVE_TIP = 'Latest change in the top 10% of its own changes over 3 years \u00b7 indicators only (positioning is weekly)';
+const STRETCHED_TIP = 'Outer 15% of its own 3-year range, on the side that signals risk \u00b7 positioning rows: outer 10%';
+const ELEVATED_TIP = 'Outer 25% of its own 3-year range, on the side that signals risk';
 
 function posState(p){ return (p<=10||p>=90)?'extreme':(p<=25||p>=75)?'elevated':'calm'; }
-
-/* Engine track record — the S&P 500 with every de-risked stretch shaded, so a
-   reader can judge the stress signal against what the market actually did
-   instead of inferring it from a two-year colour strip. Added 2026-07-29
-   alongside the confirmation filter on the stress gate. */
-function EngineHistoryDetail({ weeks = [], spx = [] }) {
-  const [bt, setBt] = useState(null);
-  useEffect(() => {
-    let c = false;
-    fetch('/macrotilt_engine_backtest.json', { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : null)).then((d) => { if (!c) setBt(d); }).catch(() => {});
-    return () => { c = true; };
-  }, []);
-
-  const rows = useMemo(() => {
-    if (!weeks.length || !spx.length) return [];
-    const out = []; let j = 0;
-    for (const w of weeks) {
-      while (j + 1 < spx.length && spx[j + 1][0] <= w.date) j += 1;
-      const p = spx[j];
-      if (!p || p[0] > w.date || !Number.isFinite(p[1])) continue;
-      out.push({ date: w.date, v: p[1], st: w.stress_state });
-    }
-    return out;
-  }, [weeks, spx]);
-
-  const W = 1000, H = 300, PADL = 4, PADB = 22;
-  const geom = useMemo(() => {
-    if (rows.length < 8) return null;
-    const vs = rows.map((r) => Math.log(r.v));
-    const lo = Math.min(...vs), hi = Math.max(...vs), span = hi - lo || 1;
-    const x = (i) => PADL + (i / (rows.length - 1)) * (W - PADL * 2);
-    const y = (v) => (H - PADB) - ((Math.log(v) - lo) / span) * (H - PADB - 10);
-    const line = rows.map((r, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(r.v).toFixed(1)}`).join('');
-    const bands = []; let cur = null;
-    rows.forEach((r, i) => {
-      const off = r.st && r.st !== 'Risk On';
-      if (off && !cur) cur = { a: i, b: i, st: r.st };
-      else if (off) { cur.b = i; if (r.st === 'Risk Off') cur.st = 'Risk Off'; }
-      else if (cur) { bands.push(cur); cur = null; }
-    });
-    if (cur) bands.push(cur);
-    const ticks = [];
-    let lastYr = null;
-    rows.forEach((r, i) => {
-      const yr = r.date.slice(0, 4);
-      if (yr !== lastYr && Number(yr) % 3 === 0) { ticks.push({ x: x(i), label: yr }); lastYr = yr; }
-      else if (yr !== lastYr) lastYr = yr;
-    });
-    return { x, y, line, bands, ticks };
-  }, [rows]);
-
-  const eps = bt?.drawdowns || [];
-  const v = bt?.validation;
-  const fmtPct = (n) => (n == null ? '—' : `${(n * 100).toFixed(1)}%`);
-
-  return (
-    <div className="eng-track">
-      <div className="mt-eyebrow">The engine · track record</div>
-      <h3>Every stretch the engine spent defensive, against the S&amp;P 500</h3>
-      <p className="eng-lede">
-        The line is the S&amp;P 500 on a log scale since {rows[0]?.date.slice(0, 4) || '2006'}. Shaded stretches are
-        the weeks the stress signal had the engine out of full equity — amber at the watch line, red at the
-        de-risk line. A de-risk only starts after two consecutive Fridays above the line, which is what keeps
-        one-week volatility spikes from turning into a round trip.
-      </p>
-      {geom ? (
-        <>
-          <svg viewBox={`0 0 ${W} ${H}`} className="eng-svg" preserveAspectRatio="none" role="img"
-               aria-label="S&P 500 with de-risked periods shaded">
-            {geom.bands.map((b, i) => (
-              <rect key={i} x={geom.x(b.a)} y={0} width={Math.max(1.5, geom.x(b.b) - geom.x(b.a))}
-                    height={H - PADB} fill={b.st === 'Risk Off' ? 'var(--mt-down)' : 'var(--mt-warn)'}
-                    opacity={b.st === 'Risk Off' ? 0.16 : 0.13} />
-            ))}
-            <path d={geom.line} fill="none" stroke="var(--mt-ink-0)" strokeWidth="1.6"
-                  vectorEffect="non-scaling-stroke" />
-          </svg>
-          <div className="eng-axis">
-            {geom.ticks.map((t, i) => (
-              <span key={i} style={{ left: `${(t.x / W) * 100}%` }}>{t.label}</span>
-            ))}
-          </div>
-        </>
-      ) : <p className="eng-lede">Chart data loading…</p>}
-
-      <div className="eng-key">
-        <span><i className="eng-sw off" />De-risked · 50% equity</span>
-        <span><i className="eng-sw watch" />Watch · 80% equity</span>
-        <span><i className="eng-sw on" />Fully invested</span>
-      </div>
-
-      {eps.length > 0 && (
-        <>
-          <h4 className="eng-h4">How deep each drawdown got · full backtest window, 1986 onward</h4>
-          <table className="eng-tbl">
-            <thead><tr><th>Episode</th><th>S&amp;P 500</th><th>The engine</th><th>Difference</th></tr></thead>
-            <tbody>
-              {eps.map((e) => (
-                <tr key={e.name}>
-                  <td>{e.name}</td>
-                  <td className="num">{fmtPct(e.spy_depth)}</td>
-                  <td className="num">{fmtPct(e.engine_depth)}</td>
-                  <td className={`num ${e.diff_pp > 0.05 ? 'good' : ''}`}>
-                    {e.diff_pp > 0.05 ? `${e.diff_pp.toFixed(1)}% shallower` : 'no material difference'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {v && (
-            <p className="eng-foot">
-              Full window {(bt.weekly?.[0]?.date || '').slice(0, 4)}–{(bt.weekly?.[bt.weekly.length - 1]?.date || '').slice(0, 4)}:
-              {' '}the engine returned <b>{v.engine.cagr}% a year</b> against <b>{v.spy.cagr}%</b> for the S&amp;P 500,
-              with a worst drawdown of <b>{fmtPct(v.engine.max_drawdown)}</b> against <b>{fmtPct(v.spy.max_drawdown)}</b>.
-              Signal read at Friday close, executed the following Monday open. {bt.calibration_label}.
-            </p>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 
 /* The panels, in the order and columns of the approved board. Economy is
    the full-width panel under the three columns. */
@@ -267,7 +148,9 @@ const MOVE_RANGE = [80, 140];
 const YIELD_RANGE = [-50, 50];
 
 export default function MacroPage() {
-  const { active: indicators, loading, indexSeries } = useIndicators();
+  const { active: indicators, loading: histLoading, error: histError, indexSeries } = useIndicators();
+  // A failed load is said plainly, never left reading "LOADING…" (2026-10-29).
+  const loading = histLoading && !histError;
   const regime = useEngineRegime();
   const [engHist, setEngHist] = useState(null);
   useEffect(() => { let c=false; fetch('/macrotilt_engine_history.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(d=>{ if(!c) setEngHist(d?.weekly||null); }).catch(()=>{}); return ()=>{c=true;}; }, []);
@@ -275,6 +158,8 @@ export default function MacroPage() {
   const [cotPos, setCotPos] = useState(null);
   const [selectedPos, setSelectedPos] = useState(null);
   const [engOpen, setEngOpen] = useState(false);
+  // /macro#track-record opens the engine's record directly (a shareable link).
+  useEffect(() => { if (typeof window !== 'undefined' && window.location.hash === '#track-record') setEngOpen(true); }, []);
   // Phone accordion: one panel open at a time, Rates by default. On a wide
   // screen every panel is open (CSS) and this state is inert.
   const [openDom, setOpenDom] = useState('Rates');
@@ -417,7 +302,7 @@ export default function MacroPage() {
     const ch = chgOf(ind);
     const pct = ind.pct != null ? Math.round(ind.pct) : null;
     return (
-      <a key={ind.id} className="tm-row rd-num" onClick={() => setSelected(ind)} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip}>
+      <a key={ind.id} className="tm-row rd-num" onClick={() => { hideTip(); setSelected(ind); }} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip}>
         <span className="tm-c-name">{ind.name}{ind.tailWord && <span className="tm-flag tm-flag--phone">{ind.tailWord}</span>}</span>
         <span className="tm-c-last">{fmtV(ind.value, ind.decimals, ind.unit)}</span>
         <span className={`tm-c-chg ${ch ? ch.cls : 'fl'}${ind.movePct!=null&&ind.movePct>=MOVE_FLAG_PCTILE?' is-big':''}`}>{ch ? ch.txt : '—'}</span>
@@ -434,7 +319,7 @@ export default function MacroPage() {
     const side = ps !== 'calm' && pct != null ? (pct <= 50 ? 'SHORT' : 'LONG') : '';
     const flag = pct != null && pct >= 90 ? 'AT HIGH' : pct != null && pct <= 10 ? 'AT LOW' : '';
     return (
-      <a key={'pos-'+m.market} className="tm-row rd-num" onClick={() => setSelectedPos({ ...m, domain: dom })} onMouseEnter={(e)=>showTip(e, posTip(m))} onMouseLeave={hideTip}>
+      <a key={'pos-'+m.market} className="tm-row rd-num" onClick={() => { hideTip(); setSelectedPos({ ...m, domain: dom }); }} onMouseEnter={(e)=>showTip(e, posTip(m))} onMouseLeave={hideTip}>
         <span className="tm-c-name">{m.market}{flag && <span className="tm-flag tm-flag--phone">{flag}</span>}</span>
         <span className="tm-c-last tm-c-side">{side || '—'}</span>
         <span className={`tm-c-chg ${ch ? ch.cls : 'fl'}`}>{ch ? ch.txt : '—'}</span>
@@ -488,14 +373,17 @@ export default function MacroPage() {
 
   return (
     <div className="mt-terminal tm-macro">
-      {tip && createPortal(
+      {/* The hover tip never draws over an open detail (2026-10-29 audit:
+          a "Corn" tip seen over a closed detail). */}
+      {tip && !selected && !selectedPos && !engOpen && createPortal(
         <div className="mac-tip" style={{ left: tip.x, top: tip.y - 8 }}>{tip.text}</div>,
         document.querySelector('.mt-overhaul') || document.body,
       )}
 
       {loading && <div className="tm-loading">LOADING…</div>}
+      {histError && histLoading && <div className="tm-loading" aria-live="polite">The indicator history did not load — refresh to try again.</div>}
 
-      {!loading && (
+      {!histLoading && (
         <main className="tm-main">
           {/* ── ENG ───────────────────────────────────────────────────── */}
           <section className="tm-panel tm-eng rd-rise d2" aria-label="The Engine">
@@ -556,6 +444,16 @@ export default function MacroPage() {
             })}
           </section>
 
+          {/* The counts, explained where they are read (2026-10-29: the
+              denominators differ, and the reader had to open Methodology to
+              see why). */}
+          <p className="tm-sum-legend">
+            <b>Stretched</b> = in the outer 15% of its own 3-year range, on the side that signals risk (positioning rows: outer 10%).{' '}
+            <b>Elevated</b> = the outer 25%. Both count indicators and positioning rows.{' '}
+            <b>Big moves</b> = latest change in the top 10% of its own changes over 3 years — indicators only, because positioning is weekly, so its count is out of fewer.{' '}
+            <b>Hot spot</b> = the asset class with the highest share stretched, elevated counting half.
+          </p>
+
           {/* ── indicator panels ─────────────────────────────────────── */}
           {phone ? (
             <div className="tm-stack">{DOMAINS.map((dom) => panel(dom))}</div>
@@ -585,7 +483,7 @@ export default function MacroPage() {
       )}
       {engOpen && (
         <DetailModal onClose={() => setEngOpen(false)}>
-          <EngineHistoryDetail
+          <EngineTrackRecord
             weeks={engHist || []}
             spx={(indexSeries.find((x) => x.key === 'spx_index') || {}).points || []}
           />

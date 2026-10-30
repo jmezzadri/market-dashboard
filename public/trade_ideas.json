@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T11:17:59Z",
+  "generated_at": "2026-10-30T02:04:50Z",
   "cadence": "Research runs every morning before the US open; the best ideas publish — at most two a week.",
   "next_publish": "2026-10-23",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security.",
@@ -307,12 +307,12 @@
       },
       "book": {
         "stance": "Five positions: long US energy (XLE), long natural gas (UNG), long yen (FXY), short wheat (WEAT), and this S&P 500 short at half size for 2–3 weeks. Highest conviction: the wheat short (eleven tested episodes). Lowest: this one (five). The short has moved with the energy call day to day (correlation +0.37 over 126 sessions), under the 0.60 limit. Adding it raises the book's expected excess return over the S&P 500 per unit of risk from 0.69 to 1.06; book volatility 5.92 points a year against the S&P's 5.37 at 45 of 100 invested.",
-        "rebalance": "The four open calls stay. This is a fifth position, half size, closed by Nov 12 or on a close above 7,818. Nothing comes off to fund it."
+        "rebalance": "The four open calls stay. This is a fifth position, half size, closed at the planned close on Nov 11 or on a close above 7,818. Nothing comes off to fund it."
       },
       "status": "live",
       "sections": [],
       "published_at": "2026-10-22T10:25:45Z",
-      "corrected_at": "2026-10-29T11:17:59Z"
+      "corrected_at": "2026-10-30T02:04:50Z"
     },
     {
       "date": "2026-10-09",

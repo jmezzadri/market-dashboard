@@ -20,9 +20,13 @@
    useIndicatorSeries) so the charts draw from the same data the evidence block
    cites and cannot disagree with it. */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
 import IdeaChart from './IdeaChart';
+import useModalEscape from '../lib/useModalEscape';
+import useTradeScores from '../lib/useTradeScores';
+import { tradeSchedule, scheduleParts } from '../lib/tradeSchedule';
+import useScrollLock from '../lib/useScrollLock';
 
 /* 2026-08-24 (Joe, on the tile): "NO IDEA WHAT THESE FUCKING PILLS AT THE TOP
    MEAN." Every label a reader sees must be a phrase a non-trader parses on
@@ -133,10 +137,14 @@ function regimeMatchTxt(rm) {
   return `${n} past cases shared today's condition on ${rm.factor}. ${rm.result || ''}`.trim();
 }
 
-export function TradeIdeaNoteBody({ idea, chartSeries, review }) {
+export function TradeIdeaNoteBody({ idea, chartSeries, review, score }) {
   if (!idea) return null;
+  const sched = scheduleParts(tradeSchedule(idea, score));
   return (
     <div className="briefmodal-body">
+      {/* The same schedule line as the homepage card and the Scorecard row,
+          from the scorer's own dates (2026-10-29). */}
+      {sched.length > 0 && <p className="idea-sched">{sched.map((x) => x.t).join(' · ')}</p>}
       <ThesisReview review={review} />
       {idea.call && <p className="idea-modal-call">{idea.call}</p>}
       {/* Prose figures are point-in-time; charts are live (Joe, 2026-08-31). */}
@@ -308,11 +316,10 @@ export function TradeIdeaNoteBody({ idea, chartSeries, review }) {
 }
 
 export default function TradeIdeaNoteModal({ idea, chartSeries, review, onClose }) {
-  useEffect(() => {
-    const k = (e) => { if (e.key === 'Escape') onClose?.(); };
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [onClose]);
+  // Escape closes this layer only, the page behind stays still (2026-10-29).
+  useModalEscape(!!idea, onClose);
+  useScrollLock(!!idea);
+  const { byId: scoreById } = useTradeScores(!!idea);
 
   const target = (typeof document !== 'undefined'
     && (document.querySelector('.mt-overhaul') || document.body)) || null;
@@ -324,10 +331,10 @@ export default function TradeIdeaNoteModal({ idea, chartSeries, review, onClose 
         <button type="button" className="briefmodal-x" onClick={onClose} aria-label="Close">×</button>
         <div className="eyebrow2">
           <span className="dot dot--gold" />
-          Trade idea · {longDate(idea.date)}
+          Trade idea · Published {longDate(idea.date)}
         </div>
         <h2 className="briefmodal-h">{idea.title}</h2>
-        <TradeIdeaNoteBody idea={idea} chartSeries={chartSeries} review={review} />
+        <TradeIdeaNoteBody idea={idea} chartSeries={chartSeries} review={review} score={scoreById.get(idea.id)} />
       </div>
     </div>,
     target,

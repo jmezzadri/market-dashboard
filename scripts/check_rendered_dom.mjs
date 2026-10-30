@@ -58,7 +58,7 @@ const LAUNCH = process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMI
 
 // Every public route (sign-in-gated pages render their gate, which is also a page).
 const MOBILE_PAGES = ['/', '/macro', '/paper', '/scorecard', '/methodology',
-  '/ticker/AAPL', '/admin/data', '/about', '/terms', '/privacy', '/disclaimer', '/signin'];
+  '/ticker/AAPL', '/data', '/about', '/terms', '/privacy', '/disclaimer', '/signin'];
 const PHONE = 390;
 
 // Session state comes from the actual clock, never from the event type.

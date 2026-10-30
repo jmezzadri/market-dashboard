@@ -2178,6 +2178,30 @@
   --ed-search-w: 260px;
   --ed-phone-band-gap: 8px;
   --ed-phone-head-h: 56px;
+  /* the market banner's own controls (back · pause/play · forward) */
+  --ed-tape-ctl: 30px;
+  --ed-tape-ctl-touch: var(--ed-tap);
+  /* the redesign's touch target, 44px at EVERY width it is used. The skins'
+     touch rules live in their own ≤860px blocks; --mt-tap is 0 above 430px
+     (LESSONS 9.31), so "var(--mt-tap, 44px)" sized the header's menu and
+     search buttons to nothing on a tablet — the nav was unreachable from
+     431 to 860 wide (2026-10-29). */
+  --ed-tap: 44px;
+  --ed-tape-ctl-icon: 14px;
+  --ed-icon-stroke: 1.8;
+  --ed-focus-w: 2px;
+  --ed-focus-off: 1px;
+  /* loading skeletons — neutral bars that cannot be read as a value
+     (2026-10-29: "0 close", "No major releases…" and "No note published yet"
+     used to print while a feed was still loading) */
+  --ed-skel-bg: var(--ed-track);
+  --ed-skel-r: 3px;
+  --ed-skel-v-w: 56px;
+  --ed-skel-v-h: 18px;
+  --ed-skel-c-w: 44px;
+  --ed-skel-c-h: 10px;
+  --ed-skel-line-h: 14px;
+  --ed-skel-head-h: 34px;
 
   /* — motion (shared by both skins) — */
   --ed-dur-rise: 800ms;
@@ -2193,6 +2217,7 @@
   --ed-dur-blob-2: 32s;
   --ed-dur-tape: 110s;
   --ed-dur-tape-phone: 90s;
+  --ed-dur-skel: 1400ms;
   --ed-ease-rise: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ed-ease-draw: cubic-bezier(0.3, 0.6, 0.2, 1);
   --ed-ping-ring: 7px;

@@ -29,6 +29,7 @@ import useTickerPositioning from '../../hooks/useTickerPositioning';
 import { useTickerEvents } from '../../hooks/useTickerEvents';
 import useTickerTechnicalsLive from '../../hooks/useTickerTechnicalsLive';
 import useTickerDeepDive from '../../hooks/useTickerDeepDive';
+import { SITE_NAME } from '../chrome/siteNav';
 import useTickerSuggestions from '../../hooks/useTickerSuggestions';
 import useTickerEodHistory from '../../hooks/useTickerEodHistory';
 import useTickerEodPrice from '../../hooks/useTickerEodPrice';
@@ -189,6 +190,21 @@ function fmtMcap(v) {
   if (n >= 1e6)  return `$${(n / 1e6).toFixed(0)}M`;
   return `$${n.toLocaleString()}`;
 }
+/* What a quote shown under a CLOSED market's headline actually is, from the
+   time of its bar in New York: before 9:30 a pre-market trade, after the 16:00
+   closing print an after-hours trade, otherwise the session's last trade. Only an open market
+   makes it "Live". */
+function closedQuoteLabel(barTs, marketOpen) {
+  if (marketOpen === true) return 'Live';
+  if (!barTs) return 'Last trade';
+  const t = new Date(barTs);
+  if (Number.isNaN(t.getTime())) return 'Last trade';
+  const hm = t.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hourCycle: 'h23', hour: '2-digit', minute: '2-digit' });
+  if (hm < '09:30') return 'Pre-market';
+  if (hm >= '16:01') return 'After hours';   // the closing auction prints at 16:00:0x
+  return 'Last trade';
+}
+
 function fmtDateShort(s) {
   if (!s) return '—';
   try {
@@ -257,6 +273,11 @@ export default function TickerPage() {
   const navigate = useNavigate();
 
   const info = useMassiveTickerInfo(sym);
+  // The tab names the company once it is known (the shell sets "AAPL —
+  // MacroTilt" on arrival; this adds the name — 2026-10-29).
+  useEffect(() => {
+    if (sym && info?.name) document.title = `${sym} · ${info.name} — ${SITE_NAME}`;
+  }, [sym, info?.name]);
   const events = useTickerEvents({ daysBack: 90 });
   const tech = useTickerTechnicalsLive(sym);
   const deep = useTickerDeepDive(sym);
@@ -545,13 +566,17 @@ export default function TickerPage() {
                     <FreshnessChip elementId="market-lse_intraday-live" variant="dot" />
                     {livePrice != null ? (
                       <>
-                        <span className="tk-livelabel">Live</span> ${fmt(livePrice, 2)}
+                        {/* "Live" is a claim about the session (LESSONS 4.32). With the
+                            market closed this line is an extended-hours or last
+                            trade, and it says which (2026-10-29: SPY read "LIVE"
+                            at 9:40 PM). */}
+                        <span className="tk-livelabel">{closedQuoteLabel(liveQ?.barTs, lseLive.marketOpen)}</span> ${fmt(livePrice, 2)}
                         {livePct != null && (
                           <span className={livePct >= 0 ? 'up' : 'down'}>{' '}{livePct >= 0 ? '+' : ''}{livePct.toFixed(2)}%</span>
                         )}
                       </>
                     ) : (
-                      <><span className="tk-livelabel">Live</span> <span className="tk-livedim">no quote</span></>
+                      <><span className="tk-livelabel">{lseLive.marketOpen === true ? 'Live' : 'Quote'}</span> <span className="tk-livedim">no quote</span></>
                     )}
                   </>
                 ) : (
@@ -585,7 +610,7 @@ export default function TickerPage() {
           <TapeStat label="Volume"    value={fmtVol(lastBar?.volume)} sub={avgVol ? `avg ${fmtVol(avgVol)}` : null} />
           <TapeStat label="Mkt cap"   value={fmtMcap(marketcap)} />
           <TapeStat label="Shares out" value={fmtVol(sharesOut)} />
-          <TapeStat label="Div yield" value={divYield.value != null ? `${(divYield.value * 100).toFixed(2)}%` : (divYield.note === 'none' ? 'None' : '—')} />
+          <TapeStat label="Div yield" value={deep?.loading || deep?.error ? '—' : divYield.value != null ? `${(divYield.value * 100).toFixed(2)}%` : (divYield.note === 'none' ? 'None' : '—')} />
           <TapeStat label="Short int." value={finra?.short_interest_float_pct != null ? `${Number(finra.short_interest_float_pct).toFixed(1)}%` : '—'} sub={finra?.days_to_cover != null ? `${Number(finra.days_to_cover).toFixed(1)}d to cover` : null} />
         </div>
       </Reveal>
@@ -786,7 +811,9 @@ export default function TickerPage() {
 
       {/* ── Second row: news · company ── */}
       <div className="tk-secondrow">
-        <NewsPanel items={mergedNews} loading={liveNews.loading} />
+        {/* "No headlines" only once every news source has answered — while any
+            is still loading the panel says it is loading (2026-10-29). */}
+        <NewsPanel items={mergedNews} loading={liveNews.loading || events.loading || info.loading} />
         <CompanyPanel deep={deep} sector={sector} exchange={exchange} sharesOut={sharesOut} />
       </div>
       </div>
@@ -996,7 +1023,15 @@ function CompanyPanel({ deep, sector, exchange, sharesOut }) {
         <div className="mt-eyebrow">Company</div>
         <span className="tk-panelnote">reference data feed</span>
       </div>
-      {desc ? (
+      {deep?.loading ? (
+        <div aria-busy="true" aria-label="Loading the company profile">
+          <span className="rd-skel rd-skel--line" />
+          <span className="rd-skel rd-skel--line" />
+          <span className="rd-skel rd-skel--line is-short" />
+        </div>
+      ) : deep?.error && !ref ? (
+        <div className="tk-empty">The company profile did not load — refresh to try again.</div>
+      ) : desc ? (
         <>
           <p className={`tk-about${longDesc && !openDesc ? ' tk-about--clamp' : ''}`}>{desc}</p>
           {longDesc && (
@@ -1020,7 +1055,7 @@ function CompanyPanel({ deep, sector, exchange, sharesOut }) {
       <div className="tk-corp">
         <div>
           <div className="tk-tape-l">Recent dividends</div>
-          {dividends.length === 0 ? <div className="tk-tape-s">None on file.</div> : (
+          {deep?.loading ? <span className="rd-skel rd-skel--line is-short" /> : deep?.error ? <div className="tk-tape-s">—</div> : dividends.length === 0 ? <div className="tk-tape-s">None on file.</div> : (
             <ul className="tk-corplist num">
               {dividends.map((d) => (
                 <li key={d.ex_dividend_date}><span>{fmtDateShort(d.ex_dividend_date)}</span><b>{d.cash_amount != null ? `$${Number(d.cash_amount).toFixed(2)}` : '—'}</b><span>{freqLabel(d.frequency)}</span></li>
@@ -1030,7 +1065,7 @@ function CompanyPanel({ deep, sector, exchange, sharesOut }) {
         </div>
         <div>
           <div className="tk-tape-l">Splits</div>
-          {splits.length === 0 ? <div className="tk-tape-s">None on file.</div> : (
+          {deep?.loading ? <span className="rd-skel rd-skel--line is-short" /> : deep?.error ? <div className="tk-tape-s">—</div> : splits.length === 0 ? <div className="tk-tape-s">None on file.</div> : (
             <ul className="tk-corplist num">
               {splits.map((sp) => (
                 <li key={sp.execution_date}><span>{fmtDateShort(sp.execution_date)}</span><b>{sp.split_to}-for-{sp.split_from}</b><span /></li>

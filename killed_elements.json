@@ -174,14 +174,6 @@
       ]
     },
     {
-      "id": "cmdty_uranium",
-      "name": "Uranium (spot)",
-      "killed": "2026-06-16",
-      "reason": "Unsourceable cleanly — yfinance UX=F returned ONE point ever (frozen 2026-05-27). The 504h SLA (21d) on a weekly feed masked it as green. Removed producer fetch + manifest element + store key rather than keep a feed that cannot stay fresh.",
-      "status": "removed",
-      "residue": []
-    },
-    {
       "id": "editorial_commentary_chain_2026-07-29",
       "name": "Editorial commentary chain (macro_commentary / narrative_macro / narrative_sector)",
       "killed": "2026-07-29",

@@ -26,6 +26,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import useModalEscape from '../overhaul/lib/useModalEscape';
 import { useLocation } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useSession } from '../auth/useSession';
@@ -95,13 +96,9 @@ export default function ReportBug() {
     setError(null);
   }, []);
 
-  // Escape closes; the dialog owns the key only while it is open.
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape' && phase !== 'sending') close(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, phase, close]);
+  // Escape closes; the dialog owns the key only while it is open, and only
+  // when it is the top pop-up (shared rule, 2026-10-29).
+  useModalEscape(open, () => { if (phase !== 'sending') close(); });
 
   // Focus the one field that matters as soon as the dialog is usable.
   useEffect(() => {

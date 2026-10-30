@@ -1,6 +1,6 @@
 /* SiteFooter — one compact band on every page (2026-10-28 redesign): the
    wordmark, a one-line disclaimer, and the reference links inline —
-   Methodology, Data, (Bugs when signed in), About, Contact, Terms, Privacy.
+   Methodology, Data, (Bugs when signed in), About, Email us, Terms, Privacy.
    Replaces the five-column footer and the empty gap above it (Joe's
    approved Home board). Page names come from chrome/siteNav.js.
    Styling lives in styles/redesign.css. */
@@ -31,7 +31,9 @@ export default function SiteFooter() {
         <nav className="rd-foot-nav" aria-label="Reference">
           {reference.map((p) => <Link key={p.to} to={p.to}>{p.label}</Link>)}
           <Link to="/about">About</Link>
-          <a href={`mailto:${CONTACT_EMAIL}`}>Contact</a>
+          {/* 2026-10-29: labelled for what it does — it opens the reader's mail
+              app, it is not a page (the label used to say "Contact"). */}
+          <a href={`mailto:${CONTACT_EMAIL}`}>Email us</a>
           <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>
           <Link to="/disclaimer">Disclaimer</Link>
