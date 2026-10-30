@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-29T16:18:01Z",
+  "generated_at": "2026-10-30T00:01:52Z",
   "window": {
-    "from": "2026-10-22",
-    "to": "2027-01-07"
+    "from": "2026-10-23",
+    "to": "2027-01-08"
   },
   "counts": {
-    "total": 113,
+    "total": 111,
     "tier1": 34
   },
   "sources": [
@@ -31,28 +31,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-10-22",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-22",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-23",
       "time_et": "10:00 AM",
