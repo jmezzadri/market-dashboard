@@ -7,12 +7,13 @@
    then sent the reader to a page for a symbol that does not exist. The menu
    now always answers — "Searching…", the matches, or "No US-listed stock
    matches …" — and says where a pick goes. Enter opens the highlighted
-   match; with no match it stays put. An exact symbol typed in full still
-   opens directly, since the reference table can lag a new listing. */
+   match (the exact symbol leads the list); with no match it stays put. */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+
+const termOf = (s) => String(s || '').trim().replace(/[%,()]/g, '');
 
 export default function TickerSearch({ className = '', autoFocus = false }) {
   const navigate = useNavigate();
@@ -27,10 +28,17 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
   const timer = useRef(null);
   const reqId = useRef(0);
   const enterPending = useRef(false);
+  /* Enter reads refs, never the last render's state. 2026-10-30 live check:
+     clear the box, type "spy", press Enter at once — nothing happened, because
+     the keystroke handler still held the cleared box's "idle" state. The menu's
+     current list and the text it answers live here, and the text in the box is
+     read from the box itself. */
+  const shown = useRef({ term: '', list: [] });
+  const latestTerm = useRef('');
 
   useEffect(() => {
-    const term = q.trim().replace(/[%,()]/g, '');
-    if (!term) { setRes([]); setOpen(false); setPhase('idle'); return; }
+    const term = termOf(q);
+    if (!term) { shown.current = { term: '', list: [] }; setRes([]); setOpen(false); setPhase('idle'); return; }
     clearTimeout(timer.current);
     setPhase('searching');
     setOpen(true);
@@ -50,10 +58,13 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
           ? supabase.from('ticker_reference').select('ticker,name,market_cap').eq('ticker', term.toUpperCase()).limit(1)
           : Promise.resolve({ data: [] }),
       ]);
-      if (id !== reqId.current) return; // drop out-of-order responses
+      // Drop out-of-order responses, and any answer to text no longer in the
+      // box — a pending Enter must never open the top match of an older term.
+      if (id !== reqId.current || term !== latestTerm.current) return;
       const exact = exactRows || [];
       const rest = (data || []).filter((r) => !exact.some((x) => x.ticker === r.ticker));
       const list = [...exact, ...rest].slice(0, 8);
+      shown.current = { term, list };
       if (enterPending.current) {
         enterPending.current = false;
         if (list.length) { go(list[0].ticker); return; }
@@ -73,24 +84,42 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  const go = (t) => { if (!t) return; setQ(''); setRes([]); setOpen(false); navigate(`/ticker/${String(t).toUpperCase()}`); };
+  const go = (t) => {
+    if (!t) return;
+    enterPending.current = false; latestTerm.current = '';
+    setQ(''); setRes([]); setOpen(false);
+    navigate(`/ticker/${String(t).toUpperCase()}`);
+  };
 
-  /* Enter pressed before the suggestions have arrived waits for them and
-     then opens the top one — the exact symbol when there is one — instead of
-     navigating to whatever was typed ("apple" used to open /ticker/APPLE).
-     With no match it stays put and the menu says so. */
+  const onChange = (e) => {
+    latestTerm.current = termOf(e.target.value);
+    enterPending.current = false; // typing after Enter means the reader is not done
+    setQ(e.target.value);
+  };
+
+  /* Enter opens the highlighted match when the menu already answers the text
+     in the box. Pressed before the matches arrive, it waits for them and opens
+     the top one — the exact symbol when there is one — instead of navigating to
+     whatever was typed ("apple" used to open /ticker/APPLE). With no match it
+     stays put and the menu says so. */
   const onKey = (e) => {
-    if (!open || !res.length) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        if (q.trim() && phase === 'searching') enterPending.current = true;
-      } else if (e.key === 'Escape') setOpen(false);
+    if (e.key === 'Escape') { setOpen(false); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!open || !res.length) return;
+      e.preventDefault();
+      setHi((h) => (e.key === 'ArrowDown' ? Math.min(h + 1, res.length - 1) : Math.max(h - 1, 0)));
       return;
     }
-    if (e.key === 'ArrowDown') { e.preventDefault(); setHi((h) => Math.min(h + 1, res.length - 1)); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
-    else if (e.key === 'Enter') { e.preventDefault(); go(res[hi]?.ticker); }
-    else if (e.key === 'Escape') { setOpen(false); }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const term = termOf(e.currentTarget.value);
+    if (!term) return;
+    if (shown.current.term === term) {
+      const pick = shown.current.list[hi] || shown.current.list[0];
+      if (pick) go(pick.ticker);
+      return;
+    }
+    enterPending.current = true;
   };
 
   const fmtCap = (c) => { const n = Number(c); if (!Number.isFinite(n) || n <= 0) return ''; if (n >= 1e12) return '$' + (n/1e12).toFixed(1) + 'T'; if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B'; if (n >= 1e6) return '$' + (n/1e6).toFixed(0) + 'M'; return ''; };
@@ -106,7 +135,7 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
       <input
         autoFocus={autoFocus}
         value={q}
-        onChange={(e) => setQ(e.target.value)}
+        onChange={onChange}
         onKeyDown={onKey}
         onFocus={() => { if (res.length) setOpen(true); }}
         placeholder="Search ticker or company"

@@ -155,6 +155,7 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .rd-skel--line { display: block; width: 100%; height: var(--ed-skel-line-h); margin: var(--sp-10) 0; }
 .mt-overhaul .rd-skel--line.is-short { width: 62%; }
 .mt-overhaul .rd-skel--head { display: block; width: 88%; height: var(--ed-skel-head-h); margin: var(--sp-12) 0 var(--sp-16); }
+.mt-overhaul .rd-skel--chart { display: block; width: 100%; height: var(--ed-skel-chart-h); }
 @keyframes rd-skel { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 .mt-overhaul .rd-tape-strip { display: flex; }
 .mt-overhaul .rd-tape-group { display: flex; }
@@ -453,6 +454,8 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .mt-terminal .tm-code { flex: none; background: var(--tm-amber); color: var(--tm-page); font-weight: var(--fw-600); padding: 0 var(--sp-6); font-size: var(--v13-t2); line-height: 1.5; }
 .mt-overhaul .mt-terminal .tm-ptitle { font-size: var(--v13-t2); color: var(--tm-text); letter-spacing: 0.02em; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .mt-overhaul .mt-terminal .tm-pfill { flex: 1; }
+/* A title bar with no note: the title owns the row (the layout check reads a 64% row as content jammed left). */
+.mt-overhaul .mt-terminal .tm-ptitle--grow { flex: 1 1 auto; }
 .mt-overhaul .mt-terminal .tm-pdesc, .mt-overhaul .mt-terminal .tm-pnote { font-family: var(--mt-type-sans); font-size: var(--v13-t2); color: var(--tm-text-2); overflow: hidden; text-overflow: ellipsis; }
 .mt-overhaul .mt-terminal .tm-plink { font: inherit; font-size: var(--v13-t2); color: var(--tm-blue); background: none; border: 0; padding: 0; cursor: pointer; }
 .mt-overhaul .mt-terminal .tm-plink:hover, .mt-overhaul .mt-terminal a.tm-plink:hover { color: var(--tm-amber); }
@@ -677,7 +680,8 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-riskcell { padding: var(--sp-8) var(--sp-10); background: var(--tm-panel); min-width: 0; }
 .mt-overhaul .tm-riskcell .tm-v.down { color: var(--tm-red); }
 .mt-overhaul .tm-riskcell .tm-v.is-amber { color: var(--tm-amber); }
-.mt-overhaul .tm-riskcell .tm-s { font-family: var(--mt-type-mono); font-size: var(--v13-t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Wraps rather than ellipsis (2026-10-30 live check: "HNGE · 5.9% of money" was cut at 1440). */
+.mt-overhaul .tm-riskcell .tm-s { font-family: var(--mt-type-mono); font-size: var(--v13-t1); white-space: normal; overflow-wrap: anywhere; }
 .mt-overhaul .tm-cols--bt, .mt-overhaul .tm-row--bt { grid-template-columns: minmax(0, 1fr) 70px 70px; gap: var(--sp-6); }
 .mt-overhaul .tm-cols--shock, .mt-overhaul .tm-row--shock { grid-template-columns: minmax(0, 1fr) 58px 72px 84px; gap: var(--sp-4); }
 .mt-overhaul .tm-row--shock, .mt-overhaul .tm-row--bt { cursor: default; }

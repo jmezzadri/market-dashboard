@@ -600,7 +600,11 @@ export default function MethodologyPage() {
               the after-close snapshot is taken, <i>prices at 3:50 PM ET</i>; once it is, <i>after-hours
               prices</i> with the time it was taken, because the broker&rsquo;s marks at that moment
               include after-hours trading and are not the official close. The snapshot stamps its own
-              time on the mark.
+              time on the mark. A mark stamped inside market hours on an earlier day reads <i>prices at</i>
+              that day and time, never <i>after-hours</i>. The stamp is said once, at the top of the page.
+              <b>Monthly returns.</b> One figure per month, starting with the book&rsquo;s first day
+              holding stock; the cash days before launch are account setup, not a month the book was
+              invested.
             </p>
             <div className="me-formula" data-mono="code">
               eligible = $100M+ daily dollar volume · price ≥ $5 · volatility ≤ 70% · operating company with SEC filings<br />

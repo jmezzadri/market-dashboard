@@ -2202,6 +2202,7 @@
   --ed-skel-c-h: 10px;
   --ed-skel-line-h: 14px;
   --ed-skel-head-h: 34px;
+  --ed-skel-chart-h: 320px;   /* price-history chart while its bars load */
 
   /* — motion (shared by both skins) — */
   --ed-dur-rise: 800ms;

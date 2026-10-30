@@ -67,4 +67,14 @@
   .eng-track .eng-svg { height: 200px; }
   .eng-track .eng-tbl { font-size: var(--v13-t1); }
   .eng-track .eng-tbl th, .eng-track .eng-tbl td { padding: var(--sp-6); }
+  /* 2026-10-30 live check: the site-wide phone table pattern (mobile-v12.css:
+     block table, max-content body, nowrap cells) made this four-column table
+     scroll sideways inside itself, so at 390 "1.5% shallower" read "1.5%" and
+     "no material difference" read "no ma". Its columns are short: it stays a
+     real table on a phone and its cells wrap to fit. */
+  .eng-track .eng-tbl { display: table; overflow-x: visible; }
+  .eng-track .eng-tbl thead { display: table-header-group; width: auto; min-width: 0; }
+  .eng-track .eng-tbl tbody { display: table-row-group; width: auto; min-width: 0; }
+  .eng-track .eng-tbl th, .eng-track .eng-tbl td { white-space: normal; }
+  .eng-track .eng-tbl th:last-child, .eng-track .eng-tbl td:last-child { padding-left: var(--sp-10); }
 }

@@ -2705,6 +2705,8 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 4. Alpha primitives keep their alpha when remapped: a veil, scrim or shadow token becomes `rgba(ink, A)` / `rgba(white, A)`, never a solid palette colour.
 5. A sticky element (TOC rail, detail panel) that is also a glass card needs `position: sticky` restated after the card rule.
 
+*Dated 2026-10-30 — the live pass after the Muse publish found what the preview pass missed.* The track-record table clipped inside its pop-up at 390 ("no material difference" read "no ma"), the Paper holdings title cut to an ellipsis in the desktop terminal skin, clearing the search box and typing a ticker then Enter did nothing, a pre-launch month still printed "AUG 0.0%", and the ticker hero said "Loading…" over a column of dashes. Each sat in a pop-up, a skin, a loading frame or a typing sequence the pass never exercised. Rule 1 means: open every pop-up at 390, read the desktop terminal skin at 1:1, capture one frame while data is still loading, and drive the search box the way a person types (clear, retype, Enter at once).
+
 **Applies to:** Lead Developer before every "done"; UX Designer's sign-off is on the full-size frames and the interaction shots, not the sheet.
 
 ### 9.25 (2026-10-13) — A one-word fix is not a redesign; tiles bottom-align; retired concepts are deleted from every page they still haunt; the preview link goes to Joe first.

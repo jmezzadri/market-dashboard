@@ -528,7 +528,9 @@ export default function TickerPage() {
         <div className="tk-tape-id">
           <h1 className="tk-symbol">{sym}</h1>
           <div className="tk-tape-idtext">
-            <div className="tk-name">{info.loading ? 'Loading…' : (info.name || sym)}</div>
+            {/* Loading is a skeleton, never a sentence or a dash that reads as an
+                answer (LESSONS 9.13; Muse 2026-10-29 item 1, ticker hero 10-30). */}
+            <div className="tk-name">{info.loading ? <span className="rd-skel rd-skel--line is-short" /> : (info.name || sym)}</div>
             <div className="tk-meta">
               {sector && <span>{sector}</span>}
               {sector && exchange && <span className="lm-flowfootsep" />}
@@ -552,7 +554,7 @@ export default function TickerPage() {
             </>
           ) : (
             <>
-              <div className="tk-price num">{hasPrice ? `$${fmt(price, 2)}` : '—'}</div>
+              <div className="tk-price num">{hasPrice ? `$${fmt(price, 2)}` : resolveLoading ? <span className="rd-skel rd-skel--v" /> : '—'}</div>
               {hasPrice && hasChg && (
                 <div className={`tk-priceΔ num ${chgPct >= 0 ? 'up' : 'down'}`}>
                   {chgPct >= 0 ? '▲' : '▼'} ${Math.abs(prevClose != null ? (price - prevClose) : (price * chgPct) / (100 + chgPct)).toFixed(2)}{' '}
@@ -600,18 +602,18 @@ export default function TickerPage() {
                 <span className="down">{(((headPrice / hi52) - 1) * 100).toFixed(1)}% vs high</span>
               </div>
             </>
-          ) : <div className="tk-tape-s">—</div>}
+          ) : resolveLoading ? <span className="rd-skel rd-skel--line is-short" /> : <div className="tk-tape-s">—</div>}
         </div>
 
         <div className="tk-tape-ref">
-          <TapeStat label="Open"      value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
-          <TapeStat label="Day range" value={lastBar?.low != null && lastBar?.high != null ? `${fmt(lastBar.low, 2)} – ${fmt(lastBar.high, 2)}` : '—'} />
-          <TapeStat label="Prev close" value={prevClose != null ? `$${fmt(prevClose, 2)}` : '—'} />
-          <TapeStat label="Volume"    value={fmtVol(lastBar?.volume)} sub={avgVol ? `avg ${fmtVol(avgVol)}` : null} />
-          <TapeStat label="Mkt cap"   value={fmtMcap(marketcap)} />
-          <TapeStat label="Shares out" value={fmtVol(sharesOut)} />
-          <TapeStat label="Div yield" value={deep?.loading || deep?.error ? '—' : divYield.value != null ? `${(divYield.value * 100).toFixed(2)}%` : (divYield.note === 'none' ? 'None' : '—')} />
-          <TapeStat label="Short int." value={finra?.short_interest_float_pct != null ? `${Number(finra.short_interest_float_pct).toFixed(1)}%` : '—'} sub={finra?.days_to_cover != null ? `${Number(finra.days_to_cover).toFixed(1)}d to cover` : null} />
+          <TapeStat loading={resolveLoading} label="Open"      value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
+          <TapeStat loading={resolveLoading} label="Day range" value={lastBar?.low != null && lastBar?.high != null ? `${fmt(lastBar.low, 2)} – ${fmt(lastBar.high, 2)}` : '—'} />
+          <TapeStat loading={resolveLoading} label="Prev close" value={prevClose != null ? `$${fmt(prevClose, 2)}` : '—'} />
+          <TapeStat loading={resolveLoading} label="Volume"    value={fmtVol(lastBar?.volume)} sub={avgVol ? `avg ${fmtVol(avgVol)}` : null} />
+          <TapeStat loading={resolveLoading} label="Mkt cap"   value={fmtMcap(marketcap)} />
+          <TapeStat loading={resolveLoading} label="Shares out" value={fmtVol(sharesOut)} />
+          <TapeStat loading={resolveLoading} label="Div yield" value={deep?.loading || deep?.error ? '—' : divYield.value != null ? `${(divYield.value * 100).toFixed(2)}%` : (divYield.note === 'none' ? 'None' : '—')} />
+          <TapeStat loading={resolveLoading} label="Short int." value={finra?.short_interest_float_pct != null ? `${Number(finra.short_interest_float_pct).toFixed(1)}%` : '—'} sub={finra?.days_to_cover != null ? `${Number(finra.days_to_cover).toFixed(1)}d to cover` : null} />
         </div>
       </Reveal>
 
@@ -624,7 +626,7 @@ export default function TickerPage() {
             <div>
               <div className="mt-eyebrow">Price history</div>
               <div className="mt-h2">
-                {hasPrice ? `$${fmt(price, 2)}` : '—'} <span className="tk-windowlabel">{chartMode === 'tv' ? '· TradingView · candles · intraday · indicators · drawing tools' : `· ${customRange ? 'custom range' : `${tf} window`}${priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}`}</span>
+                {hasPrice ? `$${fmt(price, 2)}` : resolveLoading ? <span className="rd-skel rd-skel--v" /> : '—'} <span className="tk-windowlabel">{chartMode === 'tv' ? '· TradingView · candles · intraday · indicators · drawing tools' : `· ${customRange ? 'custom range' : `${tf} window`}${priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}`}</span>
               </div>
             </div>
             <div className="tk-chartmodes" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-8)', alignItems: 'center', justifyContent: 'flex-end' }}>
@@ -666,9 +668,7 @@ export default function TickerPage() {
           <>
           <div className="tk-chartbody" ref={chartBodyRef}>
           {histAll.loading ? (
-            <div style={{ height: 320, display: 'grid', placeItems: 'center', color: 'var(--mt-ink-3)' }}>
-              Loading price history…
-            </div>
+            <span className="rd-skel rd-skel--chart" aria-label="Price history loading" />
           ) : series.length ? (
             <BigHistoryChart
               points={series}
@@ -952,11 +952,14 @@ function toneOf(v) { return v == null ? '' : v >= 0 ? 'up' : 'down'; }
 
 /* ---------- cockpit pieces ---------- */
 
-function TapeStat({ label, value, sub }) {
+function TapeStat({ label, value, sub, loading = false }) {
+  // While the page's sources are still loading, a figure that is not in yet
+  // is a skeleton, not "—" (which reads as "no such figure").
+  const missing = value == null || value === '—';
   return (
     <div className="tk-tapestat">
       <span className="tk-tape-l">{label}</span>
-      <b className="num">{value}</b>
+      <b className="num">{loading && missing ? <span className="rd-skel rd-skel--v" /> : value}</b>
       {sub && <span className="tk-tape-s">{sub}</span>}
     </div>
   );
