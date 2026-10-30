@@ -712,21 +712,22 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   // it is not the official close, so it is never called one. States —
   //   in session, market open        → "live prices · 2:10 PM ET"
   //   in session, market now closed  → "prices at 3:50 PM ET · after-close snapshot not taken yet"
+  //   in session on an earlier day   → "prices at Thu, Oct 29, 3:50 PM ET"
   //   taken after the session        → "after-hours prices · 8:51 PM ET" (+ the day when not today)
   //   stamped exactly at the close   → "closing prices · Thu, Oct 29"
+  // 2026-10-30 live check: an earlier day's 3:50 PM mark fell through to the
+  // last state and read "after-hours prices · Thu, Oct 29, 3:50 PM ET" — a time
+  // inside the session called after-hours. The time of day decides, on any day.
   const hhmmET = (ts) => new Date(ts).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hourCycle: 'h23', hour: '2-digit', minute: '2-digit' });
   const nowET = hhmmET(Date.now());
   const marketOpenNow = (() => {
     const dow = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'short' });
     return !['Sat', 'Sun'].includes(dow) && nowET >= '09:30' && nowET < '16:00';
   })();
-  const markInSession = (() => {
-    if (!latestNav?.created_at || !markIsToday) return false;
-    const t = hhmmET(latestNav.created_at);
-    return t >= '09:30' && t < '16:01';
-  })();
-  const markIsLivePrice = markInSession && marketOpenNow;
   const markHM = latestNav?.created_at ? hhmmET(latestNav.created_at) : null;
+  const markInSessionHours = markHM != null && markHM >= '09:30' && markHM < '16:01';
+  const markInSession = markInSessionHours && markIsToday;
+  const markIsLivePrice = markInSession && marketOpenNow;
   const markAtClose = markHM === '16:00';
   const priceBasis = latestNav?.created_at
     ? (markIsLivePrice
@@ -735,7 +736,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         ? `closing prices · ${markDayET || fmtDayET(latestNav.created_at)}`
         : markInSession
           ? `prices at ${fmtTimeET(latestNav.created_at)} · after-close snapshot not taken yet`
-          : `after-hours prices · ${markIsToday ? '' : `${markDayET}, `}${fmtTimeET(latestNav.created_at)}`)
+          : markInSessionHours
+            ? `prices at ${markDayET ? `${markDayET}, ` : ''}${fmtTimeET(latestNav.created_at)}`
+            : `after-hours prices · ${markIsToday ? '' : `${markDayET}, `}${fmtTimeET(latestNav.created_at)}`)
     : null;
 
   const weights = (latestNav?.positions || [])
@@ -961,25 +964,28 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         : null;
   const needsDays = (want) => `prints after ${Math.max(want - (cockpit.have || 0), 0)} more sessions of price history`;
 
-  // Monthly returns, one cell per month (the first month runs from inception).
+  // Monthly returns, one cell per month, starting with the book's first HELD
+  // day — the same start as the stats and the chart. The cash rows before
+  // launch are account setup, not months the book was invested: "AUG 0.0%"
+  // for a book that began Sep 1 is a month that did not happen. The last
+  // cash row is the base the first month is measured from (2026-10-30: the
+  // 10-29 fix assumed one cash row; the epoch has several).
   const monthly = (() => {
     const months = {};
-    (nav || []).forEach((r, i) => {
+    const series = nav && heldIdx > 0 ? nav.slice(heldIdx - 1) : (nav || []);
+    series.forEach((r, i) => {
       if (i === 0) return;
-      const prev = Number(nav[i - 1].equity), cur = Number(r.equity);
+      const prev = Number(series[i - 1].equity), cur = Number(r.equity);
       const key = String(r.d).slice(0, 7);
       months[key] = (1 + (months[key] ?? 0)) * (cur / prev) - 1;
     });
-    if (nav && nav.length >= 1) {
-      const first = nav[0];
+    if (series.length >= 1 && !(heldIdx > 0)) {
+      // No cash row before the first held day: day one is measured from the
+      // $1,000,000 the book started with.
+      const first = series[0];
       const key = String(first.d).slice(0, 7);
       const dayOne = Number(first.equity) / 1_000_000 - 1;
       months[key] = (1 + dayOne) * (1 + (months[key] ?? 0)) - 1;
-      // The base mark taken before the book's first day is not a month the
-      // book was invested in: "AUG 0.0%" for a book that began Sep 1 is a
-      // month that did not happen (2026-10-29). Drop it.
-      const onlyBase = nav.filter((r) => String(r.d).slice(0, 7) === key).length === 1;
-      if (onlyBase && Math.abs(dayOne) < 1e-9) delete months[key];
     }
     const keys = Object.keys(months).sort();
     return { months, keys, n: keys.length };
@@ -1064,7 +1070,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     ['TRACKING ERROR', ls?.te != null ? fmtPctPlain(ls.te) : '—', ls?.te == null ? needs(ls?.n ?? 0, 20) : 'annualized', ''],
     ['MAX DRAWDOWN', ls ? fmtPctPlain(ls.maxdd) : '—', 'mark-to-mark', ls && ls.maxdd < 0 ? 'down' : ''],
     ['OFF PEAK', ls ? fmtPctPlain(ls.ddFromPeak, 2) : '—', 'vs own high', ls && ls.ddFromPeak < 0 ? 'down' : ''],
-    ['LARGEST RISK SHARE', topRisk ? fmtPctPlain(topRisk.v, 1) : '—', topRisk ? `${topRisk.s} · ${fmtPctPlain(weights.find((w) => w.s === topRisk.s)?.w ?? 0, 1)} of money` : (riskNote || needsDays(250)), topRisk ? 'is-amber' : ''],
+    ['TOP RISK SHARE', topRisk ? fmtPctPlain(topRisk.v, 1) : '—', topRisk ? `${topRisk.s} · ${fmtPctPlain(weights.find((w) => w.s === topRisk.s)?.w ?? 0, 1)} weight` : (riskNote || needsDays(250)), topRisk ? 'is-amber' : ''],
   ];
 
   const tiltRows = FACTOR_ORDER.map((f) => {
@@ -1376,9 +1382,13 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
               <section className="tm-panel rd-rise d4" aria-label="Holdings">
                 <div className="tm-phead">
                   <span className="tm-code">HOLD</span>
-                  <span className="tm-ptitle">{holdTitle}</span>
-                  <span className="tm-pfill" />
-                  <span className="tm-pnote">{bookIsLive ? (priceBasis || 'no marks yet') : `final holdings · ${priceBasis || ''}`}</span>
+                  <span className={`tm-ptitle${bookIsLive ? ' tm-ptitle--grow' : ''}`}>{holdTitle}</span>
+                  {!bookIsLive && <span className="tm-pfill" />}
+                  {/* The price stamp is said once, at the top of the page (Muse
+                      2026-10-29: one page-level as-of). Repeated here it pushed
+                      the holdings title into an ellipsis at desktop width. A
+                      closed book still says its holdings are final. */}
+                  {!bookIsLive && <span className="tm-pnote">{`final holdings · ${priceBasis || ''}`}</span>}
                 </div>
                 <div className="tm-holdbody">
                   {err ? (
@@ -1394,7 +1404,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                         rowKey={(r) => r.symbol}
                         initialSort={{ key: 'weight', dir: 'desc' }}
                         toolbarLeft={
-                          <input className="tm-search" type="search" placeholder="Filter ticker or name…"
+                          <input className="tm-search" type="search" placeholder="Filter holdings…"
                             value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Filter holdings" />
                         }
                       />
