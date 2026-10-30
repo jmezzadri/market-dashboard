@@ -35,10 +35,11 @@ FALLBACK_PULL_SLA = {"D": 49, "W": 200, "M": 1200, "Q": 4800}
 # Feeds retired end-to-end whose leftover tracking row must be deleted to
 # complete the retirement (LESSONS 0.10: retired = deleted everywhere). An
 # explicit allowlist — never auto-delete an unlisted orphan (a new feed not
-# yet registered must NOT be silently dropped). cmdty_uranium: source UX=F
-# discontinued, feed removed from producer + manifest + UI (2026-06-16).
+# yet registered must NOT be silently dropped). A name comes OFF this list the
+# day it is reinstated: cmdty_uranium was retired 2026-06-16 and rebuilt at
+# Joe's request on 2026-08-19 (Numerco daily + Cameco monthly), so it is live,
+# registered and graded like any other feed (LESSONS 0.10, dated 2026-10-30).
 RETIRED_FEEDS = {
-    "cmdty_uranium",
     # Retired 2026-10-08 (Joe) with the page that was their only reader; see
     # killed_elements.json. Tables, nightly job, backup timer and rows are gone.
     "lse_atm_iv",
