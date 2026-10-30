@@ -37,7 +37,7 @@
   box-shadow: var(--sh-18);
 }
 
-/* ── Engine track record (MacroPage EngineHistoryDetail) ─────────────────
+/* ── Engine track record (components/EngineTrackRecord) ─────────────────
    2026-10-09: this component shipped 2026-07-29 with eng-* classNames but NO
    stylesheet, so it rendered as raw browser defaults — no padding, year ticks
    run together ("200720102013…"), legend swatches empty, table unstyled.

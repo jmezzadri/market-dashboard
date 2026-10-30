@@ -90,6 +90,13 @@ def snapshot() -> dict | None:
 
     row = {
         "d": day,
+        # "Marked at" — the moment these numbers were read. The 10-minute live
+        # sync stamps its own pulls; the close snapshot overwrites their values,
+        # so it must overwrite the stamp too. Without it the page read the
+        # closing marks as "live prices · 3:50 PM ET" all evening (2026-10-29),
+        # and the custody check's fill cutoff sat 80 minutes before the
+        # holdings it was comparing.
+        "created_at": datetime.now(ET).astimezone(ZoneInfo("UTC")).isoformat(),
         # Which broker account this snapshot came from. The book is one
         # continuous series only within a single account_number — the site
         # charts a single epoch and reconcile never compares across a change.

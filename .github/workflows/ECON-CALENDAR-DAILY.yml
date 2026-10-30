@@ -18,7 +18,10 @@ name: ECON-CALENDAR-DAILY
 #   FRED release calendar        — BLS / BEA / Census / Federal Reserve dates
 #   federalreserve.gov           — FOMC meeting dates
 #   ISM published schedule       — computed (1st and 3rd business day)
-#   FRED observations            — actual prints (history file)
+#   FRED observations            — actual prints (history file), and each
+#                                  latest print's first-release date (ALFRED)
+#   central-bank statements      — decision outcomes (history file): Fed,
+#                                  ECB, Bank of England, Bank of Japan
 #   clevelandfed.org             — inflation nowcast (history file)
 #   Yahoo Finance                — CME fed funds futures (history file)
 #
@@ -35,6 +38,11 @@ on:
     # pull and well ahead of the morning brief session, so the calendar the
     # brief and the homepage read is already today's.
     - cron: '30 9 * * *'
+    # A late-morning pass on weekdays (2026-10-29): the 8:30 and 10:00 AM
+    # prints and the ECB / Bank of England decisions are out by then, so a
+    # released row shows its actual figure or the decision the same morning
+    # instead of after the evening run.
+    - cron: '15 15 * * 1-5'
     # A second afternoon pass: agencies publish next-quarter schedules during
     # the working day, and the tile should pick them up the same day.
     - cron: '30 20 * * *'
@@ -67,6 +75,11 @@ jobs:
         run: |
           git config user.name  "Market Dashboard Bot"
           git config user.email "bot@github-actions"
+
+      # pypdf reads the Bank of Japan's statement, which it publishes as a PDF
+      # (scripts/cb_decisions.py). The other three banks publish HTML.
+      - name: Install the PDF reader for central-bank statements
+        run: python3 -m pip install --quiet 'pypdf>=5,<7'
 
       - name: Rebuild econ_calendar.json
         env:

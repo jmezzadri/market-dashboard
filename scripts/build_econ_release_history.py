@@ -77,9 +77,11 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_econ_calendar as CAL  # noqa: E402  — the same date sources the tile uses
+import cb_decisions  # noqa: E402  — central-bank decision outcomes (same folder)
 
 FRED_API_KEY_DEFAULT = "e1696db1c3f8bb036993f40c61aad0d5"
 FRED_BASE = "https://api.stlouisfed.org/fred"
@@ -280,6 +282,26 @@ def fred_observations(series_id: str, start: dt.date, key: str):
             continue
         out.append((o["date"], float(v)))
     return out
+
+
+def first_release(series_id: str, obs_date: str, key: str) -> str | None:
+    """The day FRED first published `obs_date`'s value — the earliest vintage
+    of that one observation (ALFRED real-time period). With the default
+    real-time period FRED echoes today's date on every observation, so the
+    vintage history has to be asked for explicitly.
+
+    The calendar uses it to show a release's actual figure on the day it
+    lands, and only when the newest print is that day's (2026-10-29: rows
+    already released read as still to come all evening)."""
+    q = urllib.parse.urlencode(dict(series_id=series_id, api_key=key, file_type="json",
+                                    realtime_start="1776-07-04", realtime_end="9999-12-31",
+                                    observation_start=obs_date, observation_end=obs_date))
+    d = _get_json(f"{FRED_BASE}/series/observations?{q}")
+    starts = [o.get("realtime_start") for o in d.get("observations", []) if o.get("realtime_start")]
+    return min(starts) if starts else None
+
+
+RELEASED_ON: dict[str, str | None] = {}
 
 
 def fred_series_meta(series_id: str, key: str):
@@ -676,10 +698,16 @@ def build(key: str | None = None, calendar_path: str = CALENDAR_PATH,
                 sid = m["fred"]
                 if sid not in fred_cache:
                     fred_cache[sid] = (fred_observations(sid, start, key), fred_series_meta(sid, key))
+                    try:
+                        RELEASED_ON[sid] = first_release(sid, fred_cache[sid][0][-1][0], key) if fred_cache[sid][0] else None
+                    except Exception as exc:  # noqa: BLE001 — a missing date only hides the "actual" tag
+                        RELEASED_ON[sid] = None
+                        print(f"NOTE: first-release date for {sid} not fetched: {exc}")
                 raw, meta = fred_cache[sid]
                 pts = window(transform(raw, m["transform"], m["scale"], m["decimals"]), YEARS)
                 entry.update(points=pts, as_of=(meta.get("last_updated") or "")[:10] or None,
                              frequency=meta.get("frequency"), fred_series=sid,
+                             released_on=RELEASED_ON.get(sid),
                              source=f"{FRED_VINTAGE_NOTE} — series {sid}")
             if len(entry["points"]) >= 24:
                 good += 1
@@ -731,6 +759,17 @@ def build(key: str | None = None, calendar_path: str = CALENDAR_PATH,
             imp = dict(imp, direction=DIRECTION_OVERRIDES.get(name) or DIRECTION.get(cat or "", ""))
         series_out[name] = dict(measures=ms, impact=imp)
 
+    # What each central bank decided, from its own statement (cb_decisions.py).
+    # Best-effort: a statement that is not out yet or cannot be read leaves the
+    # decision without an outcome and is noted, never fails the run.
+    try:
+        today_et = dt.datetime.now(ZoneInfo("America/New_York")).date()
+        decisions, decision_notes = cb_decisions.decisions(cal.get("events", []), today_et)
+    except Exception as exc:  # noqa: BLE001
+        decisions, decision_notes = {}, [f"central-bank outcomes skipped: {type(exc).__name__}: {exc}"]
+    for n in decision_notes:
+        print(f"NOTE: {n}")
+
     payload = {
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "window_years": YEARS,
@@ -742,6 +781,9 @@ def build(key: str | None = None, calendar_path: str = CALENDAR_PATH,
             "Federal Reserve Bank of Cleveland — inflation nowcast (CPI, core CPI, PCE, core PCE)",
             "Federal Reserve Bank of Atlanta — GDPNow, via FRED",
             "CME 30-day fed funds futures via Yahoo Finance — rate priced for the month after the next FOMC meeting",
+            "Central-bank statements — decision outcomes: Federal Reserve FOMC statement (federalreserve.gov), "
+            "ECB 'Monetary policy decisions' (ecb.europa.eu), Bank of England Monetary Policy Summary "
+            "(bankofengland.co.uk), Bank of Japan statement on monetary policy (boj.or.jp)",
         ],
         "impact_method": {
             "window_from": impact_start.isoformat(),
@@ -758,6 +800,10 @@ def build(key: str | None = None, calendar_path: str = CALENDAR_PATH,
         ],
         "problems": problems,
         "series": series_out,
+        # "<release name>|<date>" → what the bank decided, in its own words'
+        # numbers, with the statement it came from.
+        "decisions": decisions,
+        "decision_notes": decision_notes,
     }
     return payload
 

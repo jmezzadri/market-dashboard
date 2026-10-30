@@ -67,7 +67,7 @@ const SURFACES = [
     mustInclude: ["How MacroTilt actually works", "Sections"],
   },
   {
-    path: "/admin/data",
+    path: "/data",
     name: "Data",
     mustInclude: ["tracked elements", "External sources"],
     mustMatch: [/\d/],

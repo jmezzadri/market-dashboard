@@ -8,16 +8,17 @@
    any transformed / overflow-hidden ancestor — the Reveal wrappers on Home
    are exactly that. */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
 import useScrollLock from '../lib/useScrollLock';
+import useModalEscape from '../lib/useModalEscape';
+// The pop-up's own skin travels with it, so it looks the same over any page.
+import '../styles/modal.css';
 
+/* One close control per pop-up (2026-10-29): the × in the corner. Escape and
+   a click on the backdrop do the same thing, and close only this layer. */
 export default function DetailModal({ onClose, children }) {
-  useEffect(() => {
-    const k = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', k);
-    return () => { window.removeEventListener('keydown', k); };
-  }, [onClose]);
+  useModalEscape(true, onClose);
   useScrollLock(true);
   const target = (typeof document !== 'undefined' && (document.querySelector('.mt-overhaul') || document.body)) || null;
   if (!target) return null;

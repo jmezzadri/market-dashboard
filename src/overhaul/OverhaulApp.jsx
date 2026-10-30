@@ -65,6 +65,7 @@ import TopNav from './chrome/TopNav';
 import PageHeader from './chrome/PageHeader';
 import MarketTape from './chrome/MarketTape';
 import SiteFooter from './chrome/SiteFooter';
+import { pageTitle } from './chrome/siteNav';
 import LoginScreen from '../auth/LoginScreen';
 import { useSession } from '../auth/useSession';
 
@@ -113,6 +114,20 @@ function PaperRoute() {
       />
     </PageErrorBoundary>
   );
+}
+
+// One browser-tab title per page (2026-10-29), named from chrome/siteNav.js.
+function PageTitle() {
+  const { pathname } = useLocation();
+  useEffect(() => { document.title = pageTitle(pathname); }, [pathname]);
+  return null;
+}
+
+// /admin/data moved to /data (2026-10-29) — the Data page is public and is
+// linked from the footer. Old links keep their query string and anchor.
+function LegacyDataRedirect() {
+  const { search, hash } = useLocation();
+  return <Navigate to={`/data${search}${hash}`} replace />;
 }
 
 // Reset scroll to the top on every route change — otherwise clicking a ticker
@@ -195,7 +210,7 @@ function RequireAuth({ children }) {
    The attribute goes on the shell AND on <html>, so the ground behind an
    overscrolled page is the skin's colour too; tokens.css repoints the older
    pages' palette under each attribute. */
-const TERMINAL_ROUTES = ['/macro', '/paper', '/scorecard', '/admin/data'];
+const TERMINAL_ROUTES = ['/macro', '/paper', '/scorecard', '/data'];
 function skinFor(pathname) {
   if (TERMINAL_ROUTES.includes(pathname) || pathname.startsWith('/ticker/')) return 'terminal';
   return 'editorial';
@@ -221,6 +236,7 @@ function Shell() {
           <PageHeader />
           {/* Scrolling cross-asset banner — every page (Joe, 2026-10-09). */}
           <MarketTape />
+          <PageTitle />
           <ScrollToTop />
           <VersionWatch />
           <div className={skin === 'terminal' ? 'mt-terminal mt-skin' : 'mt-skin'}>
@@ -254,7 +270,8 @@ function Shell() {
             <Route path="/indicators" element={<LegacyIndicatorsRedirect />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />
-            <Route path="/admin/data" element={<DataFlowPage />} />
+            <Route path="/data" element={<DataFlowPage />} />
+            <Route path="/admin/data" element={<LegacyDataRedirect />} />
             <Route path="/admin/bugs" element={<RequireAuth><AdminBugs /></RequireAuth>} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/terms" element={<TermsPage />} />

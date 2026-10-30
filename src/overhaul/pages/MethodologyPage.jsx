@@ -592,7 +592,15 @@ export default function MethodologyPage() {
               cannot trip a two-close rule. These are projections of the rule, labelled as such
               &mdash; they assume the beta holds and are not a backtest of today&rsquo;s names.
               <b>Alerts</b> fire on exactly the rules printed
-              under the alert log, and nothing else.
+              under the alert log, and nothing else. Borrowing is a leverage rule, not a cash rule: it
+              alerts when holdings exceed 105% of the account&rsquo;s value; a small margin debit below
+              that is not an alert, and the all-clear line states the invested share the check used.
+              <b>Price stamp.</b> The page says which prices it shows: <i>live prices</i> only while the
+              US market is open (the broker&rsquo;s marks, synced every 10 minutes); after the bell, until
+              the after-close snapshot is taken, <i>prices at 3:50 PM ET</i>; once it is, <i>after-hours
+              prices</i> with the time it was taken, because the broker&rsquo;s marks at that moment
+              include after-hours trading and are not the official close. The snapshot stamps its own
+              time on the mark.
             </p>
             <div className="me-formula" data-mono="code">
               eligible = $100M+ daily dollar volume · price ≥ $5 · volatility ≤ 70% · operating company with SEC filings<br />
@@ -719,6 +727,15 @@ export default function MethodologyPage() {
               blank if the index is more than four days behind it.
             </p>
             <p className="me-body-p">
+              <b>Four dates, one schedule.</b> Every call carries the same four dates on the homepage
+              card, in the full note and on its Scorecard row: <b>published</b> (the day the note went
+              out), the <b>entry close</b> (the close it is marked from — the last settled close before
+              publication, so a note published before the open on a Thursday is marked from
+              Wednesday&rsquo;s close), the <b>planned close</b> (the entry close plus the horizon the
+              note states) and, for an option, its <b>expiry</b>, which can fall after the planned close.
+              All four come from the scorer&rsquo;s own output; no page works them out for itself.
+            </p>
+            <p className="me-body-p">
               <b>A call closes</b> at the earliest of three things: the stated exit level printing
               (the call is marked there and does not run on into a recovery); the <b>weekly review</b>,
               every Monday, finding a critical claim the note relied on no longer holds (closed at the
@@ -747,6 +764,7 @@ export default function MethodologyPage() {
             </p>
             <div className="me-formula" data-mono="code">
               entry        = last settled close before publication (settled from 5 PM ET)<br />
+              planned      = entry close date + the note's stated horizon (weeks or months) · shown with the publication date and, for an option, its expiry<br />
               mark         = price return of the named series, long minus short, no costs<br />
               benchmark    = S&amp;P 500 over the same days, read on or before the mark date (blank if &gt; 4 days stale)<br />
               close        = exit level printed · weekly review finds a critical claim broken · planned close date<br />
@@ -774,6 +792,17 @@ export default function MethodologyPage() {
               source, how often it updates, the data's own as-of date, the job's last pull, and the target
               after which it turns red. When a section depends on multiple inputs, the chip rolls up: if
               any input's job has stalled, the section's chip turns red and names it.
+            </p>
+            <p className="me-body-p">
+              <b>Data refresh is not event status.</b> A chip says when the data last refreshed, never
+              whether something has happened. On the release calendar a release counts as{' '}
+              <b>released</b> once its scheduled New York time has passed; its row then shows the actual
+              figure only when FRED&rsquo;s vintage history shows the newest print was first published
+              that day, and a central bank&rsquo;s decision only as read from the bank&rsquo;s own statement
+              (the Federal Reserve&rsquo;s FOMC statement, the ECB&rsquo;s &ldquo;Monetary policy
+              decisions&rdquo;, the Bank of England&rsquo;s Monetary Policy Summary, the Bank of
+              Japan&rsquo;s statement on monetary policy). Otherwise the row says Released and nothing
+              more. No street consensus is shown — there is no free source for it.
             </p>
             <p className="me-body-p">
               The daily rebalance pipeline runs Tuesday through Saturday morning, after Polygon's full
@@ -807,7 +836,7 @@ export default function MethodologyPage() {
                 <tr>
                   <td>5:10 PM · daily</td>
                   <td>Quality Trend snapshot</td>
-                  <td>Records the paper account's closing equity and positions, and syncs order fills. Read-only at the broker.</td>
+                  <td>Records the paper account's equity and positions as the broker marks them when the job runs — after the bell, so the marks include after-hours trading and are labelled "after-hours prices", not the close — stamps the time, and syncs order fills. Read-only at the broker.</td>
                 </tr>
                 <tr>
                   <td>6:00 AM · 1st of month</td>

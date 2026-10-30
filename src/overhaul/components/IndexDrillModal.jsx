@@ -255,9 +255,6 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
 
         <div style={{ marginTop: 'var(--sp-20)', fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)' }}>Source: {def.source}</div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--sp-18)' }}>
-          <button type="button" className="mt-btn mt-btn--ghost" onClick={onClose}>Close</button>
-        </div>
       </div>
     </DetailModal>
   );

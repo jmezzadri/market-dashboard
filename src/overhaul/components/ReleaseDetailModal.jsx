@@ -19,9 +19,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import IdeaChart from './IdeaChart';
 import useScrollLock from '../lib/useScrollLock';
+import useModalEscape from '../lib/useModalEscape';
 import FreshnessChip from './FreshnessChip';
 import useEconReleaseHistory from '../lib/useEconReleaseHistory';
 import ImpactMark, { IMPACT_WORD } from './ImpactMark';
+import { isReleased, releaseResult } from '../lib/releaseStatus';
 
 const HISTORY_ELEMENT = 'econ_release_history';
 
@@ -204,11 +206,7 @@ export default function ReleaseDetailModal({ event, onClose }) {
   const { data, failed, loading } = useEconReleaseHistory(open);
   const [which, setWhich] = useState(0);
 
-  useEffect(() => {
-    const k = (e) => { if (e.key === 'Escape') onClose?.(); };
-    window.addEventListener('keydown', k);
-    return () => { window.removeEventListener('keydown', k); };
-  }, [onClose, open]);
+  useModalEscape(open, onClose);
   useScrollLock(open);
   useEffect(() => { setWhich(0); }, [event?.name]);
 
@@ -217,6 +215,8 @@ export default function ReleaseDetailModal({ event, onClose }) {
   if (!event || !target) return null;
 
   const entry = data?.series?.[event.name] || null;
+  const released = isReleased(event);
+  const result = released ? releaseResult(event, data) : null;
   const measures = entry?.measures || [];
   const measure = measures[Math.min(which, Math.max(0, measures.length - 1))] || null;
 
@@ -229,6 +229,19 @@ export default function ReleaseDetailModal({ event, onClose }) {
           {event.category || 'Release'} · {longDate(event.date)}{event.time_et ? ` · ${event.time_et} ET` : ''}
         </div>
         <h2 className="briefmodal-h">{event.name}</h2>
+        {/* Event status first: has it happened, and what did it say
+            (2026-10-29). The data-refresh pill at the foot is about the
+            feed, not the event. */}
+        {released && (
+          <p className="rel-status">
+            <span className="rel-status-k">Released</span>{' '}
+            {result
+              ? (result.kind === 'decision'
+                ? <>{result.text}{result.source ? <> · <a href={result.url} target="_blank" rel="noopener noreferrer">{result.source}</a></> : null}</>
+                : <>{result.label}: <b>{result.short}</b>{result.period ? ` for ${result.period}` : ''}</>)
+              : <>Its figure has not reached the release history yet; it rebuilds three times a weekday.</>}
+          </p>
+        )}
         {event.blurb && <p className="rel-blurb">{event.blurb}</p>}
 
         {measures.length > 1 && (
@@ -257,7 +270,7 @@ export default function ReleaseDetailModal({ event, onClose }) {
 
         <p className="rel-foot">
           <span className="rel-footl">
-            <FreshnessChip elementId={HISTORY_ELEMENT} variant="pill" label="Release history" />
+            <FreshnessChip elementId={HISTORY_ELEMENT} variant="pill" label="Data refresh" />
           </span>
           <span className="rel-footr">
             Actual prints are the current published values, revisions included. No street consensus is shown; every forecast names its author.

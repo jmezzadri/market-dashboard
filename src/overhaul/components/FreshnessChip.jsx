@@ -329,7 +329,7 @@ export default function FreshnessChip({
       onFocus={onEnter}
       onBlur={onLeave}
       style={{ cursor: 'help', display: 'inline-flex', ...style }}
-      aria-label={`Freshness: ${word}${asOf ? `, as of ${asOf}` : ''}`}
+      aria-label={`Data refresh: ${word}${asOf ? `, as of ${asOf}` : ''}`}
     >
       {inner}
       {hover && tipXY &&
@@ -361,6 +361,9 @@ export default function FreshnessChip({
                 never shown later than Last pull. "SLA" states the freshness
                 budget (how long after the last successful pull the chip allows
                 before it reds); the reason line below names what fired when red. */}
+            {/* Says what the chip is about (2026-10-29): when the data was last
+                refreshed — never whether an event has happened. */}
+            <div style={{ color: 'var(--mt-ink-0)', fontWeight: 'var(--fw-600)', marginBottom: 'var(--sp-4)' }}>Data refresh</div>
             <ol style={{ margin: 0, paddingLeft: 'var(--sp-18)', color: 'var(--mt-ink-2)', lineHeight: 1.6 }}>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Source:</span> {f?.sourceVendor || '—'}</li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Frequency:</span> {f?.cadenceLabel || freqLabel(f?.cadence, f?.calendar)}{' '}· fetch ~{etLabel(f?.scheduledFetchET)} ET</li>

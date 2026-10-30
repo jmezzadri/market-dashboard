@@ -33,7 +33,7 @@
    The "live" stamp is a claim about the SESSION, not the feed (LESSONS 4.32):
    gated on marketOpen === true, exactly as before the move from HomePage. */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useMarketLevels from '../lib/useMarketLevels';
 import useLseLive from '../../hooks/useLseLive';
 import IndicatorDrillModal from '../components/IndicatorDrillModal';
@@ -46,7 +46,7 @@ import '../styles/pages-v13.css';
 export const TAPE = [
   { group: 'Equities', items: [
     { key: 'spx_index', label: 'S&P', dec: 0, live: '^GSPC', pct: true, idx: 'spx_index' },
-    { key: 'ndx_index', label: 'NASDAQ', dec: 0, live: '^IXIC', pct: true, idx: 'ndx_index' },
+    { key: 'ndx_index', label: 'Nasdaq Comp.', dec: 0, live: '^IXIC', pct: true, idx: 'ndx_index' },   // the Composite (^IXIC), not the Nasdaq-100 (2026-10-29)
     { key: 'dji_index', label: 'DOW', dec: 0, live: '^DJI', pct: true, idx: 'dji_index' },
     { key: 'rut_index', label: 'Russell 2K', dec: 0, live: '^RUT', pct: true, idx: 'rut_index' },
   ] },
@@ -120,7 +120,7 @@ function ddParts(dd, dec) {
   // Round to the displayed precision first, so a change that rounds to zero
   // shows nothing rather than a spurious "-0.0".
   const r = Number(dd.toFixed(d));
-  if (r === 0) return { arrow: '', txt: '', cls: '' };
+  if (r === 0) return { arrow: '', txt: '', cls: '', zero: (0).toFixed(d) };
   const a = Math.abs(r).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
   return r > 0 ? { arrow: '▲', txt: a, cls: 'up' } : { arrow: '▼', txt: a, cls: 'down' };
 }
@@ -148,34 +148,115 @@ function tapeTile(r, lv, liveQ, marketOpen) {
   };
 }
 
-function Tile({ r, t, onOpen }) {
-  const d = r.pct ? ddParts(t?.pct, 2) : ddParts(t?.dd, r.dec);
+/* A tile has three states, and only one of them prints numbers:
+     loading  the label and two neutral bars — never "0" or "close", which
+              read as "unchanged at the close" (2026-10-29 audit: the banner
+              printed "S&P — 0close" until the 4.9 MB history file arrived);
+     missing  the feed answered without this series: an em-dash, no change,
+              no session stamp (LESSONS 4.9);
+     ready    value, change and the session the change belongs to. */
+function Tile({ r, t, loading, onOpen, ghost }) {
+  let body;
+  if (loading) {
+    body = (
+      <>
+        <span className="rd-tile-v"><span className="rd-skel rd-skel--v" /></span>
+        <span className="rd-tile-c"><span className="rd-skel rd-skel--c" /></span>
+      </>
+    );
+  } else if (!t) {
+    body = (
+      <>
+        <span className="rd-tile-v">—</span>
+        <span className="rd-tile-c fl">&nbsp;</span>
+      </>
+    );
+  } else {
+    const d = r.pct ? ddParts(t.pct, 2) : ddParts(t.dd, r.dec);
+    const move = d.txt ? `${d.cls === 'up' ? '+' : '−'}${d.txt}${r.pct ? '%' : ''}` : (d.zero != null ? `${d.zero}${r.pct ? '%' : ''}` : '');
+    body = (
+      <>
+        <span className="rd-tile-v">{fmt(t.value, r.dec) + (r.suffix || '')}</span>
+        <span className={`rd-tile-c ${d.cls || 'fl'}`}>
+          {move || '—'}
+          {/* the session the move belongs to, in the same element as the move
+              (LESSONS 4.26 rule 1 / 4.32) */}
+          {move && <small className="rd-tile-s">{t.stamp}</small>}
+        </span>
+      </>
+    );
+  }
   const inner = (
     <>
       <span className="rd-tile-l">{r.label}</span>
-      <span className="rd-tile-v">{t ? fmt(t.value, r.dec) + (r.suffix || '') : '—'}</span>
-      <span className={`rd-tile-c ${d.cls || 'fl'}`}>
-        {d.txt ? `${d.cls === 'up' ? '+' : '−'}${d.txt}${r.pct ? '%' : ''}` : '0'}
-        {/* the session the move belongs to, in the same element as the move
-            (LESSONS 4.26 rule 1 / 4.32) */}
-        <small className="rd-tile-s">{t?.stamp || 'close'}</small>
-      </span>
+      {body}
     </>
   );
-  return onOpen ? (
-    <button type="button" className="rd-tile rd-tile--drill" onClick={onOpen} aria-label={`${r.label} — open detail`}>
+  // Both copies of the strip open the drill. The second copy is what is on
+  // screen half of the time; until 2026-10-29 it was inert, so a click on
+  // "S&P" worked only when the first copy happened to be in view. It stays
+  // out of the tab order and hidden from assistive tech (its strip is
+  // aria-hidden); a pointer can still use it.
+  return onOpen && !loading ? (
+    <button type="button" className="rd-tile rd-tile--drill" onClick={onOpen}
+            tabIndex={ghost ? -1 : undefined}
+            aria-label={ghost ? undefined : `${r.label} — open detail`}>
       {inner}
     </button>
   ) : (
-    <div className="rd-tile">{inner}</div>
+    <div className="rd-tile" aria-busy={loading ? 'true' : undefined}>{inner}</div>
+  );
+}
+
+function reducedMotion() {
+  return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+/* The banner's controls. Pause/play everywhere; back and forward on wider
+   screens (on a phone the strip is swiped instead). Icons are drawn, not
+   glyphs, so they sit on the same centre line in every font. */
+function TapeControls({ userPaused, onPause, onBack, onForward }) {
+  return (
+    <div className="rd-tape-ctl" role="group" aria-label="Banner controls">
+      <button type="button" className="rd-tape-btn rd-tape-btn--step" onClick={onBack} aria-label="Show earlier tiles">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg>
+      </button>
+      <button type="button" className="rd-tape-btn" onClick={onPause} aria-pressed={userPaused}
+              aria-label={userPaused ? 'Play the banner' : 'Pause the banner'}>
+        {userPaused
+          ? <svg viewBox="0 0 16 16" aria-hidden="true"><path className="fill" d="M5 3.5v9l7-4.5z" /></svg>
+          : <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3.5v9M10.5 3.5v9" /></svg>}
+      </button>
+      <button type="button" className="rd-tape-btn rd-tape-btn--step" onClick={onForward} aria-label="Show later tiles">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg>
+      </button>
+    </div>
   );
 }
 
 export default function MarketTape() {
-  const { level, hist } = useMarketLevels();
+  const { level, hist, loaded, failed } = useMarketLevels();
   const live = useLseLive(LIVE_SYMS);
   const [drillInd, setDrillInd] = useState(null);
   const [drillIdx, setDrillIdx] = useState(null);
+
+  /* Why the strip is held still. Any one is enough:
+       userPaused  the pause button;
+       hover       a mouse is over the banner (reading or aiming at a tile);
+       focusIn     a tile has keyboard focus;
+       dragging    a finger or mouse is sliding the strip by hand;
+       a drill is open, so the tile is still where it was on close. */
+  const [userPaused, setUserPaused] = useState(false);
+  const [hover, setHover] = useState(false);
+  const [focusIn, setFocusIn] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const paused = userPaused || hover || focusIn || dragging || !!drillInd || !!drillIdx;
+
+  const sectionRef = useRef(null);
+  const viewRef = useRef(null);
+  const trackRef = useRef(null);
+  const drag = useRef(null);
+  const suppressClickUntil = useRef(0);
 
   const groups = useMemo(() => {
     const tiles = {};
@@ -184,17 +265,75 @@ export default function MarketTape() {
     if (Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) > OIL_PAIR_MAX_GAP_PCT) {
       tiles[Math.abs(a) > Math.abs(b) ? OIL_PAIR[0] : OIL_PAIR[1]] = null;
     }
-    // A series with nothing to show is left off rather than scrolled past as
-    // a dash — except the live indexes, which fill in a moment later.
+    // While the history is still loading every tile shows its label and two
+    // neutral bars, so the banner has its final shape from the first frame.
+    // Once loaded, a series with nothing to show is left off rather than
+    // scrolled past as a dash — except the live indexes, which can fill in
+    // from the live feed a moment later.
+    const loadingNow = !loaded && !failed;
     return TAPE
-      .map((g) => ({ group: g.group, items: g.items.filter((r) => tiles[r.key] || r.live).map((r) => ({ r, t: tiles[r.key] })) }))
+      .map((g) => ({
+        group: g.group,
+        items: g.items
+          .filter((r) => loadingNow || tiles[r.key] || r.live)
+          .map((r) => ({ r, t: tiles[r.key], loading: loadingNow && !tiles[r.key] })),
+      }))
       .filter((g) => g.items.length);
-  }, [level, live.bySymbol, live.marketOpen]);
+  }, [level, loaded, failed, live.bySymbol, live.marketOpen]);
 
   const openFor = (r) => {
     if (r.ind && IND[r.ind]) return () => setDrillInd(r.ind);
     if (r.idx && INDEX_DRILLS[r.idx]) return () => setDrillIdx(r.idx);
     return null;
+  };
+
+  /* ── moving the strip by hand ──────────────────────────────────────────
+     The strip is moved by its own animation's clock, never by scrolling the
+     window (LESSONS 9.30: a box that slides its content is clipped, not
+     scrolled — the two offsets add and can carry the strip out of view).
+     Seeking the animation keeps the loop seamless in both directions. Under
+     reduced motion nothing slides, the window is a real scroller, and the
+     same controls scroll it. */
+  const anim = () => trackRef.current?.getAnimations?.()?.[0] || null;
+  // wrap: true loops past either end (the arrows, a swipe); false clamps to
+  // one copy (keyboard focus must show the focused tile itself, not its twin).
+  const seekPx = (dx, wrap = true) => {
+    const a = anim();
+    const tr = trackRef.current;
+    if (!a || !tr) {
+      viewRef.current?.scrollBy?.({ left: dx });
+      return;
+    }
+    const D = Number(a.effect?.getComputedTiming?.().duration) || 0;
+    const half = tr.scrollWidth / 2;
+    if (!D || !half) return;
+    const t = (Number(a.currentTime) || 0) + (dx / half) * D;
+    a.currentTime = wrap ? ((t % D) + D) % D : Math.min(D - 1, Math.max(0, t));
+  };
+  const glide = (dx) => {
+    if (!anim()) { viewRef.current?.scrollBy?.({ left: dx, behavior: 'smooth' }); return; }
+    const start = performance.now();
+    let done = 0;
+    const step = (now) => {
+      const k = Math.min(1, (now - start) / 320);
+      const target = dx * (1 - Math.pow(1 - k, 3));
+      seekPx(target - done);
+      done = target;
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+  const page = () => Math.max(160, (viewRef.current?.clientWidth || 600) * 0.6);
+
+  /* A focused tile is brought fully into view, clear of the edge fade. */
+  const bringIntoView = (el) => {
+    const v = viewRef.current;
+    if (!el || !v) return;
+    const vb = v.getBoundingClientRect();
+    const rb = el.getBoundingClientRect();
+    const pad = 48;
+    if (rb.left < vb.left + pad) seekPx(rb.left - vb.left - pad, false);
+    else if (rb.right > vb.right - pad) seekPx(rb.right - vb.right + pad, false);
   };
 
   /* 2026-10-22: while the strip slides, the window must stay at scroll 0. A
@@ -203,18 +342,83 @@ export default function MarketTape() {
      view, leaving the banner blank. Under reduced motion nothing slides and
      the window is a real hand scroller, so the position is left alone. */
   const snapBackWhileSliding = (e) => {
-    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    if (reducedMotion()) return;
     if (e.currentTarget.scrollLeft !== 0) e.currentTarget.scrollLeft = 0;
   };
 
+  const onFocusIn = (e) => {
+    const tile = e.target?.closest?.('.rd-tile');
+    if (!tile) return;
+    let keyboard = true;
+    try { keyboard = e.target.matches(':focus-visible'); } catch { /* old engines: treat as keyboard */ }
+    if (!keyboard) return;
+    setFocusIn(true);
+    requestAnimationFrame(() => bringIntoView(tile));
+  };
+  const onFocusOut = (e) => {
+    if (!sectionRef.current?.contains(e.relatedTarget)) setFocusIn(false);
+  };
+
+  const onPointerEnter = (e) => { if (e.pointerType === 'mouse') setHover(true); };
+  const onPointerLeave = (e) => { if (e.pointerType === 'mouse') setHover(false); };
+  const onPointerDown = (e) => {
+    if (e.button !== 0 || reducedMotion()) return;
+    drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, last: e.clientX, moved: false };
+  };
+  const onPointerMove = (e) => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    if (!d.moved) {
+      const ax = Math.abs(e.clientX - d.x);
+      const ay = Math.abs(e.clientY - d.y);
+      if (ax < 6) return;
+      if (ay > ax) { drag.current = null; return; }   // a vertical swipe scrolls the page
+      d.moved = true;
+      setDragging(true);
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* already released */ }
+    }
+    seekPx(d.last - e.clientX);
+    d.last = e.clientX;
+  };
+  const endDrag = (e) => {
+    const d = drag.current;
+    if (!d || (e && d.id !== e.pointerId)) return;
+    drag.current = null;
+    if (d.moved) {
+      suppressClickUntil.current = performance.now() + 80;
+      setDragging(false);
+    }
+  };
+  const onClickCapture = (e) => {
+    if (performance.now() < suppressClickUntil.current) { e.preventDefault(); e.stopPropagation(); }
+  };
+
+  // A sideways trackpad swipe over the banner moves the strip (and is kept
+  // from turning into the browser's back gesture). Not passive, so it can
+  // claim the gesture; vertical wheel movement scrolls the page as usual.
+  useEffect(() => {
+    const v = viewRef.current;
+    if (!v) return undefined;
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      seekPx(e.deltaX);
+    };
+    v.addEventListener('wheel', onWheel, { passive: false });
+    return () => v.removeEventListener('wheel', onWheel);
+  }, []);
+
   /* The strip is rendered twice, end to end, and slid left by exactly one
      copy's width — that is what makes the loop seamless. The second copy is
-     decoration: hidden from assistive tech and out of the tab order. */
+     decoration for assistive tech (aria-hidden, out of the tab order) but
+     answers a click like the first. */
   const strip = (dup) => (
-    <div className="rd-tape-strip" aria-hidden={dup ? 'true' : undefined} inert={dup ? '' : undefined}>
+    <div className="rd-tape-strip" aria-hidden={dup ? 'true' : undefined}>
       {groups.map((g) => (
         <div className="rd-tape-group" key={g.group} role={dup ? undefined : 'group'} aria-label={dup ? undefined : g.group}>
-          {g.items.map(({ r, t }) => <Tile key={r.key} r={r} t={t} onOpen={dup ? null : openFor(r)} />)}
+          {g.items.map(({ r, t, loading }) => (
+            <Tile key={r.key} r={r} t={t} loading={loading} ghost={dup} onOpen={openFor(r)} />
+          ))}
         </div>
       ))}
     </div>
@@ -222,13 +426,37 @@ export default function MarketTape() {
 
   return (
     <>
-      <section className="rd-tape" role="region" aria-label="Markets, scrolling">
-        <div className="rd-tape-view" tabIndex={0} onScroll={snapBackWhileSliding}>
-          <div className="rd-tape-track" style={{ '--tape-n': TAPE_ITEMS.length }}>
+      <section
+        ref={sectionRef}
+        className={`rd-tape${paused ? ' is-paused' : ''}${dragging ? ' is-dragging' : ''}`}
+        role="region"
+        aria-label="Markets, scrolling"
+        onPointerEnter={onPointerEnter}
+        onPointerLeave={onPointerLeave}
+        onFocus={onFocusIn}
+        onBlur={onFocusOut}
+      >
+        <div
+          ref={viewRef}
+          className="rd-tape-view"
+          onScroll={snapBackWhileSliding}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onClickCapture={onClickCapture}
+        >
+          <div ref={trackRef} className="rd-tape-track" style={{ '--tape-n': TAPE_ITEMS.length }}>
             {strip(false)}
             {strip(true)}
           </div>
         </div>
+        <TapeControls
+          userPaused={userPaused}
+          onPause={() => setUserPaused((v) => !v)}
+          onBack={() => glide(-page())}
+          onForward={() => glide(page())}
+        />
       </section>
       {/* The drill modals portal into the shell and keep their own skin. */}
       <IndicatorDrillModal indId={drillInd} onClose={() => setDrillInd(null)} />

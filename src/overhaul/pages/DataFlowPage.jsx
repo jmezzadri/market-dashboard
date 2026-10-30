@@ -988,18 +988,26 @@ export default function DataFlowPage() {
         byTab.get(tab).push(e);
       });
     });
-    const SURFACE_ORDER = ['home', 'overview', 'scanner', 'paper', 'indicators', 'readme', 'ticker', 'admin'];
+    /* "Live surfaces" are pages a reader can open (2026-10-29 audit: the list
+       counted "Trading Scanner" — retired 2026-10-13, /scanner redirects home
+       — and "Research", the off-site Trade Idea run, as live pages). Any other
+       consumer tab is listed under Workflows as "not a page", so no feed
+       disappears from view, and only real pages are counted. */
+    const SURFACE_ORDER = ['home', 'overview', 'paper', 'scorecard', 'indicators', 'readme', 'ticker', 'admin'];
+    const PAGE_TABS = new Set([...SURFACE_ORDER, 'macro', 'methodology', 'data']);
     const sTiles = [];
+    const offSite = [];
     const pushTab = (tab) => {
       if (!byTab.has(tab)) return;
       const els = byTab.get(tab);
-      sTiles.push({
+      const tile = {
         id: `surf:${tab}`,
-        name: tabLabel(tab),
+        name: PAGE_TABS.has(tab) ? tabLabel(tab) : `${tabLabel(tab)} — not a page`,
         sub: `${els.length} feed${els.length === 1 ? '' : 's'}`,
         count: els.length,
         members: els,
-      });
+      };
+      (PAGE_TABS.has(tab) ? sTiles : offSite).push(tile);
     };
     SURFACE_ORDER.forEach(pushTab);
     byTab.forEach((_els, tab) => { if (!SURFACE_ORDER.includes(tab)) pushTab(tab); });
@@ -1036,7 +1044,7 @@ export default function DataFlowPage() {
       if (['portfolio', 'news', 'commentary'].includes(cat)) return;
       wTiles.push({ id: `wf:${cat}`, name: CAT_LABEL[cat] || humanise(cat), sub: `${els.length} job${els.length === 1 ? '' : 's'}`, count: els.length, members: els });
     });
-    return { surfaceTiles: sTiles, workflowTiles: wTiles };
+    return { surfaceTiles: sTiles, workflowTiles: [...wTiles, ...offSite] };
   }, [elements, classified]);
 
   // ── Index every tile by id, and build the lineage edge list at runtime ──
@@ -1534,8 +1542,14 @@ export default function DataFlowPage() {
   return (
     <div className="home-v12 v13 data-v12">
       {/* Hero header removed 2026-07-22 (Joe: too much space; it also sat
-          indented relative to the wider stage below). */}
+          indented relative to the wider stage below). 2026-10-29: the page
+          had no title at all; a one-line title row (no hero) names it, inside
+          the stage so it lines up with everything below. */}
       <section className="wrap df-stage">
+      <header className="df-head">
+        <h1>Data</h1>
+        <p>Every feed behind the site — where it comes from, how often it refreshes, and whether it is current.</p>
+      </header>
 
       {loadErr && (
         <div className="df-banner df-banner--err">Could not load the data manifest: {loadErr}</div>

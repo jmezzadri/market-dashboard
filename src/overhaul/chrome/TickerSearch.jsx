@@ -1,7 +1,14 @@
 /* TickerSearch — header search box with Google/Yahoo-Finance-style
    autocomplete. As you type a symbol or company name it suggests matching
    stocks from the ticker_reference table (13k US tickers, browser-readable),
-   ranked by market cap. Enter or click opens that ticker's detail page. */
+   ranked by market cap. Enter or click opens that ticker's detail page.
+
+   2026-10-29 audit: a search with no match showed nothing at all, and Enter
+   then sent the reader to a page for a symbol that does not exist. The menu
+   now always answers — "Searching…", the matches, or "No US-listed stock
+   matches …" — and says where a pick goes. Enter opens the highlighted
+   match; with no match it stays put. An exact symbol typed in full still
+   opens directly, since the reference table can lag a new listing. */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -12,25 +19,48 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
   const [q, setQ] = useState('');
   const [res, setRes] = useState([]);
   const [open, setOpen] = useState(false);
+  // 'idle' | 'searching' | 'done' | 'error' — what the menu says when empty
+  const [phase, setPhase] = useState('idle');
+  const [doneFor, setDoneFor] = useState('');
   const [hi, setHi] = useState(0);
   const boxRef = useRef(null);
   const timer = useRef(null);
   const reqId = useRef(0);
+  const enterPending = useRef(false);
 
   useEffect(() => {
-    const term = q.trim().replace(/[%,]/g, '');
-    if (!term) { setRes([]); setOpen(false); return; }
+    const term = q.trim().replace(/[%,()]/g, '');
+    if (!term) { setRes([]); setOpen(false); setPhase('idle'); return; }
     clearTimeout(timer.current);
+    setPhase('searching');
+    setOpen(true);
     timer.current = setTimeout(async () => {
       const id = ++reqId.current;
-      const { data } = await supabase
-        .from('ticker_reference')
-        .select('ticker,name,market_cap')
-        .or(`ticker.ilike.${term}%,name.ilike.%${term}%`)
-        .order('market_cap', { ascending: false, nullsFirst: false })
-        .limit(8);
+      // The exact symbol is asked for separately and leads the list, so
+      // Enter on "F" opens Ford — not the largest company whose name or
+      // symbol merely contains an F (2026-10-29).
+      const [{ data, error }, { data: exactRows }] = await Promise.all([
+        supabase
+          .from('ticker_reference')
+          .select('ticker,name,market_cap')
+          .or(`ticker.ilike.${term}%,name.ilike.%${term}%`)
+          .order('market_cap', { ascending: false, nullsFirst: false })
+          .limit(8),
+        /^[A-Za-z.-]{1,7}$/.test(term)
+          ? supabase.from('ticker_reference').select('ticker,name,market_cap').eq('ticker', term.toUpperCase()).limit(1)
+          : Promise.resolve({ data: [] }),
+      ]);
       if (id !== reqId.current) return; // drop out-of-order responses
-      setRes(data || []);
+      const exact = exactRows || [];
+      const rest = (data || []).filter((r) => !exact.some((x) => x.ticker === r.ticker));
+      const list = [...exact, ...rest].slice(0, 8);
+      if (enterPending.current) {
+        enterPending.current = false;
+        if (list.length) { go(list[0].ticker); return; }
+      }
+      setRes(list);
+      setPhase(error ? 'error' : 'done');
+      setDoneFor(term);
       setOpen(true);
       setHi(0);
     }, 140);
@@ -45,8 +75,18 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
 
   const go = (t) => { if (!t) return; setQ(''); setRes([]); setOpen(false); navigate(`/ticker/${String(t).toUpperCase()}`); };
 
+  /* Enter pressed before the suggestions have arrived waits for them and
+     then opens the top one — the exact symbol when there is one — instead of
+     navigating to whatever was typed ("apple" used to open /ticker/APPLE).
+     With no match it stays put and the menu says so. */
   const onKey = (e) => {
-    if (!open || !res.length) { if (e.key === 'Enter' && q.trim()) go(q.trim()); return; }
+    if (!open || !res.length) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (q.trim() && phase === 'searching') enterPending.current = true;
+      } else if (e.key === 'Escape') setOpen(false);
+      return;
+    }
     if (e.key === 'ArrowDown') { e.preventDefault(); setHi((h) => Math.min(h + 1, res.length - 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
     else if (e.key === 'Enter') { e.preventDefault(); go(res[hi]?.ticker); }
@@ -81,20 +121,33 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
         className="v13-search-input rd-search-input"
       />
       <span className="rd-search-cursor" aria-hidden="true" />
-      {open && res.length > 0 && (
-        <div className="rd-search-menu">
-          {res.map((r, i) => (
-            <div
-              key={r.ticker}
-              onMouseDown={() => go(r.ticker)}
-              onMouseEnter={() => setHi(i)}
-              className={`rd-search-item${i === hi ? ' is-hi' : ''}`}
-            >
-              <span className="rd-search-tk">{r.ticker}</span>
-              <span className="rd-search-nm">{r.name}</span>
-              <span className="rd-search-cap">{fmtCap(r.market_cap)}</span>
-            </div>
-          ))}
+      {open && q.trim() && (
+        <div className="rd-search-menu" role="listbox" aria-label="Matching stocks">
+          {res.length > 0 ? (
+            <>
+              {res.map((r, i) => (
+                <div
+                  key={r.ticker}
+                  role="option"
+                  aria-selected={i === hi}
+                  onMouseDown={() => go(r.ticker)}
+                  onMouseEnter={() => setHi(i)}
+                  className={`rd-search-item${i === hi ? ' is-hi' : ''}`}
+                >
+                  <span className="rd-search-tk">{r.ticker}</span>
+                  <span className="rd-search-nm">{r.name}</span>
+                  <span className="rd-search-cap">{fmtCap(r.market_cap)}</span>
+                </div>
+              ))}
+              <div className="rd-search-foot">Opens the stock&rsquo;s page · ↑ ↓ to move, Enter to open</div>
+            </>
+          ) : phase === 'searching' ? (
+            <div className="rd-search-empty">Searching…</div>
+          ) : phase === 'error' ? (
+            <div className="rd-search-empty">Search is not answering right now — try again in a moment.</div>
+          ) : (
+            <div className="rd-search-empty">No US-listed stock or fund matches &ldquo;{doneFor}&rdquo;. Try the ticker symbol or the company&rsquo;s name.</div>
+          )}
         </div>
       )}
     </div>

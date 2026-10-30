@@ -24,14 +24,21 @@ import { useNavigate } from 'react-router-dom';
 import useEngineRegime from '../lib/useEngineRegime';
 import { stressGaugePct, yieldGaugePct, stressMessage } from '../lib/engineGauges';
 import IndicatorDrillModal from '../components/IndicatorDrillModal';
+import DetailModal from '../components/DetailModal';
+import EngineTrackRecord from '../components/EngineTrackRecord';
+import useMarketLevels from '../lib/useMarketLevels';
 import ReleaseDetailModal from '../components/ReleaseDetailModal';
 import useScrollLock from '../lib/useScrollLock';
+import useModalEscape from '../lib/useModalEscape';
 import ReleaseCalendarModal from '../components/ReleaseCalendarModal';
 import ImpactMark from '../components/ImpactMark';
 import useEconReleaseHistory from '../lib/useEconReleaseHistory';
+import { nowET, isReleased, releaseResult } from '../lib/releaseStatus';
 import useDailyBrief from '../lib/useDailyBrief';
 import useEconCalendar from '../lib/useEconCalendar';
 import useTradeIdea from '../lib/useTradeIdea';
+import useTradeScores from '../lib/useTradeScores';
+import { tradeSchedule, scheduleParts } from '../lib/tradeSchedule';
 import useIndicatorSeries from '../lib/useIndicatorSeries';
 import IdeaChart from '../components/IdeaChart';
 import TradeIdeaNoteModal from '../components/TradeIdeaNote';
@@ -100,13 +107,37 @@ export default function HomePage() {
 
   const [drillInd, setDrillInd] = useState(null);
   const regime = useEngineRegime();
-  const { brief } = useDailyBrief();
-  const { days: calDays, all: calAll, meta: calMeta, todayISO, failed: calFailed } = useEconCalendar({ maxTier: 2, limit: 5 });
+  // The engine's track record, opened in place. Its weekly history is only
+  // fetched when the reader asks for it; the S&P 500 line is the same stored
+  // series the market banner already loaded (one shared fetch).
+  const [trackOpen, setTrackOpen] = useState(false);
+  const { hist: levelsHist } = useMarketLevels();
+  const [engWeeks, setEngWeeks] = useState(null);
+  useEffect(() => {
+    if (!trackOpen || engWeeks) return undefined;
+    let c = false;
+    fetch('/macrotilt_engine_history.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!c) setEngWeeks(d?.weekly || []); })
+      .catch(() => { if (!c) setEngWeeks([]); });
+    return () => { c = true; };
+  }, [trackOpen, engWeeks]);
+  const { brief, loading: briefLoading } = useDailyBrief();
+  const { days: calDays, all: calAll, meta: calMeta, todayISO, failed: calFailed, loading: calLoading } = useEconCalendar({ maxTier: 2, limit: 5 });
   const [calOpen, setCalOpen] = useState(false);
   const { data: relHist } = useEconReleaseHistory(true);
+  // New York clock, re-read each minute, so a row turns "released" at its
+  // time without a reload.
+  const [nowEt, setNowEt] = useState(nowET);
+  useEffect(() => {
+    const t = setInterval(() => setNowEt(nowET()), 60 * 1000);
+    return () => clearInterval(t);
+  }, []);
   const impactOf = (name) => relHist?.series?.[name]?.impact || null;
   const [openRelease, setOpenRelease] = useState(null);
-  const { idea, error: ideaError } = useTradeIdea();
+  const { idea, error: ideaError, loading: ideaLoading } = useTradeIdea();
+  const { byId: scoreById } = useTradeScores(!!idea);
+  const ideaSchedule = scheduleParts(tradeSchedule(idea, idea ? scoreById.get(idea.id) : null));
 
   // Charts are declarative: the note names series that already exist in
   // indicator_history.json and the site draws them.
@@ -149,14 +180,10 @@ export default function HomePage() {
 
   const [briefOpen, setBriefOpen] = useState(false);
   const [ideaOpen, setIdeaOpen] = useState(false);
-  const anyModal = briefOpen || ideaOpen;
-  useEffect(() => {
-    if (!anyModal) return undefined;
-    const k = (e) => { if (e.key === 'Escape') { setBriefOpen(false); setIdeaOpen(false); } };
-    window.addEventListener('keydown', k);
-    return () => { window.removeEventListener('keydown', k); };
-  }, [anyModal]);
-  useScrollLock(anyModal);
+  // The brief modal registers for Escape like every other pop-up (top layer
+  // only); the trade note handles its own (TradeIdeaNoteModal).
+  useModalEscape(briefOpen, () => setBriefOpen(false));
+  useScrollLock(briefOpen);
   const modalTarget = (typeof document !== 'undefined' && (document.querySelector('.mt-overhaul') || document.body)) || null;
 
   /* "This Week's Data": the remaining days of the current week (through
@@ -194,7 +221,19 @@ export default function HomePage() {
             <div className="ed-label ed-label--accent">
               {brief?.eyebrow || 'Morning Brief'}{briefDate ? ` · ${briefDate}` : ''}{briefStale ? ' · last session' : ''}
             </div>
-            <h1 className="ed-brief-h">{brief?.headline || 'Reading the tape…'}</h1>
+            {/* Loading is a skeleton, never a sentence that reads like news
+                (2026-10-29); a brief that did not arrive says so plainly. */}
+            {briefLoading ? (
+              <div aria-busy="true" aria-label="Loading the morning brief">
+                <span className="rd-skel rd-skel--head" />
+                <span className="rd-skel rd-skel--line" />
+                <span className="rd-skel rd-skel--line is-short" />
+              </div>
+            ) : brief?.headline ? (
+              <h1 className="ed-brief-h">{brief.headline}</h1>
+            ) : (
+              <p className="ed-empty">The morning brief did not load — refresh to try again.</p>
+            )}
             {brief?.stance && <Html tag="p" className="ed-brief-sum" html={brief.stance} />}
             {briefNews.length > 0 && (
               <ol className="ed-news">
@@ -247,7 +286,10 @@ export default function HomePage() {
               <div className="ed-meter-read">{yMsg}</div>
             </button>
 
-            <a className="ed-link" href="/macro" onClick={go('/macro')}>See the track record →</a>
+            {/* Opens the engine's record in place (2026-10-29). It used to go to
+                Macro Landscape, which has no track-record section — the record
+                is a pop-up there too. */}
+            <button type="button" className="ed-link" onClick={() => setTrackOpen(true)}>See the track record →</button>
           </aside>
         </div>
 
@@ -255,7 +297,10 @@ export default function HomePage() {
 
           {/* ── Trade Idea ──────────────────────────────────────────── */}
           <article className="ed-idea rd-rise d3" aria-label="Trade Idea">
-            <div className="ed-label ed-label--accent">Trade Idea{idea?.date ? ` · ${weekdayDate(idea.date)}` : ''}</div>
+            {/* The publication date is the headline date, and it says so
+                (2026-10-29); the schedule line under the trade block carries
+                the scorer's own entry, planned close and expiry. */}
+            <div className="ed-label ed-label--accent">Trade Idea{idea?.date ? ` · Published ${weekdayDate(idea.date)}` : ''}</div>
             {idea ? (
               <>
                 <h2 className="ed-idea-h">{idea.title}</h2>
@@ -271,6 +316,10 @@ export default function HomePage() {
                   </dl>
                 )}
 
+                {ideaSchedule.length > 0 && (
+                  <p className="ed-idea-sched rd-num">{ideaSchedule.map((x) => x.t).join(' · ')}</p>
+                )}
+
                 {heroChart && (
                   <div className="ed-idea-chart">
                     <IdeaChart spec={heroChart} series={chartSeries?.[heroChart.series]} asOf={idea.date} accentFrom={idea.date} width={720} height={200} compact animate />
@@ -281,6 +330,12 @@ export default function HomePage() {
                   Read the full note{idea.charts?.length > 1 ? ` · ${idea.charts.length} charts` : ''} →
                 </button>
               </>
+            ) : ideaLoading ? (
+              <div aria-busy="true" aria-label="Loading the trade idea">
+                <span className="rd-skel rd-skel--head" />
+                <span className="rd-skel rd-skel--line" />
+                <span className="rd-skel rd-skel--line is-short" />
+              </div>
             ) : ideaError ? (
               /* A failed fetch is an error, not an empty archive (LESSONS 4.9). */
               <p className="ed-empty">Couldn&rsquo;t load the trade idea just now — refresh to try again.</p>
@@ -301,15 +356,37 @@ export default function HomePage() {
             {weekDays.map((d, di) => (
               <div key={d.date} className={`ed-day${d.isToday ? ' is-today' : ''}${di === 0 ? ' is-first' : ''}`}>
                 <div className="ed-day-h">{d.isToday ? 'Today' : weekdayDate(d.date)}</div>
-                {d.events.slice().sort((a, b) => a.tier - b.tier).map((e) => (
-                  <button key={e.name} type="button" className={`ed-ev${e.tier === 1 ? ' is-major' : ''}`} onClick={() => setOpenRelease(e)}>
-                    <span className="ed-ev-n">{e.tier === 1 && <span className="ed-dot" aria-hidden="true" />}{e.name}</span>
-                    <span className="ed-ev-t rd-num">{e.time_et}<ImpactMark impact={impactOf(e.name)} /></span>
-                  </button>
-                ))}
+                {d.events.slice().sort((a, b) => a.tier - b.tier).map((e) => {
+                  /* Once its time has passed a release shows what it said —
+                     the actual figure or the bank's decision — or "Released"
+                     when the feed does not hold it yet (2026-10-29). */
+                  const done = isReleased(e, nowEt);
+                  const res = done ? releaseResult(e, relHist) : null;
+                  return (
+                    <button key={e.name} type="button" className={`ed-ev${e.tier === 1 ? ' is-major' : ''}${done ? ' is-done' : ''}`} onClick={() => setOpenRelease(e)}
+                            aria-label={done ? `${e.name}, released${res ? `: ${res.text}` : ''}` : undefined}>
+                      <span className="ed-ev-n">{e.tier === 1 && <span className="ed-dot" aria-hidden="true" />}{e.name}</span>
+                      <span className="ed-ev-t rd-num">
+                        {done
+                          ? (res
+                            ? <>{res.kind === 'print' && <span className="ed-ev-out">actual </span>}<b className="ed-ev-act">{res.short}</b></>
+                            : <span className="ed-ev-out">Released</span>)
+                          : e.time_et}
+                        <ImpactMark impact={impactOf(e.name)} />
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             ))}
-            {weekDays.length === 0 && !calFailed && (
+            {calLoading && (
+              <div aria-busy="true" aria-label="Loading this week's releases">
+                <span className="rd-skel rd-skel--line" />
+                <span className="rd-skel rd-skel--line" />
+                <span className="rd-skel rd-skel--line is-short" />
+              </div>
+            )}
+            {weekDays.length === 0 && !calFailed && !calLoading && (
               <p className="ed-empty">No major releases scheduled in the next ten weeks.</p>
             )}
             {calFailed && (
@@ -369,9 +446,15 @@ export default function HomePage() {
         modalTarget,
       )}
 
+      {trackOpen && (
+        <DetailModal onClose={() => setTrackOpen(false)}>
+          <EngineTrackRecord weeks={engWeeks || []} spx={levelsHist?.spx_index?.points || []} />
+        </DetailModal>
+      )}
+
       {/* Indicator drill — opens over Home, never navigates away (2026-08-18). */}
       <IndicatorDrillModal indId={drillInd} onClose={() => setDrillInd(null)} />
-      <ReleaseCalendarModal open={calOpen} events={calAll} todayISO={todayISO} meta={calMeta} impactOf={impactOf}
+      <ReleaseCalendarModal open={calOpen} events={calAll} todayISO={todayISO} meta={calMeta} impactOf={impactOf} relHist={relHist} nowEt={nowEt}
                             onClose={() => setCalOpen(false)} onPick={(e) => { setOpenRelease(e); }} />
       <ReleaseDetailModal event={openRelease} onClose={() => setOpenRelease(null)} />
 

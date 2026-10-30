@@ -45,6 +45,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 // The SAME note reader the Home tile uses, so the scorecard never carries a
 // second version of a note that could drift from the published one.
 import TradeIdeaNoteModal from '../components/TradeIdeaNote';
+import useMarketLevels from '../lib/useMarketLevels';
 import useIndicatorSeries from '../lib/useIndicatorSeries';
 
 // cream-system supplies the palette on .home-v12; scorecard-v12 binds it into
@@ -252,6 +253,9 @@ function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
     <tr className="sc-trow" onClick={open}>
       <td className="sc-tradecell">
         {r.trade_label || r.instrument || '—'}
+        {/* Published date beside the entry close, so the row and the
+            homepage card read the same dates (2026-10-29). */}
+        <span className="sc-evline hide-sm">Published {dShort(r.date)}{r.entry_date ? ` · marked from the ${dShort(r.entry_date)} close` : ''}</span>
         {ev && <span className="sc-evline hide-sm">{ev}{isOpen && evState ? ` · ${evState}` : ''}</span>}
       </td>
       <td className="sc-class hide-sm hide-md">{kind}</td>
@@ -270,7 +274,7 @@ function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
         )}
       </td>
       <td className="sc-mcell">
-        {kind} · {dShort(r.entry_date)} to {dShort(second)} · {days ?? '—'} days held<br />
+        {kind} · published {dShort(r.date)} · marked from the {dShort(r.entry_date)} close to {dShort(second)} · {days ?? '—'} days held<br />
         Weight {weightTxt(r)} of 100 · Contribution <span className={`num ${tone(ctb)}`}>{pct(ctb)}</span> · {isOpen ? `Last review: ${reviewTxt}` : `Reason closed: ${String(why).toLowerCase()}`}
         {ev && (<><br />{ev}{isOpen && evState ? ` · ${evState}` : ''}</>)}
         {idea && (<><br /><a href="#note" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenNote(idea); }}>View note</a></>)}
@@ -288,7 +292,7 @@ function PositionsTable({ rows, isOpen, noteById, reviewById, onOpenNote }) {
         <tr>
           <th>Trade</th>
           <th className="c-class hide-sm hide-md">Asset class</th>
-          <th className="c-date hide-sm">Opened</th>
+          <th className="c-date hide-sm">Entry close</th>
           <th className="c-date hide-sm">{isOpen ? 'Planned close' : 'Closed'}</th>
           <th className="num c-days hide-sm hide-md">Days held</th>
           <th className="num c-wt hide-sm">Weight</th>
@@ -358,6 +362,18 @@ export default function ScorecardPage() {
   }, []);
 
   const s = data?.summary;
+  /* After a session's close has printed, the scorecard re-marks on its
+     evening run; until that lands the page says so rather than reading as
+     if yesterday were today (2026-10-29: "as of Oct 28" at 7 PM on Oct 29).
+     "Newer close exists" = the S&P 500 series the site already holds has a
+     later session than the scorecard's mark — no clock, no holiday list. */
+  const { level } = useMarketLevels();
+  const spxLast = level('spx_index')?.asOf || null;
+  const pendingMarks = (() => {
+    const asOf = s?.portfolio?.as_of;
+    if (!asOf || !spxLast || spxLast <= asOf) return null;
+    return dShort(spxLast).replace(/, \d{4}$/, '');
+  })();
   const p = s?.portfolio || null;
   const line = Array.isArray(data?.portfolio_line) ? data.portfolio_line : [];
   const rows = useMemo(() => (Array.isArray(data?.scores) ? data.scores : []), [data]);
@@ -396,7 +412,7 @@ export default function ScorecardPage() {
         <p className="sc-sub">Performance of every trade call MacroTilt has published, held together as one portfolio.</p>
         {p && (
           <dl className="sc-keyfacts">
-            <div><dt>As of</dt><dd>{dLong(p.as_of)} close</dd></div>
+            <div><dt>As of</dt><dd>{dLong(p.as_of)} close{pendingMarks ? <span className="sc-dim"> · {pendingMarks} marks pending</span> : null}</dd></div>
             <div><dt>Inception</dt><dd>{dLong(p.inception)}</dd></div>
             <div><dt>Benchmark</dt><dd>{bench}</dd></div>
             <div><dt>Positions</dt><dd>{p.positions_open} open, {p.positions_closed} closed{p.invested_now != null ? ` · ${p.invested_now} of ${p.book_base || 100} invested` : ''}</dd></div>

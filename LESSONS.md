@@ -145,6 +145,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `4.39` A vendor's display name is a rename trap; fetch history by the stable series code
 - `4.41` "After the close" is not "after the session": a futures bar dated tomorrow is already on the vendor by evening, and a guard that only looks backwards stores it as today's close; a session is complete on ITS exchange's clock, not New York's (10-21); a fix whose log line has never printed in a scheduled run is a hypothesis
 - `4.42` A calendar only carries what its sources publish; say which events are structurally unscheduled, and scope a new event class to where it can move a price
+- `4.43` An event that has happened shows what happened — "Released" once its time passes, the figure only when it is that release's own (FRED vintage date, the central bank's own statement); a data-refresh chip is not event status
 
 **5 · PIPELINES, SCHEDULES & ALERTING**
 
@@ -264,6 +265,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.29` A dashboard is a tear sheet — Performance · Risk · Composition, one row of primary tiles per chapter, secondary tiles folded; every figure has exactly one home on the page, the ribbon included
 - `9.30` A box that moves its own content (the market banner) is never also a hand scroller — the two motions add and can carry the strip out of the window; the smoke test treats a clipped box with an animated child as a marquee, not cut-off text
 - `9.31` A site-wide element (the market banner) takes one skin on every page; and a rule that sizes anything off a phone-only token is wrapped in that token's own breakpoint, because the token is 0 everywhere else
+- `9.32` One close control per pop-up (the ×); Escape and the backdrop close the top layer only, through `useModalEscape`
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -829,6 +831,8 @@ A COMPUTED element lists EACH input source separately (provider + dataset + loca
 
 **Applies to:** All. Senior Quant signs off on any header/summary stat addition; UX Designer rejects headers that juxtapose different bases.
 
+**2026-10-29 — again, twice (outside audit):** (1) the Paper page's Exposure tile read "cash −$213" while the risk panel's all-clear line said "cash positive" — a hard-coded sentence, not a reading, and stale since the cash rule became a leverage rule (9.28 rule 5). The line now states the leverage check the risk job ran, with the invested share it used (`detail.gross_exposure`). (2) One trade call showed four unlabelled dates: "Thu, Oct 22" on the homepage card, "Opened Oct 21 · Planned close Nov 11" on the Scorecard, "closed by Nov 12" in the note's text and "Nov 13 expiry" in the trade block. All three surfaces now render one schedule — published · marked from the entry close · planned close · option expiry · status — from the scorer's own output (`lib/tradeSchedule.js`), and the note's text was corrected through the publish path.
+
 ### 4.6 (2026-06-11) — An orphan tracking row is either a live feed missing registration, or a killed feed missing cleanup — decide with evidence
 
 **What happened:** A registration pass found tracking rows with no registry entry and registered all three per the no-grey-chips rule — without checking history. All three had been deliberately killed as phantom feeds THE DAY BEFORE; the kill removed producers and tiles but left tracking rows behind. Registration armed the header freshness pill on a dead feed: Joe saw "1 feed stale" with every visible tile green and no red tile anywhere to find.
@@ -1142,6 +1146,7 @@ They are not the same series and they are nowhere near each other:
 
 **2026-10-09 addendum (Joe: "You did a health check on the site and didn't notice this garbage modal?!"):** the engine track-record modal on /macro ("See it against the market") shipped 2026-07-29 with `eng-*` classNames and NO stylesheet — raw browser defaults, no padding, year ticks run together as "200720102013…", empty legend swatches, an unstyled table. It sat broken for ten weeks. The sweep had rendered / and /paper that same morning and called the site verified. **Rule: a page check that never opens a modal has not checked the modal.** RENDERED-DOM-SMOKE now opens the track-record modal and asserts the content is padded, the axis ticks are positioned, and no year labels run together on ANY checked surface (the generic tell of a component with no CSS). Any new modal or drawer ships with its own entry in `checkMacroModals` (or a sibling) in the same PR — rule 6 of 0.13 again: a surface with no reader does not exist.
 
+**2026-10-29 — again (outside audit):** at 9:40 PM the Paper page read "LIVE PRICES · 3:50 PM ET" and the SPY page printed "LIVE $764.73" — an after-hours trade. The Paper stamp was gated on the MARK's time (inside the session), not on the market being open now; and the after-close snapshot overwrote the 3:50 PM values without overwriting the 3:50 PM stamp, so even the closing marks read "live". Now: "live" only while the market is open; after the bell "prices at 3:50 PM ET · close not marked yet" until the snapshot lands; the snapshot stamps its own time (`paper_portfolio/qt/eod.py`). A closed-market quote on the ticker page is labelled by its bar time — Pre-market, After hours or Last trade.
 
 ### 4.33 (2026-09-15) — A forecaster that has not rolled to the next month yet is not a broken fetch; fail-loud rules need the race window named
 
@@ -1262,6 +1267,19 @@ They are not the same series and they are nowhere near each other:
 4. **The brief's date check knows the new class.** `rating review` joined `_EVENT_WORDS` in `build_daily_brief.py`, so a brief that names a review date not on the feed is refused like a wrong FOMC date.
 
 **Applies to:** Lead Developer, Data Steward — every calendar feed; the Trade Idea and brief runs that read it.
+
+### 4.43 (2026-10-29) — An event that has happened shows what happened; a data-refresh chip is not event status
+
+**What happened:** An outside audit at 9 PM found the homepage still listing the ECB decision (8:15 AM), PCE, GDP and jobless claims (8:30 AM) under "Today" exactly as at dawn — no released state, no outcome, the ECB's decision nowhere on the site — while the release pop-up's green pill (the feed's freshness chip) could be read as the event's status. The calendar knew dates and times; nothing ever asked whether the time had passed.
+
+**Rule:**
+
+1. **A row whose time has passed says so** — "Released", in place of its time, re-evaluated on the New York clock every minute.
+2. **It shows the figure only when the figure is that release's.** A print shows when FRED's vintage history says the newest observation was first published on the release's own date (ALFRED `realtime_start`; with the default real-time period FRED echoes today's date on every observation, so the vintage history has to be asked for). A central-bank decision shows only as read from the bank's own statement — Fed FOMC statement, ECB "Monetary policy decisions", Bank of England Monetary Policy Summary, Bank of Japan statement (`scripts/cb_decisions.py`). Anything else reads "Released" and nothing more; never a stale print dressed as today's (4.9). No consensus — no paid vendor.
+3. **A freshness chip is about the data, never the event.** Its label and tooltip say "Data refresh".
+4. **A same-day figure needs a same-day run.** The calendar job gained an 11:15 AM weekday pass so the 8:30 and 10:00 prints and the morning decisions appear the same morning.
+
+**Applies to:** Lead Developer, Data Steward, UX Designer — the calendar, its pop-ups, and any list of scheduled events.
 
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
@@ -2453,6 +2471,8 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 
 **Applies to:** UX Designer, Lead Developer — any nav, page-name, or manifest-surface change.
 
+**Update (2026-10-29):** the browser-tab title is one more surface that names pages. Every page used to read "MacroTilt — Market Dashboard"; `pageTitle()` in `siteNav.js` now builds each tab's title from `PAGE_NAME` (the ticker page adds the company once it loads). The public Data page moved from /admin/data to /data (/admin/data redirects).
+
 ### 9.12 (2026-07-29, same day as 8.16) — Every visible part must add to its visible whole, rounding included; a reader checking your arithmetic is the last line of QA
 
 **What happened:** an hour after 8.16 shipped, Joe checked the page the way any reader would — by adding it up. "Insider is down 7100, momentum is up 1150, top of page says down 6731. How is simple arithmetic so hard?" He was right again, and 8.16 had only fixed the top of the page. Three different bases were still on screen at once:
@@ -2478,6 +2498,8 @@ The first cut of the scanner-tile detail put a tiny label over every number, pus
 **Rule:** Any page keyed on a user-supplied identifier resolves that identifier *first* and renders an explicit not-found state when it doesn't resolve — before any of the per-field empty states get a chance to imply an outage. Concretely: (a) treat "every source finished loading and none of them carries this key" as not-found, and never treat a *failed* read as evidence of absence (an errored lookup falls through to the normal page — offline is not "doesn't exist"); (b) the not-found state names what was asked for, says plainly what the coverage boundary is, and offers the closest real matches as one click, so a typo costs a click instead of a bug report; (c) `?? 0` on a displayed price is a substituted number (4.4) — a covered symbol with no stored close shows an em-dash, never `$0.00`, and the change line hides rather than printing a fake `+0.00%`; (d) suggestion ranking is part of the fix, not decoration: plain edit distance puts micro-caps above household names (PAPL above AAPL for APPL, and MSFT off the list entirely for MFST, because a swapped pair costs 2 edits), so score letter-scrambles and blend a bounded market-cap prominence term, then verify the obvious typos by hand.
 
 **Applies to:** Lead Developer, UX Designer — the ticker page today, and any future route that takes a symbol, ID, or slug from the URL or a free-text box.
+
+**2026-10-29 — the same lie, in the loading state (outside audit, with JavaScript slowed and blocked):** the banner printed "S&P — 0 close" until the 4.9 MB history arrived, Home printed "No major releases scheduled in the next ten weeks" and "No note published yet" while their feeds were still in flight, and the ticker page printed "Div yield None", "None on file" and "No recent headlines on file" before its sources had answered. **Rule: loading is a neutral skeleton (`rd-skel`), never a sentence or a zero; failure is said plainly ("did not load — refresh"); an empty-state sentence prints only after the source has answered with nothing.** Test every page with its data requests held open and with them failing (`MODE=hang|fail`), not only with them fast.
 
 ### 9.14 (2026-07-30, same report) — A hard `max-width` on body copy inside a full-bleed card wastes most of the row
 
@@ -2640,6 +2662,7 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 
 **Applies to:** UX Designer + Lead Developer on every list, calendar, and "see all" affordance; Senior Quant + Data Steward on the release-history feed.
 
+**2026-10-29 — again:** Home's "See the track record →" went to Macro Landscape, which has no track-record section — the record is a pop-up behind "See it against the market". It now opens the same component (`components/EngineTrackRecord.jsx`) in place on Home (9.16), and `/macro#track-record` opens it directly.
 
 ### 9.22 (2026-10-01) — Visual feedback is systemic. Change the token, not the component; list every page affected. Never hard-code a style value in a component.
 
@@ -2737,6 +2760,8 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 
 **Applies to:** UX Designer (lead), Lead Developer.
 
+**2026-10-29 — the other half (outside audit: "the S&P detail can be clicked only when it happens to be visible"):** the strip is drawn twice for a seamless loop, and the second copy was `inert` — on screen half the time, dead to a click. Both copies now open the drill (the second stays out of the tab order and hidden from assistive tech). Moving the strip by hand never scrolls the window: the back/forward buttons, a sideways swipe or trackpad gesture, and keyboard focus all SEEK the animation's own clock (Web Animations `currentTime`), so the 9.30 failure cannot come back. It holds still on hover, on keyboard focus, while dragged, while a detail is open, or on the pause button. Keyboard focus clamps the seek to one copy, so the focused tile itself — not its twin — comes into view.
+
 ### 9.31 (2026-10-29) — A site-wide element takes one skin on every page; a phone-only token never sizes anything outside its own breakpoint
 
 **What happened:** Joe: "Why are the scrolling tickers different on the home page than they are on the other pages?" The market banner was one component on every page, but it took the page's skin: tall two-line sans tiles on Home, a single 32px monospace amber row on Macro Landscape, Paper Portfolio, Macro Scorecard and the ticker pages. Same 33 series, same detail panels, two looks; he asked whether the assets were even the same. Checking it on the live site found worse: on the terminal pages the band was 1px tall at every width between 431 and 860 — the phone rule set the band's height to `--mt-tap`, which is 44px only under 430px and 0px above it, so on a tablet or a narrow desktop window the band vanished.
@@ -2747,6 +2772,14 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 3. "Is it the same on every page" is checked on the live site at 390, 820 and 1440, not by reading that the component is mounted once.
 
 **Applies to:** UX Designer (lead), Lead Developer.
+
+### 9.32 (2026-10-29) — One close control per pop-up; Escape and the backdrop close the top layer only
+
+**What happened:** An outside audit found pop-ups with two close controls (the × in the corner and a "Close" button at the foot of every indicator, positioning and index detail) and inconsistent dismissal: every pop-up added its own window Escape listener, so with the release calendar open and a release opened on top of it, one Escape closed both while a backdrop click closed one.
+
+**Rule:** A pop-up has exactly one close control — the × in its corner. Escape and a click on the backdrop do the same thing and close only the top-most pop-up: every pop-up registers through `lib/useModalEscape.js` while open, and only the last one registered answers Escape. A new pop-up that adds its own keydown listener for Escape is a defect.
+
+**Applies to:** UX Designer, Lead Developer — every modal, drawer and sheet.
 
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 
