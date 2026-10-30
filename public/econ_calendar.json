@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-30T00:01:52Z",
+  "generated_at": "2026-10-30T10:21:07Z",
   "window": {
     "from": "2026-10-23",
     "to": "2027-01-08"
   },
   "counts": {
-    "total": 111,
-    "tier1": 34
+    "total": 110,
+    "tier1": 33
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -142,17 +142,6 @@
       "category": "Policy",
       "blurb": "Federal Reserve rate decision and statement, followed by a 2:30 PM press conference.",
       "source": "Federal Reserve FOMC calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-29",
-      "time_et": "8:15 AM",
-      "name": "ECB decision (Governing Council)",
-      "short": "ECB",
-      "tier": 1,
-      "category": "Policy",
-      "blurb": "European Central Bank rate decision and statement, with a 8:45 AM ET press conference.",
-      "source": "ECB Governing Council calendar (ecb.europa.eu)",
       "time_source": "published release policy"
     },
     {
