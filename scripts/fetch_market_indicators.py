@@ -162,6 +162,29 @@ def last_settled_date(now=None):
     return (et - _dtm.timedelta(days=1)).strftime("%Y-%m-%d")
 
 
+def uranium_reading_date(now=None):
+    """The business day a spot-uranium reading belongs to (2026-10-30 sweep).
+    Numerco publishes one spot price per US business day. A reading taken
+    before 17:05 ET is the PREVIOUS day's published price (the 06:40/08:40 UTC
+    morning dispatches run at 02:40/04:40 ET), and a weekend reading is
+    Friday's. Stamping it with et_today() filed Thursday's 92.25 again under
+    Friday 10-30 — a session that had not happened — and the tile printed
+    "0.00% close". Same cut as the futures: last_settled_date(), rolled back
+    off Saturday/Sunday."""
+    import datetime as _dtm
+    d = _dtm.date.fromisoformat(last_settled_date(now))
+    while d.weekday() >= 5:
+        d -= _dtm.timedelta(days=1)
+    return d.isoformat()
+
+
+def _uranium_point_ok(date_s, reading_date):
+    """A stored daily uranium point is kept only on a weekday on or before the
+    reading date — the same cut applied to points already on file (4.41)."""
+    import datetime as _dtm
+    return date_s <= reading_date and _dtm.date.fromisoformat(date_s).weekday() < 5
+
+
 def fetch(ticker):
     import requests, time as _t
     # Full DAILY history via explicit date range. range="max" downsamples old
@@ -575,9 +598,14 @@ def run():
         # New York date, not the runner's UTC date: the job runs in the US
         # evening, when UTC is already tomorrow, so the reading was being
         # stamped with a day that had not started. 2026-10-09.
-        today = et_today()
+        # Then the business day the reading belongs to, not the run's date:
+        # see uranium_reading_date (2026-10-30). Daily points already on file
+        # that fall on a weekend or after that day are dropped (backbone
+        # monthly points, before URANIUM_DAILY_FROM, are untouched).
+        today = uranium_reading_date()
         existing = (hist0.get("cmdty_uranium") or {})
-        upts = [list(pt) for pt in (existing.get("points") or []) if pt[0] != today]
+        upts = [list(pt) for pt in (existing.get("points") or [])
+                if pt[0] != today and (pt[0] < URANIUM_DAILY_FROM or _uranium_point_ok(pt[0], today))]
         # Monthly backbone, rebuilt on EVERY run rather than seeded once.
         # A one-time seed cannot correct itself and cannot extend: this one was
         # seeded in June 2026 from a source that had the wrong benchmark AND had
@@ -679,6 +707,16 @@ def selftest():
     good = c1 == "2026-10-08" and c2 == "2026-10-08" and "2026-10-09" > c2
     ok &= good
     print(f"  {'OK' if good else 'FAIL'} settled cutoff: 8:00 ET Oct 9 -> {c1}; 20:40 ET Oct 8 -> {c2}")
+    # Uranium reading date (2026-10-30): Fri 04:40 ET -> Thu; Thu 21:00 ET ->
+    # Thu; Sat and Mon-morning readings -> Fri; weekend/future points dropped.
+    u1 = uranium_reading_date(_td.datetime(2026, 10, 30, 4, 40, tzinfo=_ny))
+    u2 = uranium_reading_date(_td.datetime(2026, 10, 29, 21, 0, tzinfo=_ny))
+    u3 = uranium_reading_date(_td.datetime(2026, 10, 24, 22, 0, tzinfo=_ny))
+    u4 = uranium_reading_date(_td.datetime(2026, 11, 2, 2, 40, tzinfo=_ny))
+    keep = [d for d in ("2026-10-23", "2026-10-24", "2026-10-29", "2026-10-30") if _uranium_point_ok(d, u1)]
+    good = (u1, u2, u3, u4) == ("2026-10-29", "2026-10-29", "2026-10-23", "2026-10-30") and keep == ["2026-10-23", "2026-10-29"]
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} uranium reading date: {u1} {u2} {u3} {u4}; kept {keep}")
     # daily_bars: London-midnight FX bar is dated by London, the appended live
     # quote and a null close are not bars.
     _lon = _zi2("Europe/London")
