@@ -161,6 +161,12 @@ worse, product.
   today" and stop. A `changes_requested` row's `change_feedback` is Joe's
   instruction for the rebuild: read it, redo the idea/note/chart per his
   words, and queue a fresh row (mark the old one `cancelled`).
+- **Open calls still factual (2026-10-30, LESSONS 6.28):** read
+  `https://macrotilt.com/thesis_checks.json` (last evening's daily thesis
+  check). For every call in `tripped[]`, the reply carries one line in plain
+  English: the call, what tripped, and whether it stands and why — the run
+  never stays silent about a tripped call, and never publishes a new call in
+  the same direction as a tripped one without a `reconciles` paragraph.
 - **X monthly cap (X's limit on automated posts, 10 per calendar month):**
   `select count(*) from x_pending_posts where status='posted' and
   date_trunc('month', post_date) = date_trunc('month', current_date)`. If 10
@@ -465,6 +471,35 @@ At least one condition, at least one `critical: true` — the claim the call
 cannot survive losing (the driver itself, not the colour). Write `holds_while`
 as the test the Monday session can apply without judgment. The note's stop is
 NOT a review condition; the scorer already enforces it.
+
+**The machine form, and the daily check (Joe, 2026-10-30 — LESSONS 6.28).**
+Joe: *"I think we need a check that proves the posted idea is still factual."*
+The Oct 22 note's title said spreads were "widening" for a week after they had
+started tightening, and its 300bp line sat halfway back through the 66bp move,
+so the weekly review would still have called it intact. From notes dated
+2026-10-31 every CRITICAL condition also carries:
+
+```json
+"check":  {"series": "hy_ig", "op": ">=", "level": 300},
+"driver": {"series": "hy_ig", "direction": "up",
+           "move_start": {"date": "2026-09-08", "value": 267}}
+```
+
+`check` is `holds_while` as numbers (`transform` may be `pctile_3y` or
+`pct_vs_200d`, `basis` may be `weekly_close`). `driver` is the move the note
+rests on: where it began, which way the thesis needs it. Every evening
+`scripts/daily_thesis_check.py` re-measures both for every open call and trips
+the call when a critical level breaks or more than a third of the move
+(`max_giveback`, 0.1–0.5) is handed back from its best reading since
+publication; Joe gets one email per trip. Take `move_start` from your own
+`evidence[]` — the contract checks the series exist. Notes published before the
+rule take their machine form from `scripts/thesis_checks.json`.
+
+**Headlines state dated facts (2026-10-30, contract-enforced from 2026-10-31).**
+No present-tense trend in the `title` or `dek` — "widening", "surging",
+"rising", "falling" and their kin are refused. Write the move with its size
+and window: "High-yield spreads 66bp wider in six weeks", never "Credit spreads
+widening". A dated fact stays true while the note is on the tile.
 
 ### The call — a claim with a horizon, never an order
 

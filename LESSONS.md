@@ -2094,6 +2094,14 @@ Settled in the script where the spec was wrong: an event idea cannot raise the b
 
 **Applies to:** Senior Quant (owns the figures), Lead Developer (the risk job and the cockpit), UX Designer (both columns always shown).
 
+### 6.28 (2026-10-30) — A note must stay factual while it is live: re-measure the reason every evening, and trip on a give-back, not only on a line
+
+**What happened:** The Oct 22 note — "Credit spreads widening, S&P 500 likely to close the gap" — sat on the tile and the Scorecard for a week after the move it described had turned. High-yield spreads were 333bp at publication, peaked at 340bp on Oct 22, and read 314bp on Oct 28: 26bp off the peak and 19bp tighter than at publication. Joe: *"I think we need a check that proves the posted idea is still factual."* Two failures. (1) The only thesis check ran on Mondays. (2) The critical condition was "at or above 300bp" — a line halfway back through the 66bp widening the note was built on — so credit could undo half of the reason for the trade and the review would still have read "intact". A third, in the headline: a present-tense trend ("widening") is true the day it is written and goes stale on the tile.
+
+**Rule:** (a) `scripts/daily_thesis_check.py` runs in TRADE-IDEA-SCORECARD-DAILY after the marks, every weekday, in code: it re-measures each open call's conditions (`check`) and the move the call rests on (`driver`), writes `public/thesis_checks.json`, and a call trips when a critical condition breaks OR more than a third of the move (from `move_start` to its best reading since publication) is handed back. `send_thesis_check_alert.py` emails Joe once per (call, reason) after the 7 PM ET mark — `thesis_check_alerts` is the mutex — and nothing on quiet days. (b) A trip is an alert, not a close; the morning Trade Idea run reports every tripped call in its reply, and the Monday review may not call a tripped call intact without a dated number explaining why. (c) From notes dated 2026-10-31 the contract requires `check` and `driver` on every critical condition and refuses a present-tense trend in the title or dek — state the move with its size and window. (d) Older open notes take their machine form from `scripts/thesis_checks.json`, copied from their own `holds_while` and `evidence[]` once; never edited to make a call pass. On first run both the Oct 22 credit call (36% given back) and the Oct 9 energy call (the 10-year has handed back 38% of its jump) tripped.
+
+**Applies to:** Senior Quant (writes check and driver at publication), Lead Developer (the workflow, the alert), Trade Idea and Thesis Review sessions (answer every trip).
+
 # 7 · CODE & RELEASE DISCIPLINE
 ### 7.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component
 

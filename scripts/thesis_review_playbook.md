@@ -8,7 +8,13 @@ return and how the future expected return has changed, i.e. are we still
 expecting this trade to pan out or do we have a different view."*
 
 The daily scorer (`scripts/score_trade_ideas.py`) asks one question every
-evening: did price cross the stop. This session asks the other one, every
+evening: did price cross the stop. Since 2026-10-30 the daily thesis check
+(`scripts/daily_thesis_check.py`, same workflow, LESSONS 6.28) also re-measures
+every open call's conditions and the move it was built on each evening and
+writes `public/thesis_checks.json`; Joe is emailed once per trip. **Every call
+in that file's `tripped[]` gets an explicit verdict in this review — `intact`
+is refused for a tripped call unless the review says, with a dated number,
+why the trip does not reach the thesis.** This session asks the other one, every
 Monday before the open: **is the reason for each open call still there** — and
 says so with dated evidence, a verdict, and a number for where we now expect
 the call to finish. `scripts/thesis_review.py` validates the verdicts, computes
@@ -170,7 +176,8 @@ only (Joe, 2026-10-08).
       "view_now": "…",
       "called_for_pct": 3.18, "called_for_basis": "…",
       "expected_return_now_pct": 2.4, "expected_basis": "…",
-      "action": "hold | trim | close", "action_reason": "…"
+      "action": "hold | trim | close", "action_reason": "…",
+      "trip_answer": "only for a call the daily check tripped and you call intact — why, with a dated number"
     }
   ]
 }

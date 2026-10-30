@@ -1,0 +1,18 @@
+{
+ "_doc": "Machine form of the review conditions for open notes published before review conditions carried their own `check` and `driver` (build_trade_idea.py REVIEW_CHECKS_FROM). Keyed by note id; `conditions` lines up with the note's review_conditions[] by position. Every level and every move_start value here is copied from the note's own holds_while text or evidence[] — nothing is re-chosen after the fact. Written once (2026-10-30, LESSONS 6.28); never edited to make a call pass. Read by scripts/daily_thesis_check.py.",
+ "2026-10-22-credit-broke-first-the-s-p-500-has-two-weeks-to-": {
+  "conditions": [
+   {"check": {"series": "hy_ig", "op": ">=", "level": 300},
+    "driver": {"series": "hy_ig", "direction": "up", "move_start": {"date": "2026-09-08", "value": 267}}},
+   {"check": {"series": "spx_index", "op": "<=", "level": 7818}}
+  ]
+ },
+ "2026-10-09-yields-and-oil-are-surging-together-energy-stock": {
+  "conditions": [
+   {"check": {"series": "cmdty_oil", "op": ">=", "level": 80, "transform": "pctile_3y"}},
+   {"check": {"series": "ticker:XLE", "op": ">", "level": 0, "transform": "pct_vs_200d", "basis": "weekly_close"}},
+   {"check": {"series": "ust_10y", "op": ">=", "level": 4.75},
+    "driver": {"series": "ust_10y", "direction": "up", "move_start": {"date": "2026-07-10", "value": 4.56}}}
+  ]
+ }
+}
