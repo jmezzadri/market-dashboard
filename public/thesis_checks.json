@@ -1,6 +1,6 @@
 {
- "generated_at": "2026-10-30T10:30:21Z",
- "as_of": "2026-10-30",
+ "generated_at": "2026-10-31T00:47:51Z",
+ "as_of": "2026-10-31",
  "rule": "Every open call's review conditions and driver are re-measured each evening. A call trips when a critical condition breaks, or when the move it was built on has handed back more than a third (the note may set 10-50%) from its best reading since publication.",
  "calls": [
   {
@@ -17,8 +17,8 @@
       "level": 300.0,
       "transform": "level",
       "basis": "close",
-      "value": 314.0,
-      "value_date": "2026-10-28",
+      "value": 326.0,
+      "value_date": "2026-10-29",
       "status": "holds"
      },
      "driver": {
@@ -34,13 +34,13 @@
        "value": 340.0
       },
       "latest": {
-       "date": "2026-10-28",
-       "value": 314.0
+       "date": "2026-10-29",
+       "value": 326.0
       },
       "move": 73.0,
-      "given_back": 26.0,
-      "given_back_pct": 35.6,
-      "status": "broken"
+      "given_back": 14.0,
+      "given_back_pct": 19.2,
+      "status": "holds"
      }
     },
     {
@@ -58,16 +58,11 @@
      }
     }
    ],
-   "tripped": true,
-   "trip_reasons": [
-    {
-     "key": "giveback0",
-     "text": "The move the call was built on has been given back (36% of it)"
-    }
-   ],
+   "tripped": false,
+   "trip_reasons": [],
    "lines": [
-    "Critical \u2014 Credit remains wider than before the move began: holds \u2014 314bp on 2026-10-28, needs to stay at or above 300bp.",
-    "The move behind the call: TRIPPED \u2014 moved 267bp (2026-09-08) to 340bp (2026-10-22); now 314bp (2026-10-28), 36% of the move given back against a 33% limit.",
+    "Critical \u2014 Credit remains wider than before the move began: holds \u2014 326bp on 2026-10-29, needs to stay at or above 300bp.",
+    "The move behind the call: holds \u2014 moved 267bp (2026-09-08) to 340bp (2026-10-22); now 326bp (2026-10-29), 19% of the move given back against a 33% limit.",
     "The index has not made a new record close: holds \u2014 7,720 on 2026-10-29, needs to stay at or below 7,818."
    ],
    "coverage": "full"
@@ -86,8 +81,8 @@
       "level": 80.0,
       "transform": "pctile_3y",
       "basis": "close",
-      "value": 97.619,
-      "value_date": "2026-10-29",
+      "value": 98.4127,
+      "value_date": "2026-10-30",
       "status": "holds"
      }
     },
@@ -149,7 +144,7 @@
     }
    ],
    "lines": [
-    "Critical \u2014 Oil remains expensive relative to its recent range: holds \u2014 97.6 (percentile of three years) on 2026-10-29, needs to stay at or above 80.0.",
+    "Critical \u2014 Oil remains expensive relative to its recent range: holds \u2014 98.4 (percentile of three years) on 2026-10-30, needs to stay at or above 80.0.",
     "Energy stocks are in an uptrend: holds \u2014 19.2% versus its 200-day average on 2026-10-23, needs to stay above 0.00.",
     "Bond yields have not collapsed: holds \u2014 4.98% on 2026-10-29, needs to stay at or above 4.75%.",
     "The move behind the call: TRIPPED \u2014 moved 4.56% (2026-07-10) to 5.24% (2026-10-09); now 4.98% (2026-10-29), 38% of the move given back against a 33% limit."
@@ -194,7 +189,6 @@
   }
  ],
  "tripped": [
-  "2026-10-22-credit-broke-first-the-s-p-500-has-two-weeks-to-",
   "2026-10-09-yields-and-oil-are-surging-together-energy-stock"
  ]
 }
