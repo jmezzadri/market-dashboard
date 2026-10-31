@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-30T23:56:15Z",
+  "generated_at": "2026-10-31T15:26:56Z",
   "window": {
-    "from": "2026-10-23",
-    "to": "2027-01-08"
+    "from": "2026-10-24",
+    "to": "2027-01-09"
   },
   "counts": {
-    "total": 110,
+    "total": 107,
     "tier1": 33
   },
   "sources": [
@@ -31,53 +31,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-10-23",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan, final)",
-      "short": "UMich final",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-23",
-      "time_et": "12:00 PM",
-      "name": "Moody's France rating review",
-      "short": "Moody's France",
-      "tier": 2,
-      "category": "Sovereign",
-      "blurb": "Moody's scheduled review of France (Aa3, negative outlook since Oct 24, 2025). Published after the European close on a date fixed a year ahead under EU rules. Worth watching: negative outlook.",
-      "source": "Moody's published sovereign rating calendar 2026 (EU regulation 1060/2009 art. 8a)",
-      "time_source": "EU publication rule \u2014 after the European close",
-      "country": "France",
-      "agency": "Moody's",
-      "rating": "Aa3",
-      "outlook": "negative",
-      "rating_as_of": "2025-10-24",
-      "watch": true,
-      "watch_reason": "negative outlook"
-    },
-    {
-      "date": "2026-10-23",
-      "time_et": "12:00 PM",
-      "name": "S&P Germany rating review",
-      "short": "S&P Germany",
-      "tier": 3,
-      "category": "Sovereign",
-      "blurb": "S&P's scheduled review of Germany (AAA, stable outlook since Oct 25, 2024). Published after the European close on a date fixed a year ahead under EU rules. Background: stable outlook, clear of every threshold \u2014 an affirmation is the base case.",
-      "source": "S&P published sovereign rating calendar 2026 (EU regulation 1060/2009 art. 8a)",
-      "time_source": "EU publication rule \u2014 after the European close",
-      "country": "Germany",
-      "agency": "S&P",
-      "rating": "AAA",
-      "outlook": "stable",
-      "rating_as_of": "2024-10-25",
-      "watch": false,
-      "watch_reason": "stable outlook, clear of every threshold"
-    },
     {
       "date": "2026-10-26",
       "time_et": "8:30 AM",
