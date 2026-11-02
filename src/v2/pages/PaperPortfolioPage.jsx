@@ -905,7 +905,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     const num = (v) => (v == null ? null : Number(v));
     return [
       { key: 'rank', label: '#', tip: TIPS.rank, align: 'r', width: 40, hidden: true, sortValue: (r) => num(r.rank), render: (r) => <span style={{ color: INK3 }}>{r.rank}</span> },
-      { key: 'company', label: 'Name', align: 'l', width: 120, noHide: true, sortValue: (r) => r.symbol,
+      { key: 'company', label: 'Name', align: 'l', width: 168, noHide: true, sortValue: (r) => r.symbol,
         render: (r) => (
           <button type="button" onClick={() => onOpenTicker && onOpenTicker(r.symbol)}
             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -923,7 +923,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           const w = marks[r.symbol] ? Number(marks[r.symbol].mv) / equity : null;
           return rs[r.symbol] != null && w && rs[r.symbol] / w >= ALERT_RULES.concentration ? 'warn' : '';
         } },
-      { key: 'factor', label: 'Style', tip: RISK_TIPS.factor, align: 'l', width: 72, sortValue: (r) => (primaryFactor(fz[r.symbol])?.label ?? null),
+      { key: 'factor', label: 'Style', tip: RISK_TIPS.factor, align: 'l', width: 84, sortValue: (r) => (primaryFactor(fz[r.symbol])?.label ?? null),
         render: (r) => { const p = primaryFactor(fz[r.symbol]); return p ? <span style={{ color: p.key ? INK : INK3 }}>{p.label}</span> : <span style={{ color: INK3 }}>—</span>; } },
       { key: 'last', label: 'Price', tip: TIPS.last, align: 'r', width: 64, sortValue: (r) => (marks[r.symbol] ? Number(marks[r.symbol].price) : null),
         render: (r) => (marks[r.symbol] ? fmtUsd(marks[r.symbol].price, 2) : pendingBuy(r.symbol) ? pendingCell : <span style={{ color: INK3 }}>—</span>) },
