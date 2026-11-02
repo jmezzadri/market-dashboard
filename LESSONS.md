@@ -1285,6 +1285,18 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer, Data Steward, UX Designer — the calendar, its pop-ups, and any list of scheduled events.
 
+### 4.44 (2026-11-02) — A query that "suddenly" times out on a big table: read pg_stat_user_tables before touching the SQL
+
+**What happened:** POWER-TREND-LIST-MONTHLY failed both Nov 1 fires and the second Oct 1 fire: `rpc power_trend_scan` hit the 120s service_role statement timeout four times per run, so the November Power Trend list never published. The query had not changed. `pg_stat_user_tables` for `prices_eod` (6.3M rows) showed last_autovacuum and last_autoanalyze NULL, 398k dead tuples and 586k rows modified since analyze: with the default 20% scale factor the table needed ~1.26M dead rows before autovacuum would touch it, so it went months unmaintained, the visibility map went stale, and the "index-only" date scan inside strategy_bt_universe() did 920,972 heap fetches. One manual `VACUUM (ANALYZE) public.prices_eod` took the universe step from 45.7s to 24.8s and the full scan from >120s to 74s; the dispatched rerun published 15 names for 2026-10-30.
+
+**Rule:**
+
+1. **Timeouts on a large table: check maintenance first.** `select n_live_tup, n_dead_tup, last_autovacuum, last_autoanalyze, n_mod_since_analyze from pg_stat_user_tables where relname = ...` and `EXPLAIN (ANALYZE, BUFFERS)` for "Heap Fetches" on an index-only scan. Never rewrite a validated query, and never raise a timeout, before ruling this out.
+2. **Big append/upsert tables get per-table autovacuum settings** (~1% scale factors, migration 20261102_prices_eod_autovacuum.sql). The 20% default is for small tables.
+3. **The scan still needs ~74s of a 120s budget on this compute** (the 2026-10-13 Disk IO compute decision at the top of this file stands). If it starts failing again with a freshly vacuumed table, that is the "job failing on database timeouts" trigger that decision names — say so to Joe then, not before.
+
+**Applies to:** Lead Developer, Data Steward — any RPC or job reading prices_eod or another multi-million-row table.
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.
