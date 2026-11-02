@@ -686,7 +686,6 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-cols--shock, .mt-overhaul .tm-row--shock { grid-template-columns: minmax(0, 1fr) 58px 72px 84px; gap: var(--sp-4); }
 .mt-overhaul .tm-row--shock, .mt-overhaul .tm-row--bt { cursor: default; }
 .mt-overhaul .tm-row--shock .tm-c-name, .mt-overhaul .tm-row--bt .tm-c-name { white-space: normal; overflow: visible; }
-.mt-overhaul .tm-row--shock .tm-sub { font-size: var(--v13-t2); color: var(--tm-text-2); }
 /* TILT */
 .mt-overhaul .tm-tilts { padding: var(--sp-6) var(--sp-10) var(--sp-4); }
 .mt-overhaul .tm-tilt { display: grid; grid-template-columns: 92px minmax(0, 1fr) 46px; gap: var(--sp-8); align-items: center; padding: var(--sp-4) 0; }
