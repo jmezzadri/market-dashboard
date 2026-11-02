@@ -607,7 +607,12 @@ export default function MethodologyPage() {
               that day and time, never <i>after-hours</i>. The stamp is said once, at the top of the page.
               <b>Monthly returns.</b> One figure per month, starting with the book&rsquo;s first day
               holding stock; the cash days before launch are account setup, not a month the book was
-              invested.
+              invested. The current month is labelled month-to-date.
+              <b>Index rows.</b> SPY, QQQ and DIA in the returns table are measured on each fund&rsquo;s
+              official daily close (the same closes the market tape uses), not on the broker snapshot,
+              so their Day, YTD and inception figures are close-to-close. On the evening of a session,
+              before that day&rsquo;s official close is loaded, the row uses the snapshot price for that
+              one day. QQQ tracks the Nasdaq-100, not the Nasdaq Composite shown on the tape.
             </p>
             <div className="me-formula" data-mono="code">
               eligible = $100M+ daily dollar volume · price ≥ $5 · volatility ≤ 70% · operating company with SEC filings<br />

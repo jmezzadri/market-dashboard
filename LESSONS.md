@@ -76,6 +76,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `0.16` CHECK YOU CAN DO IT BEFORE YOU SAY YOU WILL. Never hand Joe your own blocked step
 - `0.17` NEVER WAIT ON A CLOCK. No session sleeps, polls or waits for a release, an open, an email or anything else
 - `0.18` EVERY CHECK GREEN BEFORE YOU PUBLISH. A red check — yours or inherited — is fixed first, in the same branch; a refusal is reported in one line and never turned into a reply-word for Joe
+- `0.19` THE HEALTH SWEEP READS THE WHOLE SITE, THE EVENING TAPE AND RARE JOBS' OUTPUT — every page at 1440 and 390, every number that appears twice cross-checked, every clipped label a red
 
 **1 · TALKING TO JOE**
 
@@ -568,6 +569,22 @@ Same run: closing the two reports with a raw `update bug_reports` hung in the MC
 **2026-10-28 addendum (redesign) — a red that no local run can reproduce is the runner, not the code.** BLAST-RADIUS-SMOKE went red on every branch the day GitHub moved `ubuntu-latest` to 26.04: the workflow's pinned Playwright 1.60 cannot install Chromium there ("does not support chromium on ubuntu26.04-x64"), so it died on the install step before opening a single page. Every local check was green because local checks never touch the runner image. When a check fails before it reaches the code, read the first failing step rather than re-running the suite; the fix was a one-line runner pin (`ubuntu-24.04`) in the same branch, per rule 1. Workflows that fetch an unpinned Playwright survived the image change; the pinned one did not — a pinned browser needs a pinned runner.
 
 **Applies to:** every specialist, every publish, every project. Lead Developer owns the pre-publish run.
+
+### 0.19 (2026-11-02, Joe: "What are you actually sweeping for in this scheduled task. I just found so many things I would have expected you would have caught.") — THE HEALTH SWEEP READS THE WHOLE SITE, THE EVENING TAPE AND RARE JOBS' OUTPUT
+
+**What happened:** The 11:00Z sweep reported green on Mon 2026-11-02. That evening Joe found, in five minutes on /paper and the home page: (1) the SPY/QQQ/DIA Day returns on /paper disagreed with the ticker — the snapshot writers stamped `spy/qqq/dia_close` with the latest trade on a 15-minute-delayed feed at whatever minute they ran (3:50 PM, 8:42 PM, 4:40 PM), QQQ 1.5% off its official close on 10-29; (2) the MONTHLY cell on /paper truncated its own label ("SEP / OCT…") and wrapped November's value onto an unlabelled line; (3) every Yahoo commodity, FX and Russell 2000 tile showed Friday's close at 6:30 PM ET Monday because the evening MARKET-INDICATORS-EOD pass is a GitHub cron that had not started by 23:36Z. The sweep also missed that POWER-TREND-LIST-MONTHLY had not published since Oct 1 until the workflow went red. None of it was in what the sweep looked at: workflow colours, `pipeline_health` (whose budgets keep a Friday close "green" for 73h), the brief email, the bug queue, the header chip, tile dates at 07:00 ET, and the first lines of two pages.
+
+**Fixes shipped the same evening:** PR #1880 (/paper index rows on official `prices_eod` closes; labelled monthly cells with month-to-date marked); PR #1881 + pg_cron `market-tape-evening-2215utc` / `market-tape-evening-0030utc` (`market_tape_evening_dispatch()`, guarded on cmdty_oil and fx_eur dates); PR #1873 (prices_eod autovacuum, LESSONS 4.44).
+
+**Rule — binding on every weekday health sweep, in addition to its task prompt (the prompt could not be edited from a scheduled run; this entry is the instruction until it is):**
+
+1. **Read the whole site.** Render https://macrotilt.com/, /paper, /scorecard and /macro in headless Chromium at 1440px AND 390px (load + 15s). Save full-page screenshots and LOOK at them with the Read tool, section by section. Any label cut off with "…", any value wrapping onto an unlabelled line, any text overflowing its box, any "—" where a number belongs, any number with no label = a red. Also run a DOM scan: elements with `scrollWidth > clientWidth + 1` and overflow hidden/ellipsis — list every hit.
+2. **Cross-check every number that appears twice.** At minimum: ticker S&P/Nasdaq/Dow day change vs /paper SPY/QQQ/DIA Day (same sign, within ~0.3 points; QQQ is the Nasdaq-100, compare it to `prices_eod` QQQ); /paper index rows vs `prices_eod` closes; tile values vs `indicator_history.json`; trade-idea and scorecard marks vs `indicator_history`/`prices_eod`. Disagreement = a red, traced to the source of each number.
+3. **Check the evening.** `cron.job_run_details` for `market-tape-evening-2215utc` and `-0030utc` on the previous weekday must show success, and the MARKET-INDICATORS-EOD run they dispatched must have landed that session's commodity and FX dates before 01:00Z.
+4. **Check rare jobs by their output, not their colour.** After the 1st, `max(rebalance_date)` in `power_trend_list` = last session of the prior month; the same for every monthly/weekly producer's table.
+5. **The closing table gets a whole-site row** naming the pages and widths looked at, and an evening-tape row, every run — same principle as 0.13.
+
+**Applies to:** the weekday health sweep (Lead Developer). Every other agent that touches a page: rules 1–2 before publishing it.
 
 # 1 · TALKING TO JOE
 ### 1.1 (2026-08-26) — Never tell Joe to approve or tap something unless the prompt is CONFIRMED visible to him
