@@ -29,7 +29,12 @@ script wins — fix this file.
   review is a separate record about the notes; the notes do not change.
 - Never change a call's `called_for_pct` after its first review. The script
   rejects it. The return a note called for is the same kind of fact as its
-  entry price.
+  entry price. One exception, and the script enforces it (LESSONS 6.18 f,
+  2026-11-02): a note formally corrected onto a different vehicle after the
+  figure was frozen (`corrected_at` later than the review that froze it)
+  states its own `expected_return.pct` in the new units; submit exactly that
+  figure and say in `called_for_basis` what the prior figure was and why it
+  changed. The script keeps the prior figure on the record.
 - Never grade a call from the price alone. Down 10% with the driver intact is
   "weakened" at most; up 5% with the driver gone is "broken". Price is what
   the scorer already measures; the verdict is about the reason.
