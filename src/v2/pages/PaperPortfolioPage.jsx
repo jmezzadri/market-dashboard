@@ -565,7 +565,28 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       // continuation: charting across the boundary would splice the retired
       // book's closing equity onto the new book's opening $1M and draw a jump
       // that never happened. Keep only rows from the most recent account.
-      const navRows = nv.data || [];
+      // 2026-11-02 (Joe: "how are these not the same exact?"): the snapshot
+      // writers stamp spy/qqq/dia_close with the LATEST TRADE on a 15-minute
+      // delayed feed, at whatever minute they run — 3:50 PM most days, 8:42 PM
+      // on Fri Oct 30 (after-hours), 4:40 PM on Nov 2 — so the index rows were
+      // never measured close-to-close (QQQ's stored "close" was 1.5% off the
+      // official close on Oct 29). The benchmark rows now use the official
+      // daily close from prices_eod, the same closes the market tape uses;
+      // the snapshot value is kept only for a day the EOD ingest has not
+      // reached yet.
+      let navRows = nv.data || [];
+      if (navRows.length) {
+        const { data: px } = await supabase.from('prices_eod')
+          .select('ticker,trade_date,close').in('ticker', ['SPY', 'QQQ', 'DIA'])
+          .gte('trade_date', String(navRows[0].d).slice(0, 10)).order('trade_date').limit(5000);
+        const COL = { SPY: 'spy_close', QQQ: 'qqq_close', DIA: 'dia_close' };
+        const official = {};
+        (px || []).forEach((q) => {
+          const v = Number(q.close);
+          if (Number.isFinite(v) && v > 0) (official[q.trade_date] ||= {})[COL[q.ticker]] = v;
+        });
+        navRows = navRows.map((r) => ({ ...r, ...(official[String(r.d).slice(0, 10)] || {}) }));
+      }
       // 2026-08-28: pick the newest account that ACTUALLY HELD SOMETHING, not
       // simply the newest account. A funded-but-never-traded account produces
       // perfectly valid $1,000,000 / 0-position rows, and taking those as "the
@@ -1000,6 +1021,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     const keys = Object.keys(months).sort();
     return { months, keys, n: keys.length };
   })();
+  const todayMonth = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).slice(0, 7);
   const MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const oneYear = new Set(monthly.keys.map((k) => k.slice(0, 4))).size <= 1;
   const monthLbl = (k) => `${MN[Number(k.slice(5, 7)) - 1].toUpperCase()}${oneYear ? '' : ` ${k.slice(2, 4)}`}`;
@@ -1131,8 +1153,24 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         <div><div className="tm-k">BEST DAY</div><div className={`tm-v ${ls?.bestDay != null ? signCls(ls.bestDay) : 'fl'}`}>{ls?.bestDay != null ? signPct(ls.bestDay) : '—'}</div></div>
         <div><div className="tm-k">WORST DAY</div><div className={`tm-v ${ls?.worstDay != null ? signCls(ls.worstDay) : 'fl'}`}>{ls?.worstDay != null ? signPct(ls.worstDay) : '—'}</div></div>
         <div><div className="tm-k">UP DAYS</div><div className="tm-v">{ls?.pctUp != null ? fmtPctPlain(ls.pctUp, 0) : '—'}</div></div>
-        <div><div className="tm-k">MONTHLY{monthly.n ? ` · ${monthly.keys.map(monthLbl).join(' / ')}` : ''}</div><div className="tm-v tm-monthly">{monthly.n ? monthly.keys.map((k) => <span key={k} className={signCls(monthly.months[k])}>{signPct(monthly.months[k], 1)}</span>) : '—'}</div></div>
       </div>
+      {/* 2026-11-02 (Joe): the old cell crammed every month's label into one
+          truncated header ("SEP / OCT…") and let the values wrap onto a second
+          line with no label. One labelled cell per month instead; the current
+          month says it is month-to-date. */}
+      {monthly.n > 0 && (
+        <div className="tm-monthrow rd-num">
+          <div className="tm-k">MONTHLY RETURNS</div>
+          <div className="tm-monthcells">
+            {monthly.keys.map((k, i) => (
+              <div key={k} className="tm-mcell">
+                <div className="tm-mlbl">{monthLbl(k)}{i === monthly.n - 1 && k === todayMonth ? ' · MTD' : ''}</div>
+                <div className={`tm-mval ${signCls(monthly.months[k])}`}>{signPct(monthly.months[k], 1)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {perf && perf.ytdFromStart && <div className="tm-pnote tm-pnote--block">Index rows: $1,000,000 in each index’s fund (SPY, QQQ, DIA) at the close before the book’s first day. The book started this year, so YTD and inception match until January.</div>}
     </div>
   );

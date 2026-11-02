@@ -637,6 +637,13 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-strong { color: var(--tm-num); font-weight: var(--fw-600); }
 .mt-overhaul .tm-retstats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-8) var(--sp-10); padding: var(--sp-10); }
 .mt-overhaul .tm-monthly { display: flex; flex-wrap: wrap; gap: var(--sp-6); }
+.mt-overhaul .tm-monthrow { padding: 0 var(--sp-10) var(--sp-10); }
+.mt-overhaul .tm-monthcells { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: var(--sp-6) var(--sp-10); margin-top: var(--sp-6); }
+.mt-overhaul .tm-mcell { min-width: 0; }
+.mt-overhaul .tm-mlbl { font-size: var(--v13-t1); color: var(--tm-text-2); white-space: nowrap; }
+.mt-overhaul .tm-mval { font-size: var(--v13-t4); font-weight: var(--fw-600); color: var(--tm-text); white-space: nowrap; }
+.mt-overhaul .tm-mval.up { color: var(--tm-green); }
+.mt-overhaul .tm-mval.down { color: var(--tm-red); }
 .mt-overhaul .tm-pnote--block { padding: var(--sp-6) var(--sp-10); font-family: var(--mt-type-sans); font-size: var(--v13-t2); color: var(--tm-text-5); line-height: 1.5; white-space: normal; }
 .mt-overhaul .tm-holdbody { padding: 0 var(--sp-10) var(--sp-4); }
 .mt-overhaul .tm-search { background: var(--tm-page); border: 1px solid var(--tm-input-border); color: var(--tm-text); padding: var(--sp-4) var(--sp-10); font-family: var(--mt-type-mono); font-size: var(--v13-t2); width: 170px; outline: none; }
