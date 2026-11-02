@@ -273,7 +273,7 @@ export default function ReleaseDetailModal({ event, onClose, onBack = null }) {
 
         <p className="rel-foot">
           <span className="rel-footl">
-            <FreshnessChip elementId={HISTORY_ELEMENT} variant="pill" label="Data refresh" />
+            <FreshnessChip elementId={HISTORY_ELEMENT} variant="pill" label="Release-history feed" />
           </span>
           <span className="rel-footr">
             Actual prints are the current published values, revisions included. No street consensus is shown; every forecast names its author.
