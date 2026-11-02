@@ -69,7 +69,7 @@ const SURFACES = [
   {
     path: "/data",
     name: "Data",
-    mustInclude: ["tracked elements", "External sources"],
+    mustInclude: ["tracked feeds", "External sources"],
     mustMatch: [/\d/],
   },
   {
