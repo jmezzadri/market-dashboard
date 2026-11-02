@@ -18,6 +18,7 @@
    Nothing is hard-coded; a feed that has not loaded renders its honest empty
    state (LESSONS 4.9). Styling lives in styles/redesign.css. */
 
+import { publishedLabel } from '../lib/publishedAt';
 import React, { useMemo, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -62,6 +63,24 @@ function weekdayDate(iso) {
   if (!iso) return '';
   const d = new Date(`${iso}T00:00:00Z`);
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+/* The brief's label is fixed copy plus the time it was written, never a
+   session word. The writer used to supply "Monday pre-market", and that label
+   stayed on the page all day — at 9:42 on 2026-11-02 the tile still read
+   PRE-MARKET with the market open, next to a 5am Brent quote the reader could
+   not reconcile with Friday's close in the ticker. "written 5:41 am ET" is a
+   fact that stays true after the open and tells the reader when every number
+   in the brief was observed. A brief without a timestamp (written before this
+   field existed) says only that it was written before the open, which every
+   brief is. */
+function briefLabel(brief, briefDate, briefStale) {
+  let written = 'written before the open';
+  const ts = brief?.written_at ? new Date(brief.written_at) : null;
+  if (ts && Number.isFinite(ts.getTime())) {
+    const t = ts.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }).toLowerCase();
+    written = `written ${t} ET`;
+  }
+  return `Morning Brief${briefDate ? ` · ${briefDate}` : ''} · ${written}${briefStale ? ' · last session' : ''}`;
 }
 /* The tile's fact strip is scannable, not prose. The contract deliberately
    requires a FULL invalidation sentence (it has to be checkable), so the tile
@@ -135,6 +154,10 @@ export default function HomePage() {
   }, []);
   const impactOf = (name) => relHist?.series?.[name]?.impact || null;
   const [openRelease, setOpenRelease] = useState(null);
+  // A release opened from the calendar list REPLACES the list rather than
+  // stacking on it (2026-11-02: two pop-ups, two × buttons). The detail
+  // carries a way back to the list; closing it from the tile just closes it.
+  const [releaseFromCal, setReleaseFromCal] = useState(false);
   const { idea, error: ideaError, loading: ideaLoading } = useTradeIdea();
   const { byId: scoreById } = useTradeScores(!!idea);
   const ideaSchedule = scheduleParts(tradeSchedule(idea, idea ? scoreById.get(idea.id) : null));
@@ -219,7 +242,7 @@ export default function HomePage() {
           {/* ── Morning Brief (lead) ──────────────────────────────────── */}
           <article className="ed-brief rd-rise d2" aria-label="Morning Brief">
             <div className="ed-label ed-label--accent">
-              {brief?.eyebrow || 'Morning Brief'}{briefDate ? ` · ${briefDate}` : ''}{briefStale ? ' · last session' : ''}
+              {briefLabel(brief, briefDate, briefStale)}
             </div>
             {/* Loading is a skeleton, never a sentence that reads like news
                 (2026-10-29); a brief that did not arrive says so plainly. */}
@@ -300,7 +323,7 @@ export default function HomePage() {
             {/* The publication date is the headline date, and it says so
                 (2026-10-29); the schedule line under the trade block carries
                 the scorer's own entry, planned close and expiry. */}
-            <div className="ed-label ed-label--accent">Trade Idea{idea?.date ? ` · Published ${weekdayDate(idea.date)}` : ''}</div>
+            <div className="ed-label ed-label--accent">Trade Idea{idea?.date ? ` · Published ${publishedLabel(idea, { weekday: true, fallback: weekdayDate(idea.date) })}` : ''}</div>
             {idea ? (
               <>
                 <h2 className="ed-idea-h">{idea.title}</h2>
@@ -363,7 +386,7 @@ export default function HomePage() {
                   const done = isReleased(e, nowEt);
                   const res = done ? releaseResult(e, relHist) : null;
                   return (
-                    <button key={e.name} type="button" className={`ed-ev${e.tier === 1 ? ' is-major' : ''}${done ? ' is-done' : ''}`} onClick={() => setOpenRelease(e)}
+                    <button key={e.name} type="button" className={`ed-ev${e.tier === 1 ? ' is-major' : ''}${done ? ' is-done' : ''}`} onClick={() => { setReleaseFromCal(false); setOpenRelease(e); }}
                             aria-label={done ? `${e.name}, released${res ? `: ${res.text}` : ''}` : undefined}>
                       <span className="ed-ev-n">{e.tier === 1 && <span className="ed-dot" aria-hidden="true" />}{e.name}</span>
                       <span className="ed-ev-t rd-num">
@@ -410,7 +433,7 @@ export default function HomePage() {
         <div onClick={() => setBriefOpen(false)} className="home-v12 briefmodal-veil">
           <div onClick={(e) => e.stopPropagation()} className="briefmodal">
             <button type="button" className="briefmodal-x" onClick={() => setBriefOpen(false)} aria-label="Close">×</button>
-            <div className="eyebrow2"><span className="dot" />{brief?.eyebrow || 'Morning Brief'}{briefDate ? ` · ${briefDate}` : ''}</div>
+            <div className="eyebrow2"><span className="dot" />{briefLabel(brief, briefDate, false)}</div>
             <h2 className="briefmodal-h">The full brief</h2>
             <div className="briefmodal-body">
               {brief?.stance && <p><Html html={brief.stance} /></p>}
@@ -455,8 +478,11 @@ export default function HomePage() {
       {/* Indicator drill — opens over Home, never navigates away (2026-08-18). */}
       <IndicatorDrillModal indId={drillInd} onClose={() => setDrillInd(null)} />
       <ReleaseCalendarModal open={calOpen} events={calAll} todayISO={todayISO} meta={calMeta} impactOf={impactOf} relHist={relHist} nowEt={nowEt}
-                            onClose={() => setCalOpen(false)} onPick={(e) => { setOpenRelease(e); }} />
-      <ReleaseDetailModal event={openRelease} onClose={() => setOpenRelease(null)} />
+                            onClose={() => setCalOpen(false)}
+                            onPick={(e) => { setCalOpen(false); setReleaseFromCal(true); setOpenRelease(e); }} />
+      <ReleaseDetailModal event={openRelease}
+                          onClose={() => { setOpenRelease(null); setReleaseFromCal(false); }}
+                          onBack={releaseFromCal ? () => { setOpenRelease(null); setReleaseFromCal(false); setCalOpen(true); } : null} />
 
       {ideaOpen && idea && (
         <TradeIdeaNoteModal idea={idea} chartSeries={chartSeries} onClose={() => setIdeaOpen(false)} />

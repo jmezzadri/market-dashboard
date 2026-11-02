@@ -127,6 +127,23 @@ function ddParts(dd, dec) {
 
 /* One tile's numbers, resolved once so the value, the change and the stamp
    can never come from different observations. */
+/* The session stamp names the observation, not just its kind. "close" alone
+   let a Friday US close, a Sunday Bitcoin bar and Monday's Tokyo close sit
+   side by side as if they were one session (2026-11-02 check): every stored
+   close now carries its weekday ("Fri close"), and a live quote carries the
+   time of its last tick ("live 9:44 am"). */
+function stampClose(iso) {
+  if (!iso) return 'close';
+  const d = new Date(`${String(iso).slice(0, 10)}T00:00:00Z`);
+  if (!Number.isFinite(d.getTime())) return 'close';
+  return `${d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })} close`;
+}
+function stampLive(ts) {
+  const d = ts ? new Date(ts) : null;
+  if (!d || !Number.isFinite(d.getTime())) return 'live';
+  const t = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }).toLowerCase();
+  return `live ${t}`;
+}
 function tapeTile(r, lv, liveQ, marketOpen) {
   const live = r.live && liveQ && liveQ.covered && liveQ.price != null ? liveQ : null;
   if (live) {
@@ -135,7 +152,7 @@ function tapeTile(r, lv, liveQ, marketOpen) {
       value: live.price,
       pct: base != null ? ((live.price / base) - 1) * 100 : null,
       dd: base != null ? live.price - base : null,
-      stamp: marketOpen === true ? 'live' : 'close',
+      stamp: marketOpen === true ? stampLive(live.barTs) : stampClose(live.barTs),
     };
   }
   if (!lv) return null;
@@ -144,7 +161,7 @@ function tapeTile(r, lv, liveQ, marketOpen) {
     value: lv.value,
     pct: prev > 0 && lv.dd != null ? (lv.dd / prev) * 100 : null,
     dd: lv.dd,
-    stamp: 'close',
+    stamp: stampClose(lv.asOf),
   };
 }
 

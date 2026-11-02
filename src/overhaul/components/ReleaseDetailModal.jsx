@@ -201,7 +201,7 @@ function ImpactPanel({ impact }) {
   );
 }
 
-export default function ReleaseDetailModal({ event, onClose }) {
+export default function ReleaseDetailModal({ event, onClose, onBack = null }) {
   const open = !!event;
   const { data, failed, loading } = useEconReleaseHistory(open);
   const [which, setWhich] = useState(0);
@@ -224,6 +224,9 @@ export default function ReleaseDetailModal({ event, onClose }) {
     <div onClick={onClose} className="home-v12 briefmodal-veil">
       <div onClick={(e) => e.stopPropagation()} className="briefmodal rel-modal" role="dialog" aria-label={event.name}>
         <button type="button" className="briefmodal-x" onClick={onClose} aria-label="Close">×</button>
+        {onBack && (
+          <button type="button" className="briefmodal-back" onClick={onBack}>← All upcoming releases</button>
+        )}
         <div className="eyebrow2">
           <span className="dot" />
           {event.category || 'Release'} · {longDate(event.date)}{event.time_et ? ` · ${event.time_et} ET` : ''}

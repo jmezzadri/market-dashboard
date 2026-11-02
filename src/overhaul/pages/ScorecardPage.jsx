@@ -40,6 +40,7 @@
    at its stop, no hit rate is shown (the scorer withholds it below 10 closed
    calls), and the note behind every row opens from the row. */
 
+import { publishedLabel } from '../lib/publishedAt';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 // The SAME note reader the Home tile uses, so the scorecard never carries a
@@ -63,6 +64,7 @@ function parts(iso) { const [y, m, d] = String(iso || '').slice(0, 10).split('-'
 function dShort(iso) { const p = parts(iso); return p ? `${MONTHS[p.m - 1].slice(0, 3)} ${p.d}, ${p.y}` : '—'; }
 function dLong(iso) { const p = parts(iso); return p ? `${MONTHS[p.m - 1]} ${p.d}, ${p.y}` : '—'; }
 function dTick(iso) { const p = parts(iso); return p ? `${MONTHS[p.m - 1].slice(0, 3)} ${p.d}` : ''; }
+function dPublished(r) { return publishedLabel(r, { withTime: true, fallback: dShort(r?.date) }); }
 
 /* THE number format: one decimal, explicit + on gains, a true minus sign
    (U+2212) on losses, no sign on zero, percent sign attached. */
@@ -233,13 +235,18 @@ function optionTxt(op) {
     prem ? `premium ${prem}${basis} is the most it can lose` : '', now, und, 'valued with a model, not a quote'].filter(Boolean).join(' · ');
 }
 
-function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
+function PositionRow({ r, idea, review, isOpen, onOpenNote, asOf }) {
   const b = r.book || {};
   const ret = b.return_pct ?? r.mark;
   const bench = b.benchmark_pct ?? r.benchmark?.move ?? null;
   const exc = b.excess_pct ?? r.benchmark?.difference ?? null;
   const ctb = b.contribution_pct ?? r.contribution_pct ?? null;
   const days = b.days_held ?? r.days_held ?? null;
+  // Days held runs to the close the row is marked at — the book's as-of for
+  // an open call, the close date for a closed one — never to today. The
+  // number is labelled with that date so "9" on a Monday morning is not read
+  // as counting through the weekend (2026-11-02 check).
+  const daysTo = isOpen ? (b.as_of || r.mark_date || asOf) : (r.close_date || r.mark_date);
   const second = isOpen ? r.target_date : (r.close_date || r.mark_date);
   const kind = KIND_LABEL[r.kind] || r.kind || '—';
   const reviewTxt = review
@@ -255,13 +262,13 @@ function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
         {r.trade_label || r.instrument || '—'}
         {/* Published date beside the entry close, so the row and the
             homepage card read the same dates (2026-10-29). */}
-        <span className="sc-evline hide-sm">Published {dShort(r.date)}{r.entry_date ? ` · marked from the ${dShort(r.entry_date)} close` : ''}</span>
+        <span className="sc-evline hide-sm">Published {dPublished(r)}{r.entry_date ? ` · marked from the ${dShort(r.entry_date)} close` : ''}</span>
         {ev && <span className="sc-evline hide-sm">{ev}{isOpen && evState ? ` · ${evState}` : ''}</span>}
       </td>
       <td className="sc-class hide-sm hide-md">{kind}</td>
       <td className="sc-date hide-sm">{dShort(r.entry_date)}</td>
       <td className="sc-date hide-sm">{dShort(second)}</td>
-      <td className="num hide-sm hide-md">{days ?? '—'}</td>
+      <td className="num hide-sm hide-md">{days ?? '—'}{days != null && daysTo ? <span className="sc-evline">to {dTick(daysTo)}</span> : null}</td>
       <td className="num sc-wt hide-sm">{weightTxt(r)}</td>
       <td className={`num ${tone(ret)}`}>{pct(ret)}</td>
       <td className="num sc-bench">{pct(bench)}</td>
@@ -274,7 +281,7 @@ function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
         )}
       </td>
       <td className="sc-mcell">
-        {kind} · published {dShort(r.date)} · marked from the {dShort(r.entry_date)} close to {dShort(second)} · {days ?? '—'} days held<br />
+        {kind} · published {dPublished(r)} · marked from the {dShort(r.entry_date)} close to {dShort(second)} · {days ?? '—'} days held{days != null && daysTo ? ` to the ${dShort(daysTo)} close` : ''}<br />
         Weight {weightTxt(r)} of 100 · Contribution <span className={`num ${tone(ctb)}`}>{pct(ctb)}</span> · {isOpen ? `Last review: ${reviewTxt}` : `Reason closed: ${String(why).toLowerCase()}`}
         {ev && (<><br />{ev}{isOpen && evState ? ` · ${evState}` : ''}</>)}
         {idea && (<><br /><a href="#note" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenNote(idea); }}>View note</a></>)}
@@ -283,7 +290,7 @@ function PositionRow({ r, idea, review, isOpen, onOpenNote }) {
   );
 }
 
-function PositionsTable({ rows, isOpen, noteById, reviewById, onOpenNote }) {
+function PositionsTable({ rows, isOpen, noteById, reviewById, onOpenNote, asOf }) {
   const backfilled = rows.some((r) => r.weight_stated === false);
   return (
     <>
@@ -313,6 +320,7 @@ function PositionsTable({ rows, isOpen, noteById, reviewById, onOpenNote }) {
             review={reviewById.get(r.id)}
             isOpen={isOpen}
             onOpenNote={onOpenNote}
+            asOf={asOf}
           />
         ))}
       </tbody>
@@ -515,7 +523,7 @@ export default function ScorecardPage() {
             <h2 id="sc-h-open">Open positions</h2>
             <span className="meta">{openRows.length} {openRows.length === 1 ? 'position' : 'positions'} · unrealized · returns will change</span>
           </div>
-          <PositionsTable rows={openRows} isOpen noteById={noteById} reviewById={reviewById} onOpenNote={setOpenNote} />
+          <PositionsTable rows={openRows} isOpen noteById={noteById} reviewById={reviewById} onOpenNote={setOpenNote} asOf={data?.as_of} />
         </section>
       )}
 
@@ -525,7 +533,7 @@ export default function ScorecardPage() {
             <h2 id="sc-h-closed">Closed positions</h2>
             <span className="meta">{closedRows.length} {closedRows.length === 1 ? 'position' : 'positions'} · realized · returns are final</span>
           </div>
-          <PositionsTable rows={closedRows} isOpen={false} noteById={noteById} reviewById={reviewById} onOpenNote={setOpenNote} />
+          <PositionsTable rows={closedRows} isOpen={false} noteById={noteById} reviewById={reviewById} onOpenNote={setOpenNote} asOf={data?.as_of} />
         </section>
       )}
 

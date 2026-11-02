@@ -466,6 +466,12 @@ def score_one(idea: dict, hist: dict, today: str, review_closes: dict | None = N
     base = {
         "id": idea.get("id"),
         "date": date,
+        # The moment the note actually went out. The page prints THIS as the
+        # published date, with its time, so the entry close always reads as the
+        # last close before it. The 2026-08-24 note was committed on Aug 26 and
+        # marked from the Aug 25 close; shown as "Published Aug 24" that read as
+        # marking a day after publication (2026-11-02 check).
+        "published_at": pub_ts,
         "kind": idea.get("kind"),
         "title": idea.get("title"),
         "instrument": idea.get("instrument"),
@@ -1349,6 +1355,11 @@ def portfolio(rows: list[dict], hist: dict) -> dict | None:
             "contribution_pct": round(w / BOOK_BASE * ret, 4),
             "days_held": max(0, (dt.date.fromisoformat(end) - dt.date.fromisoformat(r["entry_date"])).days),
         }
+        # One number for "days held", end-to-end: the row's own figure ran to
+        # the leg series' last date and the book's to the scorecard's as-of,
+        # and they differed by a day on every open row (2026-11-02). The book's
+        # as-of is the date the whole page is marked to, so it wins.
+        r["days_held"] = r["book"]["days_held"]
 
     total = book_pts
     bench_total = bench_pts

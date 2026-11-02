@@ -1531,13 +1531,24 @@ export default function DataFlowPage() {
   }, [selectedTile, selectedId]);
 
   // Totals for the hero strip — computed, never literal.
-  const totals = useMemo(() => ({
-    elements: elements.length,
-    vendors: sourceTiles.length,
-    indicators: elements.filter((e) => classified[e.name] === 'derived' && isLiveIndicator(e.name)).length,
-    engines: engineTiles.length,
-    surfaces: surfaceTiles.length,
-  }), [elements, sourceTiles, engineTiles, surfaceTiles, classified]);
+  // The whole must equal its visible parts (LESSONS 9.12). "117 tracked
+  // elements" beside "65 indicators" and two positioning tiles read as a sum
+  // that did not add up (2026-11-02 check: 65 + 32 ≠ 117). The strip now
+  // spells the sum: indicators + positioning feeds + every other feed.
+  const totals = useMemo(() => {
+    const indicators = elements.filter((e) => classified[e.name] === 'derived' && isLiveIndicator(e.name)).length;
+    const positioningFeeds = elements.filter((e) => isCotElement(e) || isCreditPosElement(e)).length;
+    return {
+      elements: elements.length,
+      vendors: sourceTiles.length,
+      indicators,
+      positioningFeeds,
+      positioningSignals: cotMembers.length + creditMembers.length,
+      other: elements.length - indicators - positioningFeeds,
+      engines: engineTiles.length,
+      surfaces: surfaceTiles.length,
+    };
+  }, [elements, sourceTiles, engineTiles, surfaceTiles, classified, cotMembers, creditMembers]);
 
   return (
     <div className="home-v12 v13 data-v12">
@@ -1561,9 +1572,13 @@ export default function DataFlowPage() {
       {manifest && (
         <>
           <div className="df-totals" role="note" aria-label="Manifest totals">
-            <span><b>{totals.elements}</b> tracked elements</span>
+            <span><b>{totals.elements}</b> tracked feeds</span>
+            <span className="df-totals-sum">
+              = <b>{totals.indicators}</b> indicators + <b>{totals.positioningFeeds}</b> positioning feeds
+              {totals.positioningSignals > 0 ? <> ({totals.positioningSignals} signals)</> : null}
+              {' '}+ <b>{totals.other}</b> price, equity, portfolio, calendar &amp; engine feeds
+            </span>
             <span><b>{totals.vendors}</b> external sources</span>
-            <span><b>{totals.indicators}</b> indicators</span>
             <span><b>{totals.engines}</b> engines &amp; models</span>
             <span><b>{totals.surfaces}</b> live surfaces</span>
           </div>

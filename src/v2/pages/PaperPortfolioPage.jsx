@@ -639,6 +639,15 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   // shopping list until the orders fill; say so, loudly, everywhere.
   const nHeld = Object.keys(marks).length;
   const nothingHeld = nHeld === 0;
+  // REBALANCE DAY (2026-11-02). The scored list is written in the morning and
+  // its orders go in when the market is open, so for part of the first trading
+  // day of the month the table lists names the account does not hold yet. Each
+  // such row used to show a bare "—" for price and P&L with no reason. Name
+  // the state instead: a row with no broker mark and no filled order is a buy
+  // that has not gone in or filled yet.
+  const pendingBuy = (sym) => !marks[sym] && orders[sym]?.status !== 'filled';
+  const nPending = (book || []).filter((r) => pendingBuy(r.symbol)).length;
+  const pendingCell = <span style={{ color: INK3, fontSize: 'var(--v13-t1)', whiteSpace: 'nowrap' }}>not yet bought</span>;
 
   // "Aug 17 – Aug 25, 2026" — the dates of the epoch actually being shown, read
   // off the rows themselves. Nothing about the book's window is hardcoded any
@@ -896,13 +905,13 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       { key: 'factor', label: 'Style', tip: RISK_TIPS.factor, align: 'l', width: 72, sortValue: (r) => (primaryFactor(fz[r.symbol])?.label ?? null),
         render: (r) => { const p = primaryFactor(fz[r.symbol]); return p ? <span style={{ color: p.key ? INK : INK3 }}>{p.label}</span> : <span style={{ color: INK3 }}>—</span>; } },
       { key: 'last', label: 'Price', tip: TIPS.last, align: 'r', width: 64, sortValue: (r) => (marks[r.symbol] ? Number(marks[r.symbol].price) : null),
-        render: (r) => (marks[r.symbol] ? fmtUsd(marks[r.symbol].price, 2) : <span style={{ color: INK3 }}>—</span>) },
+        render: (r) => (marks[r.symbol] ? fmtUsd(marks[r.symbol].price, 2) : pendingBuy(r.symbol) ? pendingCell : <span style={{ color: INK3 }}>—</span>) },
       { key: 'pnl', label: 'P&L $', tip: TIPS.pnl, align: 'r', width: 76, sortValue: (r) => (marks[r.symbol] ? Number(marks[r.symbol].upl) : null),
         cellClass: (r) => (marks[r.symbol] ? (Number(marks[r.symbol].upl) >= 0 ? 'up' : 'dn') : 'muted'),
-        render: (r) => (marks[r.symbol] ? fmtSignedUsd(Number(marks[r.symbol].upl)) : '—') },
+        render: (r) => (marks[r.symbol] ? fmtSignedUsd(Number(marks[r.symbol].upl)) : pendingBuy(r.symbol) ? pendingCell : '—') },
       { key: 'pnlpc', label: 'P&L %', tip: TIPS.pnl, align: 'r', width: 58, sortValue: (r) => (marks[r.symbol] ? Number(marks[r.symbol].uplpc) : null),
         cellClass: (r) => (marks[r.symbol] ? (Number(marks[r.symbol].uplpc) >= 0 ? 'up' : 'dn') : 'muted'),
-        render: (r) => (marks[r.symbol] ? fmtPct(marks[r.symbol].uplpc, 1) : '—') },
+        render: (r) => (marks[r.symbol] ? fmtPct(marks[r.symbol].uplpc, 1) : pendingBuy(r.symbol) ? pendingCell : '—') },
       { key: 'value', label: 'Value', tip: TIPS.value, align: 'r', width: 80, hidden: true, sortValue: (r) => (marks[r.symbol] ? Number(marks[r.symbol].mv) : Number(r.target_dollars)),
         render: (r) => (marks[r.symbol] ? fmtUsd(marks[r.symbol].mv) : fmtUsd(r.target_dollars)) },
       { key: 'cost', label: 'Avg cost', tip: TIPS.cost, align: 'r', width: 76, hidden: true,
@@ -1137,7 +1146,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           <button key={r.symbol} type="button" className="tm-row tm-row--hp rd-num" onClick={() => onOpenTicker && onOpenTicker(r.symbol)}>
             <span className="tm-hp-name"><span className="is-amber">{r.symbol}</span><span className="tm-hp-co">{shortName(r.company)}</span></span>
             <span className="r">{m ? fmtPctPlain(Number(m.mv) / equity, 1) : '—'}</span>
-            <span className={`r ${m ? signCls(Number(m.upl)) : 'fl'}`}>{m ? fmtSignedUsd(Number(m.upl)) : '—'}</span>
+            <span className={`r ${m ? signCls(Number(m.upl)) : 'fl'}`}>{m ? fmtSignedUsd(Number(m.upl)) : pendingBuy(r.symbol) ? pendingCell : '—'}</span>
             <span className={`r ${m ? signCls(Number(m.uplpc)) : 'fl'}`}>{m ? fmtPct(m.uplpc, 1) : '—'}</span>
           </button>
         );
@@ -1413,6 +1422,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                       />
                       {query && filteredBook.length === 0 && (
                         <div className="tm-empty">No holdings match “{query}”.</div>
+                      )}
+                      {!nothingHeld && nPending > 0 && (
+                        <div className="tm-pnote tm-pnote--block">
+                          {nPending === 1 ? 'One name' : `${nPending} names`} in this month’s book {nPending === 1 ? 'has' : 'have'} not been bought yet: the list is scored on the first trading day of the month and its buy orders go in while the market is open. Price and P&L appear once the broker fills them; until then the account still holds last month’s names in their place.
+                        </div>
                       )}
                       <div className="tm-pnote tm-pnote--block">
                         Risk = the stock’s share of the book’s day-to-day swings (the names add to 100%); amber = more than double its share of the money. Style = the tilt the stock brings most strongly. Marks and P&L are the paper broker’s official records at the last sync. Columns can be sorted, dragged, resized and shown or hidden under “Columns”.
