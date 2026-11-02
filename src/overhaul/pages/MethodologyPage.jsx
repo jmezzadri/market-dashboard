@@ -266,8 +266,11 @@ export default function MethodologyPage() {
               category with the largest share of its gauges stretched — plus half the share elevated — is
               marked the <b>hot spot</b>; when no gauge anywhere is stretched, no category is. Every panel
               lists its indicators with the last reading, the one-step change, the 3-year percentile (PCTL, 0 lowest
-              to 100 highest; amber at the top or bottom 10%) and the flag word for a stretched or elevated reading,
-              then its speculator positioning rows from the CFTC. On a phone the panels fold, one open at a time.
+              to 100 highest; amber at the top or bottom 10%) and the flag word for a stretched or elevated reading.
+              The flag word names the end of the 3-year range the reading sits in, read against the
+              indicator's own definition — so a wide HY OAS reads CHEAP, and a low HY vs IG Ratio (the
+              investment-grade fund price over the high-yield fund price, low when junk has outperformed quality)
+              reads RISK-ON. Then come its speculator positioning rows from the CFTC. On a phone the panels fold, one open at a time.
               Clicking any row opens the chart.
             </p>
             <div className="me-formula" data-mono="code">
