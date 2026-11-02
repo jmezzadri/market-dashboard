@@ -732,12 +732,16 @@ export default function MethodologyPage() {
             </p>
             <p className="me-body-p">
               <b>Four dates, one schedule.</b> Every call carries the same four dates on the homepage
-              card, in the full note and on its Scorecard row: <b>published</b> (the day the note went
-              out), the <b>entry close</b> (the close it is marked from — the last settled close before
-              publication, so a note published before the open on a Thursday is marked from
-              Wednesday&rsquo;s close), the <b>planned close</b> (the entry close plus the horizon the
-              note states) and, for an option, its <b>expiry</b>, which can fall after the planned close.
-              All four come from the scorer&rsquo;s own output; no page works them out for itself.
+              card, in the full note and on its Scorecard row: <b>published</b> (the moment the note went
+              out, shown with its time in New York — not the research day printed inside the note,
+              which can be earlier), the <b>entry close</b> (the close it is marked from — the last
+              settled close before publication, so a note published before the open on a Thursday is
+              marked from Wednesday&rsquo;s close), the <b>planned close</b> (the entry close plus the
+              horizon the note states) and, for an option, its <b>expiry</b>, which can fall after the
+              planned close. All four come from the scorer&rsquo;s own output; no page works them out
+              for itself. <b>Days held</b> is counted from the entry close to the close the row is
+              marked at — the Scorecard&rsquo;s as-of date for an open call, the close date for a closed
+              one — and that date is printed beside the number; it never counts to today.
             </p>
             <p className="me-body-p">
               <b>A call closes</b> at the earliest of three things: the stated exit level printing
@@ -823,8 +827,10 @@ export default function MethodologyPage() {
               the job pulled on schedule; red means it has missed its window or errored. The grade is not
               the age of the data: a monthly series whose latest reading is weeks old still reads green as
               long as the daily job that fetches it keeps running. Each chip shows five things — the
-              source, how often it updates, the data's own as-of date, the job's last pull, and the target
-              after which it turns red. When a section depends on multiple inputs, the chip rolls up: if
+              source, how often it updates, the <b>latest data</b> (the data&rsquo;s own date — for a
+              monthly series, the month of the latest print), the <b>last checked</b> time (when the
+              job last ran), and the target after which it turns red. The two dates are always shown
+              separately and never as a single &ldquo;days ago&rdquo;. When a section depends on multiple inputs, the chip rolls up: if
               any input's job has stalled, the section's chip turns red and names it.
             </p>
             <p className="me-body-p">
@@ -837,6 +843,17 @@ export default function MethodologyPage() {
               decisions&rdquo;, the Bank of England&rsquo;s Monetary Policy Summary, the Bank of
               Japan&rsquo;s statement on monetary policy). Otherwise the row says Released and nothing
               more. No street consensus is shown — there is no free source for it.
+            </p>
+            <p className="me-body-p">
+              <b>Every price names its session.</b> In the price strip at the top of each page, a US
+              index during the session shows the time of its last tick (&ldquo;live 9:44 am&rdquo;);
+              every other figure shows the weekday of the close it belongs to (&ldquo;Fri close&rdquo;,
+              and &ldquo;Sun close&rdquo; for Bitcoin, which trades through the weekend). Overseas
+              closes, currencies and commodities have no intraday feed, so during a US session they
+              still show the last completed close with its day. The Morning Brief carries the time it
+              was written (&ldquo;written 5:41 am ET&rdquo;); any level quoted inside it is the level
+              at that time, which is why a brief&rsquo;s overnight oil price can differ from the
+              strip&rsquo;s prior close.
             </p>
             <p className="me-body-p">
               The daily rebalance pipeline runs Tuesday through Saturday morning, after Polygon's full

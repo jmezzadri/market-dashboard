@@ -16,57 +16,6 @@ import { createPortal } from 'react-dom';
 import { useFreshness, registerMountedChip, unregisterMountedChip } from '../../hooks/useFreshness';
 import { formatSlaDaysHours } from '../../lib/freshnessClock';
 
-// Relative-age label. When the hook supplies a calendar-aware age (weekends +
-// holidays already removed for trading/business-day series), the day bucket
-// uses THAT and floors it — so a value from the last trading session reads
-// "1d ago", never "2d ago", regardless of weekends or midnight rounding. The
-// label then always agrees with the green/red dot beside it. (Joe 2026-05-28:
-// "daily, green chip, 2d ago — that's an oxymoron.")
-function fmtStamp(iso, calendarDaysAgo) {
-  if (!iso) return '—';
-  const dateOnly = iso.length === 10;   // 'YYYY-MM-DD' — no time-of-day component
-  const dt = new Date(dateOnly ? `${iso}T00:00:00Z` : iso);
-  if (Number.isNaN(dt.getTime())) return '—';
-  const wallMin = (Date.now() - dt.getTime()) / 60000;
-  if (wallMin < -1440) {
-    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-  }
-  // A date-only stamp carries NO time-of-day, so "24h ago" is meaningless and
-  // contradicts the date (the bug: "24h ago" shown for today's June 1 data).
-  // Measure it in WHOLE UTC calendar days and label accordingly: same date =
-  // "today", else "Nd ago" / the date. Never hours.
-  if (dateOnly && calendarDaysAgo == null) {
-    const todayUTC = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
-    const stampUTC = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
-    const days = Math.round((todayUTC - stampUTC) / 86400000);
-    if (days <= 0) return 'today';
-    if (days === 1) return 'yesterday';
-    if (days < 8) return `${days}d ago`;
-    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-  }
-  // Same ET session-date as today: show intraday wall-clock freshness.
-  if (calendarDaysAgo != null && calendarDaysAgo <= 0) {
-    if (wallMin < 1) return 'just now';
-    if (wallMin < 60) return `${Math.round(wallMin)}m ago`;
-    const hr = wallMin / 60;
-    if (hr < 24) return `${Math.round(hr)}h ago`;
-    return 'today';
-  }
-  // One or more whole ET sessions back. This integer is calendar-aware
-  // (weekends/holidays not counted), so it always agrees with the dot.
-  if (calendarDaysAgo != null) {
-    if (calendarDaysAgo < 8) return `${calendarDaysAgo}d ago`;
-    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-  }
-  // Fallback (no day count supplied): plain wall-clock.
-  if (wallMin < 1) return 'just now';
-  if (wallMin < 60) return `${Math.round(wallMin)}m ago`;
-  const wallHr = wallMin / 60;
-  if (wallHr < 24) return `${Math.round(wallHr)}h ago`;
-  const day = Math.floor(wallHr / 24);
-  if (day < 8) return `${day}d ago`;
-  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-}
 
 function fmtExact(iso) {
   if (!iso) return null;
@@ -194,15 +143,11 @@ export default function FreshnessChip({
   // useful. The word was redundant clutter. Kept for screen-reader aria-label
   // and the tooltip header only.
   const word = status === 'stale' ? 'Stale' : status === 'lagging' ? 'Lagging' : status === 'holding' ? 'No new publish' : status === 'fresh' ? 'Fresh' : status === 'checking' ? 'Checking' : 'Not tracked';
-  // Session-frontier display (Joe 2026-06-12): a green daily can honestly sit
-  // 2+ sessions back only when that IS the source's publication frontier
-  // (e.g. credit spreads publish next-morning). "2d ago" beside a green dot
-  // read as a contradiction — show the factual coverage date instead.
-  const frontierLabel =
-    status === 'fresh' && (f?.calendarDaysAgo ?? 0) >= 2 && f?.dataAsOf
-      ? `thru ${new Date(String(f.dataAsOf).slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}`
-      : null;
-  const asOf = frontierLabel || fmtStamp(f?.dataAsOf || f?.lastGoodAt, f?.calendarDaysAgo);
+  // The relative "Nd ago" summary was retired 2026-11-02: on a monthly series
+  // the count ran on the release calendar, so the ISM modal read "Fresh, as of
+  // 1d ago" for a print dated Sep 30. The accessible summary and the tooltip
+  // now name the two clocks separately — the latest data point's own date and
+  // the last time the feed was checked — and never a relative count.
   // Joe 2026-06-23: data can never be more current than the pull that fetched
   // it. If a producer stamps the as-of ahead of its own run time (a forward-
   // dated reference calendar, or a midnight-UTC next-day stamp on an evening
@@ -329,7 +274,7 @@ export default function FreshnessChip({
       onFocus={onEnter}
       onBlur={onLeave}
       style={{ cursor: 'help', display: 'inline-flex', ...style }}
-      aria-label={`Data refresh: ${word}${asOf ? `, as of ${asOf}` : ''}`}
+      aria-label={`Data refresh: ${word} · latest data ${asOfExact} · last checked ${fetchedExact}`}
     >
       {inner}
       {hover && tipXY &&
@@ -367,8 +312,8 @@ export default function FreshnessChip({
             <ol style={{ margin: 0, paddingLeft: 'var(--sp-18)', color: 'var(--mt-ink-2)', lineHeight: 1.6 }}>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Source:</span> {f?.sourceVendor || '—'}</li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>Frequency:</span> {f?.cadenceLabel || freqLabel(f?.cadence, f?.calendar)}{' '}· fetch ~{etLabel(f?.scheduledFetchET)} ET</li>
-              <li style={{ marginTop: 'var(--sp-2)' }}><span style={{ color: 'var(--mt-ink-1)' }}>As of:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 'var(--fw-600)' }}>{asOfExact}</span></li>
-              <li><span style={{ color: 'var(--mt-ink-1)' }}>Last pull:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 'var(--fw-600)' }}>{fetchedExact}</span></li>
+              <li style={{ marginTop: 'var(--sp-2)' }}><span style={{ color: 'var(--mt-ink-1)' }}>Latest data:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 'var(--fw-600)' }}>{asOfExact}</span></li>
+              <li><span style={{ color: 'var(--mt-ink-1)' }}>Last checked:</span>{' '}<span style={{ color: 'var(--mt-ink-0)', fontWeight: 'var(--fw-600)' }}>{fetchedExact}</span></li>
               <li><span style={{ color: 'var(--mt-ink-1)' }}>SLA:</span> {slaText}</li>
             </ol>
             {/* When red, say why right under the five fields (spec: "shows the

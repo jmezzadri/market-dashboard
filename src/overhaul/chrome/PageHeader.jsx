@@ -10,7 +10,7 @@
    footer used), and the freshness rollup the pill has always graded off.
    (Tweaks gear retired 2026-07-21.) */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useFreshnessRollup } from '../../hooks/useFreshness';
 import { NYSE_HOLIDAYS, latestTradingSessionDate } from '../../lib/freshnessClock';
@@ -222,8 +222,16 @@ function closeWeekday(iso) {
 }
 
 export default function PageHeader() {
-  const ms = nyseMarketState();
-  const today = formatToday();
+  // The status line is a clock, not a snapshot. It used to be computed once
+  // on render, so a page opened before 9:30 read "pre-open" for as long as it
+  // stayed open (2026-11-02 check, 9:42 am). Re-evaluate every half minute.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const ms = useMemo(() => nyseMarketState(), [tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const today = useMemo(() => formatToday(), [tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const { level } = useMarketLevels();
   const newestAsOf = useMemo(() => {
     // 2026-10-29: the tape also carries series that are stamped ahead of the

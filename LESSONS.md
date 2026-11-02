@@ -146,6 +146,8 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `4.41` "After the close" is not "after the session": a futures bar dated tomorrow is already on the vendor by evening, and a guard that only looks backwards stores it as today's close; a session is complete on ITS exchange's clock, not New York's (10-21); a fix whose log line has never printed in a scheduled run is a hypothesis
 - `4.42` A calendar only carries what its sources publish; say which events are structurally unscheduled, and scope a new event class to where it can move a price
 - `4.43` An event that has happened shows what happened — "Released" once its time passes, the figure only when it is that release's own (FRED vintage date, the central bank's own statement); a data-refresh chip is not event status
+- `4.44` A query that "suddenly" times out on a big table: read pg_stat_user_tables before touching the SQL — an unvacuumed table is a schedule, not a flake
+- `4.45` A relative age on a non-daily series counts releases, not days; the chip shows "Latest data" and "Last checked" as two dates, never one "ago"
 
 **5 · PIPELINES, SCHEDULES & ALERTING**
 
@@ -266,6 +268,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.30` A box that moves its own content (the market banner) is never also a hand scroller — the two motions add and can carry the strip out of the window; the smoke test treats a clipped box with an animated child as a marquee, not cut-off text
 - `9.31` A site-wide element (the market banner) takes one skin on every page; and a rule that sizes anything off a phone-only token is wrapped in that token's own breakpoint, because the token is 0 everywhere else
 - `9.32` One close control per pop-up (the ×); Escape and the backdrop close the top layer only, through `useModalEscape`
+- `9.33` A label describes a fact, never a moment that passes (no stored "pre-market"); every number names its own observation — weekday on a close, tick time on a live quote, the date a day count runs to, the moment a note went out; an empty cell says why; a total beside its parts is printed as their sum
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -1296,6 +1299,14 @@ They are not the same series and they are nowhere near each other:
 3. **The scan still needs ~74s of a 120s budget on this compute** (the 2026-10-13 Disk IO compute decision at the top of this file stands). If it starts failing again with a freshly vacuumed table, that is the "job failing on database timeouts" trigger that decision names — say so to Joe then, not before.
 
 **Applies to:** Lead Developer, Data Steward — any RPC or job reading prices_eod or another multi-million-row table.
+
+### 4.45 (2026-11-02) — A relative age on a non-daily series counts releases, not days; the chip names two clocks, never one "ago"
+
+**What happened:** The ISM release pop-up's data-refresh chip read "Fresh, as of 1d ago" for a print dated Sep 30 that the feed had last touched Oct 6. The "Nd ago" count ran on the series' own release calendar, so one release day since the print printed as one day, and the reader could not tell the data's date from the time the feed was last checked.
+
+**Rule:** The chip's summary and tooltip always show the two clocks as two labelled dates — "Latest data" (the data's own date) and "Last checked" (when the job last ran) — and never a single relative count. A relative age ("3h ago") is allowed only where the series is daily or intraday and the count runs on calendar days.
+
+**Applies to:** Data Steward, UX Designer — the freshness chip and anything that summarises it.
 
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
@@ -2808,6 +2819,18 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 **Rule:** A pop-up has exactly one close control — the × in its corner. Escape and a click on the backdrop do the same thing and close only the top-most pop-up: every pop-up registers through `lib/useModalEscape.js` while open, and only the last one registered answers Escape. A new pop-up that adds its own keydown listener for Escape is a defect.
 
 **Applies to:** UX Designer, Lead Developer — every modal, drawer and sheet.
+
+### 9.33 (2026-11-02) — A label describes a fact, never a moment that passes; every number names its own observation
+
+**What happened:** The weekly site check at 9:42 on a Monday found the Morning Brief tile still reading "MONDAY PRE-MARKET" (a label the writer chose at 5am and nobody updated), its $109 Brent beside the banner's $117.64 with nothing saying one was a 5am futures print and the other Friday's close, every banner tile stamped the one word "close" whether it was Friday's S&P, Sunday's Bitcoin bar or Monday's Nikkei, the header's "pre-open" computed once on render and never again, the Scorecard saying "Published Aug 24 · marked from the Aug 25 close" because the row printed the note's research date rather than the moment it went out (Aug 26), "Days held 9" with no date it was counted to, five Paper holdings showing a bare "—" on rebalance morning because their buy orders had not gone in yet, and a Data page whose "117 tracked elements" sat beside parts that added to 97.
+
+**Rules:**
+1. A label that is only true for a while (pre-market, live, today) is never stored text; the page prints the time it refers to ("written 5:41 am ET", "live 9:44 am", "Fri close") and a clock re-evaluates session state while the page is open.
+2. Every stamp names the observation: a stored close carries its weekday, a live quote its tick time, a count of days the date it was counted to, a "published" the moment the note went out (with its time, so the entry close is visibly the last close before it).
+3. An empty cell says why ("not yet bought"), never "—" alone, when the reason is known to the page.
+4. A total printed beside its parts is printed AS the sum of those parts (9.12); a whole that includes things no tile shows is broken down until it adds.
+
+**Applies to:** UX Designer, Lead Developer, Data Steward — every surface that prints a time, a session word or a count.
 
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 

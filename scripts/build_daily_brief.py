@@ -439,8 +439,13 @@ def validate(brief, today):
     # labelled Friday 2026-07-31 as "Thu Jul 31" in the 8/1 brief. Compute it.
     _d = datetime.date.fromisoformat(today)
     brief["recap_session"] = prev_trading_day(_d).strftime("%a %b %-d")
-    if not brief.get("eyebrow"):
-        brief["eyebrow"] = "Morning Brief"
+    # The label above the brief is fixed copy plus the time it was written. The
+    # model used to supply it ("Monday pre-market"), and that label stayed on the
+    # home page all day — at 9:42 on 2026-11-02 the tile still read PRE-MARKET
+    # while the market was open. The page now prints "written 5:41 am ET"
+    # from written_at, which is a fact that stays true after the open.
+    brief["eyebrow"] = "Morning Brief"
+    brief["written_at"] = datetime.datetime.now(ET).isoformat(timespec="seconds")
     # SOFT keys: a model response that omits ONE optional list must never freeze
     # the homepage. Default them to empty; main() backfills real movers from the
     # scan table. (2026-06-30: an omitted "movers" key crashed the whole publish

@@ -20,6 +20,7 @@
    useIndicatorSeries) so the charts draw from the same data the evidence block
    cites and cannot disagree with it. */
 
+import { publishedLabel } from '../lib/publishedAt';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import IdeaChart from './IdeaChart';
@@ -331,7 +332,7 @@ export default function TradeIdeaNoteModal({ idea, chartSeries, review, onClose 
         <button type="button" className="briefmodal-x" onClick={onClose} aria-label="Close">×</button>
         <div className="eyebrow2">
           <span className="dot dot--gold" />
-          Trade idea · Published {longDate(idea.date)}
+          Trade idea · Published {publishedLabel(idea, { withTime: true, fallback: longDate(idea.date) })}
         </div>
         <h2 className="briefmodal-h">{idea.title}</h2>
         <TradeIdeaNoteBody idea={idea} chartSeries={chartSeries} review={review} score={scoreById.get(idea.id)} />
