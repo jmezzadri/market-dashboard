@@ -481,9 +481,9 @@ const PERF_ROWS = [
   // Each row names the FUND it is computed from (2026-10-29 audit: "Nasdaq
   // 100" here and "NASDAQ" — the Composite — on the banner read as the same
   // number disagreeing).
-  { id: 'spx', label: 'S&P 500 · SPY', col: 'spy_close' },
-  { id: 'ndx', label: 'Nasdaq-100 · QQQ', col: 'qqq_close' },
-  { id: 'dji', label: 'Dow · DIA', col: 'dia_close' },
+  { id: 'spx', label: 'SPY', col: 'spy_close' },
+  { id: 'ndx', label: 'QQQ', col: 'qqq_close' },
+  { id: 'dji', label: 'DIA', col: 'dia_close' },
 ];
 function perfTable(nav, heldIdx) {
   if (!nav || !nav.length) return null;
