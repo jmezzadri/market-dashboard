@@ -453,6 +453,8 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .mt-terminal .tm-phead { display: flex; align-items: center; gap: var(--sp-10); height: var(--tm-panel-head-h); padding: 0 var(--sp-10); background: var(--tm-head); border-bottom: 1px solid var(--tm-border); white-space: nowrap; overflow: hidden; }
 .mt-overhaul .mt-terminal .tm-code { flex: none; background: var(--tm-amber); color: var(--tm-page); font-weight: var(--fw-600); padding: 0 var(--sp-6); font-size: var(--v13-t2); line-height: 1.5; }
 .mt-overhaul .mt-terminal .tm-ptitle { font-size: var(--v13-t2); color: var(--tm-text); letter-spacing: 0.02em; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* 2026-11-02: panel titles wrap on a phone instead of cutting the date off ("RISK MEASURES · AFTER OCT 30 CL…"). */
+@media (max-width: 600px) { .mt-overhaul .mt-terminal .tm-ptitle { white-space: normal; overflow: visible; } }
 .mt-overhaul .mt-terminal .tm-pfill { flex: 1; }
 /* A title bar with no note: the title owns the row (the layout check reads a 64% row as content jammed left). */
 .mt-overhaul .mt-terminal .tm-ptitle--grow { flex: 1 1 auto; }
@@ -535,6 +537,8 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-row { border-bottom: 1px solid var(--tm-rowline); cursor: pointer; transition: background var(--tm-dur-hover); font-size: var(--v13-t2); }
 .mt-overhaul .tm-row:hover { background: var(--tm-hover); }
 .mt-overhaul .tm-c-name { font-family: var(--mt-type-sans); font-size: var(--v13-t3); color: var(--tm-text); line-height: 1.2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 2026-11-02 (whole-site sweep): Macro Landscape names were cut mid-word at 1440px ("Equity-Credit Correla…", "Treasury General A…"). A name wraps to a second line rather than losing words. */
+.mt-overhaul .tm-macro .tm-c-name { white-space: normal; overflow: visible; }
 .mt-overhaul .tm-c-last { text-align: right; color: var(--tm-num); font-weight: var(--fw-600); white-space: nowrap; }
 .mt-overhaul .tm-c-side { color: var(--tm-text-3); font-weight: var(--fw-400); }
 .mt-overhaul .tm-c-chg { text-align: right; white-space: nowrap; }
@@ -729,7 +733,7 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-row--hp { width: 100%; min-height: var(--ed-tap); padding: var(--sp-2) var(--sp-10); background: none; border-left: 0; border-right: 0; border-top: 0; color: inherit; font: inherit; text-align: right; }
 .mt-overhaul .tm-hp-name { text-align: left; line-height: 1.2; min-width: 0; }
 .mt-overhaul .tm-hp-name .is-amber { font-weight: var(--fw-600); }
-.mt-overhaul .tm-hp-co { display: block; font-family: var(--mt-type-sans); font-size: var(--v13-t3); color: var(--tm-text-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mt-overhaul .tm-hp-co { display: block; font-family: var(--mt-type-sans); font-size: var(--v13-t3); color: var(--tm-text-4); white-space: normal; }
 .mt-overhaul .tm-morebtn { display: flex; align-items: center; justify-content: center; min-height: var(--ed-tap); border: 1px solid var(--tm-border); background: var(--tm-panel); color: var(--tm-blue); font: inherit; font-size: var(--v13-t2); cursor: pointer; width: 100%; }
 @media (max-width: 860px) {
   .mt-overhaul .tm-titlebar { gap: var(--sp-4); padding: var(--sp-10) var(--sp-12); }

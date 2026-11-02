@@ -23,7 +23,7 @@ export const ALERT_RULES = {
    signed so that "small" is the tilt (the book is mid-cap against a mega-cap
    baseline); value likewise reads as "cheap". A name with no z above 0.5
    on any factor is reported as having no dominant tilt. */
-export const FACTOR_LABEL = { momentum: 'Momentum', quality: 'Quality', buybacks: 'Buybacks', size: 'Small size', value: 'Value' };
+export const FACTOR_LABEL = { momentum: 'Momentum', quality: 'Quality', buybacks: 'Buybacks', size: 'Small cap', value: 'Value' };
 export function primaryFactor(zs) {
   if (!zs) return null;
   let best = null;
