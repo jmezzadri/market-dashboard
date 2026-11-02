@@ -188,7 +188,8 @@ const TIPS = {
    Joe, 2026-10-20: every risk metric carries both. Term renders them as two
    lines; the holdings table's headers get the same text flattened to a
    string (its tooltip is an instant CSS one — LESSONS 7.13). */
-const SHOCK_NOTE = 'Each episode is the S&P 500 fund’s actual peak-to-trough fall, scaled by the book’s beta. "With brake" replays the book’s crash brake through the episode day by day, cash earning nothing — a projection of the rule, not a backtest of today’s names. The brake reads bond-market stress, which exists only from November 2002, so the 2000–02 bust cannot be replayed with the brake.';
+const SHOCK_NOTE = 'Each episode is the S&P 500 fund’s actual peak-to-trough fall, scaled by the book’s beta. "With brake" replays the book’s crash brake through the episode day by day, cash earning nothing — a projection of the rule, not a backtest of today’s names.';
+const SHOCK_NA = '* n/a: the brake reads bond-market stress (the MOVE index), and that history begins in November 2002, so this episode cannot be replayed with the brake.';
 const RISK_TIPS = {
   var: 'The most the book would be expected to lose over the next ten trading days on a bad-but-not-extreme stretch — a loss this size or worse should happen about one ten-day period in a hundred. Based on how this book’s own holdings moved over the past year. Formulas are on the Methodology page.',
   sharpe: 'Return earned per unit of risk taken, above what cash pays. Rule of thumb: 0.5 is decent, 1.0 is very good. Prints after 60 trading days — a ratio from a few days is noise.',
