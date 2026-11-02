@@ -322,7 +322,7 @@ export const TAILS = {
   move:['calm','volatile'],
   vix_ts:['contango','inverted'],
   eq_cr_corr:['diversified','correlated'],
-  hy_ig_etf:['risk-off','risk-on'],
+  hy_ig_etf:['risk-on','risk-off'],       // LQD÷HYG LOW = junk outperforming quality = risk-on (labels were inverted until 2026-11-02)
 
   // ── FX: strong / weak, named so the direction cannot be misread ──
   fx_eur:['weak EUR','strong EUR'], fx_gbp:['weak GBP','strong GBP'],

@@ -206,6 +206,8 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `6.25` The book test is risk-adjusted return, not a volatility cap; and the Trade Idea and the X Chart are one piece of research with two outputs, both behind Joe's approval
 - `6.26` Contract v2 (Oct 21): the conditions test gets a fallback, the ten-year rule gives way to full history plus a threshold scan, shorts are unrestricted but lagging is not falling, event notes pay premium for a regime change, the book is a notional 100, Joe reads two plain-English tables, and the run reads a named list of managers every morning
 - `6.27` A stress figure for the book must include the book's own risk controls; beta × an index fall is a figure for the index, not the book — replay the brake through the episode and show both
+- `6.28` A note must stay factual while it is live: re-measure the reason every evening, and trip on a give-back, not only on a line
+- `6.29` Every flag-word pair is read against the indicator's definition before it ships: the first word is the LOW end, the second the HIGH end; a ratio's words follow its numerator and denominator
 
 **7 · CODE & RELEASE DISCIPLINE**
 
@@ -2130,6 +2132,14 @@ Settled in the script where the spec was wrong: an event idea cannot raise the b
 **Applies to:** Senior Quant (writes check and driver at publication), Lead Developer (the workflow, the alert), Trade Idea and Thesis Review sessions (answer every trip).
 
 # 7 · CODE & RELEASE DISCIPLINE
+### 6.29 (2026-11-02) — Every flag-word pair is read against the indicator's definition before it ships; the first word is the LOW tail
+
+**What happened:** The Credit panel showed HY OAS and HY Yield at the 87th and 94th percentile flagged CHEAP, while the HY vs IG Ratio at the 12th percentile flagged RISK-OFF. Joe asked how both could be true. The ratio is the investment-grade fund price divided by the high-yield fund price, so a LOW reading means junk has outperformed quality — risk-on. Its word pair had been entered as [risk-off, risk-on], the two tails swapped, and the row had contradicted its own description since it was registered.
+
+**Rule:** A flag-word pair lists the low-tail word first and the high-tail word second. Before registering or changing one, write the sentence "a LOW reading of <indicator> means <word>" from the indicator's own definition and check it against the pair; for any ratio, derive it from the numerator and denominator, never from the name. Sibling rows in one panel must tell one story at one moment — if two say cheap and one says risk-off, the registry is wrong, not the market.
+
+**Applies to:** Senior Quant, Data Steward — the indicator registry and any new flag word.
+
 ### 7.1 (2026-05-18) — Never call React hooks inside an inline IIFE in JSX; lift into a real component
 
 **What happened:** An inline immediately-invoked block with state/effect hooks inside the Home render path executed only on the Home route, so the parent's hook count varied across renders — React tore down the whole tree on every other route (error #300).
