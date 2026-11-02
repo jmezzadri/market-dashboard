@@ -216,6 +216,26 @@ class TestContract(unittest.TestCase):
         out = T.validate_submission(submission(review(called_for_pct=3.2)), self.scores(), self.ideas(), prior)
         self.assertEqual(out[0]["called_for_pct"], 3.2)
 
+    def test_called_for_follows_a_note_corrected_onto_a_new_vehicle(self):
+        # 2026-11-02: the Oct 22 call was restated from the index to the put it
+        # told the reader to buy (bug #1277) after its first review froze 3.2 on
+        # the index. The review follows the note's corrected figure, once, and
+        # keeps the frozen one on the record. Without a dated correction on the
+        # note, or with a number that is not the note's, it is still refused.
+        prior = {"latest": {"review_date": "2026-03-23", "calls": [{"id": "n1", "called_for_pct": 3.2}]}, "history": []}
+        corrected = [dict(self.ideas()[0], corrected_at="2026-03-27T02:00:00Z", expected_return={"pct": 109})]
+        out = T.validate_submission(submission(review(called_for_pct=109)), self.scores(), corrected, prior)
+        self.assertEqual(out[0]["called_for_pct"], 109)
+        self.assertEqual(out[0]["called_for_restated"]["from_pct"], 3.2)
+        self.assertEqual(out[0]["called_for_restated"]["fixed_on"], "2026-03-23")
+        with self.assertRaises(T.ReviewError) as cm:
+            T.validate_submission(submission(review(called_for_pct=50)), self.scores(), corrected, prior)
+        self.assertIn("the review grades against what the note called for", str(cm.exception))
+        stale = [dict(self.ideas()[0], corrected_at="2026-03-20T02:00:00Z", expected_return={"pct": 109})]
+        with self.assertRaises(T.ReviewError) as cm:
+            T.validate_submission(submission(review(called_for_pct=109)), self.scores(), stale, prior)
+        self.assertIn("cannot change after the first review", str(cm.exception))
+
     def test_every_open_call_must_be_reviewed(self):
         sc2 = self.scores(scored_row(), scored_row(id="n2", trade_label="Long QQ"))
         self.assertRejected(submission(), "missing: n2", scores=sc2)

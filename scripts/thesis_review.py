@@ -612,10 +612,26 @@ def validate_submission(sub: dict, scores: dict, ideas: list, prior: dict | None
         note_er = ((by_id.get(nid) or {}).get("expected_return") or {}).get("pct")
         if called is not None and isinstance(note_er, (int, float)) and abs(float(note_er) - called) > 1e-9:
             errs.append(f"{tag}.called_for_pct is {called} but the note states expected_return.pct = {note_er} — the review grades against what the note called for")
+        restated = None
         if called is not None and nid in prior_called:
             pc, pdate = prior_called[nid]
             if abs(float(pc) - called) > 1e-9:
-                errs.append(f"{tag}.called_for_pct is {called} but was fixed at {pc} on {pdate} — it cannot change after the first review")
+                # 2026-11-02 (after bug #1277): a note formally corrected onto a
+                # different vehicle AFTER the figure was frozen (the Oct 22 call,
+                # restated from the index to the put it told the reader to buy)
+                # states its own expected return in the new units. The review
+                # follows the NOTE's figure — the only number it accepts — once,
+                # and keeps the frozen figure on the record beside it. A change
+                # without a dated correction on the note is still a preference,
+                # and is still refused.
+                corrected_at = str((by_id.get(nid) or {}).get("corrected_at") or "")[:10]
+                follows_note = isinstance(note_er, (int, float)) and abs(float(note_er) - called) <= 1e-9
+                if follows_note and corrected_at and pdate and corrected_at > str(pdate):
+                    restated = {"from_pct": pc, "fixed_on": pdate, "note_corrected_at": corrected_at,
+                                "reason": "the note was corrected onto a different vehicle after the first review; "
+                                          "the figure follows the note's restated expected return in the new units"}
+                else:
+                    errs.append(f"{tag}.called_for_pct is {called} but was fixed at {pc} on {pdate} — it cannot change after the first review")
         try:
             exp_now = float(rv.get("expected_return_now_pct"))
         except (TypeError, ValueError):
@@ -637,6 +653,7 @@ def validate_submission(sub: dict, scores: dict, ideas: list, prior: dict | None
             "expected_basis": _txt(rv.get("expected_basis")),
             "called_for_pct": called,
             "called_for_basis": _txt(rv.get("called_for_basis")),
+            "called_for_restated": restated,
             "action_reason": _txt(rv.get("action_reason")),
             "trip_answer": _txt(rv.get("trip_answer")) or None,
         })
@@ -678,6 +695,7 @@ def build_calls(reviews: list[dict], ideas: list, scores: dict, hist: dict, unit
             **{k: rv[k] for k in ("verdict", "action", "called_for_pct", "called_for_basis",
                                   "expected_return_now_pct", "expected_basis", "view_now",
                                   "action_reason", "weakened_reason", "driver_checks")},
+            "called_for_restated": rv.get("called_for_restated"),
             "quant": q,
         })
     order = {"broken": 0, "weakened": 1, "intact": 2}
