@@ -188,7 +188,8 @@ const TIPS = {
    Joe, 2026-10-20: every risk metric carries both. Term renders them as two
    lines; the holdings table's headers get the same text flattened to a
    string (its tooltip is an instant CSS one — LESSONS 7.13). */
-const SHOCK_NOTE = 'Each episode is the S&P 500 fund\u2019s actual peak-to-trough fall, scaled by the book\u2019s beta. "With brake" replays the book\u2019s crash brake through the episode day by day, cash earning nothing — a projection of the rule, not a backtest of today\u2019s names. The brake reads bond-market stress, which the site has from November 2002, so 2000\u201302 has no brake figure.';
+const SHOCK_NOTE = 'Each episode is the S&P 500 fund’s actual peak-to-trough fall, scaled by the book’s beta. "With brake" replays the book’s crash brake through the episode day by day, cash earning nothing — a projection of the rule, not a backtest of today’s names.';
+const SHOCK_NA = '* n/a: the brake reads bond-market stress (the MOVE index), and that history begins in November 2002, so this episode cannot be replayed with the brake.';
 const RISK_TIPS = {
   var: 'The most the book would be expected to lose over the next ten trading days on a bad-but-not-extreme stretch — a loss this size or worse should happen about one ten-day period in a hundred. Based on how this book’s own holdings moved over the past year. Formulas are on the Methodology page.',
   sharpe: 'Return earned per unit of risk taken, above what cash pays. Rule of thumb: 0.5 is decent, 1.0 is very good. Prints after 60 trading days — a ratio from a few days is noise.',
@@ -1084,7 +1085,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   ] : null;
   const shockRows = cockpit.shocks ? [
     ...cockpit.shocks.map((e) => ({ k: e.id, n: e.label, a: e.index, b: e.book, c: e.book_brake, tip: RISK_TIPS.stress })),
-    ...(cockpit.vix ? [{ k: 'vix', n: `VIX spike to 40 (from ${Number(cockpit.vix.vix_now ?? cockpit.vix.vixNow).toFixed(1)})`, a: cockpit.vix.index, b: cockpit.vix.book, c: null, tip: RISK_TIPS.vixshock }] : []),
+    ...(cockpit.vix ? [{ k: 'vix', n: `VIX spike to 40 (from ${Number(cockpit.vix.vix_now ?? cockpit.vix.vixNow).toFixed(1)})`, a: cockpit.vix.index, b: cockpit.vix.book, c: cockpit.vix.book, tip: RISK_TIPS.vixshock }] : []),
   ] : null;
 
   const notice = (
@@ -1179,10 +1180,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   <span className="tm-c-name"><Term tip={e.tip} placement="bottom" wide labelOpacity={0.95}>{e.n}</Term></span>
                   <span className="r fl">{e.a == null ? '—' : fmtPct(e.a, 1)}</span>
                   <span className="r fl">{e.b == null ? '—' : fmtPct(e.b, 1)}</span>
-                  <span className={`r tm-strong ${e.c == null ? 'fl' : e.c < 0 ? 'down' : ''}`}>{e.c == null ? '—' : fmtPct(e.c, 1)}</span>
+                  <span className={`r tm-strong ${e.c == null ? 'fl' : e.c < 0 ? 'down' : ''}`}>{e.c == null ? 'n/a*' : fmtPct(e.c, 1)}</span>
                 </div>
               ))}
-              <div className="tm-pnote tm-pnote--block">{SHOCK_NOTE}{cockpit.vix ? ' The VIX line uses how much the fund has historically fallen when fear jumped; a one-day jump does not trip the brake.' : ''}</div>
+              <div className="tm-pnote tm-pnote--block">{SHOCK_NOTE}{cockpit.vix ? ' The VIX line uses how much the fund has historically fallen when fear jumped; a one-day jump does not trip the brake, so the book takes the full fall either way.' : ''}</div>
+              {shockRows.some((e) => e.c == null) ? <div className="tm-pnote tm-pnote--block">{SHOCK_NA}</div> : null}
             </>
           ) : <div className="tm-empty">{riskNote || needsDays(250)}</div>}
         </>
@@ -1341,9 +1343,10 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                     <>
                       <div className="tm-cols tm-cols--shock rd-num"><span>SCENARIO</span><span className="r">S&amp;P 500</span><span className="r">NO BRAKE</span><span className="r">WITH BRAKE</span></div>
                       {shockRows.map((e) => (
-                        <div key={e.k} className="tm-row tm-row--shock rd-num"><span className="tm-c-name">{e.n}</span><span className="r fl">{e.a == null ? '—' : fmtPct(e.a, 1)}</span><span className="r fl">{e.b == null ? '—' : fmtPct(e.b, 1)}</span><span className={`r tm-strong ${e.c == null ? 'fl' : e.c < 0 ? 'down' : ''}`}>{e.c == null ? '—' : fmtPct(e.c, 1)}</span></div>
+                        <div key={e.k} className="tm-row tm-row--shock rd-num"><span className="tm-c-name">{e.n}</span><span className="r fl">{e.a == null ? '—' : fmtPct(e.a, 1)}</span><span className="r fl">{e.b == null ? '—' : fmtPct(e.b, 1)}</span><span className={`r tm-strong ${e.c == null ? 'fl' : e.c < 0 ? 'down' : ''}`}>{e.c == null ? 'n/a*' : fmtPct(e.c, 1)}</span></div>
                       ))}
                       <div className="tm-pnote tm-pnote--block">{SHOCK_NOTE}</div>
+                      {shockRows.some((e) => e.c == null) ? <div className="tm-pnote tm-pnote--block">{SHOCK_NA}</div> : null}
                     </>
                   ) : <div className="tm-empty">{riskNote || needsDays(250)}</div>}
                 </section>
