@@ -35,6 +35,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useMarketLevels from '../lib/useMarketLevels';
+import { rollArtifacts } from '../lib/futuresRoll';
 import useLseLive from '../../hooks/useLseLive';
 import IndicatorDrillModal from '../components/IndicatorDrillModal';
 import IndexDrillModal, { INDEX_DRILLS } from '../components/IndexDrillModal';
@@ -101,14 +102,10 @@ export const TAPE = [
 export const TAPE_ITEMS = TAPE.flatMap((g) => g.items);
 const LIVE_SYMS = TAPE_ITEMS.filter((r) => r.live).map((r) => r.live);
 
-/* WTI and Brent are the same barrel with a slow spread between them. When
-   their one-session moves differ by more than this many percentage points,
-   the larger one is a futures contract roll or a bad tick, not a market move,
-   and that tile is dropped — the same rule, and the same threshold, the
-   morning brief applies (LESSONS 4.37). An absent tile is correct; a wrong
-   one lies. */
-const OIL_PAIR = ['cmdty_oil', 'cmdty_brent'];
-const OIL_PAIR_MAX_GAP_PCT = 3; // 2026-10-21: a 4.98-point WTI roll gap slipped under 5
+/* A tile whose latest change spans a futures contract roll is dropped —
+   Brent vs WTI every session, Gasoline and Diesel vs WTI on the first session
+   of a month (lib/futuresRoll.js, LESSONS 4.37). An absent tile is correct;
+   a wrong one lies. */
 
 function fmt(v, dec) {
   if (v == null || !Number.isFinite(v)) return '—';
@@ -278,10 +275,7 @@ export default function MarketTape() {
   const groups = useMemo(() => {
     const tiles = {};
     TAPE_ITEMS.forEach((r) => { tiles[r.key] = tapeTile(r, level(r.key), live.bySymbol?.[r.live], live.marketOpen); });
-    const [a, b] = OIL_PAIR.map((k) => tiles[k]?.pct);
-    if (Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) > OIL_PAIR_MAX_GAP_PCT) {
-      tiles[Math.abs(a) > Math.abs(b) ? OIL_PAIR[0] : OIL_PAIR[1]] = null;
-    }
+    rollArtifacts((k) => hist?.[k]?.points).forEach((k) => { tiles[k] = null; });
     // While the history is still loading every tile shows its label and two
     // neutral bars, so the banner has its final shape from the first frame.
     // Once loaded, a series with nothing to show is left off rather than
@@ -296,7 +290,7 @@ export default function MarketTape() {
           .map((r) => ({ r, t: tiles[r.key], loading: loadingNow && !tiles[r.key] })),
       }))
       .filter((g) => g.items.length);
-  }, [level, loaded, failed, live.bySymbol, live.marketOpen]);
+  }, [level, hist, loaded, failed, live.bySymbol, live.marketOpen]);
 
   const openFor = (r) => {
     if (r.ind && IND[r.ind]) return () => setDrillInd(r.ind);
