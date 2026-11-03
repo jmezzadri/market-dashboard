@@ -305,9 +305,21 @@ export default function TickerPage() {
   useEffect(() => {
     const el = chartBodyRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    /* 2026-11-03 (Joe: "I clicked to add the 200d MA and the whole chart kept
+       growing and broke the page"): the body was measured and the SVG drawn to
+       the FULL body height, but with an overlay on the chart also renders a
+       legend under the SVG. Body = SVG + legend, so every measurement came back
+       one legend taller, the SVG was redrawn taller, and the page grew ~800px a
+       second without end. The SVG now gets the body height MINUS whatever the
+       chart renders besides the SVG, so content height == body height and the
+       measurement is a fixed point. */
     const ro = new ResizeObserver(([e]) => {
       const h = Math.floor(e.contentRect.height);
-      if (h > 200) setChartH(h);
+      const svg = el.querySelector('svg');
+      const inner = el.firstElementChild;
+      const extra = svg && inner ? Math.max(0, Math.ceil(inner.scrollHeight - svg.getBoundingClientRect().height)) : 0;
+      const target = h - extra;
+      if (target > 200) setChartH((cur) => (Math.abs(cur - target) > 1 ? target : cur));
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -681,6 +693,7 @@ export default function TickerPage() {
               events={showEvents ? chartEvents : []}
               compareData={compareSym ? compareSeries : null}
               compareLabel={BENCH_LABEL[compareSym] || compareSym}
+              compareAccent="var(--mt-ink-2)"
               yFormat={(v) => `$${fmt(v, 2)}`}
             />
           ) : (
