@@ -302,6 +302,9 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 /* the small spaced-capitals label — the ONLY place capitals are spaced */
 .mt-overhaul .ed-label { font-size: var(--v13-t1); font-weight: var(--fw-700); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ed-ink-3); }
 .mt-overhaul .ed-label--accent { color: var(--ed-accent); }
+/* the quiet-day line under the brief label (2026-11-03): the 11:30 gate
+   check ran and nothing fired, so no Midday Update is coming */
+.mt-overhaul .ed-brief-quiet { margin: var(--sp-6) 0 0; font-size: var(--v13-t3); line-height: 1.5; color: var(--ed-ink-3); }
 .mt-overhaul .ed-link { display: inline-block; margin-top: var(--sp-20); font: inherit; font-size: var(--v13-t3); font-weight: var(--fw-600); color: var(--ed-accent); text-decoration: none; background: none; border: 0; padding: 0; cursor: pointer; transition: color var(--ed-dur-hover); }
 .mt-overhaul .ed-link:hover { text-decoration: underline; }
 .mt-overhaul .ed-empty { margin: var(--sp-14) 0 0; font-size: var(--v13-t3); color: var(--ed-ink-2); line-height: 1.5; }

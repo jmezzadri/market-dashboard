@@ -872,6 +872,21 @@ export default function MethodologyPage() {
               strip&rsquo;s prior close.
             </p>
             <p className="me-body-p">
+              <b>The brief has three editions.</b> The <b>Morning Brief</b> is written about 5:15 am ET
+              every trading day. The <b>Midday Update</b> (about 12:15 pm) is written only when a gate
+              fires at the 11:30 check: a CPI, jobs-report or FOMC day, or the trading day after a US
+              election; a tier-1 release more than one standard deviation from consensus; the S&amp;P 500
+              &plusmn;1.0%, the VIX +15% or at 30 or above; the 10-year &plusmn;10bp or the MOVE index
+              +8 points; Brent &plusmn;4% or the dollar index &plusmn;0.75%; a top-50 company&rsquo;s
+              pre-market report moving its stock 5% or more; or an ECB, Bank of England or Bank of Japan
+              decision off consensus. The <b>Market Close</b> (about 6:45 pm, after the post-market
+              earnings window) carries a scorecard line stating what the morning said and what happened.
+              The Home tile shows whichever edition is newest, so a Midday Update replaces the morning
+              until the close posts and Friday&rsquo;s close stays up through the weekend; the full
+              brief lists the day&rsquo;s earlier editions beneath it. On a quiet day nothing is posted
+              at midday and the tile says so.
+            </p>
+            <p className="me-body-p">
               The daily rebalance pipeline runs Tuesday through Saturday morning, after Polygon's full
               overnight price batch lands (the batch finishes between 2 AM and 8 AM ET the next morning,
               not same-day). Three jobs run in sequence:
