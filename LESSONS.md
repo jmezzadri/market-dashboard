@@ -586,6 +586,8 @@ Same run: closing the two reports with a raw `update bug_reports` hung in the MC
 
 **2026-11-03 addendum (same evening) — the new 00:30Z pass undid the 22:15Z pass.** After the 18:00 ET futures reopen Yahoo's daily list omits the session that just settled (its bar is folded into the live one daily_bars() drops), and the purge step in fetch_market_indicators.py deleted every stored point the vendor did not list — so Monday's settled close for gold, silver, copper, WTI, Brent, natgas, heating oil, gasoline, platinum and Bitcoin was removed at 00:30Z and those tiles fell back to Friday. Fix: the purge keeps stored points newer than the vendor's newest bar (the settled-session cutoff still removes anything future-dated). Rule: a pass added to fix one feed is checked against EVERY feed it rewrites before calling it done — the evening-tape check in rule 3 reads all tile dates after the last pass, not just the feed that motivated it.
 
+**2026-11-03 addendum — a page is also what it does when you click it.** Joe clicked "+ 200-day avg" on a ticker page and the chart grew ~800px a second without end (PR #1888): the chart was drawn to its container's measured height while also adding a legend beneath itself, so every measurement came back taller. No static render could see it. **Rule 6:** the sweep opens /ticker/AAPL at 1440 and 390, clicks every chart toggle (50-day, 200-day, Volume, RSI, Insider buys, Compare SPY) one at a time, and reads the page height 1s and 3s after each click — any growth after the click settles is a red. Any page with a toggle, tab or filter gets the same click-through.
+
 **Applies to:** the weekday health sweep (Lead Developer). Every other agent that touches a page: rules 1–2 before publishing it.
 
 # 1 · TALKING TO JOE
