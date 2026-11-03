@@ -591,6 +591,12 @@ Same run: closing the two reports with a raw `update bug_reports` hung in the MC
 **Applies to:** the weekday health sweep (Lead Developer). Every other agent that touches a page: rules 1–2 before publishing it.
 
 # 1 · TALKING TO JOE
+### 1.0 (2026-11-03, Joe: "Two real problems, then a table of 9 things then saying I need to reconnect some shit but not telling me what I need to reconnect?? Are you shitting me with this sweep?") — The sweep's reply is the problems, nothing else
+
+**What happened:** The health sweep fixed two real bugs and then sent a 9-row table of checks that passed, plus a vague line saying two connectors needed reconnecting without naming them. Neither connector (Canva, HyperFrames by HeyGen) is used by the sweep, so the line should not have been there at all.
+
+**Rule:** (1) The reply opens with one line per problem found: what was wrong, in plain English, and whether it is fixed. (2) Checks that passed get ONE line total ("everything else checked out"). The per-check record (bug queue, tile dates, evening tape, site read) goes in the run log or this file, not into Joe's reply. (3) Never mention a connector the task does not use. If one the task needs is broken, name it and say exactly where to click to reconnect it. (4) Anything Joe must do goes on its own bolded line, with the name of the thing.
+
 ### 1.1 (2026-08-26) — Never tell Joe to approve or tap something unless the prompt is CONFIRMED visible to him
 
 **What happened:** the scheduled-task tools returned "requires approval" and the
