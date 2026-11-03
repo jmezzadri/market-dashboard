@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-02T23:06:08Z",
+  "generated_at": "2026-11-03T02:29:28Z",
   "window": {
-    "from": "2026-10-26",
-    "to": "2027-01-11"
+    "from": "2026-10-27",
+    "to": "2027-01-12"
   },
   "counts": {
-    "total": 107,
-    "tier1": 33
+    "total": 108,
+    "tier1": 34
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -31,17 +31,6 @@
   ],
   "problems": [],
   "events": [
-    {
-      "date": "2026-10-26",
-      "time_et": "8:30 AM",
-      "name": "Chicago Fed activity index",
-      "short": "CFNAI",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "An 85-indicator composite of national economic activity.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-27",
       "time_et": "8:30 AM",
@@ -1220,6 +1209,28 @@
       "category": "Surveys",
       "blurb": "Services-sector survey \u2014 the larger share of the economy.",
       "source": "ISM published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2027-01-12",
+      "time_et": "6:00 AM",
+      "name": "Small business optimism (NFIB)",
+      "short": "NFIB",
+      "tier": 3,
+      "category": "Surveys",
+      "blurb": "Monthly survey of small-business owners \u2014 hiring plans, prices charged and outlook.",
+      "source": "NFIB published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2027-01-12",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     }
   ]
