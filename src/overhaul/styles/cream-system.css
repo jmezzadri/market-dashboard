@@ -425,6 +425,8 @@
 .home-v12 .briefmodal-body b{color:var(--ink)}
 .home-v12 .briefmodal-body a{color:var(--ink);font-weight:var(--fw-600)}
 .home-v12 .briefmodal-sec{letter-spacing:.1em;text-transform:uppercase;font-size: var(--v13-t2);font-weight:var(--fw-700);color:var(--ink);margin-top:var(--sp-22)}
+/* an earlier edition's name + time inside the full brief (2026-11-03) */
+.home-v12 .briefmodal-when{letter-spacing:.06em;text-transform:uppercase;font-size: var(--v13-t2);font-weight:var(--fw-600);color:var(--mut);margin:var(--sp-14) 0 var(--sp-2)}
 @media (max-width: 640px){
   .home-v12 .briefmodal{padding:var(--sp-30) var(--sp-22) var(--sp-28);border-radius:var(--r-20)}
   .home-v12 .briefmodal-h{font-size: var(--v13-t6)}

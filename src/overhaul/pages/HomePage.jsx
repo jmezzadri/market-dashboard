@@ -35,7 +35,7 @@ import ReleaseCalendarModal from '../components/ReleaseCalendarModal';
 import ImpactMark from '../components/ImpactMark';
 import useEconReleaseHistory from '../lib/useEconReleaseHistory';
 import { nowET, isReleased, releaseResult } from '../lib/releaseStatus';
-import useDailyBrief from '../lib/useDailyBrief';
+import useDailyBrief, { pickEdition, sameDayEditions, editionLabel } from '../lib/useDailyBrief';
 import useEconCalendar from '../lib/useEconCalendar';
 import useTradeIdea from '../lib/useTradeIdea';
 import useTradeScores from '../lib/useTradeScores';
@@ -72,15 +72,19 @@ function weekdayDate(iso) {
    fact that stays true after the open and tells the reader when every number
    in the brief was observed. A brief without a timestamp (written before this
    field existed) says only that it was written before the open, which every
-   brief is. */
-function briefLabel(brief, briefDate, briefStale) {
-  let written = 'written before the open';
-  const ts = brief?.written_at ? new Date(brief.written_at) : null;
-  if (ts && Number.isFinite(ts.getTime())) {
-    const t = ts.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }).toLowerCase();
-    written = `written ${t} ET`;
-  }
-  return `Morning Brief${briefDate ? ` · ${briefDate}` : ''} · ${written}${briefStale ? ' · last session' : ''}`;
+   brief is.
+   The first word is the edition's own name (2026-11-03): "Morning Brief" for
+   daily_brief.json, otherwise the label the Midday Update or Market Close
+   file carries — never "Morning Brief" over a later edition. */
+function writtenAt(edition) {
+  const ts = edition?.written_at ? new Date(edition.written_at) : null;
+  if (!ts || !Number.isFinite(ts.getTime())) return '';
+  const t = ts.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }).toLowerCase();
+  return `written ${t} ET`;
+}
+function briefLabel(label, edition, briefDate, briefStale) {
+  const written = writtenAt(edition) || 'written before the open';
+  return `${label}${briefDate ? ` · ${briefDate}` : ''} · ${written}${briefStale ? ' · last session' : ''}`;
 }
 /* The tile's fact strip is scannable, not prose. The contract deliberately
    requires a FULL invalidation sentence (it has to be checkable), so the tile
@@ -107,6 +111,35 @@ function tileLine(s, max = 150) {
     return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
   }
   return head === t ? head : `${head}.`;
+}
+
+/* Modal pieces shared by the editions: a titled head/body list (the
+   headlines, this afternoon, after the close, tomorrow) and the three
+   section write-ups, rendered the same way whichever edition carries them. */
+function HeadList({ title, items }) {
+  if (!Array.isArray(items) || items.length === 0) return null;
+  return (
+    <>
+      <p className="briefmodal-sec">{title}</p>
+      <ul>{items.map((n, i) => (
+        <li key={i}><b><Html html={n.head} /></b> — <Html html={n.body} /></li>
+      ))}</ul>
+    </>
+  );
+}
+function BriefSections({ sections, go }) {
+  return (sections || []).map((sec, i) => (
+    <div key={i}>
+      <p className="briefmodal-sec">{sec.title}</p>
+      {Array.isArray(sec.bullets) && sec.bullets.length > 0
+        ? <ul>{sec.bullets.map((bt, jx) => <li key={jx}><Html html={bt} /></li>)}</ul>
+        : <Html tag="p" html={sec.prose} />}
+      {sec.positioning && <p><b>Positioning</b> — {sec.positioning}</p>}
+      {sec.single_name && (
+        <p><b>Single name</b> — <a className="tklink" href={`/ticker/${sec.single_name.ticker}`} onClick={go(`/ticker/${sec.single_name.ticker}`)}>{sec.single_name.ticker} ↗</a> <Html html={sec.single_name.note} /></p>
+      )}
+    </div>
+  ));
 }
 
 /* The two faint background blobs (Joe's board). One setting turns them off,
@@ -141,7 +174,13 @@ export default function HomePage() {
       .catch(() => { if (!c) setEngWeeks([]); });
     return () => { c = true; };
   }, [trackOpen, engWeeks]);
-  const { brief, loading: briefLoading } = useDailyBrief();
+  const { brief, loading: briefLoading, editions, gates } = useDailyBrief();
+  // The edition on the page: the latest of morning, midday and close.
+  const shown = useMemo(() => pickEdition(brief, editions), [brief, editions]);
+  const edition = shown.data;
+  const isMorning = shown.kind === 'morning';
+  const shownLabel = editionLabel(shown.kind, edition);
+  const earlierToday = useMemo(() => sameDayEditions(shown, brief, editions), [shown, brief, editions]);
   const { days: calDays, all: calAll, meta: calMeta, todayISO, failed: calFailed, loading: calLoading } = useEconCalendar({ maxTier: 2, limit: 5 });
   const [calOpen, setCalOpen] = useState(false);
   const { data: relHist } = useEconReleaseHistory(true);
@@ -196,7 +235,8 @@ export default function HomePage() {
   })();
   const verdictParts = (regime.regimeLabel || '—').split('·').map((s) => s.trim());
 
-  const allNews = brief?.news || [];
+  // The numbered list: the morning's news, or a later edition's company items.
+  const allNews = (isMorning ? brief?.news : edition?.items) || [];
   const briefNews = allNews.slice(0, FRONT_PAGE_STORIES);
   const briefHidden = Math.max(0, allNews.length - briefNews.length);
   const [openStory, setOpenStory] = useState(null);
@@ -224,8 +264,14 @@ export default function HomePage() {
   }, [calDays, todayISO]);
 
   const heroChart = idea?.charts?.[0];
-  const briefDate = brief?.date ? weekdayDate(brief.date) : '';
-  const briefStale = brief?.date && todayISO && brief.date < todayISO;
+  const briefDate = edition?.date ? weekdayDate(edition.date) : '';
+  const briefStale = edition?.date && todayISO && edition.date < todayISO;
+  /* A quiet day says so: the 11:30 gate check ran today and nothing fired,
+     so no Midday Update is coming and the Morning Brief stands. */
+  const quietDay = isMorning && gates?.date === todayISO && gates?.fired === false;
+  const hasBody = isMorning
+    ? (brief?.stance || brief?.implications?.length > 0 || brief?.watch?.length > 0 || brief?.sections?.length > 0 || allNews.length > 0)
+    : (edition?.stance || edition?.scorecard?.length > 0 || edition?.bullets?.length > 0 || edition?.sections?.length > 0 || edition?.watch?.length > 0 || allNews.length > 0);
 
   return (
     <div className="ed-home" data-ambient={ambient ? 'on' : 'off'}>
@@ -240,24 +286,25 @@ export default function HomePage() {
         <div className="ed-row ed-row-1">
 
           {/* ── Morning Brief (lead) ──────────────────────────────────── */}
-          <article className="ed-brief rd-rise d2" aria-label="Morning Brief">
+          <article className="ed-brief rd-rise d2" aria-label={shownLabel}>
             <div className="ed-label ed-label--accent">
-              {briefLabel(brief, briefDate, briefStale)}
+              {briefLabel(shownLabel, edition, briefDate, briefStale)}
             </div>
+            {quietDay && <div className="ed-brief-quiet">No midday update · nothing tripped at 11:30</div>}
             {/* Loading is a skeleton, never a sentence that reads like news
                 (2026-10-29); a brief that did not arrive says so plainly. */}
             {briefLoading ? (
-              <div aria-busy="true" aria-label="Loading the morning brief">
+              <div aria-busy="true" aria-label="Loading the brief">
                 <span className="rd-skel rd-skel--head" />
                 <span className="rd-skel rd-skel--line" />
                 <span className="rd-skel rd-skel--line is-short" />
               </div>
-            ) : brief?.headline ? (
-              <h1 className="ed-brief-h">{brief.headline}</h1>
+            ) : edition?.headline ? (
+              <h1 className="ed-brief-h">{edition.headline}</h1>
             ) : (
               <p className="ed-empty">The morning brief did not load — refresh to try again.</p>
             )}
-            {brief?.stance && <Html tag="p" className="ed-brief-sum" html={brief.stance} />}
+            {edition?.stance && <Html tag="p" className="ed-brief-sum" html={edition.stance} />}
             {briefNews.length > 0 && (
               <ol className="ed-news">
                 {briefNews.map((n, i) => (
@@ -271,7 +318,7 @@ export default function HomePage() {
                 ))}
               </ol>
             )}
-            {(brief?.stance || brief?.implications?.length > 0 || brief?.watch?.length > 0 || brief?.sections?.length > 0 || allNews.length > 0) && (
+            {hasBody && (
               <button type="button" className="ed-link" onClick={() => setBriefOpen(true)}>
                 Read the full brief{briefHidden > 0 ? ` · ${briefHidden} more ${briefHidden === 1 ? 'story' : 'stories'}` : ''} →
               </button>
@@ -433,36 +480,58 @@ export default function HomePage() {
         <div onClick={() => setBriefOpen(false)} className="home-v12 briefmodal-veil">
           <div onClick={(e) => e.stopPropagation()} className="briefmodal">
             <button type="button" className="briefmodal-x" onClick={() => setBriefOpen(false)} aria-label="Close">×</button>
-            <div className="eyebrow2"><span className="dot" />{briefLabel(brief, briefDate, false)}</div>
+            <div className="eyebrow2"><span className="dot" />{briefLabel(shownLabel, edition, briefDate, false)}</div>
             <h2 className="briefmodal-h">The full brief</h2>
             <div className="briefmodal-body">
-              {brief?.stance && <p><Html html={brief.stance} /></p>}
-              {allNews.length > 0 && (
+              {isMorning ? (
                 <>
-                  <p className="briefmodal-sec">The headlines</p>
-                  <ul>{allNews.map((n, i) => (
-                    <li key={i}><b><Html html={n.head} /></b> — <Html html={n.body} /></li>
-                  ))}</ul>
+                  {brief?.stance && <p><Html html={brief.stance} /></p>}
+                  <HeadList title="The headlines" items={allNews} />
+                  {brief?.implications?.length > 0 && (
+                    <ul>{brief.implications.map((t, i) => <li key={i}><Html html={t} /></li>)}</ul>
+                  )}
+                  {(brief?.watch || []).map((w, i) => (
+                    <p key={i}><b><Html html={w.head} /></b> — <Html html={w.body} /></p>
+                  ))}
+                  <BriefSections sections={brief?.sections} go={go} />
+                </>
+              ) : (
+                <>
+                  {edition?.stance && <p><Html html={edition.stance} /></p>}
+                  {/* Midday: why it posted — the gate that fired at 11:30. */}
+                  {shown.kind === 'midday' && edition?.trigger?.gate && (
+                    <p><b>Why this posted</b> — {edition.trigger.gate}{edition.trigger.detail ? `: ${edition.trigger.detail}` : ''}</p>
+                  )}
+                  {edition?.scorecard?.length > 0 && (
+                    <>
+                      <p className="briefmodal-sec">Scorecard</p>
+                      {edition.scorecard.map((row, i) => (
+                        <p key={i}><b><Html html={row.call} /></b> — <Html html={row.actual} /></p>
+                      ))}
+                    </>
+                  )}
+                  {shown.kind === 'midday' && edition?.bullets?.length > 0 && (
+                    <ul>{edition.bullets.map((t, i) => <li key={i}><Html html={t} /></li>)}</ul>
+                  )}
+                  {shown.kind === 'close' && <BriefSections sections={edition?.sections} go={go} />}
+                  <HeadList title={shown.kind === 'close' ? 'After the close' : 'The headlines'} items={allNews} />
+                  <HeadList title={shown.kind === 'close' ? 'Tomorrow' : 'This afternoon'} items={edition?.watch} />
                 </>
               )}
-              {brief?.implications?.length > 0 && (
-                <ul>{brief.implications.map((t, i) => <li key={i}><Html html={t} /></li>)}</ul>
+              {/* Every other edition of the same day, newest first: label,
+                  time, headline and stance — the day's thread in one place. */}
+              {earlierToday.length > 0 && (
+                <>
+                  <p className="briefmodal-sec">Earlier today</p>
+                  {earlierToday.map((e) => (
+                    <div key={e.kind}>
+                      <p className="briefmodal-when">{editionLabel(e.kind, e.data)}{writtenAt(e.data) ? ` · ${writtenAt(e.data)}` : ''}</p>
+                      {e.data.headline && <p><b>{e.data.headline}</b></p>}
+                      {e.data.stance && <p><Html html={e.data.stance} /></p>}
+                    </div>
+                  ))}
+                </>
               )}
-              {(brief?.watch || []).map((w, i) => (
-                <p key={i}><b><Html html={w.head} /></b> — <Html html={w.body} /></p>
-              ))}
-              {(brief?.sections || []).map((sec, i) => (
-                <div key={i}>
-                  <p className="briefmodal-sec">{sec.title}</p>
-                  {Array.isArray(sec.bullets) && sec.bullets.length > 0
-                    ? <ul>{sec.bullets.map((bt, jx) => <li key={jx}><Html html={bt} /></li>)}</ul>
-                    : <Html tag="p" html={sec.prose} />}
-                  {sec.positioning && <p><b>Positioning</b> — {sec.positioning}</p>}
-                  {sec.single_name && (
-                    <p><b>Single name</b> — <a className="tklink" href={`/ticker/${sec.single_name.ticker}`} onClick={go(`/ticker/${sec.single_name.ticker}`)}>{sec.single_name.ticker} ↗</a> <Html html={sec.single_name.note} /></p>
-                  )}
-                </div>
-              ))}
             </div>
           </div>
         </div>,
