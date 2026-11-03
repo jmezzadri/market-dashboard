@@ -584,6 +584,8 @@ Same run: closing the two reports with a raw `update bug_reports` hung in the MC
 4. **Check rare jobs by their output, not their colour.** After the 1st, `max(rebalance_date)` in `power_trend_list` = last session of the prior month; the same for every monthly/weekly producer's table.
 5. **The closing table gets a whole-site row** naming the pages and widths looked at, and an evening-tape row, every run — same principle as 0.13.
 
+**2026-11-03 addendum (same evening) — the new 00:30Z pass undid the 22:15Z pass.** After the 18:00 ET futures reopen Yahoo's daily list omits the session that just settled (its bar is folded into the live one daily_bars() drops), and the purge step in fetch_market_indicators.py deleted every stored point the vendor did not list — so Monday's settled close for gold, silver, copper, WTI, Brent, natgas, heating oil, gasoline, platinum and Bitcoin was removed at 00:30Z and those tiles fell back to Friday. Fix: the purge keeps stored points newer than the vendor's newest bar (the settled-session cutoff still removes anything future-dated). Rule: a pass added to fix one feed is checked against EVERY feed it rewrites before calling it done — the evening-tape check in rule 3 reads all tile dates after the last pass, not just the feed that motivated it.
+
 **Applies to:** the weekday health sweep (Lead Developer). Every other agent that touches a page: rules 1–2 before publishing it.
 
 # 1 · TALKING TO JOE
