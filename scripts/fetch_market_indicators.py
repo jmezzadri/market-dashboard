@@ -542,7 +542,18 @@ def run():
             # dropped. History older than the vendor's first bar is kept.
             if pts and not os.environ.get("MKT_RESEED"):
                 have = {p[0] for p in pts}
-                kept = [p for p in stored if str(p[0]) < pts[0][0] or str(p[0]) in have]
+                # 2026-11-03 (sweep): ...or NEWER than the vendor's newest bar.
+                # After the 18:00 ET futures reopen (and past 00:00 UTC for
+                # crypto) Yahoo's daily list briefly omits the session that just
+                # settled - its bar is folded into the live one that
+                # daily_bars() drops - so the 00:30Z pass purged Monday's
+                # settled close for nine futures and Bitcoin and the tiles fell
+                # back to Friday. A stored point past the vendor's last bar but
+                # on/before the settled cutoff is a real close the vendor has
+                # not re-listed yet, not a mis-dated bar; the cutoff above
+                # already removes anything future-dated.
+                last_v = pts[-1][0]
+                kept = [p for p in stored if str(p[0]) < pts[0][0] or str(p[0]) in have or str(p[0]) > last_v]
                 if len(stored) - len(kept):
                     print(f"  purge: {len(stored) - len(kept)} stored point(s) for {key} not in the vendor's daily bars")
                 if len(kept) + len(have - {str(p[0]) for p in kept}) < 0.97 * len(stored):
