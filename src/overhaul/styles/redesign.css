@@ -733,6 +733,7 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-row--hp { width: 100%; min-height: var(--ed-tap); padding: var(--sp-2) var(--sp-10); background: none; border-left: 0; border-right: 0; border-top: 0; color: inherit; font: inherit; text-align: right; }
 .mt-overhaul .tm-hp-name { text-align: left; line-height: 1.2; min-width: 0; }
 .mt-overhaul .tm-hp-name .is-amber { font-weight: var(--fw-600); }
+.mt-overhaul .tm-hp-since { margin-left: var(--sp-5); font-size: var(--v13-t3); color: var(--tm-text-4); }
 .mt-overhaul .tm-hp-co { display: block; font-family: var(--mt-type-sans); font-size: var(--v13-t3); color: var(--tm-text-4); white-space: normal; }
 .mt-overhaul .tm-morebtn { display: flex; align-items: center; justify-content: center; min-height: var(--ed-tap); border: 1px solid var(--tm-border); background: var(--tm-panel); color: var(--tm-blue); font: inherit; font-size: var(--v13-t2); cursor: pointer; width: 100%; }
 @media (max-width: 860px) {

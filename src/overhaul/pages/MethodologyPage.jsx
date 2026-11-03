@@ -613,6 +613,14 @@ export default function MethodologyPage() {
               so their Day, YTD and inception figures are close-to-close. On the evening of a session,
               before that day&rsquo;s official close is loaded, the row uses the snapshot price for that
               one day. QQQ tracks the Nasdaq-100, not the Nasdaq Composite shown on the tape.
+              <b>Held since.</b> The holdings table shows the first day of each name&rsquo;s current run
+              in the book, read from the daily position records: a name present on a day it was absent
+              the day before starts a run that day, and a name that drops out ends its run, so a
+              sell-out followed by a later buy-back is a new run (matching the broker&rsquo;s average
+              cost). A gold date marks a name bought on the day of the latest mark shown on the page, and
+              the Days held column (under &ldquo;Columns&rdquo;) counts calendar days from that first day to
+              that date. A name in this month&rsquo;s list that the
+              broker has not filled yet reads <i>not yet bought</i>.
             </p>
             <div className="me-formula" data-mono="code">
               eligible = $100M+ daily dollar volume · price ≥ $5 · volatility ≤ 70% · operating company with SEC filings<br />

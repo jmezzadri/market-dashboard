@@ -160,6 +160,8 @@ const TIPS = {
   weight: 'This position’s share of the whole portfolio today. Every name targets 2.5% — one fortieth.',
   value: 'What the position is worth at the latest mark.',
   cost: 'Average price actually paid at the broker, from the official fill records.',
+  held: 'The day the book first held this name in its current run, from the daily position records. A name sold out and bought back later starts a new run. A gold date = bought on the day of the latest mark.',
+  days: 'Calendar days from the Held since date to the date of the latest mark shown on the page.',
   last: 'The price the position is marked at: the live price during market hours (synced every 10 minutes), the official close after the bell. The tile header says which.',
   pnl: 'Profit or loss since purchase — dollars, and percent of what was paid.',
   trend1y: 'How much the stock rose over the past 12 months, skipping the most recent month (recent-month moves tend to reverse). The strategy buys established winners.',
@@ -651,6 +653,32 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     const m = {}; (latestNav?.positions || []).forEach((p) => { m[p.symbol] = p; }); return m;
   }, [latestNav]);
 
+  // Held since (Joe, 2026-11-02, the day the November rebalance filled: "I
+  // think I have some new holdings as of today?" — the ledger could not say).
+  // Walk the book's daily position records in date order: a name present on
+  // a day it was absent the day before starts a run on that day; a name that
+  // drops out ends its run, so a sell-out and later buy-back is a new run,
+  // which matches the broker's average cost for the position. Derived from
+  // records the page already loads — no new feed, nothing computed from
+  // prices (LESSONS 9.28). Day counts are printed to the latest mark's date
+  // and that date is named in the footnote (LESSONS 9.33).
+  const heldSince = useMemo(() => {
+    const run = {};
+    (nav || []).forEach((r) => {
+      const d = String(r.d).slice(0, 10);
+      const now = new Set((r.positions || []).filter((p) => Number(p.qty) > 0).map((p) => p.symbol));
+      Object.keys(run).forEach((sym) => { if (!now.has(sym)) delete run[sym]; });
+      now.forEach((sym) => { if (!run[sym]) run[sym] = d; });
+    });
+    return run;
+  }, [nav]);
+  const latestMarkD = latestNav ? String(latestNav.d).slice(0, 10) : null;
+  const daysHeld = useCallback((sym) => {
+    const from = heldSince[sym];
+    if (!from || !latestMarkD) return null;
+    return Math.round((Date.parse(`${latestMarkD}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000);
+  }, [heldSince, latestMarkD]);
+
   // NOTHING HELD (2026-08-26). This whole page is built from qt_target_book —
   // the SCORED list — with live broker marks overlaid where they exist. When no
   // marks exist it silently fell back to each row's target_dollars, so a book
@@ -899,13 +927,21 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
   // The ledger's columns. Risk % and Factor sit beside price and P&L (Joe,
   // 2026-10-20); the scoring inputs stay one click away under "Columns".
+  // Default widths of the visible columns must sum to LESS than the table
+  // wrapper's inner width at 1366 — 584px, the 604px card minus its 10px
+  // padding each side (LESSONS 9.28.4; the old 594 total already scrolled
+  // the P&L % column off the edge at 1366 before Held since was added):
+  // 110+56+68+82+66+64+76+58 = 580, which is why Days held is a hidden
+  // column rather than a second line in the Held since cell. The table id was bumped to -v2 when Held since was added (2026-11-02)
+  // so a saved layout carrying the old, wider defaults does not keep the P&L
+  // columns clipped.
   const holdingsColumns = useMemo(() => {
     const rs = cockpit.risk?.riskShare || {};
     const fz = cockpit.factorZ || {};
     const num = (v) => (v == null ? null : Number(v));
     return [
       { key: 'rank', label: '#', tip: TIPS.rank, align: 'r', width: 40, hidden: true, sortValue: (r) => num(r.rank), render: (r) => <span style={{ color: INK3 }}>{r.rank}</span> },
-      { key: 'company', label: 'Name', align: 'l', width: 168, noHide: true, sortValue: (r) => r.symbol,
+      { key: 'company', label: 'Name', align: 'l', width: 110, noHide: true, sortValue: (r) => r.symbol,
         render: (r) => (
           <button type="button" onClick={() => onOpenTicker && onOpenTicker(r.symbol)}
             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -915,16 +951,25 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             </span>
           </button>
         ) },
-      { key: 'weight', label: 'Weight', tip: TIPS.weight, align: 'r', width: 66, sortValue: (r) => (marks[r.symbol] ? Number(marks[r.symbol].mv) / equity : null),
+      { key: 'weight', label: 'Weight', tip: TIPS.weight, align: 'r', width: 56, sortValue: (r) => (marks[r.symbol] ? Number(marks[r.symbol].mv) / equity : null),
         render: (r) => (marks[r.symbol] ? fmtPctPlain(Number(marks[r.symbol].mv) / equity, 1) : <span style={{ color: INK3 }}>—</span>) },
-      { key: 'risk', label: 'Risk share', tip: RISK_TIPS.mctr, align: 'r', width: 78, sortValue: (r) => (rs[r.symbol] != null ? rs[r.symbol] : null),
+      { key: 'risk', label: 'Risk share', tip: RISK_TIPS.mctr, align: 'r', width: 68, sortValue: (r) => (rs[r.symbol] != null ? rs[r.symbol] : null),
         render: (r) => (rs[r.symbol] != null ? fmtPctPlain(rs[r.symbol], 1) : <span style={{ color: INK3 }}>—</span>),
         cellClass: (r) => {
           const w = marks[r.symbol] ? Number(marks[r.symbol].mv) / equity : null;
           return rs[r.symbol] != null && w && rs[r.symbol] / w >= ALERT_RULES.concentration ? 'warn' : '';
         } },
-      { key: 'factor', label: 'Style', tip: RISK_TIPS.factor, align: 'l', width: 84, sortValue: (r) => (primaryFactor(fz[r.symbol])?.label ?? null),
+      { key: 'factor', label: 'Style', tip: RISK_TIPS.factor, align: 'l', width: 82, sortValue: (r) => (primaryFactor(fz[r.symbol])?.label ?? null),
         render: (r) => { const p = primaryFactor(fz[r.symbol]); return p ? <span style={{ color: p.key ? INK : INK3 }}>{p.label}</span> : <span style={{ color: INK3 }}>—</span>; } },
+      { key: 'held', label: 'Held since', tip: TIPS.held, align: 'r', width: 66, sortValue: (r) => (heldSince[r.symbol] ? Date.parse(`${heldSince[r.symbol]}T12:00:00Z`) : null),
+        render: (r) => {
+          const from = heldSince[r.symbol];
+          if (!from) return <span style={{ color: INK3 }}>{pendingBuy(r.symbol) ? 'not yet bought' : '—'}</span>;
+          const isNew = daysHeld(r.symbol) === 0;
+          return <span style={isNew ? { color: GOLD, fontWeight: 'var(--fw-700)' } : undefined}>{fmtDate(from).replace(/, \d{4}$/, '')}</span>;
+        } },
+      { key: 'days', label: 'Days held', tip: TIPS.days, align: 'r', width: 64, hidden: true, sortValue: (r) => daysHeld(r.symbol),
+        render: (r) => { const n = daysHeld(r.symbol); return n == null ? <span style={{ color: INK3 }}>—</span> : String(n); } },
       { key: 'last', label: 'Price', tip: TIPS.last, align: 'r', width: 64, sortValue: (r) => (marks[r.symbol] ? Number(marks[r.symbol].price) : null),
         render: (r) => (marks[r.symbol] ? fmtUsd(marks[r.symbol].price, 2) : pendingBuy(r.symbol) ? pendingCell : <span style={{ color: INK3 }}>—</span>) },
       { key: 'pnl', label: 'P&L $', tip: TIPS.pnl, align: 'r', width: 76, sortValue: (r) => (marks[r.symbol] ? Number(marks[r.symbol].upl) : null),
@@ -955,7 +1000,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       { key: 'insider', label: 'Insider', tip: TIPS.insider, align: 'r', width: 64, hidden: true, sortValue: (r) => num(r.insider) || null,
         render: (r) => (Number(r.insider) > 0 ? <span style={{ color: GOLD }}>{Number(r.insider).toFixed(2)}</span> : <span style={{ color: INK3 }}>·</span>) },
     ];
-  }, [cockpit.risk, cockpit.factorZ, marks, orders, equity, onOpenTicker, fillCell, dtlBySym]);
+  }, [cockpit.risk, cockpit.factorZ, marks, orders, equity, onOpenTicker, fillCell, dtlBySym, heldSince, daysHeld]);
 
 
   // Phone layout: the holdings ledger becomes a four-column tap list and the
@@ -1182,13 +1227,24 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         const m = marks[r.symbol];
         return (
           <button key={r.symbol} type="button" className="tm-row tm-row--hp rd-num" onClick={() => onOpenTicker && onOpenTicker(r.symbol)}>
-            <span className="tm-hp-name"><span className="is-amber">{r.symbol}</span><span className="tm-hp-co">{shortName(r.company)}</span></span>
+            <span className="tm-hp-name">
+              <span className="is-amber">{r.symbol}</span>
+              {heldSince[r.symbol] && (
+                <span className="tm-hp-since" style={daysHeld(r.symbol) === 0 ? { color: GOLD, fontWeight: 'var(--fw-700)' } : undefined}>
+                  {fmtDate(heldSince[r.symbol]).replace(/, \d{4}$/, '')}
+                </span>
+              )}
+              <span className="tm-hp-co">{shortName(r.company)}</span>
+            </span>
             <span className="r">{m ? fmtPctPlain(Number(m.mv) / equity, 1) : '—'}</span>
             <span className={`r ${m ? signCls(Number(m.upl)) : 'fl'}`}>{m ? fmtSignedUsd(Number(m.upl)) : pendingBuy(r.symbol) ? pendingCell : '—'}</span>
             <span className={`r ${m ? signCls(Number(m.uplpc)) : 'fl'}`}>{m ? fmtPct(m.uplpc, 1) : '—'}</span>
           </button>
         );
       })}
+      <div className="tm-pnote tm-pnote--block">
+        The date beside each ticker is the first day of its current run in the book; a gold date is a name bought on {latestMarkD ? fmtDate(latestMarkD) : 'the day of the latest mark'}.
+      </div>
     </div>
   );
 
@@ -1448,7 +1504,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                   ) : (
                     <>
                       <DataTable
-                        id="paper-cockpit-holdings"
+                        id="paper-cockpit-holdings-v2"
                         columns={holdingsColumns}
                         rows={filteredBook}
                         rowKey={(r) => r.symbol}
@@ -1467,7 +1523,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
                         </div>
                       )}
                       <div className="tm-pnote tm-pnote--block">
-                        Risk = the stock’s share of the book’s day-to-day swings (the names add to 100%); amber = more than double its share of the money. Style = the tilt the stock brings most strongly. Marks and P&L are the paper broker’s official records at the last sync. Columns can be sorted, dragged, resized and shown or hidden under “Columns”.
+                        Risk = the stock’s share of the book’s day-to-day swings (the names add to 100%); amber = more than double its share of the money. Style = the tilt the stock brings most strongly. Marks and P&L are the paper broker’s official records at the last sync. Held since = the first day of the name’s current run in the book, from the daily position records; a gold date is a name bought on {latestMarkD ? fmtDate(latestMarkD) : 'the day of the latest mark'}, and Days held (under “Columns”) counts to that date. Columns can be sorted, dragged, resized and shown or hidden under “Columns”.
                       </div>
                     </>
                   )}
