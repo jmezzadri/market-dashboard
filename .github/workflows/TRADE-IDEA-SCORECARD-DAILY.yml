@@ -27,6 +27,18 @@ name: TRADE-IDEA-SCORECARD-DAILY
 # the git history of the record harder to audit, not easier.
 
 on:
+  # Re-mark whenever MASSIVE-DAILY finishes (2026-11-03 health sweep, LESSONS
+  # 4.31/2026-10-23 rule): single-name legs ("ticker:XYZ") are marked from
+  # prices_eod, whose session closes land with Massive's T+1 pass between
+  # ~04:00 and ~09:15 UTC. Both clock slots below fire (GitHub-delayed to
+  # ~03:00 UTC) BEFORE that, so every ETF leg sat one session stale all the
+  # next day under "to <today>" (Nov 3: XLE/FXY/UNG/WEAT marked Oct 30 on a
+  # page labelled Nov 2). The file only commits when a mark changed, so the
+  # extra fires cost nothing; the alert step stays on the 23:00 slot only.
+  workflow_run:
+    workflows: ["MASSIVE-DAILY"]
+    types: [completed]
+    branches: [main]
   schedule:
     # 21:15 UTC = 5:15 PM EDT — 30 minutes after the new post-close leg of
     # INDICATOR-REFRESH, so a call published today is marked the same
@@ -48,6 +60,7 @@ concurrency:
 
 jobs:
   score:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
