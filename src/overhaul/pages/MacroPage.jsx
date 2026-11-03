@@ -46,6 +46,7 @@ import { useSearchParams } from 'react-router-dom';
 import IndicatorDetail from '../components/IndicatorDetail';
 import PositioningDetail from '../components/PositioningDetail';
 import useIndicators, { MOVE_FLAG_PCTILE } from '../lib/useIndicators';
+import { rollArtifacts } from '../lib/futuresRoll';
 import useEngineRegime from '../lib/useEngineRegime';
 import { stressMessage } from '../lib/engineGauges';
 import '../styles/cream-system.css';
@@ -223,8 +224,18 @@ export default function MacroPage() {
     return out;
   }, [indicators, cotPos, indexSeries]);
 
+  /* Futures rows whose latest change spans a contract roll (LESSONS 4.37) —
+     the same set the market tape drops, so the two never disagree. */
+  const rollSet = useMemo(() => {
+    const byId = {};
+    (indicators || []).forEach((i) => { byId[i.id] = i.points; });
+    return rollArtifacts((k) => byId[k]);
+  }, [indicators]);
+  const ROLL_TIP = 'Futures contract roll: this session\u2019s change spans two contracts, so it is not a market move and is not shown';
+
   /* One-session change, signed, at the indicator's own precision. */
   const chgOf = (ind) => {
+    if (rollSet.has(ind.id)) return { txt: 'roll', cls: 'fl', roll: true };
     const p = ind.points; if (!p || p.length < 2) return null;
     const last = p[p.length - 1][1], prev = p[p.length - 2][1];
     if (!Number.isFinite(last) || !Number.isFinite(prev)) return null;
@@ -269,12 +280,12 @@ export default function MacroPage() {
       const total = inds.length + markets.length;
       const extN = inds.filter((i) => i.state==='extreme').length + posStates.filter((x) => x==='extreme').length;
       const elev = inds.filter((i) => i.state==='elevated').length + posStates.filter((x) => x==='elevated').length;
-      const big = inds.filter((i) => i.movePct != null && i.movePct >= MOVE_FLAG_PCTILE).length;
+      const big = inds.filter((i) => !rollSet.has(i.id) && i.movePct != null && i.movePct >= MOVE_FLAG_PCTILE).length;
       const heat = total ? (extN + 0.5 * elev) / total : 0;
       out[dom] = { inds, markets, total, ext: extN, elev, big, heat };
     });
     return out;
-  }, [byDomain, cotPos]);
+  }, [byDomain, cotPos, rollSet]);
   const hot = DOMAINS.reduce((a, d) => (summ[d].heat > (summ[a]?.heat ?? -1) ? d : a), null);
   const isHot = (dom) => dom === hot && summ[dom].ext > 0;
 
@@ -305,7 +316,7 @@ export default function MacroPage() {
       <a key={ind.id} className="tm-row rd-num" onClick={() => { hideTip(); setSelected(ind); }} onMouseEnter={(e)=>showTip(e, indTip(ind))} onMouseLeave={hideTip}>
         <span className="tm-c-name">{ind.name}{ind.tailWord && <span className="tm-flag tm-flag--phone">{ind.tailWord}</span>}</span>
         <span className="tm-c-last">{fmtV(ind.value, ind.decimals, ind.unit)}</span>
-        <span className={`tm-c-chg ${ch ? ch.cls : 'fl'}${ind.movePct!=null&&ind.movePct>=MOVE_FLAG_PCTILE?' is-big':''}`}>{ch ? ch.txt : '—'}</span>
+        <span className={`tm-c-chg ${ch ? ch.cls : 'fl'}${!ch?.roll&&ind.movePct!=null&&ind.movePct>=MOVE_FLAG_PCTILE?' is-big':''}`} title={ch?.roll ? ROLL_TIP : undefined}>{ch ? ch.txt : '—'}</span>
         <span className={`tm-c-pct${ext(pct) ? ' is-ext' : ''}`}><span className="tm-pctbar" aria-hidden="true"><span className="tm-pctfill" style={{ '--w': `${Math.max(pct ?? 0, 2)}%` }} /></span><span className="tm-pctnum">{pct != null ? pct : '—'}</span></span>
         <span className="tm-c-flag">{ind.tailWord || ''}</span>
       </a>

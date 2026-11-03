@@ -1224,6 +1224,8 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer, Data Steward.
 
+**2026-11-03 addendum (health sweep) — the rule covered one pair; every month-end roller needs it.** The tape and the brief guarded Brent/WTI only. On Mon 2026-11-02 the Nov→Dec RBOB roll (plus the switch to the cheaper winter grade) printed the Gasoline tile at −12.4% on a day WTI fell 7.4%, and the Macro Landscape grid — which applied no roll check at all — showed Brent −12.9 and Gasoline as "big moves". Gasoline and Diesel expire on the last business day of the month, so their front month always splices on the first session of a month; replayed over two years the check fires 9 times on Gasoline, every one a first-of-month session at a seasonal grade switch. Now one helper (`src/overhaul/lib/futuresRoll.js`) decides for both surfaces: Brent vs WTI every session; Gasoline/Diesel vs WTI on a month's first session only (cracks legitimately diverge from crude on refinery news on other days). The tape drops the tile; the grid prints "roll" with a tooltip and leaves it out of the big-move count. **Rule:** a roll guard lives in one shared function that every surface showing a one-session futures change calls — a guard copied into one page is a guard the next page does not have.
+
 
 ### 4.38 (2026-10-02) — A generator regenerates the WHOLE artifact; a hand-edit to generated output is a revert waiting for the next scheduled run
 
