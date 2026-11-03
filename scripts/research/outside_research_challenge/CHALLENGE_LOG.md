@@ -19,6 +19,61 @@ Procedure: `PLAYBOOK.md`. Posts already read: `processed_posts.json`.
 
 ---
 
+## 2026-11-03 — a falling investment-grade-to-Treasury ratio under a strong index: a risk-off flag, or noise?
+
+Three posts since the last read (Oct 31–Nov 1; two read in full from the
+inbox, one public page). Also read, by sender, two Macro Ops letters and six
+Daily Upside issues (`letters_read.json`). Nothing from Praetorian since the
+Q3 letter; nothing from Greenhaven Road in the inbox at all.
+
+**What their work does that ours does not.** The vol desk reads the
+investment-grade fund against the Treasury fund (LQD/IEF) as a stand-alone
+risk-off tell — IG losing to governments while equities still sit near their
+high — alongside a correlation-event trigger (one-month implied correlation)
+and a vol-risk-premium reset. The macro letter's current book is long crude,
+short Treasuries (long end and now twos), short Nasdaq, long wheat, long a
+commodities basket, with a proprietary liquidity gauge at a three-year low
+as the stated reason for more downside.
+
+**The question that puts to us.** The open Oct 22 credit call rests on
+high-yield spreads. Does the IG-versus-Treasury ratio carry any warning of
+its own for the index, and is it live today?
+
+**The test.** `ig_vs_treasury_riskoff_test.py`, output
+`results_2026-11-03.txt`. Trigger: LQD/IEF down 2% or more over 21 sessions
+while SPY is within 5% of its 252-session high; first trigger in any window
+of the hold; next 15, 63 and 126 sessions in SPY against every day since
+2002; independent episodes.
+
+**The result.** Six episodes in 24 years (2005, 2007 ×2, 2009, 2013, 2023).
+Fifteen sessions out: −1.5% median against +0.6%, won 2 of 6. Sixty-three
+sessions out: +3.0% median against +2.5%, won 5 of 6. Thin, and the sign
+flips between holds. Not live: the ratio is down 0.9% over 21 sessions
+today (SPY 3.5% under its high).
+
+**What changed in MacroTilt.** Nothing in the book. The ratio joins the
+Oct 27 range-divergence row as weak-and-thin; the credit call stays on the
+spread measure the daily check already re-measures. The liquidity gauge
+cannot be tested (its inputs are not public); the margin-debt
+anti-washout read goes to the queue.
+
+### Not yet tested — carried to the next read
+
+- Retail margin debt (FINRA) against currency in circulation, rising while
+  the index falls: does the rally-without-washout pattern forecast a lower
+  low? (needs the FINRA series on file)
+- One-month implied correlation above 25 as the marker of a true
+  correlation event vs an ordinary pullback (needs COR1M history).
+- MOVE up 25+ points in 21 sessions while VIX ≤ 18 (carried from Oct 27).
+- Count of ±2% daily moves in the momentum factor over 63 sessions ≥ 8 with
+  the S&P within 3% of its high (carried).
+- Tight range followed by a break to a new 3-month high, with a
+  measured-move target (carried from Oct 13).
+- Equal-weight S&P lagging as a warning (needs a longer equal-weight series).
+- Corporate-bond-to-Treasury relative strength, spread-based (carried).
+
+---
+
 ## 2026-10-27 — weak credit under a strong index: is the range divergence a signal on its own?
 
 Ten posts since the last read (Oct 3–26; eight read in full, two members-only
