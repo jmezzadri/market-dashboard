@@ -1,0 +1,90 @@
+name: MIDDAY-GATES-WEEKDAYS
+
+# The 11:30 ET gate check for the Midday Update (Joe, 2026-11-03: the midday
+# edition posts only when a gate fires; on a quiet day the homepage says so).
+#
+# This workflow is the DETERMINISTIC half: it runs scripts/midday_gates.py on
+# the market and scheduled-day gates and commits public/midday_gates.json
+# every trading day, fired or quiet. The "MacroTilt Midday Update" scheduled
+# Cowork session (~11:33 ET) re-runs the same script with the asserted gates
+# (data surprise, earnings, central bank), overwrites the log, and writes the
+# update itself when something fired. If that session is ever missing, this
+# file still puts the honest "nothing tripped" line on the tile.
+#
+# Writes only public/midday_gates.json. Never emails.
+
+on:
+  schedule:
+    # 11:30 ET: 16:30 UTC in EST, 15:30 UTC in EDT. Both crons are listed; the
+    # script's NYSE-calendar gate refuses weekends/holidays, and the second
+    # run of the day (the one landing at 10:30 or 12:30 ET) only re-commits if
+    # the file changed, so the off-season sibling is harmless.
+    - cron: '30 16 * * 1-5'
+    - cron: '30 15 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: midday-gates
+  cancel-in-progress: false
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out market-dashboard
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MACROTILT_BOT_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+
+      - name: Configure git
+        run: |
+          git config user.name  "Market Dashboard Bot"
+          git config user.email "bot@github-actions"
+
+      # Only the 11:30 ET firing matters; the sibling cron lands at 10:30 or
+      # 12:30 ET depending on the season. Run only inside the 11:15-11:45 window
+      # (manual dispatch always runs).
+      - name: Is it 11:30 ET?
+        id: when
+        run: |
+          H=$(TZ=America/New_York date +%H); M=$(TZ=America/New_York date +%M)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || { [ "$H" = "11" ] && [ "$M" -ge 15 ] && [ "$M" -le 45 ]; }; then
+            echo "run=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=no" >> "$GITHUB_OUTPUT"; echo "Not the 11:30 ET slot ($H:$M ET) — nothing to do."
+          fi
+
+      - name: Gate check
+        if: steps.when.outputs.run == 'yes'
+        id: gates
+        run: |
+          set +e
+          python3 scripts/midday_gates.py --out public/midday_gates.json
+          RC=$?
+          set -e
+          echo "rc=$RC" >> "$GITHUB_OUTPUT"
+          if [ "$RC" = "2" ]; then echo "Not a trading day — no log."; git checkout -- public/midday_gates.json 2>/dev/null || true; fi
+          if [ "$RC" = "1" ]; then echo "::error::gate check failed"; exit 1; fi
+
+      - name: Commit + push the gate log if changed
+        if: steps.when.outputs.run == 'yes' && steps.gates.outputs.rc != '2'
+        run: |
+          if git diff --quiet -- public/midday_gates.json && git ls-files --error-unmatch public/midday_gates.json >/dev/null 2>&1; then
+            echo "No change to public/midday_gates.json — skipping commit."
+          else
+            git add public/midday_gates.json
+            git commit -m "Midday gate check $(TZ=America/New_York date +%F) [skip ci]
+
+            Written by .github/workflows/MIDDAY-GATES-WEEKDAYS.yml"
+            for _i in 1 2 3; do git pull --rebase --autostash origin main && git push && break || sleep 4; done
+          fi
