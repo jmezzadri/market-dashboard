@@ -31,12 +31,12 @@
   },
   {
    "ticker": "BXSL",
-   "date": "2026-11-02",
-   "close": 23.67,
+   "date": "2026-11-03",
+   "close": 23.219999313354492,
    "nav": 25.53,
    "nav_period_end": "2026-06-30",
    "nav_filed": "2026-08-06",
-   "price_to_nav": 0.9271
+   "price_to_nav": 0.9095
   },
   {
    "ticker": "GBDC",
