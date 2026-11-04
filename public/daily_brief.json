@@ -1,79 +1,76 @@
 {
   "eyebrow": "Morning Brief",
-  "headline": "Brent $106.48 +1.7% on US Qeshm strike, Apple -4% pre-market, Dec hike odds 73%, midterms today",
-  "stance": "Brent +1.7% overnight (~5am ET) on a US strike at Qeshm, after Monday's drop on Iran deal talk. Two megacap beats sold off on guidance; the vote lands tonight.",
+  "headline": "Democrats sweep Congress, DXY 101.5 one-month low, 10y 4.93%, gold +2.3%, AMD +6% pre-market",
+  "stance": "Democrats won both chambers overnight; S&P futures -1.4% at the lows, +0.2% by 4am ET. Dollar at a one-month low, 10y 4.93%, gold futures +2.3% (~4am ET).",
   "news": [
     {
-      "head": "Apple -4% pre-market on a holiday-quarter margin guide",
-      "body": "Beat: revenue $114.48bn vs $113.39bn, EPS $2.10 vs $1.99. Dec-quarter gross margin guided 45-46% vs 47.9%; services growth 8-9% vs 10.7% expected."
+      "head": "AMD +6% pre-market: Q4 guide $17bn vs $16.2bn",
+      "body": "Q3 revenue $13.38bn vs $13.09bn, EPS $2.09 vs $1.95; data center $8.5bn, +97%. Call: 2027 revenue growth above 80%; PC market down double digits."
     },
     {
-      "head": "Palantir -3% after hours despite a beat and raise",
-      "body": "Revenue $2.31bn vs $2.18bn; Q4 guide $2.65bn vs $2.46bn; FY raised to $8.53bn. US commercial revenue passed government for the first time."
+      "head": "Super Micro +7% after hours on a $19.9bn quarter",
+      "body": "EPS $1.81 vs $1.23. Next-quarter revenue guide $19.5-21.5bn vs $17.4bn consensus; fiscal-year guide raised to $72-82bn."
     },
     {
-      "head": "Marvell buys Lumentum for $115bn in stock, both fall",
-      "body": "4.5 Marvell shares per Lumentum share, a 24% premium to Oct 28. Marvell -12.7% and Lumentum -18.6% Monday; close expected in H1 2028."
+      "head": "Novo Nordisk +6% in Copenhagen, raises 2026 guide",
+      "body": "Q3 sales DKK79.2bn vs DKK73.6bn; Wegovy pill DKK5.39bn vs DKK4.5bn. Full-year sales and profit now -2% to +2%, from -6% to 0%. New CFO named."
     },
     {
-      "head": "Oracle sells $10bn of bonds at 7-8.65% coupons, stock -8.8%",
-      "body": "Plus $10bn of equity at $116, 11% below Friday. The whole four-year $20bn raise cap, used in one day. S&P cut Meta's outlook to negative on AI capex."
+      "head": "Block +8.6% after hours, lifts 2026 EPS guide to $4.15",
+      "body": "Q3 EPS $1.13 vs $1.03, revenue $6.72bn vs $6.58bn. Q4 EPS guide $1.15 vs $1.16; the raise is all in the quarter just reported."
     }
   ],
   "implications": [
-    "Oil's answer to a US strike was +1.7%, after Monday's drop on deal talk. Deal headlines move it more than strikes do; the Hormuz reopening terms are the trade.",
-    "Prediction markets price ~77% odds of a Democratic sweep. The surprise is a Republican hold: higher yields and a stronger dollar at Wednesday's open."
+    "A Democratic Congress means less fiscal impulse and a veto on anything new: lower yields, weaker dollar. First test: refunding, 8:30 today.",
+    "AI-hardware beats rallied after hours while hyperscalers fell pre-market. Chip demand is not the question; data-center permitting under new Democratic governors is."
   ],
   "watch": [
     {
-      "head": "JOLTS 10:00",
-      "body": "Consensus 7.10mn openings vs 7.079mn in August. Factory orders at the same time."
+      "head": "Refunding 8:30; ADP 8:15; ISM Services 10:00",
+      "body": "Coupon sizes expected unchanged; the guidance line on 2027 long-end cuts is the event. ADP consensus +70K after +90K; ISM Services 54.7 vs 54.9."
     },
     {
-      "head": "Midterms: first polls close 6pm ET",
-      "body": "Most of the East closes by 8pm. Results arrive overnight, so Wednesday's open prices the outcome."
+      "head": "Qualcomm, Arm report after today's close",
+      "body": "McDonald's, Uber and CVS report before the open; Datadog and MetLife after the close. Novo Nordisk's call is at 7:00 ET."
     },
     {
-      "head": "AMD reports after today's close",
-      "body": "Consensus revenue $13.09bn, EPS $1.95, against a ~$13bn guide. Stock -26% in a month, +1.3% pre-market (~4:45am ET)."
+      "head": "Jobs report Nov 6, 8:30; BoE Thursday 7:00 ET",
+      "body": "Payrolls consensus +65K after +29K. Hike odds for the Dec 9 FOMC sit at 77% (~3am ET). Friday is the last top-tier labor print before it."
     },
     {
-      "head": "Refunding Nov 4, 8:30; ISM Services 10:00",
-      "body": "Coupon-size guidance for the long end is the event. BoE Thursday, jobs report Nov 6."
+      "head": "Hormuz: Trump says no immediate strike",
+      "body": "Iran: the strait reopens only if sanctions are waived and the blockade ends. Four tankers hit mines south of the strait overnight, per the IRGC."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "US struck Qeshm Island in Hormuz late Monday; Brent $106.48, +1.7% (~5am ET). Trump: a deal \"could happen\". Iran offers to reopen Hormuz on conditions.",
-        "Dec hike odds 73%, from 80% a week ago. 10y 4.92%, 2y 4.60% (~5am ET), 1-2bp higher overnight. The December hike is priced off Hormuz.",
-        "ISM 55.5 Monday, +1 vs September against a flat consensus. RBA hiked 25bp to 4.85% Tuesday, 6-3, no December signal; AUD/USD below 0.70."
+        "Democratic sweep: 10y 4.93%, -2bp; DXY 101.5, a one-month low; EUR/USD 1.124 (~4am ET). Trump keeps the veto, so the fiscal path narrows rather than reverses.",
+        "Dec hike odds 77% (~3am ET), from 73% Tuesday morning. JOLTS 7.52mn Tuesday vs 7.10mn consensus. Gold futures $4,032, +2.3% (~4am ET), on the weaker dollar.",
+        "Brent $104.36, +0.7% (~2:30am ET), after Tuesday's lowest settle in nearly 4 weeks. Iran calls the US reply to its 7 conditions 'not convincing'."
       ],
-      "positioning": "Specs extended short Euro, 1st %ile, and sterling, 5th %ile, 6 weeks running: background, not news. Nothing new in rates COT this week.",
+      "positioning": "Platinum specs extended short, 14th %ile, down 21 points on the week: the only new COT extreme. Rates and currency COT unchanged.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "Nasdaq 100 closed in a correction Monday; SOX -3.4%. Dow finished higher: the selling is in chips, not the index.",
-        "S&P futures -0.2%, Nasdaq 100 futures flat, Dow futures -0.5% (~4am ET). Stoxx 600 -0.6%, Kospi -3.6%, Taiwan -3.6%, steepest since late July.",
-        "Monday's megacap beats fell after hours on guidance. Beats are not enough; outlooks are what trade this week."
+        "Nasdaq 100 futures -2.4% at the overnight low, +0.1% by 4am ET; S&P futures +0.2%, Dow +0.5%. Hyperscalers and chips lower pre-market, the rest bid.",
+        "Nikkei -1.4% Wednesday after -4.8% intraday; Kospi +0.6% after -3.5%. Hang Seng +1.7%, Shanghai +2.2%. Stoxx 600 +0.7% (~4am ET) after futures -1.5%.",
+        "Two AI-hardware beats traded up after hours while index futures sold off. Solar ETF +3% overnight: the sweep is a sector rotation, not an index call."
       ],
-      "positioning": "Specs extended short VIX, 13th %ile, and extended long Russell 2000, 99th, 4-5 weeks running: background. The vote lands on both tonight.",
-      "single_name": {
-        "ticker": "TFC",
-        "note": "New to the setups list Monday: insider buy filed Oct 29, trading above its 200-day, 3.3 days to cover. Score 5, top of the list."
-      }
+      "positioning": "Specs extended long Russell 2000, 99th %ile, and short VIX, 13th: unchanged 4-5 weeks. Nothing new in equity COT into the vote.",
+      "single_name": null
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "17 IG issuers priced Monday, the most since Sep 8. Dealers see ~$45bn this week, front-loaded before the vote and payrolls.",
-        "Tech IG spreads 108bp Friday vs 76bp at end-2025: AI capex is now a credit story. A $10bn AI bond deal priced at 7-8.65% Monday.",
-        "BDCs 0.90x NAV at Monday's close, up from 0.89x Friday, with equities down: the private-credit discount is not tracking tech."
+        "Hyperscaler 5y CDS 100-120bp, where Mexico and South Africa trade. A 2046 AI bond priced at 8.65% Monday vs 6.55% in February: 335bp over Treasuries vs 170bp.",
+        "AI-linked HY spreads ~350bp, 100bp over non-AI HY, widest since May 2025. Roughly 33% of 2026 AI capex is bond-financed.",
+        "Big-5 tech IG spreads +31bp year-to-date vs +1bp for the IG index: the AI premium is issuer-specific, not market-wide."
       ],
-      "positioning": null,
+      "positioning": "Primary-dealer IG inventory 21st %ile of 3 years, mid-range: no balance-sheet stress from the AI supply yet.",
       "single_name": null
     }
   ],
@@ -90,81 +87,81 @@
     },
     {
       "ticker": "ACN",
-      "pct": 1.0,
+      "pct": -2.4,
+      "link": true
+    },
+    {
+      "ticker": "GME",
+      "pct": 0.3,
       "link": true
     },
     {
       "ticker": "NMCO",
       "pct": -0.2,
       "link": true
-    },
-    {
-      "ticker": "GME",
-      "pct": -0.2,
-      "link": true
     }
   ],
-  "date": "2026-11-03",
-  "recap_session": "Mon Nov 2",
-  "written_at": "2026-11-03T05:07:35-05:00",
+  "date": "2026-11-04",
+  "recap_session": "Tue Nov 3",
+  "written_at": "2026-11-04T05:08:32-05:00",
   "metrics": [
     {
       "group": "Rates",
       "rows": [
         {
           "label": "2y",
-          "level": "4.59%",
-          "chg": "+3bp",
-          "dir": "up"
-        },
-        {
-          "label": "10y",
-          "level": "4.91%",
-          "chg": "-3bp",
-          "dir": "down"
-        },
-        {
-          "label": "20y",
-          "level": "5.31%",
-          "chg": "-3bp",
-          "dir": "down"
-        },
-        {
-          "label": "30y",
-          "level": "5.28%",
-          "chg": "-3bp",
-          "dir": "down"
-        },
-        {
-          "label": "2s10s",
-          "level": "32bp",
-          "chg": "-6bp",
-          "dir": "down"
-        },
-        {
-          "label": "10y real",
-          "level": "2.62%",
+          "level": "4.61%",
           "chg": "+2bp",
           "dir": "up"
         },
         {
+          "label": "10y",
+          "level": "4.95%",
+          "chg": "+4bp",
+          "dir": "up"
+        },
+        {
+          "label": "20y",
+          "level": "5.35%",
+          "chg": "+4bp",
+          "dir": "up"
+        },
+        {
+          "label": "30y",
+          "level": "5.32%",
+          "chg": "+4bp",
+          "dir": "up"
+        },
+        {
+          "label": "2s10s",
+          "level": "34bp",
+          "chg": "+2bp",
+          "dir": "up"
+        },
+        {
+          "label": "10y real",
+          "level": "2.65%",
+          "chg": "+3bp",
+          "dir": "up"
+        },
+        {
           "label": "10y B/E",
-          "level": "2.29%",
-          "chg": "-5bp",
-          "dir": "down"
+          "level": "2.30%",
+          "chg": "+1bp",
+          "dir": "up"
         },
         {
           "label": "Term prem",
-          "level": "94bp",
-          "chg": "unch",
-          "dir": "flat",
-          "as_of": "Oct 23"
+          "level": "91bp",
+          "chg": "-2bp",
+          "dir": "down",
+          "as_of": "Oct 30"
         },
         {
           "label": "MOVE",
-          "level": "100.40",
-          "chg": "+0.20",
-          "dir": "up"
+          "level": "100.00",
+          "chg": "-0.40",
+          "dir": "down"
         }
       ]
     },
@@ -173,39 +170,39 @@
       "rows": [
         {
           "label": "S&P 500",
-          "level": "7,541.40",
-          "chg": "-0.51%",
-          "dir": "down"
+          "level": "7,568.92",
+          "chg": "+0.36%",
+          "dir": "up"
         },
         {
           "label": "Nasdaq",
-          "level": "25,164.36",
-          "chg": "-1.07%",
-          "dir": "down"
+          "level": "25,372.01",
+          "chg": "+0.83%",
+          "dir": "up"
         },
         {
           "label": "Dow",
-          "level": "51,983.98",
-          "chg": "+0.41%",
-          "dir": "up"
+          "level": "51,786.72",
+          "chg": "-0.38%",
+          "dir": "down"
         },
         {
           "label": "VIX",
-          "level": "21.15",
-          "chg": "+1.73",
-          "dir": "up"
+          "level": "20.83",
+          "chg": "-0.32",
+          "dir": "down"
         },
         {
           "label": "VIX 1m/3m",
           "level": "0.979",
-          "chg": "+0.045",
-          "dir": "up"
+          "chg": "unch",
+          "dir": "flat"
         },
         {
           "label": "SKEW",
-          "level": "152.80",
-          "chg": "+3.00",
-          "dir": "up"
+          "level": "150.00",
+          "chg": "-2.80",
+          "dir": "down"
         },
         {
           "label": "CAPE",
@@ -222,29 +219,30 @@
         {
           "label": "IG OAS",
           "level": "94bp",
-          "chg": "+5bp",
-          "dir": "up",
-          "as_of": "Oct 30"
+          "chg": "unch",
+          "dir": "flat",
+          "as_of": "Nov 2"
         },
         {
           "label": "HY OAS",
-          "level": "344bp",
-          "chg": "+18bp",
-          "dir": "up",
-          "as_of": "Oct 30"
+          "level": "343bp",
+          "chg": "-1bp",
+          "dir": "down",
+          "as_of": "Nov 2"
         },
         {
           "label": "HYG/LQD",
           "level": "1.349",
           "chg": "+0.002",
-          "dir": "up"
+          "dir": "up",
+          "as_of": "Nov 2"
         },
         {
           "label": "SOFR-OIS",
           "level": "7bp",
-          "chg": "+1bp",
-          "dir": "up",
-          "as_of": "Oct 30"
+          "chg": "unch",
+          "dir": "flat",
+          "as_of": "Nov 2"
         },
         {
           "label": "CP spread",
@@ -255,9 +253,9 @@
         },
         {
           "label": "RRP",
-          "level": "$5.1bn",
-          "chg": "+1bn",
-          "dir": "up"
+          "level": "$0.4bn",
+          "chg": "-5bn",
+          "dir": "down"
         },
         {
           "label": "TGA",
@@ -273,39 +271,45 @@
       "rows": [
         {
           "label": "WTI",
-          "level": "$96.46",
-          "chg": "-7.36%",
+          "level": "$96.09",
+          "chg": "-0.38%",
+          "dir": "down"
+        },
+        {
+          "label": "Brent",
+          "level": "$103.60",
+          "chg": "-1.12%",
           "dir": "down"
         },
         {
           "label": "Gold",
-          "level": "$3,969.60",
-          "chg": "+1.81%",
-          "dir": "up"
+          "level": "$3,940.40",
+          "chg": "-0.74%",
+          "dir": "down"
         },
         {
           "label": "Copper",
-          "level": "$6.54",
-          "chg": "+1.32%",
-          "dir": "up"
+          "level": "$6.38",
+          "chg": "-2.52%",
+          "dir": "down"
         },
         {
           "label": "DXY",
-          "level": "101.80",
-          "chg": "-0.08%",
+          "level": "101.30",
+          "chg": "-0.44%",
           "dir": "down"
         },
         {
           "label": "USD/JPY",
-          "level": "157.68",
-          "chg": "-0.08%",
-          "dir": "down"
+          "level": "157.91",
+          "chg": "+0.15%",
+          "dir": "up"
         },
         {
           "label": "EUR/USD",
-          "level": "1.1157",
-          "chg": "-0.23%",
-          "dir": "down"
+          "level": "1.1192",
+          "chg": "+0.31%",
+          "dir": "up"
         }
       ]
     }
@@ -316,9 +320,9 @@
         "trade": "Long SPY 773 put, Nov 13",
         "date": "2026-10-22",
         "kind": "cross-asset",
-        "held": 9,
-        "pnl": "+102.90%",
-        "vs": "+105.69pp",
+        "held": 10,
+        "pnl": "+84.53%",
+        "vs": "+86.96pp",
         "bench": "S&P 500",
         "horizon": 0.69
       },
@@ -326,9 +330,9 @@
         "trade": "Long US energy stocks (XLE)",
         "date": "2026-10-09",
         "kind": "equity",
-        "held": 17,
-        "pnl": "+7.33%",
-        "vs": "+9.71pp",
+        "held": 18,
+        "pnl": "+3.08%",
+        "vs": "+5.96pp",
         "bench": "S&P 500",
         "horizon": 6
       },
@@ -336,9 +340,9 @@
         "trade": "Long Japanese yen via FXY",
         "date": "2026-09-22",
         "kind": "fx",
-        "held": 30,
-        "pnl": "-0.02%",
-        "vs": "+2.36pp",
+        "held": 31,
+        "pnl": "-0.26%",
+        "vs": "+2.62pp",
         "bench": "S&P 500",
         "horizon": 4
       },
@@ -346,45 +350,35 @@
         "trade": "Long US natural gas (UNG)",
         "date": "2026-09-12",
         "kind": "commodity",
-        "held": 36,
-        "pnl": "-10.72%",
-        "vs": "-9.71pp",
+        "held": 37,
+        "pnl": "-11.50%",
+        "vs": "-9.99pp",
         "bench": "S&P 500",
         "horizon": 3
-      },
-      {
-        "trade": "Short WEAT (Teucrium wheat fund)",
-        "date": "2026-09-06",
-        "kind": "commodity",
-        "held": 40,
-        "pnl": "+16.19%",
-        "vs": "+17.99pp",
-        "bench": "S&P 500",
-        "horizon": 2
       }
     ],
     "book": {
       "since": "2026-08-13",
-      "as_of": "2026-11-02",
-      "ret": "+4.65%",
+      "as_of": "2026-11-03",
+      "ret": "+3.17%",
       "bench": "S&P 500",
-      "bench_ret": "-1.48%",
-      "excess": "+6.13pp",
-      "closed": 4
+      "bench_ret": "-1.36%",
+      "excess": "+4.52pp",
+      "closed": 5
     },
-    "as_of": "2026-11-03",
-    "line": "+4.65% since Aug 13 vs S&P 500 -1.48% · 5 open"
+    "as_of": "2026-11-04",
+    "line": "+3.17% since Aug 13 vs S&P 500 -1.36% · 4 open"
   },
   "qt_book": {
-    "equity": 1062348.09,
-    "day": "-1.14%",
-    "since": "+6.23%",
+    "equity": 1067144.03,
+    "day": "+0.45%",
+    "since": "+6.71%",
     "since_date": "2026-09-01",
-    "as_of": "2026-11-02",
+    "as_of": "2026-11-03",
     "bench": "S&P 500",
-    "bench_since": "-1.95%",
-    "excess": "+8.18pp",
+    "bench_since": "-1.66%",
+    "excess": "+8.37pp",
     "names": 20,
-    "line": "+6.23% since Sep 1 vs S&P 500 -1.95% · 20 names"
+    "line": "+6.71% since Sep 1 vs S&P 500 -1.66% · 20 names"
   }
 }
