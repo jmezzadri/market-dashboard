@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-11-04T00:44:32Z",
+  "generated_at": "2026-11-04T17:24:28Z",
   "window": {
     "from": "2026-10-28",
     "to": "2027-01-13"
   },
   "counts": {
-    "total": 105,
+    "total": 104,
     "tier1": 34
   },
   "sources": [
@@ -29,7 +29,9 @@
     "No reference period is shown: the release calendar gives the date a report lands, not the month it covers, and that lag is not uniform across releases.",
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
-  "problems": [],
+  "problems": [
+    "NASS calendar parsed to zero rows across the window"
+  ],
   "events": [
     {
       "date": "2026-10-28",
@@ -183,17 +185,6 @@
       "category": "Trade",
       "blurb": "Goods and services imports versus exports.",
       "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-04",
-      "time_et": "8:30 AM",
-      "name": "Treasury quarterly refunding",
-      "short": "Refunding",
-      "tier": 2,
-      "category": "Rates",
-      "blurb": "Treasury's quarterly statement of coupon auction sizes and its guidance on future sizes \u2014 direct event risk for the 10- and 30-year yields.",
-      "source": "US Treasury quarterly refunding statement (home.treasury.gov)",
       "time_source": "published release policy"
     },
     {
