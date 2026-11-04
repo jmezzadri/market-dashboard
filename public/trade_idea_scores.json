@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-04T20:29:27Z",
+  "generated_at": "2026-11-04T22:40:34Z",
   "as_of": "2026-11-04",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. The book is a notional 100: each call is held at the weight its note stated when it was published (10 for a standard idea, 5 for one published with fewer than five matching past cases, 1 to 2 of premium for an event idea), the rest is cash, and a call's contribution is its weight times its own return. An event idea — a defined-risk options spread on a named event — is marked at expiry from the underlying's closing price against its strikes; the premium paid is the most it can lose, and before expiry it is shown as open. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
@@ -16,11 +16,11 @@
       "marked": 9,
       "open": 4,
       "closed": 5,
-      "avg_mark_pct": 8.34,
+      "avg_mark_pct": -1.72,
       "best": {
-        "id": "2026-10-22-credit-broke-first-the-s-p-500-has-two-weeks-to-",
-        "trade_label": "Long SPY 773 put, Nov 13",
-        "mark": 84.53
+        "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
+        "trade_label": "Short WEAT (Teucrium wheat fund)",
+        "mark": 17.21
       },
       "worst": {
         "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
@@ -28,31 +28,31 @@
         "mark": -12.23
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": 9.98,
-      "ahead_of_spx": 5,
-      "behind_spx": 4,
-      "line": "9 calls marked (4 open, 5 closed). Taken as one book they average +8.3% a call and sit 10.0 points ahead of the S&P 500 over the same days — 5 ahead of the index, 4 behind. Best: Long SPY 773 put, Nov 13, +84.5%. Worst: Long KBW / Short NASDAQ, -12.2%."
+      "avg_vs_spx_pp": -0.24,
+      "ahead_of_spx": 4,
+      "behind_spx": 5,
+      "line": "9 calls marked (4 open, 5 closed). Taken as one book they average -1.7% a call and sit 0.2 points behind the S&P 500 over the same days — 4 ahead of the index, 5 behind. Best: Short WEAT (Teucrium wheat fund), +17.2%. Worst: Long KBW / Short NASDAQ, -12.2%."
     },
     "stats_withheld": true,
     "stats_withheld_reason": "5 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless.",
     "portfolio": {
       "inception": "2026-08-13",
-      "as_of": "2026-11-03",
-      "calendar_days": 82,
+      "as_of": "2026-11-04",
+      "calendar_days": 83,
       "history_weeks": 12,
       "benchmark_label": "S&P 500",
       "book_base": 100.0,
       "invested_now": 35.0,
       "cash_now": 65.0,
-      "total_return_pct": 3.2803,
-      "benchmark_total_pct": -1.3188,
-      "excess_total_pct": 4.5991,
-      "annualized_pct": 15.4503,
-      "benchmark_annualized_pct": -5.7381,
-      "excess_annualized_pct": 21.1885,
+      "total_return_pct": -1.2451,
+      "benchmark_total_pct": -0.7653,
+      "excess_total_pct": -0.4798,
+      "annualized_pct": -5.3608,
+      "benchmark_annualized_pct": -3.322,
+      "excess_annualized_pct": -2.0388,
       "annualized_withheld_reason": null,
       "realized_contribution_pct": -0.0568,
-      "unrealized_contribution_pct": 3.3372,
+      "unrealized_contribution_pct": -1.1883,
       "realized_by_year": {
         "2026": -0.0568
       },
@@ -413,6 +413,12 @@
       3.2803,
       -1.3188,
       5
+    ],
+    [
+      "2026-11-04",
+      -1.2451,
+      -0.7653,
+      4
     ]
   ],
   "scores": [
@@ -441,14 +447,14 @@
           "entry_value": 773.09,
           "label": "SPY (the fund the puts are on)",
           "short_label": "SPY 773 put, Nov 13",
-          "return_pct": -2.424
+          "return_pct": -0.8123
         }
       ],
-      "buy_pct": -2.424,
+      "buy_pct": -0.8123,
       "sell_pct": null,
       "trade_label": "Long SPY 773 put, Nov 13",
-      "position_pct": 84.5331,
-      "risk_sized_pct": 84.5331,
+      "position_pct": -5.9753,
+      "risk_sized_pct": -5.9753,
       "sizing": {
         "method": "option",
         "multiple": 1.0,
@@ -463,14 +469,14 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7757.17,
-        "as_of": "2026-11-03",
-        "move": -2.4268,
-        "difference": 86.9599,
+        "as_of": "2026-11-04",
+        "move": -0.8837,
+        "difference": -5.0916,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 84.5331,
-      "mark_date": "2026-11-03",
-      "sessions_held": 10,
+      "mark": -5.9753,
+      "mark_date": "2026-11-04",
+      "sessions_held": 11,
       "max_favourable": {
         "value": 102.9041,
         "date": "2026-11-02"
@@ -487,7 +493,7 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 13,
+      "days_held": 14,
       "option": {
         "structure": "put",
         "underlying": "SPY",
@@ -501,27 +507,27 @@
         "dividend_yield_pct": 0.0,
         "underlying_entry": 773.09,
         "iv_at_entry_pct": 16.68,
-        "underlying_close": 754.35,
-        "underlying_as_of": "2026-11-03",
-        "iv_pct": 20.83,
-        "value_per_share": 21.6167,
-        "intrinsic_per_share": 18.65,
-        "days_to_expiry": 10,
+        "underlying_close": 766.81,
+        "underlying_as_of": "2026-11-04",
+        "iv_pct": 16.76,
+        "value_per_share": 11.0143,
+        "intrinsic_per_share": 6.19,
+        "days_to_expiry": 9,
         "max_loss_pct": -100.0,
-        "state": "open — 10 days to expiry"
+        "state": "open — 9 days to expiry"
       },
       "weight": 5.0,
       "weight_stated": true,
       "weight_note": null,
-      "contribution_pct": 4.2267,
+      "contribution_pct": -0.2988,
       "book": {
-        "as_of": "2026-11-03",
+        "as_of": "2026-11-04",
         "weight": 5.0,
-        "return_pct": 84.5331,
-        "benchmark_pct": -2.4268,
-        "excess_pct": 86.9599,
-        "contribution_pct": 4.2267,
-        "days_held": 13
+        "return_pct": -5.9753,
+        "benchmark_pct": -0.8837,
+        "excess_pct": -5.0916,
+        "contribution_pct": -0.2988,
+        "days_held": 14
       }
     },
     {
@@ -595,19 +601,19 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 26,
+      "days_held": 27,
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": 0.2207,
       "book": {
-        "as_of": "2026-11-03",
+        "as_of": "2026-11-04",
         "weight": 10.0,
         "return_pct": 2.2072,
-        "benchmark_pct": -2.5297,
-        "excess_pct": 4.7369,
+        "benchmark_pct": -0.9882,
+        "excess_pct": 3.1954,
         "contribution_pct": 0.2207,
-        "days_held": 26
+        "days_held": 27
       }
     },
     {
@@ -681,19 +687,19 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 43,
+      "days_held": 44,
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": -0.0876,
       "book": {
-        "as_of": "2026-11-03",
+        "as_of": "2026-11-04",
         "weight": 10.0,
         "return_pct": -0.8763,
-        "benchmark_pct": -2.5214,
-        "excess_pct": 1.6451,
+        "benchmark_pct": -0.9798,
+        "excess_pct": 0.1035,
         "contribution_pct": -0.0876,
-        "days_held": 43
+        "days_held": 44
       }
     },
     {
@@ -769,19 +775,19 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 53,
+      "days_held": 54,
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": -1.0226,
       "book": {
-        "as_of": "2026-11-03",
+        "as_of": "2026-11-04",
         "weight": 10.0,
         "return_pct": -10.2262,
-        "benchmark_pct": -1.1501,
-        "excess_pct": -9.0761,
+        "benchmark_pct": 0.4132,
+        "excess_pct": -10.6394,
         "contribution_pct": -1.0226,
-        "days_held": 53
+        "days_held": 54
       }
     },
     {
