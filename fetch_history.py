@@ -1065,6 +1065,20 @@ def fetch_all():
     #   2. SD calibration in App.jsx (mean=99, sd=7) is DXY-scale.
     #   3. DXY is the dollar index every trading desk references intraday.
     print("USD (DX-Y.NYB) ...")
+    # 2026-11-04 (health sweep, bug #1278): the 11-03 point was written 101.30 by
+    # the 19:58 ET run and rewritten 101.87 by the 06:05 ET run. Before any
+    # settled-session rule is written for this futures feed, record what Yahoo
+    # actually serves at each hour (raw tz-aware bar stamps + the live quote
+    # time) so the fix matches an observed payload, not a guessed one.
+    try:
+        _t = yf.Ticker("DX-Y.NYB")
+        _raw = _t.history(period="5d", auto_adjust=False)["Close"].dropna().tail(3)
+        _rmt = (getattr(_t, "history_metadata", None) or {}).get("regularMarketTime")
+        print("  usd-diag DX-Y.NYB: tail[" + ", ".join(
+            f"{i.isoformat()}={float(v):.3f}" for i, v in _raw.items())
+            + f"] regularMarketTime={_rmt}")
+    except Exception as _e:
+        print(f"  usd-diag DX-Y.NYB: failed ({_e})")
     s = safe_yf("DX-Y.NYB")
     if s is not None:
         result["usd"] = {"freq": "D", "unit": "index",
