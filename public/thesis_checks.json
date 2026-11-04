@@ -1,6 +1,6 @@
 {
- "generated_at": "2026-11-03T22:40:19Z",
- "as_of": "2026-11-03",
+ "generated_at": "2026-11-04T00:56:33Z",
+ "as_of": "2026-11-04",
  "rule": "Every open call's review conditions and driver are re-measured each evening. A call trips when a critical condition breaks, or when the move it was built on has handed back more than a third (the note may set 10-50%) from its best reading since publication.",
  "calls": [
   {
@@ -167,18 +167,6 @@
    "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
    "date": "2026-09-12",
    "title": "Oil carries a war premium. US natural gas carries none.",
-   "conditions": [],
-   "tripped": false,
-   "trip_reasons": [],
-   "lines": [
-    "No machine-checkable conditions on record for this call; the weekly review covers it."
-   ],
-   "coverage": "none"
-  },
-  {
-   "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
-   "date": "2026-09-06",
-   "title": "The last buyers just showed up in wheat",
    "conditions": [],
    "tripped": false,
    "trip_reasons": [],
