@@ -458,6 +458,8 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .mt-terminal .tm-ptitle { font-size: var(--v13-t2); color: var(--tm-text); letter-spacing: 0.02em; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* 2026-11-02: panel titles wrap on a phone instead of cutting the date off ("RISK MEASURES · AFTER OCT 30 CL…"). */
 @media (max-width: 600px) { .mt-overhaul .mt-terminal .tm-ptitle { white-space: normal; overflow: visible; } }
+/* 2026-11-05 (health sweep): the wrapped second line ("CLOSE") was clipped against the bar's bottom border — the bar kept its fixed one-line height and overflow:hidden. On a phone the bar grows to fit the wrapped title. */
+@media (max-width: 600px) { .mt-overhaul .mt-terminal .tm-phead:not(.tm-phead--btn) { height: auto; min-height: var(--tm-panel-head-h); padding-top: var(--sp-4); padding-bottom: var(--sp-4); } }
 .mt-overhaul .mt-terminal .tm-pfill { flex: 1; }
 /* A title bar with no note: the title owns the row (the layout check reads a 64% row as content jammed left). */
 .mt-overhaul .mt-terminal .tm-ptitle--grow { flex: 1 1 auto; }
