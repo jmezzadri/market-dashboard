@@ -460,6 +460,9 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 @media (max-width: 600px) { .mt-overhaul .mt-terminal .tm-ptitle { white-space: normal; overflow: visible; } }
 /* 2026-11-05 (health sweep): the wrapped second line ("CLOSE") was clipped against the bar's bottom border — the bar kept its fixed one-line height and overflow:hidden. On a phone the bar grows to fit the wrapped title. */
 @media (max-width: 600px) { .mt-overhaul .mt-terminal .tm-phead:not(.tm-phead--btn) { height: auto; min-height: var(--tm-panel-head-h); padding-top: var(--sp-4); padding-bottom: var(--sp-4); } }
+/* Same day: the /macro phone panel buttons lost their own padding to the .tm-phead rule above (higher specificity), so "RATES" sat on the top border and "1 big move" broke, leaving "move" alone on the last line. Restore the button padding and keep each count whole. */
+.mt-overhaul .mt-terminal .tm-phead.tm-phead--btn { height: auto; padding: var(--sp-8) var(--sp-10); }
+.mt-overhaul .tm-counts > span { white-space: nowrap; }
 .mt-overhaul .mt-terminal .tm-pfill { flex: 1; }
 /* A title bar with no note: the title owns the row (the layout check reads a 64% row as content jammed left). */
 .mt-overhaul .mt-terminal .tm-ptitle--grow { flex: 1 1 auto; }

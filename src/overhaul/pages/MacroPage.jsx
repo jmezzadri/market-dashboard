@@ -344,7 +344,7 @@ export default function MacroPage() {
     const d = summ[dom]; const meta = PANEL[dom];
     const isOpen = !phone || openDom === dom;
     const counts = (
-      <span className="tm-counts rd-num"><span className="is-amber">{d.ext} stretched</span> · {d.elev} elevated · <span className="is-blue">{d.big} big {d.big === 1 ? 'move' : 'moves'}</span></span>
+      <span className="tm-counts rd-num"><span className="is-amber">{d.ext} stretched</span> · <span>{d.elev} elevated</span> · <span className="is-blue">{d.big} big {d.big === 1 ? 'move' : 'moves'}</span></span>
     );
     return (
       <section key={dom} id={slug(dom)} className={`tm-panel rd-rise d4 ${extraCls}${isOpen ? ' is-open' : ''}`} aria-label={meta.title}>
