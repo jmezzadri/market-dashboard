@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-05T10:21:49Z",
+ "generated_at": "2026-11-05T19:43:31Z",
  "as_of": "2026-11-05",
  "rule": "Every open call's review conditions and driver are re-measured each evening. A call trips when a critical condition breaks, or when the move it was built on has handed back more than a third (the note may set 10-50%) from its best reading since publication.",
  "calls": [
@@ -17,8 +17,8 @@
       "level": 300.0,
       "transform": "level",
       "basis": "close",
-      "value": 340.0,
-      "value_date": "2026-11-03",
+      "value": 332.0,
+      "value_date": "2026-11-04",
       "status": "holds"
      },
      "driver": {
@@ -34,12 +34,12 @@
        "value": 344.0
       },
       "latest": {
-       "date": "2026-11-03",
-       "value": 340.0
+       "date": "2026-11-04",
+       "value": 332.0
       },
       "move": 77.0,
-      "given_back": 4.0,
-      "given_back_pct": 5.2,
+      "given_back": 12.0,
+      "given_back_pct": 15.6,
       "status": "holds"
      }
     },
@@ -61,8 +61,8 @@
    "tripped": false,
    "trip_reasons": [],
    "lines": [
-    "Critical \u2014 Credit remains wider than before the move began: holds \u2014 340bp on 2026-11-03, needs to stay at or above 300bp.",
-    "The move behind the call: holds \u2014 moved 267bp (2026-09-08) to 344bp (2026-10-30); now 340bp (2026-11-03), 5% of the move given back against a 33% limit.",
+    "Critical \u2014 Credit remains wider than before the move began: holds \u2014 332bp on 2026-11-04, needs to stay at or above 300bp.",
+    "The move behind the call: holds \u2014 moved 267bp (2026-09-08) to 344bp (2026-10-30); now 332bp (2026-11-04), 16% of the move given back against a 33% limit.",
     "The index has not made a new record close: holds \u2014 7,689 on 2026-11-04, needs to stay at or below 7,818."
    ],
    "coverage": "full"
