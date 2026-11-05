@@ -928,9 +928,12 @@ export default function MethodologyPage() {
               </tbody>
             </table>
             <p className="me-body-p">
-              Each job is safe to re-run, and backup runs fire if any one job misses its window. Same-day
-              evening price pulls are kept as best-effort scraps so dashboard tiles can show a rough
-              close intra-evening — the canonical "data is complete" run is the 8 AM morning one.
+              Each job is safe to re-run, and backup runs fire if any one job misses its window. Evening
+              price pulls store settled closes only: futures, currencies and the dollar index count a
+              session as closed from its 5 PM ET settlement, and a price that has already moved into the
+              next session (futures and the dollar index reopen at 6 PM ET) is never filed as that day's
+              close — until the settlement is read, the tile shows the previous one, labelled with its day.
+              The canonical "data is complete" run is the morning one.
             </p>
             <p className="me-body-p">
               For per-feed freshness across all sources at any time, the <b>Data</b>{' '}
