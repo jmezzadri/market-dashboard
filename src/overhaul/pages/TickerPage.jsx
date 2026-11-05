@@ -480,7 +480,12 @@ export default function TickerPage() {
     [eventsForSym.news],
   );
   const companyName = info.name || '';
-  const liveNews = useLiveTickerNews(sym, companyName, true);
+  // 2026-11-05 (Joe, SPCX): the news endpoint ANDs the company phrase with the
+  // ticker, and the security's legal name ("Space Exploration Technologies
+  // Corp. Class A Common Stock") is in no headline — so the company request
+  // came back with one IPO-calendar page and replaced the ticker-only request,
+  // which had real coverage. Search by ticker alone.
+  const liveNews = useLiveTickerNews(sym, '', true);
   const mergedNews = useMemo(
     () => mergeTickerNews(newsEvents, liveNews.items),
     [newsEvents, liveNews.items],
