@@ -842,6 +842,49 @@ def safe_yf(ticker, start=START):
         return None
 
 
+def _dxy_settled_only(s, rmt, now_et=None):
+    """Keep only SETTLED sessions of Yahoo's DX-Y.NYB daily history (bug #1278).
+
+    Observed payload (usd-diag lines, 2026-11-04/05): the ICE dollar index
+    settles at 17:00 ET and reopens at 18:00 ET. After the reopen Yahoo folds
+    the new session's trading into the bar dated with the session that just
+    settled: at 19:58 ET and 20:46 ET on 11-04 the 11-04 bar read 101.372 and
+    101.315 and kept moving, while the 06:05 ET run next morning served the
+    settled 11-04 close 101.510 (and 11-03: 101.30 in the evening, 101.87
+    settled). So today's bar is a real close only when the clock is past the
+    settlement (17:05 ET) AND the live quote is still from before the reopen.
+    Otherwise it is dropped; the point-union then keeps a settled point already
+    on file for the date, and the next morning run supplies the settlement.
+    A Friday evening keeps Friday (no reopen until Sunday)."""
+    from zoneinfo import ZoneInfo
+    import pandas as _pd
+    et = ZoneInfo("America/New_York")
+    now = now_et or datetime.now(et)
+    today = now.strftime("%Y-%m-%d")
+    live = None
+    try:
+        if isinstance(rmt, (int, float)):
+            live = datetime.fromtimestamp(rmt, et)
+        elif rmt is not None:
+            t = _pd.Timestamp(rmt)
+            live = (t.tz_localize("UTC") if t.tzinfo is None else t).tz_convert(et)
+    except Exception:
+        live = None
+    keep_today = (
+        (now.hour, now.minute) >= (17, 5)
+        and live is not None
+        and live.strftime("%Y-%m-%d") == today
+        and (live.hour, live.minute) < (18, 0)
+    )
+    dates = [_pd.Timestamp(i).strftime("%Y-%m-%d") for i in s.index]
+    mask = [d < today or (d == today and keep_today) for d in dates]
+    if not all(mask):
+        dropped = [f"{d}={float(v):.3f}" for d, v, m in zip(dates, s.values, mask) if not m]
+        print(f"  usd settled-session rule: dropped unsettled bar(s) {', '.join(dropped)} "
+              f"(now {now.strftime('%H:%M')} ET, live quote {live.strftime('%Y-%m-%d %H:%M') if live is not None else 'unknown'} ET)")
+    return s[mask]
+
+
 def fetch_all():
     result = {}
 
@@ -1070,6 +1113,7 @@ def fetch_all():
     # settled-session rule is written for this futures feed, record what Yahoo
     # actually serves at each hour (raw tz-aware bar stamps + the live quote
     # time) so the fix matches an observed payload, not a guessed one.
+    _rmt = None
     try:
         _t = yf.Ticker("DX-Y.NYB")
         _raw = _t.history(period="5d", auto_adjust=False)["Close"].dropna().tail(3)
@@ -1081,6 +1125,7 @@ def fetch_all():
         print(f"  usd-diag DX-Y.NYB: failed ({_e})")
     s = safe_yf("DX-Y.NYB")
     if s is not None:
+        s = _dxy_settled_only(s, _rmt)
         result["usd"] = {"freq": "D", "unit": "index",
                          "points": series_to_points(s, round_dp=2),
                          "source": "Yahoo DX-Y.NYB"}

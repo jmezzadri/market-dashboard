@@ -1339,6 +1339,16 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Data Steward, UX Designer — the freshness chip and anything that summarises it.
 
+
+### 4.46 (2026-11-05, health sweep, bug #1278) — A futures bar dated today is only a close inside the settled window; after the reopen it is tomorrow's session wearing today's date
+
+**What happened:** the DXY tile read "101.30 −0.44% Tue close" overnight and "101.87 +0.12%" after the morning refresh — the same session filed twice. The dollar index is written by `fetch_history.py` (INDICATOR-REFRESH) from yfinance daily history, which had no settled-session handling. A logged diagnostic (PR #1898) showed the payload shape: the ICE dollar index settles at 17:00 ET and reopens at 18:00 ET, and after the reopen Yahoo folds the new session's trading into the bar dated with the session that just settled (11-04's bar read 101.372 at 19:58 ET, 101.315 at 20:46 ET, settled 101.510 next morning). Every evening run therefore filed a live overnight price as that day's close.
+
+**Fix:** `_dxy_settled_only()` keeps today's DXY bar only when the clock is past 17:05 ET AND the live quote is from before the 18:00 reopen (a Friday evening keeps Friday); otherwise the bar is dropped and the point-union keeps any settled point already on file. Because GitHub starts INDICATOR-REFRESH's crons hours late, nothing read that window, so `market_tape_evening_dispatch()` (22:15Z = 17:15 ET in winter) now also dispatches INDICATOR-REFRESH when `usd` is behind today's session (migration 20261105). In summer 22:15Z is after the reopen, so evenings show the prior settlement, labelled with its day — honest, never wrong.
+
+**Rule:** before trusting a vendor's newest daily bar for anything that trades round the clock, name the instant it settles and the instant it reopens, and keep the bar only between the two. Diagnose with a logged payload first (as #1898 did) and write the rule from what was observed — the morning run's corrected value is the tell that the evening one was live.
+
+**Applies to:** Lead Developer, Data Steward — every futures/FX/index series read from daily vendor history.
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.

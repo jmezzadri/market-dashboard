@@ -118,6 +118,9 @@ on:
       - V5_SCAN_DAILY
       - V5_SCAN_SAFETY_NET
       - scanner-insider_edgar-daily
+      # 2026-11-05 sweep: MIDDAY-GATES-WEEKDAYS (live, scheduled) was never added;
+      # the watchlist guard went red on main. Recording (BACKGROUND) tier.
+      - MIDDAY-GATES-WEEKDAYS
       - Data reconciler — flag duplicate / orphan / mis-wired series
       - Detector — dead UI files (weekly)
     types:
