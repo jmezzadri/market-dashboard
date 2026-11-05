@@ -639,11 +639,18 @@ export function useFreshnessRollup() {
   // Merge in on-screen chips whose page-local grade is stricter than the
   // element's global grade (see mounted-chip registry above). Dedup: if the
   // element is already red in the global list, the chip adds nothing new.
+  // 2026-11-05 (health sweep): match across id and label both ways. The ticker
+  // page's live-price chip is "market-lse_intraday-live" and carries the
+  // pipeline_health key ("lse_intraday") as its label, while the global entry
+  // is id "lse_intraday" with the friendly label — so one stale feed read
+  // "2 feeds stale: Live intraday price (1-minute bars), lse_intraday".
+  const sameEl = (x, c) =>
+    x.id === c.elementId || x.label === c.label || x.id === c.label || x.label === c.elementId;
   for (const [, c] of mountedChips) {
-    if (c.status === "red" && !red.some((x) => x.id === c.elementId || x.label === c.label)) {
+    if (c.status === "red" && !red.some((x) => sameEl(x, c))) {
       red.push({ id: c.elementId, label: c.label, reason: c.reason || null });
-    } else if (c.status === "amber" && !amber.some((x) => x.id === c.elementId || x.label === c.label)
-               && !red.some((x) => x.id === c.elementId || x.label === c.label)) {
+    } else if (c.status === "amber" && !amber.some((x) => sameEl(x, c))
+               && !red.some((x) => sameEl(x, c))) {
       amber.push({ id: c.elementId, label: c.label });
     }
   }
