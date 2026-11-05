@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-05T01:27:52Z",
+ "generated_at": "2026-11-05T02:08:26Z",
  "as_of": "2026-11-05",
  "rule": "Every open call's review conditions and driver are re-measured each evening. A call trips when a critical condition breaks, or when the move it was built on has handed back more than a third (the note may set 10-50%) from its best reading since publication.",
  "calls": [
