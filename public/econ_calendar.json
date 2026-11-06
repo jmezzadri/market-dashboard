@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-05T21:28:16Z",
+  "generated_at": "2026-11-06T01:01:15Z",
   "window": {
-    "from": "2026-10-29",
-    "to": "2027-01-14"
+    "from": "2026-10-30",
+    "to": "2027-01-15"
   },
   "counts": {
-    "total": 102,
-    "tier1": 33
+    "total": 98,
+    "tier1": 31
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -30,54 +30,10 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-14",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-15",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
-    {
-      "date": "2026-10-29",
-      "time_et": "8:30 AM",
-      "name": "Personal income & PCE prices",
-      "short": "PCE",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Household income and spending with the PCE price index, the Fed's preferred inflation gauge.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-29",
-      "time_et": "8:30 AM",
-      "name": "GDP",
-      "short": "GDP",
-      "tier": 1,
-      "category": "Growth",
-      "blurb": "Quarterly economic growth, in three successive estimates.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-29",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-10-29",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-10-30",
       "time_et": "8:30 AM",
