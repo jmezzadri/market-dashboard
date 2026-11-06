@@ -233,13 +233,16 @@ export default function MacroPage() {
   }, [indicators]);
   const ROLL_TIP = 'Futures contract roll: this session\u2019s change spans two contracts, so it is not a market move and is not shown';
 
-  /* One-session change, signed, at the indicator's own precision. */
+  /* One-session change, signed, at the indicator's own precision — the same
+     decimals as the LAST column. 2026-11-06 (health sweep): a cap of 2 decimals
+     printed EUR/USD +0.0028 and GBP/USD +0.0043 as "0" beside a tape tile
+     reading +0.25% / +0.32%; one number, two answers. */
   const chgOf = (ind) => {
     if (rollSet.has(ind.id)) return { txt: 'roll', cls: 'fl', roll: true };
     const p = ind.points; if (!p || p.length < 2) return null;
     const last = p[p.length - 1][1], prev = p[p.length - 2][1];
     if (!Number.isFinite(last) || !Number.isFinite(prev)) return null;
-    const dec = Math.min(ind.decimals ?? 2, 2);
+    const dec = ind.decimals ?? 2;
     const r = Number((last - prev).toFixed(dec));
     if (r === 0) return { txt: '0', cls: 'fl' };
     const a = Math.abs(r).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
