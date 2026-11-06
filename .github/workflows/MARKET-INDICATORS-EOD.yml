@@ -112,12 +112,32 @@ jobs:
         run: python3 scripts/fetch_bdc_nav.py --selftest && python3 scripts/fetch_bdc_nav.py
       - name: Commit if updated
         run: |
-          if git diff --quiet -- public/indicator_history.json && [ -z "$(git status --porcelain -- public/bdc_nav.json)" ]; then
+          set -euo pipefail
+          F=public/indicator_history.json
+          B=public/bdc_nav.json
+          if git diff --quiet -- "$F" && [ -z "$(git status --porcelain -- "$B")" ]; then
             echo "No changes to commit."
-          else
-            git config user.name  "Market Dashboard Bot"
-            git config user.email "bot@github-actions"
-            git add public/indicator_history.json public/bdc_nav.json
-            git commit -m "Market indicators (commodities + FX) EOD refresh [skip ci]"
-            for _i in 1 2 3; do git pull --rebase --autostash origin main && git push && break || sleep 4; done
+            exit 0
           fi
+          git config user.name  "Market Dashboard Bot"
+          git config user.email "bot@github-actions"
+          # 2026-11-06 (health sweep, bug #1278): same fix as INDICATOR-REFRESH —
+          # the evening pass dispatches both jobs in the same second and the
+          # single-line $F conflicts under `git pull --rebase`, which the old
+          # retry loop swallowed with exit 0. Re-apply only the keys this run
+          # changed onto latest main; bdc_nav.json is ours alone, copied whole.
+          cp "$F" /tmp/ours.json
+          git show HEAD:"$F" > /tmp/base.json
+          HAVE_B=0; if [ -f "$B" ]; then cp "$B" /tmp/bdc_ours.json; HAVE_B=1; fi
+          for attempt in 1 2 3 4 5 6; do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+            python3 scripts/json_key_merge.py /tmp/base.json /tmp/ours.json "$F"
+            if [ "$HAVE_B" = 1 ]; then cp /tmp/bdc_ours.json "$B"; fi
+            git add "$F"; if [ "$HAVE_B" = 1 ]; then git add "$B"; fi
+            if git diff --cached --quiet; then echo "our keys already on main - no change"; exit 0; fi
+            git commit -q -m "Market indicators (commodities + FX) EOD refresh [skip ci]"
+            if git push origin HEAD:main; then echo "pushed on attempt $attempt"; exit 0; fi
+            echo "push race on attempt $attempt - re-applying onto latest main in 5s"; sleep 5
+          done
+          echo "::error::could not push $F after 6 attempts - the refresh was computed and NOT published"; exit 1
