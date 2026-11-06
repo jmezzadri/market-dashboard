@@ -1,0 +1,82 @@
+{
+  "date": "2026-11-06",
+  "checked_at": "2026-11-06T11:34:53-05:00",
+  "fired": true,
+  "fired_gates": [
+    "Scheduled day",
+    "Equities"
+  ],
+  "gates": [
+    {
+      "name": "Scheduled day",
+      "measure": "CPI, jobs report, FOMC, or the day after a US election",
+      "value": "Jobs report",
+      "threshold": "any",
+      "fired": true,
+      "source": "macrotilt.com/econ_calendar.json"
+    },
+    {
+      "name": "Data surprise",
+      "measure": "Jobs report",
+      "value": "165.0 vs 65.0 consensus = +0.75 sigma",
+      "threshold": "±1.0 sigma",
+      "fired": false,
+      "source": "BLS October payrolls via MT Newswires 8:44 ET and CNBC 8:31 ET, 2026-11-06; consensus 65K (Bloomberg/FXStreet)"
+    },
+    {
+      "name": "Equities",
+      "measure": "S&P 500 vs prior close; VIX",
+      "value": "S&P 7,429, +1.02% vs 2026-11-05 close; VIX 24.9, -11.8%",
+      "threshold": "S&P ±1.0% or VIX +15% or VIX ≥30",
+      "fired": true,
+      "as_of": "11:34 AM ET",
+      "source": "Yahoo chart endpoint vs brief-latest prior close"
+    },
+    {
+      "name": "Rates",
+      "measure": "10y yield; MOVE",
+      "value": "10y 4.85%, +1.1bp vs 2026-11-05 close; MOVE 92.7, -5.25",
+      "threshold": "10y ±10bp or MOVE +8pts",
+      "fired": false,
+      "as_of": "11:19 AM ET",
+      "source": "Yahoo chart endpoint vs brief-latest prior close"
+    },
+    {
+      "name": "Oil and dollar",
+      "measure": "Brent; DXY",
+      "value": "Brent $97.81, -0.49% vs 2026-11-05 close; DXY 102.19, +0.63%",
+      "threshold": "Brent ±4% or DXY ±0.75%",
+      "fired": false,
+      "as_of": "11:24 AM ET",
+      "source": "Yahoo chart endpoint vs brief-latest prior close"
+    },
+    {
+      "name": "Earnings",
+      "measure": "top-50 market-cap pre-market report",
+      "value": "none asserted",
+      "threshold": "±5%",
+      "fired": false,
+      "source": ""
+    },
+    {
+      "name": "Central bank",
+      "measure": "ECB / BoE / BoJ decision vs consensus",
+      "value": "no off-consensus decision",
+      "threshold": "differs from consensus",
+      "fired": false,
+      "source": ""
+    }
+  ],
+  "problems": [],
+  "thresholds": {
+    "spx_pct": 1.0,
+    "vix_pct": 15.0,
+    "vix_abs": 30.0,
+    "ust10_bp": 10.0,
+    "move_pts": 8.0,
+    "brent_pct": 4.0,
+    "dxy_pct": 0.75,
+    "release_sigma": 1.0,
+    "earnings_pct": 5.0
+  }
+}
