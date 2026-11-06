@@ -1,0 +1,83 @@
+{
+  "date": "2026-11-06",
+  "edition": "close",
+  "label": "Market Close",
+  "written_at": "2026-11-06T18:44:16-05:00",
+  "headline": "S&P +0.3%, Nasdaq +1.1%, SOX +4.2%, Dow -0.5%, 2y 4.51%, Dec hike ~80%, S&P week -2.7%",
+  "stance": "Chips were bought back, the Dow and staples sold, and the 2y gave back Thursday's rally. Fourth straight weekly loss for the S&P; CPI Tuesday is the next test.",
+  "trigger": null,
+  "scorecard": [
+    {
+      "call": "Morning: the bounce starts in chips; payrolls decides whether the 2y rally holds.",
+      "actual": "Right on chips: SOX +4.2% at the close. The 2y rally is gone: 4.51% at the close, +5bp on the day."
+    },
+    {
+      "call": "Midday: a close above Thursday's close on heavy volume is the bar.",
+      "actual": "Cleared on price: S&P +0.3% to 7,377, Nasdaq +1.1% at the close. Dow -0.5%. Volume not verified."
+    },
+    {
+      "call": "Midday: does Nasdaq hold Thursday's low into the last 30 minutes.",
+      "actual": "Held. Nasdaq closed +1.1%, above Thursday's close; tech and communication services led at 4:00."
+    }
+  ],
+  "sections": [
+    {
+      "title": "Macro & Rates",
+      "bullets": [
+        "December hike ~80% priced by the close, from 67% Thursday. Payrolls +165K plus +84K of revisions did it; hourly earnings +0.4% m/m.",
+        "Musalem Friday: excess inflation is coming from energy shocks and the AI buildout. One more payrolls report lands before the December meeting.",
+        "Oil flat Friday after the week's drop. Trump called Qatar's emir Friday on ending the war; IRGC says two more tankers struck mines in Hormuz."
+      ],
+      "positioning": null,
+      "single_name": null
+    },
+    {
+      "title": "Equity Markets",
+      "bullets": [
+        "SOX +4.2% Friday after Thursday's -12.2%. Tech and communication services led; staples and financials lagged at the close.",
+        "Week: S&P -2.7%, Nasdaq -3.4%, Dow -0.9%. Fourth straight weekly loss for the S&P and Nasdaq, the worst S&P week since April 2025.",
+        "Asia took Thursday's hit Friday: Kospi -6.0%, Hang Seng -1.3%, ChiNext -4.0%. Stoxx 50 -1.0%."
+      ],
+      "positioning": null,
+      "single_name": null
+    },
+    {
+      "title": "Credit & Liquidity",
+      "bullets": [
+        "HY OAS Friday at its widest since the April 2025 tariff week; the lowest-rated tier near its widest since 2020.",
+        "Single-name AI CDS eased ~8% Friday from Thursday's record. Large-cap AI issuers' CDS stay low in absolute terms after a month of widening.",
+        "Five AI bond deals, $67bn, since Oct 29; hyperscaler issuance $296bn this year. Heavy supply is doing part of the widening."
+      ],
+      "positioning": null,
+      "single_name": null
+    }
+  ],
+  "items": [
+    {
+      "head": "Vistra +10% at 1:43 PM on a Q3 beat",
+      "body": "Net income and revenue rose y/y, both above estimates. Oil service index +2.1% and the energy ETF +0.6% at the same time."
+    },
+    {
+      "head": "CoreWeave 5y CDS ~1,155bp Friday, from 1,289 Thursday",
+      "body": "2032 bond yield above 16%. Stock down more than 50% in a month. Reports Tuesday; funding costs are the call's question."
+    }
+  ],
+  "watch": [
+    {
+      "head": "Hormuz over the weekend",
+      "body": "Trump has said he will decide soon on resuming strikes. Iran's nuclear proposal via Qatar is under US review. Oil reopens Sunday evening."
+    },
+    {
+      "head": "Monday 10:00: wholesale inventories; no tier-1 data",
+      "body": "First session after the S&P's worst week since April 2025. Does Friday's chip bid hold without a data catalyst."
+    },
+    {
+      "head": "CPI Tuesday Nov 10, 8:30",
+      "body": "First inflation print at ~80% December odds. A hot core print reopens January, priced ~20% Thursday."
+    },
+    {
+      "head": "Tuesday after the close: the neocloud report",
+      "body": "Funding costs and contract durations are the questions. Credit watches it more closely than equities do."
+    }
+  ]
+}
