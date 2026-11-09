@@ -1,61 +1,49 @@
 {
-  "date": "2026-11-06",
+  "date": "2026-11-09",
   "edition": "midday",
   "label": "Midday Update",
-  "written_at": "2026-11-06T11:36:37-05:00",
-  "headline": "S&P +1.0% at 11:30, Nasdaq +1.8%, payrolls +165K vs 65K, 2y 4.52%, Dec hike odds ~80%",
-  "stance": "The chip bounce is holding into lunch and the beat put the December hike back near 80%. Thursday's 2y rally is the casualty, not the equity book.",
+  "written_at": "2026-11-09T11:37:50-05:00",
+  "headline": "S&P +1.9% at 11:30, VIX -19%, Nasdaq 100 +2.5%, Brent -4.3% to $94.14, DXY -0.45%",
+  "stance": "AI dip buying and a reported Hormuz proposal drove the morning, not data. The Qatar meeting at noon ET decides whether oil, and the rally, hold into Tuesday's CPI.",
   "trigger": {
     "gate": "Equities",
-    "detail": "S&P 7,429, +1.0% vs Thursday's close at 11:34; VIX 24.9, -12%"
+    "detail": "S&P 7,519, +1.92% vs Friday's close at 11:30 ET; VIX 20.7, -19%. Brent -4.25% tripped the oil gate too"
   },
   "scorecard": [
     {
-      "call": "Bounce starts in chips; payrolls decides whether the 2y rally holds. Consensus +59-65K, 4.2%.",
-      "actual": "Right on chips: Nvidia +6.6%, Micron +9.8% at the open. Wrong on the 2y: +165K, 4.1%, 2y 4.52% by 8:35"
+      "call": "Nasdaq 100 futures flat pre-market: the rebound has not crossed the Pacific.",
+      "actual": "It crossed at the open. Nasdaq 100 +2.5%, US chip index +4.5% at 10:39 ET; S&P +1.9% at 11:30 ET"
     },
     {
-      "call": "A print above 80K is the test for the 5y longs, 99th %ile.",
-      "actual": "Failed: +165K plus +84K of revisions. 2y +5bp, 10y 4.88% at 8:35; 10y back to 4.85% at 11:19"
+      "call": "WTI $89.70 pre-market; Trump: new strikes highly unlikely if talks progress.",
+      "actual": "Brent $92.96, -5.5% at 9:35 ET on the reported Hormuz terms; $94.14, -4.3% at 11:30 ET"
     },
     {
-      "call": "UMich prelim 10:00: first household inflation read since Brent fell 12%.",
-      "actual": "51.0 vs 48.0 at 10:00; 1y expectations 4.3% from 4.7%. Survey closed before the election"
+      "call": "Nvidia -5.2% pre-market on the board probe of Huang.",
+      "actual": "Held: -5% at 10:39 ET while the chip index rose 4.5%. A single-stock story, not a sector one"
     }
   ],
   "bullets": [
-    "Open: Nasdaq +1.8%, S&P +1.0%, Dow -0.2% at 10:00. Tech +2.7%, staples -1.5%. Rotation back into Thursday's losers.",
-    "Payrolls +165K vs 65K at 8:30, unemployment 4.1%, hourly earnings +0.4% m/m. Dec hike odds ~80% by 9:00, from ~70% overnight.",
-    "2y 4.52%, +5bp at 8:35; 10y 4.85%, +1bp at 11:19. The front end paid for the beat.",
-    "Dollar 102.19, +0.6% at 11:24. USD/CAD 1.412 after Canada lost 4.7K jobs, unemployment 6.7% at 8:30.",
-    "Afternoon: Bowman 12:15. A close above Thursday's close on heavy volume is the bar."
+    "Hormuz terms reported 9:26 ET: Iran reopens the strait, halts tanker attacks. US lifts the blockade, releases $8bn frozen in Qatar. Nuclear program excluded.",
+    "Four cabinet members reportedly oppose those terms. Trump and Vance meet the Qatari PM at noon ET; equities are priced for a yes.",
+    "Rates did not join: 10y 4.87%, +1.4bp at 11:30 ET; MOVE 88.4, -4.4pts. December hike odds near 80% at 11:20 ET.",
+    "DXY 101.84, -0.45% at 11:30 ET; EUR/USD 1.1203, +0.55% at 11:20 ET. The dollar is giving back Friday's +0.8% as oil falls.",
+    "Nine of 11 sectors higher at 9:46 ET, discretionary and communication services leading. The chip index, +4.5% at 10:39 ET, led after its worst week since March."
   ],
   "items": [
     {
-      "head": "Humana +4% on a narrower loss, 2026 EPS guide to $9.50+",
-      "body": "Q3 adj. loss $0.70 vs -$1.00 consensus; revenue $41.2bn vs $40.9bn. Benefit ratio 93.7% vs 94%+ guided. $428 at 10:37."
-    },
-    {
-      "head": "Charter: pro forma revenue -1.5%, EBITDA -3%",
-      "body": "Internet customers 29.2mn, -1.9% y/y. Targets $1bn Cox synergies plus $2bn cost savings in 18 months."
+      "head": "Broadcom +7.5%, Marvell +5%: the AI chip dip was bought",
+      "body": "Broadcom +7.5% at 10:43 ET after -10% Thursday; Marvell +5% at 9:46 ET. Nvidia -5% at 10:39 ET on the Huang probe, the one large chip name lower."
     }
   ],
   "watch": [
     {
-      "head": "Bowman 12:15",
-      "body": "First Fed voice after the beat. December is ~80%; the question is January, priced ~20% Thursday."
+      "head": "Trump and Vance meet the Qatari PM, noon ET",
+      "body": "Confirmation or rejection of the Hormuz terms lands mid-session. Brent $94.14 at 11:30 ET; the reported cabinet dissent is the risk."
     },
     {
-      "head": "Consumer credit 3:00",
-      "body": "September household borrowing. UMich: 57% cite eroded living standards, highest since May."
-    },
-    {
-      "head": "Close: does Nasdaq hold Thursday's low",
-      "body": "Rebalance flow flips to buying on an up day; watch the last 30 minutes."
-    },
-    {
-      "head": "Hormuz over the weekend",
-      "body": "Trump weighing resumed strikes on Iran vs a deal, per Axios Friday. Brent $97.81, -0.5% at 11:24."
+      "head": "Barkin 12:15 ET, then the 3y auction at 1pm",
+      "body": "First Fed voice since payrolls with hike odds near 80%. The auction tests a 10y at 4.87% that did not follow equities."
     }
   ]
 }
