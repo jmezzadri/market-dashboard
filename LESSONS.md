@@ -1349,6 +1349,16 @@ They are not the same series and they are nowhere near each other:
 **Rule:** before trusting a vendor's newest daily bar for anything that trades round the clock, name the instant it settles and the instant it reopens, and keep the bar only between the two. Diagnose with a logged payload first (as #1898 did) and write the rule from what was observed — the morning run's corrected value is the tell that the evening one was live.
 
 **Applies to:** Lead Developer, Data Steward — every futures/FX/index series read from daily vendor history.
+
+### 4.47 (2026-11-09, health sweep) — Two numbers on the same tape that should move together are a free audit; a vendor's "close" can be its open
+
+**What happened:** On Monday's tape the DXY tile read +0.72% for Friday while EUR/USD read −0.06%, GBP/USD −0.16% and the yen strengthened — the dollar cannot rise 0.7% while its biggest component barely moves. The FX producer had run correctly every night; the 22:15Z pass even stored the right Friday close (EUR 1.1143). Ninety minutes later the 00:22Z pass overwrote it with 1.1228. Reason, read off the vendor payload: since mid-2010 every FINISHED Yahoo spot-FX daily bar ("=X") carries close == open (EURUSD=X, JPY=X, GBPUSD=X: ~97% of bars with |close−open| < 10% of the range; gold, the control, ~5%). The "close" is the 00:00-London opening print, i.e. the previous day's New York close. Only the bar still trading has a moving close, so each evening pass looked right and the next pass silently reverted it. Every stored FX point, tile move, chart and FX-leg scorecard mark has run one session late for years; nothing flagged it because every check graded freshness, not meaning. Daily-change correlation of the FX-implied dollar against DXY: 0.11 on the stored series, 0.86 after the fix (2011–2026, every era improves).
+
+**Fix:** `fx_bars()` in `scripts/fetch_market_indicators.py`: a bar whose close sits on its open takes the NEXT bar's open as its close (the in-progress bar is served stamped at the live time; its open still counts); bars with a real close (pre-2010) keep it; the newest bar takes `regularMarketPrice` only after 17:05 ET. History rebuilt on the next run (same dates, no purge). The closed 2026-08-14 EUR idea re-marks from −2.85% to about −2.78%.
+
+**Rule:** (1) When two series on the same page are mechanically linked (DXY vs its FX legs, an index vs its ETF, a crack vs its legs), the sweep's cross-check compares their MOVES, not just their dates — LESSONS 0.19 rule 2 applies between tiles, not only between pages. (2) Before trusting a vendor field named "close", test it: on a daily bar close == open on most days is not a market, it is a placeholder. (3) A value that changes between the evening and the morning pass is a symptom (4.46, 4.47) — find which of the two the vendor's own OHLC supports before choosing.
+
+**Applies to:** Lead Developer, Data Steward — every Yahoo series; the weekday health sweep's cross-checks.
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.
