@@ -323,10 +323,26 @@ curl -s -X POST "https://yqaqqzseepebrocgibcw.supabase.co/functions/v1/agent-wri
 and note that no email can result.
 
 **5. Verify live — the JSON AND the rendered page.** First poll
-`https://macrotilt.com/daily_brief.json?cb=<random>` until `date` equals today
-(Vercel deploys the merge; allow up to ~6 minutes). The email is sent by the
+`https://macrotilt.com/daily_brief.json?cb=<random>` until `date` equals today.
+Vercel deploys the merge, and it can be SLOW: on 2026-11-09 the production
+deploy landed 35 minutes after the merge (10:09 → 10:44 UTC) while every data
+feed on the site already matched `main`. Poll for up to 45 minutes before
+calling it a problem, and do not improvise a second submit, a deploy hook or a
+no-op commit to "kick" it — the merge is on `main`, the email workflow reads the
+committed file, and the site catches up on its own. (The `?cb=` query does not
+bust Vercel's edge cache for a static file — watch the `age` header instead;
+it resets to 0 when the new deployment is serving.) The email is sent by the
 GitHub workflow from the committed file on its existing schedule — nothing for
 the session to send.
+
+**Asia closes beat Asia wires (2026-11-09).** The snapshot tape carries the
+Nikkei (and later the DAX) as a *Monday close* with its own % change. A wire
+level from mid-session — "Nikkei +3.5%" at 12:30am ET — sat next to a tape
+reading "+2.33% Mon close" on the rendered page, which is the prose-contradicts-
+the-chart failure this step exists to catch. Before composing, read
+`n225_index` (and `dax_index`) in `brief-latest`: if `as_of` is today, that is
+the close — use it and say "at Monday's close". Quote an intraday Asian level
+only when the feed does not yet carry today's close, and label its time.
 
 Then actually LOOK at `https://macrotilt.com/`. Markup containing a string is
 not verification (Joe, 2026-04-28: "verified means I looked"). Read the date
