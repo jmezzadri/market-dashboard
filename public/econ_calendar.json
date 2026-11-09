@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-08T23:51:20Z",
+  "generated_at": "2026-11-09T19:56:59Z",
   "window": {
-    "from": "2026-11-01",
-    "to": "2027-01-17"
+    "from": "2026-11-02",
+    "to": "2027-01-18"
   },
   "counts": {
-    "total": 93,
-    "tier1": 26
+    "total": 96,
+    "tier1": 29
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -30,9 +30,8 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-17",
-    "NASS calendar parsed to zero rows across the window",
-    "WASDE page fetch failed: HTTP Error 403: Forbidden"
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-18",
+    "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
     {
@@ -220,6 +219,17 @@
       "category": "Inflation",
       "blurb": "Headline and core consumer inflation.",
       "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-10",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
@@ -733,6 +743,17 @@
     },
     {
       "date": "2026-12-10",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-10",
       "time_et": "4:30 PM",
       "name": "Fed balance sheet (H.4.1)",
       "short": "H.4.1",
@@ -1070,6 +1091,17 @@
       "category": "Surveys",
       "blurb": "Monthly survey of small-business owners \u2014 hiring plans, prices charged and outlook.",
       "source": "NFIB published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2027-01-12",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     }
   ]
