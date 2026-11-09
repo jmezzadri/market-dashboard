@@ -3298,7 +3298,7 @@
    "owner": "Data Steward",
    "dependencies": [],
    "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "no single intraday cutoff",
+   "as_of_cutoff_note": "Close of London day D = the 00:00 London print of the next day (~2h after the 17:00 ET FX close); the newest day takes the vendor's last price once 17:05 ET has passed. Yahoo's finished FX daily bars carry close = open since mid-2010 (fx_bars, 2026-11-09).",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
    "cadence_display": "Daily \u00b7 4:45 PM, after the close"
   },
@@ -3339,7 +3339,7 @@
    "owner": "Data Steward",
    "dependencies": [],
    "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "no single intraday cutoff",
+   "as_of_cutoff_note": "Close of London day D = the 00:00 London print of the next day (~2h after the 17:00 ET FX close); the newest day takes the vendor's last price once 17:05 ET has passed. Yahoo's finished FX daily bars carry close = open since mid-2010 (fx_bars, 2026-11-09).",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
    "cadence_display": "Daily \u00b7 4:45 PM, after the close"
   },
@@ -3380,7 +3380,7 @@
    "owner": "Data Steward",
    "dependencies": [],
    "as_of_cutoff_et": null,
-   "as_of_cutoff_note": "no single intraday cutoff",
+   "as_of_cutoff_note": "Close of London day D = the 00:00 London print of the next day (~2h after the 17:00 ET FX close); the newest day takes the vendor's last price once 17:05 ET has passed. Yahoo's finished FX daily bars carry close = open since mid-2010 (fx_bars, 2026-11-09).",
    "sla_basis": "Daily job (every business day); SLA = job cadence + 1-day grace (~2 business days). Graded off last successful pull, not data age.",
    "cadence_display": "Daily \u00b7 4:45 PM, after the close"
   },

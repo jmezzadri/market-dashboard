@@ -208,7 +208,8 @@ def fetch(ticker):
             res = r.json()["chart"]["result"]
             if not res:
                 raise RuntimeError("no result")
-            bars = daily_bars(res[0])
+            # Spot FX: a finished Yahoo bar's close is its open (fx_bars).
+            bars = fx_bars(res[0]) if ticker.endswith("=X") else daily_bars(res[0])
             if not bars:
                 raise RuntimeError("no completed bars in the vendor payload")
             if attempt:
@@ -348,6 +349,68 @@ def daily_bars(q, now_ts=None):
         print(f"  index-diag {sym}: tail[{tail}] rmt={live_day.strftime('%m-%d %H:%M')} rmp={rmp} "
               f"period={reg_txt} closed={closed_index} newest={max(by_date) if by_date else None}")
     return [[d, by_date[d]] for d in sorted(by_date)]
+
+
+def fx_bars(q, now_ts=None):
+    """Daily closes for a Yahoo spot-FX pair ("=X"), dated by the London day.
+
+    2026-11-09 (health sweep): a FINISHED Yahoo FX daily bar carries
+    close == open. Measured on the vendor payload: over two years, EURUSD=X,
+    JPY=X and GBPUSD=X had |close - open| < 8% of the bar's range on ~97% of
+    days (gold, the control, 5%). The bar's "close" is its 00:00-London
+    opening print - i.e. roughly the PREVIOUS day's New York close - so every
+    stored FX point, every tile move and every FX chart ran one session late
+    (Fri 11-06: tile EUR/USD -0.06% while the DXY tile read +0.72%; the real
+    Friday move, captured live at 22:15Z, was -0.82%). Only the bar still in
+    progress shows a moving close, which is why each evening pass looked right
+    and the next pass silently reverted it.
+
+    The close of London day D is therefore the OPEN of the next bar (the
+    00:00-London print, ~2h after the 17:00 ET FX close). The newest bar has
+    no successor yet: once its New York session has ended (last_settled_date)
+    its close is the vendor's regularMarketPrice; before that it is an open
+    session and is skipped, never guessed."""
+    import datetime as _dtm, collections as _co
+    from zoneinfo import ZoneInfo as _zi
+    meta = q["meta"]
+    tz = _zi(meta["exchangeTimezoneName"])
+    live_ts = meta.get("regularMarketTime")
+    qq = q["indicators"]["quote"][0]
+    n = len(q["timestamp"])
+    col = lambda k: (qq.get(k) or [None] * n)
+    rows = [(t, _dtm.datetime.fromtimestamp(t, tz), o, c, h, l)
+            for t, o, c, h, l in zip(q["timestamp"], col("open"), col("close"), col("high"), col("low"))
+            if o is not None]
+    if not rows:
+        return []
+    usual = _co.Counter((r[1].hour, r[1].minute) for r in rows).most_common(1)[0][0]
+    bars = {}
+    live = None
+    for t, local, o, c, h, l in rows:
+        if t == live_ts and (local.hour, local.minute) != usual:
+            live = (local.strftime("%Y-%m-%d"), float(o))   # the session in progress
+            continue
+        # Before mid-2010 the vendor's FX bars carry real closes; keep those.
+        # A bar whose close sits on its open (within 10% of its range) is the
+        # quirk, and takes the next bar's open instead.
+        real = (c is not None and h is not None and l is not None and h > l
+                and abs(c - o) > 0.1 * (h - l))
+        bars[local.strftime("%Y-%m-%d")] = (float(o), float(c) if real else None)
+    # The in-progress session is served stamped at the live time, not at
+    # London midnight; its OPEN is still the close of the day before it.
+    if live and live[0] not in bars:
+        bars[live[0]] = (live[1], None)
+    dates = sorted(bars)
+    out = [[dates[i], round(bars[dates[i]][1] if bars[dates[i]][1] is not None else bars[dates[i + 1]][0], 4)]
+           for i in range(len(dates) - 1)]
+    last = dates[-1]
+    rmp = meta.get("regularMarketPrice")
+    ny = _zi("America/New_York")
+    now_et = _dtm.datetime.fromtimestamp(now_ts, ny) if now_ts is not None else None
+    if rmp is not None and last_settled_date(now_et) >= last:
+        out.append([last, round(float(rmp), 4)])
+        print(f"  fx close for the newest bar from regularMarketPrice: {meta.get('symbol', '?')} {last} = {round(float(rmp), 4)}")
+    return out
 
 
 def fetch_uranium_spot():
@@ -739,6 +802,29 @@ def selftest():
     good = got == [["2026-10-07", 1.1254], ["2026-10-08", 1.1201]]
     ok &= good
     print(f"  {'OK' if good else 'FAIL'} daily_bars drops the live quote and the null bar: {got}")
+    # fx_bars (2026-11-09): a finished FX bar's close is its open, so day D's
+    # close is the next bar's open; the newest bar takes regularMarketPrice
+    # only once its New York session has ended.
+    _nyz = _zi2("America/New_York")
+    _fxq = lambda live_ts: {"meta": {"exchangeTimezoneName": "Europe/London", "regularMarketTime": live_ts,
+                                     "regularMarketPrice": 1.1143, "symbol": "EURUSD=X"},
+                            "timestamp": [_b(2026, 11, 5), _b(2026, 11, 6), live_ts],
+                            "indicators": {"quote": [{"open": [1.1237, 1.1221, 1.1143],
+                                                      "close": [1.1235, 1.1228, 1.1143]}]}}
+    _fri_eve = int(_td.datetime(2026, 11, 6, 17, 15, tzinfo=_nyz).timestamp())
+    _fri_mid = int(_td.datetime(2026, 11, 6, 11, 0, tzinfo=_nyz).timestamp())
+    eve = fx_bars(_fxq(_fri_eve - 60), now_ts=_fri_eve)
+    mid = fx_bars(_fxq(_fri_mid - 60), now_ts=_fri_mid)
+    _mon = int(_td.datetime(2026, 11, 9, 6, 10, tzinfo=_nyz).timestamp())
+    _mq = {"meta": {"exchangeTimezoneName": "Europe/London", "regularMarketTime": _mon,
+                    "regularMarketPrice": 1.1198, "symbol": "EURUSD=X"},
+           "timestamp": [_b(2026, 11, 5), _b(2026, 11, 6), _mon],
+           "indicators": {"quote": [{"open": [1.1237, 1.1227, 1.1141], "close": [1.1235, 1.1228, 1.1198]}]}}
+    mon = fx_bars(_mq, now_ts=_mon)
+    good = (eve == [["2026-11-05", 1.1221], ["2026-11-06", 1.1143]] and mid == [["2026-11-05", 1.1221]]
+            and mon == [["2026-11-05", 1.1227], ["2026-11-06", 1.1141]])
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} fx_bars: next open closes day D, newest bar only after NY close: {eve} / {mid} / {mon}")
     # A half-session close is stamped 09:30, not 00:00, and is still a close.
     _ny = _zi2("America/New_York")
     got = daily_bars({"meta": {"exchangeTimezoneName": "America/New_York", "regularMarketTime": _b(2026, 1, 2, 9, 47, _ny)},
