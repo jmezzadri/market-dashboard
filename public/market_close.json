@@ -1,32 +1,32 @@
 {
-  "date": "2026-11-06",
+  "date": "2026-11-09",
   "edition": "close",
   "label": "Market Close",
-  "written_at": "2026-11-06T18:44:16-05:00",
-  "headline": "S&P +0.3%, Nasdaq +1.1%, SOX +4.2%, Dow -0.5%, 2y 4.51%, Dec hike ~80%, S&P week -2.7%",
-  "stance": "Chips were bought back, the Dow and staples sold, and the 2y gave back Thursday's rally. Fourth straight weekly loss for the S&P; CPI Tuesday is the next test.",
+  "written_at": "2026-11-09T18:47:25-05:00",
+  "headline": "S&P +2.35%, Nasdaq 100 +3.4%, chips +6.85%, WTI -4.4% to $86.85, 3y tail 0.5bp, Take-Two +4% AH",
+  "stance": "The Hormuz trade reversed both ways Monday: oil to its lowest since August, S&P its best day in 7 months. Rates did not join; CPI at 8:30 decides whether they must.",
   "trigger": null,
   "scorecard": [
     {
-      "call": "Morning: the bounce starts in chips; payrolls decides whether the 2y rally holds.",
-      "actual": "Right on chips: SOX +4.2% at the close. The 2y rally is gone: 4.51% at the close, +5bp on the day."
+      "call": "Morning: Nasdaq 100 futures flat pre-market, the rebound has not crossed the Pacific.",
+      "actual": "It crossed. Nasdaq 100 +3.4%, S&P +2.35% at the close, every sector higher, the S&P's biggest day since April 8."
     },
     {
-      "call": "Midday: a close above Thursday's close on heavy volume is the bar.",
-      "actual": "Cleared on price: S&P +0.3% to 7,377, Nasdaq +1.1% at the close. Dow -0.5%. Volume not verified."
+      "call": "Morning: 3y auction 1pm; the 10y is 50bp off its peak into the supply.",
+      "actual": "Tailed 0.5bp at 4.627%, bid-to-cover 2.53, lowest since August 2025. Dealers left with 9.5%, directs a record 35%."
     },
     {
-      "call": "Midday: does Nasdaq hold Thursday's low into the last 30 minutes.",
-      "actual": "Held. Nasdaq closed +1.1%, above Thursday's close; tech and communication services led at 4:00."
+      "call": "Midday: the Qatar meeting at noon decides whether oil, and the rally, hold into CPI.",
+      "actual": "Trump after the meeting: war \"effectively over\", blockade stays. WTI settled $86.85, -4.4%; equities held to the close."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "December hike ~80% priced by the close, from 67% Thursday. Payrolls +165K plus +84K of revisions did it; hourly earnings +0.4% m/m.",
-        "Musalem Friday: excess inflation is coming from energy shocks and the AI buildout. One more payrolls report lands before the December meeting.",
-        "Oil flat Friday after the week's drop. Trump called Qatar's emir Friday on ending the war; IRGC says two more tankers struck mines in Hormuz."
+        "Trump, ~3pm ET: conflict with Iran \"effectively over\", no new strikes planned, blockade stays. Brent settled $92.57, -5.9%; WTI $86.85, -4.4%, lowest since August.",
+        "3y auction: 4.627%, a 0.5bp tail, bid-to-cover 2.53, lowest since August 2025. Indirects 55.5%, directs a record 35%, dealers 9.5%. 10y auction Tuesday 1pm.",
+        "Goolsbee and Barkin Monday: services inflation picking up, rates may need to go higher. December hike odds above 80% (~5:40pm ET)."
       ],
       "positioning": null,
       "single_name": null
@@ -34,9 +34,9 @@
     {
       "title": "Equity Markets",
       "bullets": [
-        "SOX +4.2% Friday after Thursday's -12.2%. Tech and communication services led; staples and financials lagged at the close.",
-        "Week: S&P -2.7%, Nasdaq -3.4%, Dow -0.9%. Fourth straight weekly loss for the S&P and Nasdaq, the worst S&P week since April 2025.",
-        "Asia took Thursday's hit Friday: Kospi -6.0%, Hang Seng -1.3%, ChiNext -4.0%. Stoxx 50 -1.0%."
+        "Chip index +6.85% at the close, about 10% above Thursday's close. Memory and optical names +6-16%; the one large chip name lower is a company story, not a sector one.",
+        "All 11 sectors higher at the close: industrials +3.8%, discretionary +3.1%, energy +0.4%. Energy was the laggard; AI dip buying led.",
+        "S&P futures little changed, Nasdaq 100 futures +0.2% (~6pm ET) into Tuesday's CPI. No fade after the close."
       ],
       "positioning": null,
       "single_name": null
@@ -44,9 +44,7 @@
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "HY OAS Friday at its widest since the April 2025 tariff week; the lowest-rated tier near its widest since 2020.",
-        "Single-name AI CDS eased ~8% Friday from Thursday's record. Large-cap AI issuers' CDS stay low in absolute terms after a month of widening.",
-        "Five AI bond deals, $67bn, since Oct 29; hyperscaler issuance $296bn this year. Heavy supply is doing part of the widening."
+        "HY ETF +0.4%, IG ETF +0.1% at the close against S&P +2.35%. Credit did not chase the equity rebound; Friday's HY widening is not yet unwound."
       ],
       "positioning": null,
       "single_name": null
@@ -54,30 +52,30 @@
   ],
   "items": [
     {
-      "head": "Vistra +10% at 1:43 PM on a Q3 beat",
-      "body": "Net income and revenue rose y/y, both above estimates. Oil service index +2.1% and the energy ETF +0.6% at the same time."
+      "head": "Take-Two +4% after hours (~6:45pm ET) on GTA VI preorders",
+      "body": "Q2 bookings $1.60bn vs $1.58bn expected, EPS $0.99 vs $0.94. Preorders \"far in excess\" of expectations; the game launches next week. Closed -3.5%."
     },
     {
-      "head": "CoreWeave 5y CDS ~1,155bp Friday, from 1,289 Thursday",
-      "body": "2032 bond yield above 16%. Stock down more than 50% in a month. Reports Tuesday; funding costs are the call's question."
+      "head": "Rocket Lab -4.2% after hours: Neutron debut slips to 2027",
+      "body": "Q3 revenue $267.8mn, +73%, above guidance; loss $0.12 vs $0.07 expected. Q4 guide $270-290mn vs $264.6mn. Closed +10.9% before the report."
+    },
+    {
+      "head": "Nvidia -4.3% to $178.67, lowest close since April 7",
+      "body": "Board probe of Huang kept it the only large chip name lower while the chip index rose 6.85%. Reports Nov 17."
     }
   ],
   "watch": [
     {
-      "head": "Hormuz over the weekend",
-      "body": "Trump has said he will decide soon on resuming strikes. Iran's nuclear proposal via Qatar is under US review. Oil reopens Sunday evening."
-    },
-    {
-      "head": "Monday 10:00: wholesale inventories; no tier-1 data",
-      "body": "First session after the S&P's worst week since April 2025. Does Friday's chip bid hold without a data catalyst."
-    },
-    {
       "head": "CPI Tuesday Nov 10, 8:30",
-      "body": "First inflation print at ~80% December odds. A hot core print reopens January, priced ~20% Thursday."
+      "body": "Consensus headline +0.3% m/m, core +0.2%. First inflation read with December hike odds above 80%; the monthly core change is the number."
     },
     {
-      "head": "Tuesday after the close: the neocloud report",
-      "body": "Funding costs and contract durations are the questions. Credit watches it more closely than equities do."
+      "head": "10y auction 1pm Tuesday, after the 3y tail",
+      "body": "Front end drew the lowest bid-to-cover since August 2025 Monday. Cash Treasuries closed Wednesday, so 10y Tuesday and 30y Thursday carry the week."
+    },
+    {
+      "head": "CoreWeave reports Tuesday; SoftBank too",
+      "body": "CoreWeave +5.6% at the close ahead of the report. The debt-funded AI build gets its first read since the midterms."
     }
   ]
 }
