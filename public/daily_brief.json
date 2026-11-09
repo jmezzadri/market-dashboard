@@ -2,7 +2,7 @@
   "date": "2026-11-09",
   "recap_session": "Fri Nov 6",
   "eyebrow": "Morning Brief",
-  "headline": "NFP +165K, hike odds 78%, Nikkei +3.5%, Nvidia -5% pre-mkt, WTI $89.70, 3y auction 1pm",
+  "headline": "NFP +165K, hike odds 78%, Nikkei +2.3%, Nvidia -5% pre-mkt, WTI $89.70, 3y auction 1pm",
   "stance": "Payrolls locked December; the selloff is now a credit and supply story. Asia bounced 2-6% Monday, Nasdaq 100 futures flat pre-market: the rebound has not crossed the Pacific.",
   "news": [
     {
@@ -59,7 +59,7 @@
       "title": "Equity Markets",
       "bullets": [
         "S&P futures +0.3%, Nasdaq 100 flat, Dow +0.8% (~4am ET). Nasdaq 100 -5% on the week, VIX +30% on the week.",
-        "Nikkei +3.5%, Kospi +1.8%, Taiex +6% Monday (~12:30am ET) after Taiwan's worst week in two decades. Stoxx 600 +0.5% (~4am ET), banks and tech leading.",
+        "Nikkei +2.3% at Monday's close, +3.5% at midday. Kospi +1.8%, Taiex +6% after Taiwan's worst week in two decades. Stoxx 600 +0.5% (~4am ET), banks and tech leading.",
         "US chipmakers slightly lower pre-market while Asian chip suppliers bounced 3-7%. The rebound is in the suppliers, not the US buyers of the chips."
       ],
       "positioning": "Nasdaq 100 longs cut 7 pts w/w to the 89th %ile. Russell 2000 99th and VIX shorts 10th unchanged, 5-6 weeks: Thursday hit full books, Friday did not empty them.",
@@ -105,7 +105,7 @@
       "link": true
     }
   ],
-  "written_at": "2026-11-09T05:09:02-05:00",
+  "written_at": "2026-11-09T05:44:30-05:00",
   "metrics": [
     {
       "group": "Rates",
