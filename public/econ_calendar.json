@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-09T23:46:09Z",
+  "generated_at": "2026-11-10T02:49:51Z",
   "window": {
-    "from": "2026-11-02",
-    "to": "2027-01-18"
+    "from": "2026-11-03",
+    "to": "2027-01-19"
   },
   "counts": {
-    "total": 96,
-    "tier1": 29
+    "total": 91,
+    "tier1": 25
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -30,32 +30,11 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-18",
-    "NASS calendar parsed to zero rows across the window"
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-19",
+    "NASS calendar parsed to zero rows across the window",
+    "WASDE page fetch failed: HTTP Error 403: Forbidden"
   ],
   "events": [
-    {
-      "date": "2026-11-02",
-      "time_et": "10:00 AM",
-      "name": "ISM Manufacturing",
-      "short": "ISM Mfg",
-      "tier": 1,
-      "category": "Surveys",
-      "blurb": "Factory-sector survey; above 50 means the sector is expanding.",
-      "source": "ISM published schedule (computed)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-02",
-      "time_et": "10:00 AM",
-      "name": "Construction spending",
-      "short": "Constr",
-      "tier": 3,
-      "category": "Housing",
-      "blurb": "Value of construction put in place, residential and non-residential.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-11-03",
       "time_et": "10:00 AM",
@@ -219,17 +198,6 @@
       "category": "Inflation",
       "blurb": "Headline and core consumer inflation.",
       "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-10",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
@@ -743,17 +711,6 @@
     },
     {
       "date": "2026-12-10",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-12-10",
       "time_et": "4:30 PM",
       "name": "Fed balance sheet (H.4.1)",
       "short": "H.4.1",
@@ -1091,17 +1048,6 @@
       "category": "Surveys",
       "blurb": "Monthly survey of small-business owners \u2014 hiring plans, prices charged and outlook.",
       "source": "NFIB published schedule (computed)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2027-01-12",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     }
   ]
