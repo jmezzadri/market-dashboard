@@ -19,6 +19,68 @@ Procedure: `PLAYBOOK.md`. Posts already read: `processed_posts.json`.
 
 ---
 
+## 2026-11-10 — a first close under the 200-day "confirms" a bear case: does it?
+
+One new letter since the last read (Nov 9, read in full from the inbox) and
+one newsletter issue (`letters_read.json`). Nothing from Praetorian since the
+Q3 letter; nothing from Greenhaven Road in the inbox at all.
+
+**What their work does that ours does not.** The macro letter trades WITH
+price and uses the 200-day average as the confirmation line: it added to a
+Nasdaq-100 short last week and says a close under the 200-day confirms the
+thesis. Its book is long crude, HRW wheat and a commodity basket, short
+Treasuries (a new short in the 2-year on a range break) and short the
+Nasdaq-100; it reads retail leverage (margin debt scaled by currency in
+circulation, at a record) as proof no washout has happened, while the prime
+brokers call institutional positioning washed.
+
+**The question that puts to us.** The open Oct 22 call is short the S&P
+through a put expiring Nov 13. The Nasdaq-100 fund closed under its 200-day
+on Nov 5 for the first time since March. Is that cross, on its own, bearish —
+or is it the dip the index has historically bought?
+
+**The test.** `nq200_cross_test.py`, output `results_2026-11-10.txt`. First
+close below the 200-day average after at least 63 sessions above it; QQQ
+1999–2026 and SPY 1996–2026 from the price store; next 21, 63 and 126
+sessions against every start in the same sample; independent episodes; split
+by whether the 200-day itself was rising at the cross.
+
+**The result.** QQQ: 16 scored episodes (the 17th is Nov 5). Sixty-three
+sessions on, +6.3% mean, +5.8% median, up 12 of 16, against +2.6% / +4.1% for
+any start; both halves positive (+3.8 / +8.8). At 126 sessions +9.7% vs
++5.4%. SPY: 22 episodes, +5.6% vs +2.3% at 63 sessions, up 18 of 22. In
+every episode but one the 200-day was still rising at the cross — the
+"confirmation" has historically been a pullback inside an uptrend, not the
+start of a decline. Worst case at 63 sessions −9.1% (QQQ).
+
+**What changed in MacroTilt.** Nothing in the book: the open call is a
+three-week put and its reason is credit, not the moving average. The cross is
+recorded as a weak contrary signal (the index was higher a quarter later in
+three cases of four), not a confirmation, and the brief will not describe a
+200-day break as confirming anything. As a candidate it fails the bar on its
+own: +5.8% median over a quarter barely clears 5%, and no stop under 3% is
+survivable on the index. The margin-debt read still waits on the FINRA series.
+
+### Not yet tested — carried to the next read
+
+- Retail margin debt (FINRA) against currency in circulation, rising while
+  the index falls (needs the FINRA series on file).
+- One-month implied correlation above 25 as a true correlation event (needs
+  COR1M history).
+- MOVE up 25+ points in 21 sessions while VIX ≤ 18 (carried).
+- Count of ±2% daily moves in the momentum factor over 63 sessions ≥ 8 with
+  the S&P within 3% of its high (carried).
+- Tight range followed by a break to a new 3-month high, with a
+  measured-move target (carried).
+- Equal-weight S&P lagging as a warning (needs a longer equal-weight series).
+- Corporate-bond-to-Treasury relative strength, spread-based (carried).
+- Gold miners after the 10-year falls 30bp+ in a month off a one-year high:
+  8 cases, median +20% over six months, but 10–16% drawdowns first in 5 of 8
+  — is there an entry rule (a higher low, a 50-day reclaim) that keeps the
+  gain and skips the drawdown? (from the Nov 10 Trade Idea sweep)
+
+---
+
 ## 2026-11-03 — a falling investment-grade-to-Treasury ratio under a strong index: a risk-off flag, or noise?
 
 Three posts since the last read (Oct 31–Nov 1; two read in full from the
