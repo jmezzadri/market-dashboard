@@ -1,0 +1,14 @@
+
+QQQ: first close below the 200-day after >=63 sessions above it — 17 episodes since 2000-03-23
+  last episode: 2026-11-05 | today: 2026-11-09 679.3499755859375 200d 680.89 below? True
+   21 sessions: n=16 mean +2.1% median +1.6% win 69% worst -13.4 | baseline mean +0.8% median +1.5% win 62% | halves +3.0/+1.2 | 200d rising n=15 mean +1.7 | falling n=1 mean +8.3
+   63 sessions: n=16 mean +6.3% median +5.8% win 75% worst -9.1 | baseline mean +2.6% median +4.1% win 68% | halves +3.8/+8.8 | 200d rising n=15 mean +5.7 | falling n=1 mean +14.7
+  126 sessions: n=16 mean +9.7% median +8.3% win 81% worst -16.5 | baseline mean +5.4% median +8.4% win 72% | halves +5.4/+14.1 | 200d rising n=15 mean +9.6 | falling n=1 mean +12.3
+  episodes: ['2000-05', '2004-03', '2005-03', '2005-10', '2006-05', '2008-01', '2010-05', '2011-06', '2012-10', '2014-10', '2015-08', '2018-10', '2020-03', '2022-01', '2025-03', '2026-03', '2026-11']
+
+SPY: first close below the 200-day after >=63 sessions above it — 22 episodes since 1997-01-15
+  last episode: 2026-03-20 | today: 2026-11-09 752.6900024414062 200d 730.38 below? False
+   21 sessions: n=22 mean +1.4% median +2.0% win 73% worst -14.8 | baseline mean +0.8% median +1.3% win 63% | halves +1.6/+1.2 | 200d rising n=22 mean +1.4 | falling n=0 mean +nan
+   63 sessions: n=22 mean +5.6% median +6.5% win 82% worst -5.4 | baseline mean +2.3% median +3.3% win 68% | halves +6.1/+5.2 | 200d rising n=22 mean +5.6 | falling n=0 mean +nan
+  126 sessions: n=22 mean +9.9% median +10.2% win 86% worst -9.7 | baseline mean +4.5% median +5.8% win 72% | halves +8.7/+11.0 | 200d rising n=22 mean +9.9 | falling n=0 mean +nan
+  episodes: ['1998-08', '1999-09', '2000-01', '2004-07', '2005-04', '2005-10', '2006-05', '2007-08', '2010-05', '2011-08', '2012-06', '2012-11', '2014-10', '2015-07', '2016-06', '2018-03', '2018-10', '2020-02', '2022-01', '2023-10', '2025-03', '2026-03']
