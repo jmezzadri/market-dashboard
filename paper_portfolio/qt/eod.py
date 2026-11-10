@@ -61,11 +61,47 @@ def is_trading_day(day: str) -> bool:
     return any(c.get("date") == day for c in r.json())
 
 
+# Observed 2026-11: the broker's intraday P&L still ran from the prior close
+# at 21:52 ET and from the same day's close by 22:27 ET. 21:30 keeps a margin.
+SESSION_PL_CUTOFF_ET = "21:30"
+
+
+def _existing_after_close(day: str) -> str | None:
+    """HH:MM ET of an after-close (>= 16:00 ET, same day) snapshot already on
+    file for `day`, else None. Intraday sync rows (before 16:00) do not count —
+    the close snapshot is meant to overwrite those."""
+    r = requests.get(f"{D.SB_URL}/rest/v1/qt_nav_daily", headers=D._sb_headers(),
+                     params={"select": "created_at", "d": f"eq.{day}"}, timeout=30)
+    r.raise_for_status()
+    rows = r.json()
+    if not rows or not rows[0].get("created_at"):
+        return None
+    ts = datetime.fromisoformat(str(rows[0]["created_at"]).replace("Z", "+00:00")).astimezone(ET)
+    if ts.date().isoformat() == day and ts.strftime("%H:%M") >= "16:00":
+        return ts.strftime("%H:%M")
+    return None
+
+
 def snapshot() -> dict | None:
     day = _today_et()
     if not is_trading_day(day):
         print(f"snapshot {day}: not a trading session (holiday/weekend) — "
               f"no row written; qt_nav_daily is one row per TRADING day", flush=True)
+        return None
+    # 2026-11-10 (health sweep): ONE after-close snapshot per session — the
+    # first. This job runs twice a weekday: the pg_cron dispatch at 21:40 UTC
+    # (4:40 PM ET in winter) and GitHub's own 21:10 UTC schedule, which GitHub
+    # routinely starts hours late (00:51Z, 01:29Z, 03:27Z on Nov 6/7/10). The
+    # late run overwrote the close-adjacent row with marks read deep into the
+    # evening — and after ~10 PM ET the broker has rolled its "previous close"
+    # to today's close, so every position's session P&L became the
+    # close-to-evening drift. /paper then printed "MON, NOV 9 SESSION" movers
+    # with LSCC at -2.1bp on a day it rose 8.5% (+51bp). An after-close row
+    # that already exists is the session's snapshot; a later run leaves it.
+    existing = _existing_after_close(day)
+    if existing:
+        print(f"snapshot {day}: after-close snapshot already taken at {existing} ET — "
+              f"leaving it (a later read carries evening drift, not the session)", flush=True)
         return None
     H = D._alpaca_headers()
     acct = requests.get(f"{D.ALPACA_TRADE}/v2/account", headers=H, timeout=60).json()
@@ -88,6 +124,10 @@ def snapshot() -> dict | None:
     except Exception:
         pass
 
+    session_pl_ok = datetime.now(ET).strftime("%H:%M") < SESSION_PL_CUTOFF_ET
+    if not session_pl_ok:
+        print(f"snapshot {day}: taken after {SESSION_PL_CUTOFF_ET} ET — session P&L per "
+              f"position left unknown (broker has rolled its prior close)", flush=True)
     row = {
         "d": day,
         # "Marked at" — the moment these numbers were read. The 10-minute live
@@ -118,8 +158,15 @@ def snapshot() -> dict | None:
                 # Session P&L too — the 10-minute live sync writes it and this
                 # snapshot upserts over the same row; without it the page's
                 # session movers vanished at the close (2026-10-21).
-                "upl_day": float(p["unrealized_intraday_pl"]) if p.get("unrealized_intraday_pl") is not None else None,
-                "upl_day_pc": float(p["unrealized_intraday_plpc"]) if p.get("unrealized_intraday_plpc") is not None else None,
+                # Past SESSION_PL_CUTOFF_ET the broker's intraday figures run
+                # from TODAY's close, not the prior one — write unknown rather
+                # than a wrong session number (the page then shows since-entry
+                # movers only, with its own note). Only reached when the
+                # close-adjacent run never happened.
+                "upl_day": (float(p["unrealized_intraday_pl"])
+                            if p.get("unrealized_intraday_pl") is not None and session_pl_ok else None),
+                "upl_day_pc": (float(p["unrealized_intraday_plpc"])
+                               if p.get("unrealized_intraday_plpc") is not None and session_pl_ok else None),
             }
             for p in pos
         ],
