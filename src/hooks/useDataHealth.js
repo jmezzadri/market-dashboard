@@ -72,6 +72,8 @@ export function canonicalVendor(source) {
 export const VENDOR_BLAST_RADIUS = {
   "Polygon Massive":
     "End-of-day prices for all 12,600 US-listed tickers, ticker names + sectors, dividends, splits. Powers Trading Opps screener, Portfolio Insights position marks, sector performance.",
+  "Alpha Vantage":
+    "Next earnings report dates for US-listed companies, read once a day. Powers the Watchlist page's Next earnings and Days to earnings columns.",
   "SEC EDGAR":
     "Form 4/4A/5/5A insider filings, parsed nightly straight from the SEC. Powers the scanner's insider score and the Ticker page insider evidence.",
   "FRED":
@@ -114,6 +116,7 @@ export const VENDOR_MONTHLY_COST = {
   "Polygon Massive":         "Free (2-yr tier)",
   "London Strategic Edge":   "Free",
   "SEC EDGAR":               "Free",
+  "Alpha Vantage":           "Free",
   "FRED":                    "Free",
   "U.S. Treasury":           "Free",
   "Yahoo Finance":           "Free",

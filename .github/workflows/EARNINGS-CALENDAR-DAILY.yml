@@ -1,0 +1,32 @@
+name: EARNINGS-CALENDAR-DAILY
+
+# Next earnings date for US-listed companies (Watchlist page, Joe 2026-11-11).
+# One request a run to Alpha Vantage's free earnings calendar; the script
+# keeps each ticker's earliest upcoming date and folds it into the page's
+# stored facts. Two fires a day: the run is one cheap, idempotent request, so
+# the second is the retry if GitHub drops or delays the first (LESSONS 5.1).
+# Every day of the week — a company can confirm a date on a Friday night.
+
+on:
+  schedule:
+    - cron: '20 10 * * *'
+    - cron: '20 17 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Read the earnings calendar and store next report dates
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/ingest_earnings_calendar.py

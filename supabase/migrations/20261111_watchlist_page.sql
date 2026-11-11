@@ -15,6 +15,7 @@
 --                                   tags, saved views and table layout.
 --
 -- Data Steward sign-off on grants (LESSONS 7.10):
+--   earnings_calendar    anon + authenticated SELECT; service_role ALL.
 --   stock_facts          anon + authenticated SELECT (a public reference
 --                        table of market facts); service_role ALL.
 --   watchlists, _items,  authenticated SELECT/INSERT/UPDATE/DELETE, every
@@ -183,6 +184,24 @@ from public.qt_factor_scores(date '2026-11-01') s
 where not exists (select 1 from public.qt_factor_universe)
 on conflict do nothing;
 
+-- 2b) Next earnings date per ticker (EARNINGS-CALENDAR-DAILY, Alpha Vantage's
+--     free earnings calendar; one row per ticker = its earliest upcoming date).
+create table if not exists public.earnings_calendar (
+  ticker text primary key,
+  report_date date not null,
+  report_time text,
+  fiscal_period_end date,
+  eps_estimate numeric,
+  source text not null default 'alphavantage',
+  fetched_at timestamptz not null default now()
+);
+grant select on public.earnings_calendar to anon, authenticated;
+grant all on public.earnings_calendar to service_role;
+alter table public.earnings_calendar enable row level security;
+drop policy if exists "anyone can read earnings_calendar" on public.earnings_calendar;
+create policy "anyone can read earnings_calendar" on public.earnings_calendar
+  for select to anon, authenticated using (true);
+
 -- 3) One row of stored facts per ticker ---------------------------------------
 create table if not exists public.stock_facts (
   ticker text primary key,
@@ -205,7 +224,9 @@ create table if not exists public.stock_facts (
   trend_1y numeric, profitability numeric, buybacks numeric,
   z_momentum double precision, z_quality double precision, z_buybacks double precision,
   z_size double precision, z_value double precision,
-  built_at timestamptz not null default now()
+  built_at timestamptz not null default now(),
+  next_earnings date,
+  earnings_time text
 );
 grant select on public.stock_facts to anon, authenticated;
 grant all on public.stock_facts to service_role;
@@ -333,7 +354,8 @@ begin
     -- A stock held in the paper book shows the book's own stored figures, so
     -- the two pages can never disagree about the same stock (LESSONS 4.5).
     coalesce(tb.mom12, fx.mom), coalesce(tb.gp_a, fx.qual), coalesce(tb.iss, fx.bb),
-    fx.zm, fx.zq, fx.zb, fx.zs, fx.zv, now()
+    fx.zm, fx.zq, fx.zb, fx.zs, fx.zv, now(),
+    ec.report_date, ec.report_time
   from _sf_px p
   left join universe_master u on u.ticker = p.ticker
   left join ticker_reference r on r.ticker = p.ticker
@@ -341,6 +363,7 @@ begin
   left join _sf_si si on si.ticker = p.ticker
   left join _sf_ins ins on ins.ticker = p.ticker
   left join _sf_fx fx on fx.symbol = p.ticker
+  left join earnings_calendar ec on ec.ticker = p.ticker and ec.report_date >= today
   left join qt_target_book tb on tb.symbol = p.ticker
        and tb.rebalance_date = (select max(rebalance_date) from qt_target_book);
   get diagnostics n = row_count;
@@ -412,6 +435,11 @@ create policy "own watchlist settings" on public.watchlist_settings for all to a
 insert into public.pipeline_health (indicator_id, label, source, cadence, expected_cadence_minutes, status)
 values ('stock-facts', 'Watchlist · Stock facts',
         'MacroTilt engine (MASSIVE-DAILY → stock_facts_build)', 'D', 1440, 'amber')
+on conflict (indicator_id) do nothing;
+
+insert into public.pipeline_health (indicator_id, label, source, cadence, expected_cadence_minutes, status)
+values ('earnings-calendar', 'Watchlist · Next earnings dates',
+        'Alpha Vantage earnings calendar (EARNINGS-CALENDAR-DAILY)', 'D', 1440, 'amber')
 on conflict (indicator_id) do nothing;
 
 -- First build, so the page has rows the moment it is published.

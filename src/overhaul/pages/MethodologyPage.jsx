@@ -902,8 +902,13 @@ export default function MethodologyPage() {
               are blank for funds and for companies that record does not cover.
             </p>
             <p className="me-body-p">
-              <b>Not on the page.</b> The next earnings date and analyst price targets are not shown, because
-              the site has no licensed source for them.
+              <b>Earnings.</b> <b>Next earnings</b> is the earliest date in the next three months on which
+              the company is expected to report results, read once a day from a public earnings calendar,
+              with whether it falls before the market opens or after it closes where the calendar says. A
+              date is firm once the company announces it; a date several weeks out is the calendar&rsquo;s
+              estimate from the company&rsquo;s reporting history and can move. A company with no date in
+              the next three months shows a dash. <b>Days to earnings</b> counts calendar days from today.
+              Analyst ratings and price targets are not shown: the site has no licensed source for them.
             </p>
 
             <h3 className="me-h3" id="watchlist-table" style={{ scrollMarginTop: 120 }}>

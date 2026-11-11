@@ -200,6 +200,7 @@ function buildCreditMembers(cotData) {
 const VENDOR_CANON = {
   polygon: 'Polygon Massive',
   'sec edgar': 'SEC EDGAR',
+  'alpha vantage': 'Alpha Vantage',
   fred: 'FRED',
   'treasury.gov': 'U.S. Treasury',
   'yahoo finance': 'Yahoo Finance',

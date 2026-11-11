@@ -66,6 +66,12 @@ const day = (iso, withYear = false) => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}), timeZone: 'UTC' });
 };
 const weekday = (iso) => (iso ? new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : null);
+const daysUntil = (iso) => {
+  if (!iso) return null;
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const d = Math.round((Date.parse(`${String(iso).slice(0, 10)}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / 86400000);
+  return d < 0 ? null : d;
+};
 const sign = (v) => (n(v) == null ? 'muted' : n(v) > 0 ? 'up' : n(v) < 0 ? 'dn' : '');
 const titleCase = (s) => (s ? String(s).toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()) : null);
 
@@ -99,10 +105,10 @@ function InlineEdit({ value, placeholder, onSave, maxLength, label }) {
 /* Built-in views: a starting set of column arrangements. A saved view of the
    user's own sits beside these in the same menu. */
 const PRESETS = [
-  { name: 'Overview', show: ['ticker', 'close', 'chg_1d', 'ret_1m', 'ret_ytd', 'pct_from_high', 'market_cap', 'next_ex_div', 'since_added', 'tag', 'note'] },
+  { name: 'Overview', show: ['ticker', 'close', 'chg_1d', 'ret_1m', 'ret_ytd', 'pct_from_high', 'market_cap', 'next_earnings', 'next_ex_div', 'since_added', 'tag', 'note'] },
   { name: 'Performance', show: ['ticker', 'close', 'chg_1d', 'ret_1w', 'ret_1m', 'ret_3m', 'ret_ytd', 'ret_1y', 'since_added'] },
   { name: 'Technicals', show: ['ticker', 'close', 'chg_1d', 'pct_from_high', 'pct_from_low', 'pct_vs_ma50', 'pct_vs_ma200', 'vol_vs_avg', 'avg_dollar_vol'] },
-  { name: 'Income and positioning', show: ['ticker', 'close', 'div_yield', 'next_ex_div', 'si_pct_float', 'days_to_cover', 'insider_buy_90d', 'insider_buyers_90d'] },
+  { name: 'Income and positioning', show: ['ticker', 'close', 'next_earnings', 'days_to_earnings', 'div_yield', 'next_ex_div', 'si_pct_float', 'days_to_cover', 'insider_buy_90d', 'insider_buyers_90d'] },
   { name: 'Paper Portfolio factors', show: ['ticker', 'close', 'paper_weight', 'style', 'trend_1y', 'profitability', 'buybacks', 'market_cap', 'industry'] },
 ];
 
@@ -139,6 +145,14 @@ function buildColumns({ onRemove, onUpdate, paperDate, factorDate }) {
     num('vol_vs_avg', 'Volume vs avg', 'Technicals', 'Shares traded on the last trading day divided by the average day over the past three months. 2.0x means twice the usual volume.', (v) => (n(v) == null ? DASH : `${n(v).toFixed(1)}x`), { width: 106, hidden: true, cellClass: (r) => (n(r.f?.vol_vs_avg) >= 2 ? 'warn' : '') }),
     num('volume', 'Volume', 'Technicals', 'Shares traded on the most recent trading day.', (v) => count(v), { width: 82, hidden: true }),
     num('avg_dollar_vol', 'Daily $ volume', 'Technicals', 'Average dollars traded per day over the last three months — how easily the stock can be bought or sold.', (v) => big(v), { width: 108, hidden: true }),
+
+    { key: 'next_earnings', label: 'Next earnings', group: 'Earnings', tip: 'The next date the company is expected to report results, and whether that is before the market opens or after it closes. A date several weeks out is an estimate until the company confirms it.', align: 'r', width: 150,
+      sortValue: (r) => (r.f?.next_earnings ? Date.parse(r.f.next_earnings) : null),
+      render: (r) => (r.f?.next_earnings ? <>{day(r.f.next_earnings)}{r.f.earnings_time ? <span className="wl-mut"> · {r.f.earnings_time === 'before the open' ? 'pre-open' : 'after close'}</span> : null}</> : DASH) },
+    { key: 'days_to_earnings', label: 'Days to earnings', group: 'Earnings', tip: 'Calendar days from today until the next expected earnings report.', align: 'r', width: 124, hidden: true,
+      sortValue: (r) => daysUntil(r.f?.next_earnings),
+      cellClass: (r) => { const d = daysUntil(r.f?.next_earnings); return d != null && d <= 7 ? 'warn' : ''; },
+      render: (r) => { const d = daysUntil(r.f?.next_earnings); return d == null ? DASH : d === 0 ? 'Today' : String(d); } },
 
     num('market_cap', 'Market cap', 'Company', 'The total market value of the company’s shares, from the listing reference record. Blank for funds and for companies the record does not cover.', (v) => big(v), { width: 96 }),
     { key: 'industry', label: 'Industry', group: 'Company', tip: 'The industry the company reports under in its regulatory filings.', align: 'l', width: 170, hidden: true,
