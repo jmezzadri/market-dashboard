@@ -112,7 +112,8 @@ def main() -> int:
         print(subject)
         print(text)
         return 0
-    user, pw = os.environ.get("SMTP_USER", ""), os.environ.get("SMTP_PASSWORD", "")
+    from smtp_creds import smtp_password
+    user, pw = os.environ.get("SMTP_USER", ""), smtp_password()
     sender = os.environ.get("EMAIL_FROM") or user
     try:
         if not (user and pw):

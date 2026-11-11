@@ -70,7 +70,8 @@ def main() -> int:
     if not review_date:
         print("no latest.review_date in the review file", file=sys.stderr)
         return 1
-    user, pw = os.environ.get("SMTP_USER", ""), os.environ.get("SMTP_PASSWORD", "")
+    from smtp_creds import smtp_password
+    user, pw = os.environ.get("SMTP_USER", ""), smtp_password()
     sender = os.environ.get("EMAIL_FROM") or user
     if not (user and pw):
         print("SMTP_USER / SMTP_PASSWORD missing", file=sys.stderr)
