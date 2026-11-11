@@ -1361,6 +1361,14 @@ They are not the same series and they are nowhere near each other:
 **Rule:** (1) When two series on the same page are mechanically linked (DXY vs its FX legs, an index vs its ETF, a crack vs its legs), the sweep's cross-check compares their MOVES, not just their dates — LESSONS 0.19 rule 2 applies between tiles, not only between pages. (2) Before trusting a vendor field named "close", test it: on a daily bar close == open on most days is not a market, it is a placeholder. (3) A value that changes between the evening and the morning pass is a symptom (4.46, 4.47) — find which of the two the vendor's own OHLC supports before choosing.
 
 **Applies to:** Lead Developer, Data Steward — every Yahoo series; the weekday health sweep's cross-checks.
+### 4.48 (2026-11-11, health sweep, bug #1280) — "SMTPServerDisconnected" at LOGIN on every port is a rejected password, not a network flake
+
+**What happened:** The Market Brief email failed four runs in a row (10:18Z–11:19Z) with `SMTPServerDisconnected: Connection unexpectedly closed` while the site brief was current. A disconnect reads like a transient, and the first instinct is to retry. PR #1926 made `send_email` try 465, STARTTLS 587, then 465 again and record the port and stage of each failure: TLS connected on both ports and Gmail dropped the connection at `login` on both. That is Gmail refusing the app password (the same morning the Gmail connector's saved sign-in also lapsed, consistent with a Google account security reset revoking app passwords), not the network. No retry policy fixes it; only a new app password in the `SMTP_PASSWORD` repo secret does.
+
+**Rule:** An SMTP failure record names the port and stage. `login` on every port → credential: escalate to Joe the same run (identity-bound: a Google app password plus one GitHub secret). `connect` on one port only → route; the fallback covers it. Never call a repeated disconnect transient without reading which stage it died in.
+
+**Applies to:** Lead Developer, the weekday health sweep — every SMTP sender (brief, self-heal, thesis review, thesis alert).
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.
