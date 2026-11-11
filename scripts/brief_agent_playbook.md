@@ -78,6 +78,11 @@ The sentence that triggered it:
 | "into the first data the new stance has to survive" | "First test: <release>, <time>." |
 | "against the backdrop of", "it is worth noting", "that said" | delete |
 | any sentence over 25 words | split it or cut it |
+| "cash bonds shut", "cash Treasuries", "bonds shut" (Joe, 2026-11-11: "no one on planet earth has ever said cash bonds shut") | "bond market closed", "Treasuries closed" |
+| "gets its vote", "AI beat the Fed" — markets voting or winning | what traded, the level, the time |
+
+**Never coin a phrase.** If you have not heard a trader, a wire or a central
+bank say it, do not write it. Use the plain words the market already uses.
 
 
 ### Every claim carries its time
