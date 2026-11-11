@@ -1623,6 +1623,37 @@ def render_email_text(b):
     import re
     return re.sub("<[^>]+>", "", "\n".join(L))
 
+def _smtp_send(user, pw, sender, to, raw):
+    """Send through Gmail: implicit TLS on 465 first, then STARTTLS on 587.
+    2026-11-11 (health sweep): three runs in a row got SMTPServerDisconnected on 465
+    within a second of connecting, while the same credentials had sent the day
+    before. A single path with no fallback turned that into a morning with no brief
+    email. Each attempt names its port and stage in the error so the next failure
+    record in brief_email_failures says WHERE it broke, not just that it did."""
+    import time
+    errors = []
+    for port in (465, 587, 465):
+        stage = "connect"
+        try:
+            if port == 465:
+                s = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30)
+            else:
+                s = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
+                stage = "starttls"; s.ehlo(); s.starttls(); s.ehlo()
+            with s:
+                stage = "login"; s.login(user, pw)
+                stage = "send"; s.sendmail(sender, to, raw)
+            if errors:
+                print(f"email sent on port {port} after: {'; '.join(errors)}")
+            return
+        except smtplib.SMTPAuthenticationError:
+            raise  # wrong/revoked password: another port will not help
+        except Exception as e:
+            errors.append(f"{port}/{stage}: {type(e).__name__}: {e}")
+            print(f"WARN: SMTP attempt failed — {errors[-1]}", file=sys.stderr)
+            time.sleep(5)
+    raise smtplib.SMTPException(" | ".join(errors))
+
 def send_email(b, today):
     # EMAIL-OFF by default. Joe's single daily brief email is owned by the LEGACY routine
     # (gmail + EY, ~06:45 ET). This homepage writer must not send a second, duplicate email
@@ -1656,8 +1687,7 @@ def send_email(b, today):
         msg["From"] = sender; msg["To"] = ", ".join(to)
         msg.attach(MIMEText(render_email_text(b), "plain"))
         msg.attach(MIMEText(render_email_html(b), "html"))
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
-            s.login(user, pw); s.sendmail(sender, to, msg.as_string())
+        _smtp_send(user, pw, sender, to, msg.as_string())
         print(f"email sent ({mode}) to {to}")
         return True
     except Exception as e:
