@@ -1,32 +1,32 @@
 {
-  "date": "2026-11-10",
+  "date": "2026-11-11",
   "edition": "close",
   "label": "Market Close",
-  "written_at": "2026-11-10T18:44:20-05:00",
-  "headline": "CPI +0.4%, core 0.3%, 2y +17bp, 10y 4.98%, 10y auction tails 1bp, S&P -0.4%, CoreWeave +1.7% AH",
-  "stance": "Core CPI hit Waller's 50bp line and the front end repriced: 2y +17bp, December hike fully priced. Equities gave back a sixth of Monday's rally.",
+  "written_at": "2026-11-11T18:43:28-05:00",
+  "headline": "S&P +1.31%, SOX +5.66%, Nasdaq 100 +2.28%, Brent $92.76, Nvidia -8% after hours",
+  "stance": "Semis and AI infrastructure led a broad rebound with Treasuries closed. Nasdaq 100 futures gave back 1% by ~6pm ET on the Nvidia report.",
   "trigger": null,
   "scorecard": [
     {
-      "call": "Morning: core 0.3% or more meets Waller's 50bp threshold; consensus 0.2%.",
-      "actual": "Core printed 0.3%, headline 0.4% vs 0.3%. 50bp odds about 10% to 14% by the close, from about 1%."
+      "call": "Midday: S&P +1.18% at 11:34, semis lead, the Dow did not join.",
+      "actual": "S&P closed +1.31%, SOX +5.66%. Dow joined late, +0.49% at the close."
     },
     {
-      "call": "Morning: $42bn 10y at 1pm; watch the indirect take, not the yield.",
-      "actual": "Indirects 61.2%, from 80.3% last month. 5.020% stop, 1bp tail, bid-to-cover 2.46 vs 2.77."
+      "call": "Midday: Brent $94.00, +2.7% at 11:24 on a Hormuz mine strike.",
+      "actual": "Brent settled $92.76, +1.4%. Half the midday gain was gone by the settle."
     },
     {
-      "call": "Morning: CoreWeave after the close; backlog and financing terms matter more than the quarter.",
-      "actual": "Backlog about $132.5bn, ahead of consensus. Funding via secured loans and about $9bn of prepayments, no unsecured debt."
+      "call": "Morning: EIA crude inventories today; industry data showed a 9.8mb draw.",
+      "actual": "EIA slipped to Thursday for the holiday. Industry data showed a 9.0mb build, not a draw."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "Bear flattener Tuesday: 2y +17bp to 4.73%, its biggest one-day jump since April 2025. 10y topped 5% intraday.",
-        "Logan Tuesday: at least two more 25bp hikes needed. Bowman: CPI suggests inflation pressures may persist.",
-        "Gold -2.6% and the dollar up against every G10 currency Tuesday. Oil fell on Iran talks and did not offset the rates move."
+        "Treasuries closed for Veterans Day. Futures price about 90% odds of a 25bp December hike.",
+        "Brent +1.4% at the settle after Iran said enriched nuclear material will not leave the country.",
+        "Spot gold -1.1%, back under $4,000 for the session."
       ],
       "positioning": null,
       "single_name": null
@@ -34,9 +34,9 @@
     {
       "title": "Equity Markets",
       "bullets": [
-        "Tech -1.4%, financials +0.5% Tuesday. Six sectors fell, five rose.",
-        "Nasdaq 100 hit about 27,400 intraday, then closed off the lows. Russell 2000 lagged with the front end.",
-        "Futures +0.2% S&P, +0.4% Nasdaq 100 at ~6pm ET Tuesday."
+        "Every SOX member closed higher. Nasdaq 100 traded up more than 3% intraday, erasing its post-midterm losses.",
+        "Memory, optical and neocloud names led. Three megacaps closed lower.",
+        "After hours: Nasdaq 100 futures -1%, S&P futures -0.4%, Dow futures flat (~6pm ET)."
       ],
       "positioning": null,
       "single_name": null
@@ -44,7 +44,7 @@
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "IG and HY spread marks run to Monday; Tuesday's 17bp front-end move is not in them yet."
+        "Spread marks still run to Monday's close. No bond trading today to update them."
       ],
       "positioning": null,
       "single_name": null
@@ -52,34 +52,38 @@
   ],
   "items": [
     {
-      "head": "CoreWeave beats, raises 2026; +1.7% after hours",
-      "body": "Revenue $3.66bn vs $3.55bn est; 2026 guide $13.0-13.3bn. Shares +5.7% at 4:16pm ET, +1.7% at $49.55 by ~6:15pm ET."
+      "head": "Nvidia -8% after hours on report board may oust CEO",
+      "body": "Board could meet as soon as tonight, per reports. Shares -8.4% at 6pm ET, after +2.9% in the session."
     },
     {
-      "head": "Gevo swings to Q3 profit; +18% after hours",
-      "body": "EPS $0.09 vs $0.04 est; revenue $83.0m vs $56.3m est. Shares up nearly 18% after hours (5:06pm ET)."
+      "head": "Digi International -11.7% after hours on soft guide",
+      "body": "Q4 EPS $0.78 vs $0.76 est; revenue $143.3m, +25%. Q1 revenue guide $140-144m. Shares -11.7% (~5:30pm ET)."
     },
     {
-      "head": "StubHub misses, lifts GMS outlook; -1.6% after hours",
-      "body": "GMS $2.62bn, +7%; adjusted EBITDA +84% to $124.1m. Full-year GMS outlook raised. Shares -1.6% after hours (~6pm ET)."
+      "head": "EZCORP up as much as 11% after hours on beat",
+      "body": "Q4 EPS $0.43 vs $0.42 est; revenue $447.1m vs $427.2m est. Pawn loans +31%. Shares up as much as 11% (~5pm ET)."
+    },
+    {
+      "head": "EnerSys -1.7% after hours on revenue miss",
+      "body": "Revenue $949.9m vs $972.4m est. Q3 revenue guide midpoint $955m, below consensus. Shares -1.7% (~5pm ET)."
     }
   ],
   "watch": [
     {
-      "head": "Jobless claims, Thursday 8:30",
-      "body": "First labor read since the hot CPI. A low print adds to the 50bp case for December."
+      "head": "Jobless claims, Nov 12 8:30",
+      "body": "Treasuries reopen Thursday. First labor print since the 0.3% core CPI."
     },
     {
-      "head": "$25bn 30y auction, Thursday",
-      "body": "After Tuesday's 10y tail and a 19-point drop in the indirect take. Long end sits near 5.35%."
+      "head": "EIA crude inventories, Thursday",
+      "body": "Delayed a day by the holiday. The official number tests the industry build."
     },
     {
-      "head": "PPI, Friday 8:30",
-      "body": "September jumped 1.3%. Last pipeline inflation read before FOMC, Dec 9."
+      "head": "Cisco, Applied Materials after the close Thursday",
+      "body": "First AI-capex reads after today's semis rally. Cerebras and QXO also report."
     },
     {
-      "head": "Nvidia reports Nov 17",
-      "body": "Board probe of its CEO runs alongside the print. Results land before the AI IPO calendar opens."
+      "head": "Nvidia board decision",
+      "body": "Any decision tonight hits Thursday's open. AMD +3.8% after hours on the report (~6pm ET)."
     }
   ]
 }
