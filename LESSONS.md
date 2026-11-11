@@ -1371,6 +1371,14 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer, the weekday health sweep — every SMTP sender (brief, self-heal, thesis review, thesis alert).
 
+### 4.49 (2026-11-11, Watchlist page) — "The newest price date" is not "the newest full close"; one ticker's latest row does not date the whole table
+
+**What happened:** The Watchlist page's nightly build took the S&P 500 fund's newest price date as "the last close" and kept every ticker priced on that date. It was tested in the morning, when that date was yesterday and 12,629 tickers had it. It first ran live at 6:30 PM ET: a same-day feed had already written today's close for about 500 tickers, the full close file had not loaded, and the build stored 505 stocks instead of 12,629. Caught by counting rows on the live table minutes after publish, before Joe opened the page; fixed the same hour.
+
+**Rule:** A build over the whole price table anchors on the newest date that the table broadly covers (here: at least 5,000 tickers), never on one ticker's newest row. A job that will run in the evening is tested against evening data — partial same-day rows included — not only against the settled morning state. After publishing a stored table, count its rows on the live system and compare with the count the test produced.
+
+**Applies to:** Senior Quant, Data Steward, Lead Developer — every function that reads prices_eod across tickers (stock_facts_build, qt_factor_scores and any future screen).
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.
