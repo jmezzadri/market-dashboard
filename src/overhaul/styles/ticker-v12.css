@@ -152,16 +152,19 @@
 
 /* ── tape ── */
 .home-v12.ticker-v12 .tk-tape {
-  display: grid; grid-template-columns: auto auto minmax(180px, 260px) 1fr;
+  /* The stat block keeps a floor so a long company name cannot crush it to a
+     few pixels (2026-11-11, SPCX: "137.65 – 14…" printed over "$142.07"). The
+     name wraps instead. */
+  display: grid; grid-template-columns: auto auto minmax(180px, 260px) minmax(540px, 1fr);
   align-items: center; gap: var(--sp-28);
   background: var(--putty); border-radius: var(--r-32);
   padding: var(--sp-14) var(--sp-24); margin-top: var(--sp-8);
   transition: background var(--dur-500);
 }
 .home-v12.ticker-v12 .tk-tape-id { display: flex; align-items: center; gap: var(--sp-16); min-width: 0; }
-.home-v12.ticker-v12 .tk-tape .tk-symbol { font-size: var(--v13-t6); line-height: 1; }
-.home-v12.ticker-v12 .tk-tape .tk-name { font-size: var(--v13-t4); white-space: nowrap; }
-.home-v12.ticker-v12 .tk-tape .tk-meta { font-size: var(--v13-t2); margin-top: var(--sp-2); white-space: nowrap; }
+.home-v12.ticker-v12 .tk-tape .tk-symbol { font-size: var(--v13-t6); line-height: 1; flex-shrink: 0; }
+.home-v12.ticker-v12 .tk-tape .tk-name { font-size: var(--v13-t4); white-space: normal; }
+.home-v12.ticker-v12 .tk-tape .tk-meta { font-size: var(--v13-t2); margin-top: var(--sp-2); white-space: normal; }
 .home-v12.ticker-v12 .tk-tape-price { display: flex; flex-direction: column; gap: var(--sp-3); padding-left: var(--sp-24); border-left: 1px solid var(--hair); }
 .home-v12.ticker-v12 .tk-tape .tk-price { font-size: var(--v13-t6); line-height: 1; }
 .home-v12.ticker-v12 .tk-tape .tk-priceΔ { font-size: var(--v13-t3); }
@@ -171,7 +174,7 @@
 .home-v12.ticker-v12 .tk-tape-s { font-size: var(--v13-t1); color: var(--ink-soft); white-space: nowrap; }
 .home-v12.ticker-v12 .tk-tape-ref { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-8) var(--sp-16); padding-left: var(--sp-24); border-left: 1px solid var(--hair); }
 .home-v12.ticker-v12 .tk-tapestat { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
-.home-v12.ticker-v12 .tk-tapestat b { font-size: var(--v13-t3); font-weight: var(--fw-600); color: var(--ink); white-space: nowrap; }
+.home-v12.ticker-v12 .tk-tapestat b { font-size: var(--v13-t3); font-weight: var(--fw-600); color: var(--ink); white-space: normal; }
 .home-v12.ticker-v12 .up { color: var(--up); }
 .home-v12.ticker-v12 .down { color: var(--down); }
 
@@ -224,9 +227,13 @@
 .home-v12.ticker-v12 .tk-corplist b { color: var(--ink); font-weight: var(--fw-600); }
 
 /* ── responsive ── */
-@media (max-width: 1180px) {
+/* The four-across tape needs ~1480px; below that the stat block takes its own
+   row (it used to stay in-row down to 1180 and crushed its columns). */
+@media (max-width: 1480px) {
   .home-v12.ticker-v12 .tk-tape { grid-template-columns: auto auto 1fr; }
   .home-v12.ticker-v12 .tk-tape-ref { grid-column: 1 / -1; border-left: 0; padding-left: 0; padding-top: var(--sp-12); border-top: 1px solid var(--hair); }
+}
+@media (max-width: 1180px) {
   .home-v12.ticker-v12 .tk-mainrow { grid-template-columns: 1fr; }
   .home-v12.ticker-v12 .tk-side { display: grid; grid-template-columns: 1fr 1fr; }
 }

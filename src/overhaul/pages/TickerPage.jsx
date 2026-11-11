@@ -75,7 +75,7 @@ const TFS = ['1M', '3M', '6M', '1Y', '5Y', 'Max'];
    `lookback` overlapping sessions. Returns null when the overlap is too thin
    to be meaningful (< 120 sessions ≈ 6 months). Standard market-model beta —
    display-only, feeds no score. */
-function betaVsBench(rows, benchRows, lookback = 252) {
+function betaVsBench(rows, benchRows, lookback = 252, minPairs = 121) {
   if (!rows?.length || !benchRows?.length) return null;
   const bench = new Map(benchRows.map((r) => [r.date, r.close]));
   const pairs = [];
@@ -84,7 +84,7 @@ function betaVsBench(rows, benchRows, lookback = 252) {
     if (r.close != null && b != null) pairs.push([r.close, b]);
   }
   const win = pairs.slice(-Math.max(lookback + 1, 0));
-  if (win.length < 121) return null;
+  if (win.length < minPairs) return null;
   const rs = [], rb = [];
   for (let i = 1; i < win.length; i++) {
     rs.push(win[i][0] / win[i - 1][0] - 1);
@@ -415,7 +415,9 @@ export default function TickerPage() {
      daily closes vs SPY (prices_eod) and the Polygon corporate-actions rows.
      The old IV Rank / IV 30d tiles are gone with the UW feed (retires 8/12). */
   const beta1y = useMemo(
-    () => (sym === 'SPY' ? 1 : betaVsBench(hist, spyHist.rows || [], 252)),
+    // A stock listed less than a year ago has no trailing year: measure it since
+    // listing (min 60 sessions) and say so on the row, never a bare dash (2026-11-11, SPCX).
+    () => (sym === 'SPY' ? 1 : betaVsBench(hist, spyHist.rows || [], 252, hist.length < 253 ? 61 : 121)),
     [sym, hist, spyHist.rows],
   );
   const divYield = useMemo(
@@ -797,7 +799,8 @@ export default function TickerPage() {
               <KvRow label="vs 50-day avg" tip="Percent the price sits above or below its 50-day average."
                 value={fmtPctFraction(tech?.pct_vs_50ma)} tone={toneOf(tech?.pct_vs_50ma)} />
               <KvRow label="vs 200-day avg" tip="Percent the price sits above or below its 200-day average."
-                value={fmtPctFraction(tech?.pct_vs_200ma)} tone={toneOf(tech?.pct_vs_200ma)} />
+                value={tech?.pct_vs_200ma == null && hist.length < 200 ? 'n/a' : fmtPctFraction(tech?.pct_vs_200ma)} tone={toneOf(tech?.pct_vs_200ma)}
+                note={tech?.pct_vs_200ma == null && hist.length < 200 ? `needs 200 sessions · has ${hist.length}` : null} />
               <KvRow label="Volume vs 30d avg" tip="Last session's volume divided by the trailing 30-day average."
                 value={tech?.vol_surge != null ? `${tech.vol_surge.toFixed(2)}×` : '—'}
                 note={tech?.vol_surge == null ? null : tech.vol_surge >= 1.5 ? 'heavy' : tech.vol_surge <= 0.7 ? 'quiet' : 'normal'} />
@@ -811,16 +814,16 @@ export default function TickerPage() {
               <span className="tk-panelnote">annualized · trailing</span>
             </div>
             <dl className="tk-kv">
-              <KvRow label="Beta · 1y" tip="Sensitivity to the S&P 500: covariance of daily returns vs SPY over variance of SPY, trailing year."
-                value={beta1y != null ? beta1y.toFixed(2) : '—'} />
+              <KvRow label={`Beta · ${risk.short ? 'since listing' : '1y'}`} note={beta1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Sensitivity to the S&P 500: covariance of daily returns vs SPY over variance of SPY, trailing year."
+                value={beta1y != null ? beta1y.toFixed(2) : risk.short ? 'n/a' : '—'} />
               <KvRow label="Realized vol · 30d" tip="Standard deviation of daily log returns over the last 30 sessions, annualized."
                 value={risk.vol30 != null ? `${(risk.vol30 * 100).toFixed(1)}%` : '—'} />
-              <KvRow label="Realized vol · 1y" tip="Standard deviation of daily log returns over the last 252 sessions, annualized."
-                value={risk.vol1y != null ? `${(risk.vol1y * 100).toFixed(1)}%` : '—'} />
-              <KvRow label="Max drawdown · 1y" tip="Largest peak-to-trough fall in the closing price over the last 252 sessions."
-                value={risk.mdd1y != null ? `${(risk.mdd1y * 100).toFixed(1)}%` : '—'} tone={risk.mdd1y != null ? 'down' : ''} />
-              <KvRow label="Avg daily move · 1y" tip="Mean absolute daily return over the last 252 sessions."
-                value={risk.avgAbs1y != null ? `${(risk.avgAbs1y * 100).toFixed(2)}%` : '—'} />
+              <KvRow label={`Realized vol · ${risk.short ? 'since listing' : '1y'}`} note={risk.vol1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Standard deviation of daily log returns over the last 252 sessions, annualized."
+                value={risk.vol1y != null ? `${(risk.vol1y * 100).toFixed(1)}%` : risk.short ? 'n/a' : '—'} />
+              <KvRow label={`Max drawdown · ${risk.short ? 'since listing' : '1y'}`} note={risk.mdd1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Largest peak-to-trough fall in the closing price over the last 252 sessions."
+                value={risk.mdd1y != null ? `${(risk.mdd1y * 100).toFixed(1)}%` : risk.short ? 'n/a' : '—'} tone={risk.mdd1y != null ? 'down' : ''} />
+              <KvRow label={`Avg daily move · ${risk.short ? 'since listing' : '1y'}`} note={risk.avgAbs1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Mean absolute daily return over the last 252 sessions."
+                value={risk.avgAbs1y != null ? `${(risk.avgAbs1y * 100).toFixed(2)}%` : risk.short ? 'n/a' : '—'} />
             </dl>
           </article>
           </div>
@@ -917,10 +920,18 @@ function perfTable(rows, benchRows) {
   for (const [label, n] of windows) {
     let base = null;
     let baseDate = null;
+    let rowLabel = label;
     if (n == null) {
       const y = String(last.date).slice(0, 4);
       const prevYear = rows.filter((r) => r.date < `${y}-01-01`);
       if (prevYear.length) { base = prevYear[prevYear.length - 1]; baseDate = base.date; }
+      else if (rows.length > 1) {
+        // Listed this year: there is no Dec 31 close, so YTD is the return since
+        // the first close, and the row says so (2026-11-11, SPCX printed "—").
+        base = rows[0]; baseDate = base.date; rowLabel = `Since listing (${fmtDateShort(base.date)})`;
+      }
+    } else if (n === 252 && rows.length <= n) {
+      continue; // under a year of history: the since-listing row above covers it
     } else if (rows.length > n) {
       base = rows[rows.length - 1 - n]; baseDate = base.date;
     }
@@ -931,14 +942,14 @@ function perfTable(rows, benchRows) {
       const b1 = closeAt(benchRows, last.date);
       if (b0 && b1) bench = (b1 / b0) - 1;
     }
-    out.push({ label, ret, bench, rel: ret != null && bench != null ? ret - bench : null });
+    out.push({ label: rowLabel || label, ret, bench, rel: ret != null && bench != null ? ret - bench : null });
   }
   return out;
 }
 
 function riskStats(rows) {
   const n = rows.length;
-  if (n < 2) return { vol30: null, vol1y: null, mdd1y: null, avgAbs1y: null };
+  if (n < 2) return { vol30: null, vol1y: null, mdd1y: null, avgAbs1y: null, short: true, sessions: n, since: rows[0]?.date };
   const lr = [];
   for (let i = 1; i < n; i += 1) {
     if (rows[i].close > 0 && rows[i - 1].close > 0) lr.push(Math.log(rows[i].close / rows[i - 1].close));
@@ -950,7 +961,11 @@ function riskStats(rows) {
   };
   const vol30 = lr.length >= 20 ? sd(lr.slice(-30)) * Math.sqrt(252) : null;
   const yr = lr.slice(-252);
-  const vol1y = lr.length >= 120 ? sd(yr) * Math.sqrt(252) : null;
+  // Under a year of history the "1y" figures are measured since listing (min 60
+  // sessions) and the rows are relabelled; the 120-session floor stays for others.
+  const short = n < 253;
+  const minN = short ? 60 : 120;
+  const vol1y = lr.length >= minN ? sd(yr) * Math.sqrt(252) : null;
   const avgAbs1y = yr.length ? yr.reduce((x, y) => x + Math.abs(y), 0) / yr.length : null;
   let peak = -Infinity; let mdd = 0;
   for (const r of rows.slice(-252)) {
@@ -958,7 +973,7 @@ function riskStats(rows) {
     const dd = (r.close / peak) - 1;
     if (dd < mdd) mdd = dd;
   }
-  return { vol30, vol1y, mdd1y: rows.length >= 120 ? mdd : null, avgAbs1y };
+  return { vol30, vol1y, mdd1y: rows.length >= minN ? mdd : null, avgAbs1y: lr.length >= minN ? avgAbs1y : null, short, sessions: n, since: rows[0]?.date };
 }
 
 function freqLabel(f) {

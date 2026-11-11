@@ -590,6 +590,8 @@ Same run: closing the two reports with a raw `update bug_reports` hung in the MC
 
 **Applies to:** the weekday health sweep (Lead Developer). Every other agent that touches a page: rules 1–2 before publishing it.
 
+**2026-11-11 addendum (Joe, on /ticker/SPCX: "You swept the stock modals? Look at this shit!") — rule 6 was skipped because the task prompt lists four pages and this file was read as background.** It is not background: this file binds over the prompt, and the sweep runs rule 6 (ticker pages, toggles) every run. What was broken: between 1181px and ~1480px, and on any long company name above that, the ticker header's stat block was squeezed to 6–68px columns ("137.65 – 14…" printed over "$142.07"); and a stock listed in June printed bare "—" for YTD, 1 year, beta, 1y vol, max drawdown and 200-day. Fixed in the same PR: the stat block takes its own row below 1480px and has a 540px floor above; the name wraps; a short-history stock shows "Since listing (date)" returns and "since listing" risk figures, and "n/a · needs 200 sessions · has N" where a figure truly cannot exist. **Scan rule:** a leaf-box overlap check misses text that overflows its own box; the DOM scan also lists every leaf with `scrollWidth > clientWidth + 1` whatever its overflow style, and runs at 1100, 1280, 1366, 1440, 1600 and 1920, not only 1440 and 390 — the bug lived only between them. Ticker pages checked: one long-name recent listing (SPCX) plus AAPL.
+
 # 1 · TALKING TO JOE
 ### 1.0 (2026-11-03, Joe: "Two real problems, then a table of 9 things then saying I need to reconnect some shit but not telling me what I need to reconnect?? Are you shitting me with this sweep?") — The sweep's reply is the problems, nothing else
 
