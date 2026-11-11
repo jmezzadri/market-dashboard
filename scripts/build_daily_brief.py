@@ -1670,7 +1670,7 @@ def send_email(b, today):
     if os.environ.get("BRIEF_SEND_EMAIL", "").lower() not in ("1", "true", "yes"):
         print("email disabled (BRIEF_SEND_EMAIL unset) -- homepage-only; legacy routine owns Joe's daily email")
         return False
-    user = os.environ.get("SMTP_USER", ""); pw = os.environ.get("SMTP_PASSWORD", "")
+    user = os.environ.get("SMTP_USER", ""); from smtp_creds import smtp_password; pw = smtp_password()
     sender = os.environ.get("EMAIL_FROM", "") or user
     mode = os.environ.get("BRIEF_SEND_MODE", "test").lower()
     if mode == "live":

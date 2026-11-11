@@ -38,7 +38,8 @@ def live_date():
 
 def alert(today, prev):
     """Tell Joe the homepage was stale and was auto-fixed."""
-    user, pw = os.environ.get("SMTP_USER", ""), os.environ.get("SMTP_PASSWORD", "")
+    from smtp_creds import smtp_password
+    user, pw = os.environ.get("SMTP_USER", ""), smtp_password()
     to = [x.strip() for x in os.environ.get("EMAIL_TO", user).split(",") if x.strip()] or [user]
     if not (user and pw):
         print("WARN: email not configured; cannot send self-heal alert", file=sys.stderr)
