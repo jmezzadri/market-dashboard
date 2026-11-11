@@ -1202,6 +1202,14 @@ VOICE_BANNED = [
     (r"\bit (?:is|\'s) worth noting\b",       'filler — delete'),
     (r"\bthat said,",                        'filler — delete'),
     (r"\bhas to survive\b",                  'essay phrasing — write "First test: <release>, <time>."'),
+    # Joe, 2026-11-11, on "cash bonds shut": "NO ONE ON PLANET EARTH HAS EVER
+    # SAID CASH BONDS SHUT." Say it the way a desk says it: "bond market closed".
+    (r"\bcash (?:bonds?|treasuries|treasury market)\b",
+                                             'invented jargon — write "bond market closed" or "Treasuries closed"'),
+    (r"\b(?:bonds?|treasuries|market)s? (?:are |is )?shut\b",
+                                             '"shut" — write "closed"'),
+    (r"\bgets? (?:its|their) vote\b",        'markets do not vote — say what trades and when'),
+    (r"\bbeat the fed\b",                    'essay phrasing — give the numbers'),
     # Joe, 2026-09-03, on "ADP printed 38k into two-thirds odds of a hike. The
     # curve sat still Wednesday and rate vol rose anyway." — "You wrote all that
     # to say: ADP +38K, rate hike odds 66%, rate vol up 4 days."
