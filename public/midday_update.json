@@ -2,9 +2,9 @@
   "date": "2026-11-11",
   "edition": "midday",
   "label": "Midday Update",
-  "written_at": "2026-11-11T11:35:26-05:00",
+  "written_at": "2026-11-11T11:37:08-05:00",
   "headline": "S&P +1.2% at 11:34, semis lead, VIX 17.7, Brent $94.00 +2.7%, Treasuries closed",
-  "stance": "Semis carried the open; the Dow and small caps did not join. Rate test waits for PPI on Nov 13 with Treasuries closed today.",
+  "stance": "Semis carried the open; the Dow did not join. Rate test waits for PPI on Nov 13 with Treasuries closed today.",
   "trigger": {
     "gate": "Equities",
     "detail": "S&P 7,610, +1.18% vs Tuesday's close at 11:34 AM ET; VIX 17.7, -8.8%"
@@ -25,7 +25,7 @@
   ],
   "bullets": [
     "Tech +2.3%, health care -0.8% (~11am ET). Dow -0.1% (~11am ET).",
-    "Breadth narrow: NYSE advancers 1.01-to-1 (~10:40am ET). Russell 2000 -0.7% at 9:33.",
+    "Breadth narrow: NYSE advancers 1.01-to-1 (~10:40am ET).",
     "DXY 102.88, +0.6% at 11:24. Euro at a two-week low on Fed hike odds.",
     "No Treasury trading today. First rate test: jobless claims Nov 12, 8:30."
   ],
