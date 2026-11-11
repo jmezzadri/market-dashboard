@@ -60,6 +60,7 @@ const SECTIONS = [
   ['scanner',   'Idea feeds'],
   ['portfolio', PAGE_NAME.paper],
   ['scorecard', PAGE_NAME.scorecard],
+  ['watchlist', PAGE_NAME.watchlist],
   ['data',      PAGE_NAME.data],
 ];
 
@@ -73,7 +74,7 @@ const TAB_LABEL = { home: PAGE_NAME.home, overview: PAGE_NAME.macro,
   readme: PAGE_NAME.methodology, methodology: PAGE_NAME.methodology,
   scanner: 'Scanner', paper: PAGE_NAME.paper, portfolio: PAGE_NAME.paper,
   portopps: 'Scanner', ticker: 'Ticker', data: PAGE_NAME.data, admin: PAGE_NAME.data,
-  scorecard: PAGE_NAME.scorecard, email: 'Email' };
+  scorecard: PAGE_NAME.scorecard, watchlist: PAGE_NAME.watchlist, email: 'Email' };
 const CAT_LABEL = { indicator: 'Indicators', market: 'Market data', equity: 'Equity data',
   portfolio: 'Portfolio', news: 'News', options: 'Options data',
   commentary: 'Commentary', ops: 'Operations' };
@@ -829,10 +830,106 @@ export default function MethodologyPage() {
           </div>
         </article>
 
-        {/* 05 — Data (freshness contract + sources & vendors;
+        {/* 05 — Watchlist (2026-11-11). Written from the production code:
+            supabase/migrations/20261111_watchlist_page.sql (stock_facts_build,
+            qt_factor_scores) and pages/WatchlistPage.jsx. */}
+        <article id="watchlist" className="me-section">
+          <div className="me-num">05</div>
+          <div>
+            <div className="mt-eyebrow">{PAGE_NAME.watchlist}</div>
+            <h2 className="me-h2">Your own lists, and where every column comes from</h2>
+            <p className="me-body-p">
+              The {PAGE_NAME.watchlist} page keeps lists of stocks against your sign-in, so the same lists,
+              notes, tags, column layout and saved views appear on any device you sign in from. Nobody else
+              can read them. A list holds up to 200 stocks. Each stock is saved with the closing price on
+              file on the day you add it, which is what <b>Price when added</b> and <b>Since added</b> are
+              measured from.
+            </p>
+            <p className="me-body-p">
+              <b>Prices are closing prices, not live quotes.</b> Every market figure on the page is read
+              from one stored record per stock that is rebuilt after each close, once the day&rsquo;s prices
+              have loaded, and again the next morning. The page names the close its prices are from. A stock
+              with no price on the latest close shows dashes and says so.
+            </p>
+
+            <h3 className="me-h3" id="watchlist-columns" style={{ scrollMarginTop: 120 }}>
+              How each column is measured
+            </h3>
+            <p className="me-body-p">
+              <b>Price and returns.</b> <b>Day</b> is the last close against the close before it. <b>1 week</b>,{' '}
+              <b>1 month</b>, <b>3 months</b> and <b>1 year</b> are the price change over the last 5, 21, 63 and
+              252 trading days; <b>YTD</b> is measured from the last close of the previous calendar year. These
+              are price changes: dividends are not added back.
+            </p>
+            <p className="me-body-p">
+              <b>Technicals.</b> The <b>52-week high</b> and <b>low</b> are the highest and lowest prices traded
+              in the last 252 trading days, and the two distance columns compare the last close with each. They
+              are shown only for a stock with at least 200 trading days on file. <b>vs 50-day avg</b> and{' '}
+              <b>vs 200-day avg</b> compare the last close with its average close over those windows.{' '}
+              <b>Volume vs avg</b> is the last day&rsquo;s share volume divided by the average over the past 63
+              trading days, and <b>Daily $ volume</b> is the average dollars traded per day over the same window.
+            </p>
+            <p className="me-body-p">
+              <b>Dividends.</b> <b>Next ex-dividend</b> is the earliest declared ex-dividend date from today
+              onward. <b>Dividend yield</b> follows the same rule as the ticker page: the latest regular cash
+              dividend multiplied by its declared payments per year (or the last twelve months of regular
+              dividends where no frequency is declared), divided by the last close. A stock whose last regular
+              dividend is more than 400 days old shows no yield.
+            </p>
+            <p className="me-body-p">
+              <b>Short interest.</b> The share of the freely traded shares sold short and the days to cover,
+              from the most recent exchange settlement report, which is published twice a month.
+            </p>
+            <p className="me-body-p">
+              <b>Insiders.</b> <b>Insider buying</b> is the dollar value of open-market share purchases by the
+              company&rsquo;s officers, directors and large holders over the last 90 days, from their regulatory
+              filings; <b>Insider buyers</b> counts the different people who bought. Grants, option exercises
+              and sales are not counted.
+            </p>
+            <p className="me-body-p">
+              <b>{PAGE_NAME.paper} columns.</b> <b>1-yr trend</b>, <b>Profitability</b>, <b>Buybacks</b> and{' '}
+              <b>Style</b> use the same formulas as the {PAGE_NAME.paper} page and are measured once a month,
+              at the same scoring run that builds the paper book, for every US common stock with a full year of
+              prices. <b>Style</b> is the style a stock shows most strongly — momentum, quality, buybacks, small
+              size or value — against the 500 largest US stocks; a stock that does not stand out on any of them
+              reads &ldquo;None dominant&rdquo;. A stock held in the paper book shows the book&rsquo;s own stored
+              figures, so the two pages always agree. <b>In Paper Portfolio</b> is the holding&rsquo;s market
+              value divided by the book&rsquo;s equity at the latest close on record. Funds have no style
+              figures.
+            </p>
+            <p className="me-body-p">
+              <b>Company.</b> <b>Market cap</b> and <b>Industry</b> come from the listing reference record and
+              are blank for funds and for companies that record does not cover.
+            </p>
+            <p className="me-body-p">
+              <b>Earnings.</b> <b>Next earnings</b> is the earliest date in the next three months on which
+              the company is expected to report results, read once a day from a public earnings calendar,
+              with whether it falls before the market opens or after it closes where the calendar says. A
+              date is firm once the company announces it; a date several weeks out is the calendar&rsquo;s
+              estimate from the company&rsquo;s reporting history and can move. A company with no date in
+              the next three months shows a dash. <b>Days to earnings</b> counts calendar days from today.
+              Analyst ratings and price targets are not shown: the site has no licensed source for them.
+            </p>
+
+            <h3 className="me-h3" id="watchlist-table" style={{ scrollMarginTop: 120 }}>
+              Sorting, ordering and views
+            </h3>
+            <p className="me-body-p">
+              Click a column heading to sort by it; hold Shift and click another to sort within the first, up
+              to three deep. With no sort applied the list is in your own order, and a row can be dragged to a
+              new place. Columns can be shown, hidden, dragged into a new order and resized; double-clicking a
+              column&rsquo;s right edge, or <b>Fit all</b>, sizes columns to their contents. A <b>view</b> is a
+              saved set of columns with its sort, and applies to every list. Grouping gathers the list under
+              industry or under your own tags. The summary line is a plain average across the stocks in the
+              list, not weighted by size.
+            </p>
+          </div>
+        </article>
+
+        {/* 06 — Data (freshness contract + sources & vendors;
             #freshness / #sources anchors kept for deep links) */}
         <article id="data" className="me-section">
-          <div className="me-num">05</div>
+          <div className="me-num">06</div>
           <div>
             <div className="mt-eyebrow" id="freshness" style={{ scrollMarginTop: 120 }}>{PAGE_NAME.data}</div>
             <h2 className="me-h2">When everything refreshes, and how you can tell</h2>

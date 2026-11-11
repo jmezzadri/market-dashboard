@@ -2297,6 +2297,46 @@
       "owner": "Data Steward",
       "sla_basis": "Joe 2026-06-11 doctrine: daily cadence + 24h grace = 49h.",
       "id": "equity.lse-iv-scan-daily"
+    },
+    "equity.stock-facts": {
+      "category": "equity",
+      "element": "Stock facts (stored nightly, one row per ticker)",
+      "sourcing_mode": "computed",
+      "source_vendor": "MacroTilt engine (stock_facts_build)",
+      "license_tier": "free",
+      "cadence": "daily",
+      "refresh_trigger": "github-actions: MASSIVE-DAILY.yml (step 'Rebuild the Watchlist page's stock facts')",
+      "schedule_et": "after each evening price load, and again the next morning",
+      "freshness_sla_hours": 49,
+      "consumer_surfaces": [
+        "Watchlist → every market column"
+      ],
+      "target_storage": "Supabase: stock_facts",
+      "failure_mode": "Watchlist keeps showing the previous build and names the close its prices are from.",
+      "owner": "Data Steward",
+      "notes": "Built from prices_eod, dividends, short_interest, insider_history_edgar, ticker_reference and the monthly style scores (qt_factor_universe). No new vendor.",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence, same-evening build + 24h grace = 49h",
+      "id": "equity.stock-facts"
+    },
+    "equity.earnings-calendar": {
+      "category": "equity",
+      "element": "Next earnings dates",
+      "sourcing_mode": "vendor-direct",
+      "source_vendor": "Alpha Vantage",
+      "license_tier": "free",
+      "cadence": "daily",
+      "refresh_trigger": "github-actions: EARNINGS-CALENDAR-DAILY.yml",
+      "schedule_et": "about 5:20 AM, repeated about 12:20 PM",
+      "freshness_sla_hours": 49,
+      "consumer_surfaces": [
+        "Watchlist → Next earnings, Days to earnings"
+      ],
+      "target_storage": "Supabase: earnings_calendar",
+      "failure_mode": "Watchlist keeps the previous dates; chip turns red.",
+      "owner": "Data Steward",
+      "notes": "One request a run. Free key held in ops_secrets (alphavantage_api_key).",
+      "sla_basis": "Joe 2026-06-11 doctrine: daily cadence + 24h grace = 49h",
+      "id": "equity.earnings-calendar"
     }
   }
 }

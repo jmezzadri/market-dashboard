@@ -784,3 +784,13 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
   .mt-overhaul .rd-tape-view { overflow-x: auto; touch-action: auto; -webkit-mask-image: none; mask-image: none; }
   .mt-overhaul .rd-skel { animation: none !important; }
 }
+
+/* 2026-11-11 — Watchlist made it five pages in the top bar. Between the phone
+   drawer (860px) and a full-width desktop the row ran past the right edge for
+   a signed-in reader, so in that band the links sit closer, the search box
+   is shorter and the signed-in address gives way to "Sign out" alone. */
+@media (max-width: 1240px) and (min-width: 861px) {
+  .mt-overhaul .rd-nav, .mt-overhaul[data-skin='terminal'] .rd-nav { gap: var(--sp-16); }
+  .mt-overhaul .rd-auth-email { display: none; }
+  .mt-overhaul .rd-search.rd-search--desk, .mt-overhaul[data-skin='terminal'] .rd-search.rd-search--desk { width: var(--rd-search-narrow); }
+}
