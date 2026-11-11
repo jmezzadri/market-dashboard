@@ -1454,6 +1454,9 @@
 /* from src/overhaul/styles/datatable.css */
 .dt-wrap {
   --dt-hair: var(--hair, var(--c-111928-a12));
+  /* Shared table control, 2026-11-11: the grouped Columns menu. */
+  --dt-menu-wide: 280px;
+  --dt-menu-max-h: 340px;
 }
 
 
@@ -2500,4 +2503,15 @@ html[data-skin='terminal'], .mt-overhaul[data-skin='terminal'] {
   --r-32: 0px;
   --r-36: 0px;
   --r-40: 0px;
+}
+
+/* Watchlist page, 2026-11-11 — plain sizes, the same in both themes. */
+:root {
+  --wl-tab-input-w: 180px;
+  --wl-add-basis: 320px;
+  --wl-empty-measure: 520px;
+  --wl-pop-w: 280px;
+  --wl-ticker-phone: 76px;
+  /* Top bar search box between 861px and 1240px wide (five nav pages). */
+  --rd-search-narrow: 170px;
 }

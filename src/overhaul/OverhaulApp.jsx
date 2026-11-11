@@ -75,6 +75,7 @@ import MethodologyPage from './pages/MethodologyPage';
 import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
 import ScorecardPage from './pages/ScorecardPage';
+import WatchlistPage from './pages/WatchlistPage';
 import { AboutPage, TermsPage, PrivacyPage, DisclaimerPage } from './pages/StaticPages';
 // Real Admin · Bugs triage page. Restored 2026-06-01 — the same commit that
 // dropped /paper also swapped this route to a placeholder, breaking the
@@ -186,6 +187,7 @@ function SignInRoute() {
 // right back on the page they asked for.
 //
 // Who is behind it, as of 2026-08-17 (Joe): /admin/bugs, and nothing else.
+// 2026-11-11 (Joe): /watchlist too — the lists are saved to the sign-in.
 // /paper was the original tenant (2026-08-06, pending a performance review)
 // and is public again; /scorecard was gated for one commit and is public too.
 function RequireAuth({ children }) {
@@ -210,7 +212,7 @@ function RequireAuth({ children }) {
    The attribute goes on the shell AND on <html>, so the ground behind an
    overscrolled page is the skin's colour too; tokens.css repoints the older
    pages' palette under each attribute. */
-const TERMINAL_ROUTES = ['/macro', '/paper', '/scorecard', '/data'];
+const TERMINAL_ROUTES = ['/macro', '/paper', '/scorecard', '/data', '/watchlist'];
 function skinFor(pathname) {
   if (TERMINAL_ROUTES.includes(pathname) || pathname.startsWith('/ticker/')) return 'terminal';
   return 'editorial';
@@ -267,6 +269,8 @@ function Shell() {
                 rules matter MORE on a public page, not less — they are what
                 stop a short sample reading as a record. */}
             <Route path="/scorecard" element={<ScorecardPage />} />
+            {/* /watchlist (Joe, 2026-11-11): top bar, saved to the sign-in. */}
+            <Route path="/watchlist" element={<RequireAuth><WatchlistPage /></RequireAuth>} />
             <Route path="/indicators" element={<LegacyIndicatorsRedirect />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/ticker/:symbol" element={<TickerPage />} />

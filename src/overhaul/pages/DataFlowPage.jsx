@@ -453,6 +453,7 @@ function tabLabel(tab) {
     portopps: 'Trading Scanner',
     paper: PAGE_NAME.paper,
     scorecard: PAGE_NAME.scorecard,
+    watchlist: PAGE_NAME.watchlist,
     ticker: 'Ticker Detail',
     readme: 'Methodology',
     methodology: 'Methodology',

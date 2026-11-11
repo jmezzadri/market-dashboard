@@ -56,7 +56,8 @@
       "killed": "2026-06-17",
       "reason": "Old live-money Portfolio Insights feed; no live consumer (Scanner renders no user watchlist). Manifest drift cleanup, Joe-approved.",
       "status": "removed",
-      "residue": []
+      "residue": [],
+      "note": "2026-11-11: this entry is the OLD user-portfolio watchlist feed and its table, which stay retired. The Watchlist page Joe asked for on 2026-11-11 (top bar, /watchlist; tables watchlists, watchlist_items, watchlist_settings, stock_facts) is a NEW page and is live — do not delete it on the strength of this entry, and do not revive the old feed to serve it."
     },
     {
       "id": "portfolio-portfolio_history-daily",

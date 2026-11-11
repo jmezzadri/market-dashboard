@@ -137,3 +137,54 @@ jobs:
           else
             python3 scripts/upsert_pipeline_health.py qt-risk-daily - red "paper_portfolio.qt.risk failed on the morning re-measure — the Paper page's risk tiles show the previous close"
           fi
+
+      # 2026-11-11 (Watchlist page): one stored row of facts per ticker —
+      # returns, 52-week range, moving averages, volume, dividends, short
+      # interest, insider buying and the monthly style figures — rebuilt by one
+      # SQL function once the new closes are in. The page reads rows; nothing
+      # is computed from price history on load (LESSONS 9.28). Guarded by the
+      # data (LESSONS 5.7, 5.19): it rebuilds when the stored rows are behind
+      # the newest close, or are more than 12 hours old (the dividend and
+      # insider windows are measured from today), so most fires do nothing.
+      - name: Rebuild the Watchlist page's stock facts
+        continue-on-error: true
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os, sys, json, subprocess, urllib.request, datetime as dt
+          base = os.environ['SUPABASE_URL'] + '/rest/v1/'
+          key = os.environ['SUPABASE_SERVICE_ROLE_KEY']
+          hdr = {'apikey': key, 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'}
+          def get(q):
+              return json.load(urllib.request.urlopen(urllib.request.Request(base + q, headers=hdr), timeout=60))
+          def stamp(*a):
+              subprocess.run([sys.executable, 'scripts/upsert_pipeline_health.py', 'stock-facts', *a], check=False)
+          try:
+              spy = get('prices_eod?select=trade_date&ticker=eq.SPY&order=trade_date.desc&limit=1')
+              cur = get('stock_facts?select=price_date,built_at&ticker=eq.SPY&limit=1')
+              newest = spy[0]['trade_date'] if spy else None
+              have = cur[0]['price_date'] if cur else None
+              built = dt.datetime.fromisoformat(cur[0]['built_at'].replace('Z', '+00:00')) if cur else None
+              age_h = (dt.datetime.now(dt.timezone.utc) - built).total_seconds() / 3600 if built else None
+              if newest and have == newest and age_h is not None and age_h < 12:
+                  print(f'stock facts already measure the {have} close, built {age_h:.1f}h ago - nothing to do')
+                  raise SystemExit(0)
+              req = urllib.request.Request(base + 'rpc/stock_facts_build', data=b'{}', headers=hdr, method='POST')
+              n = json.load(urllib.request.urlopen(req, timeout=150))
+              after = get('stock_facts?select=price_date&ticker=eq.SPY&limit=1')
+              got = after[0]['price_date'] if after else None
+              print(f'stock_facts_build wrote {n} rows; price date {got}; newest close on file {newest}')
+              # Grade what the reader will see (LESSONS 4.31): enough rows, and
+              # the rows measure the newest close.
+              if isinstance(n, int) and n >= 5000 and got == newest:
+                  stamp(got, 'green')
+              else:
+                  stamp('-', 'red', f'stock_facts_build wrote {n} rows dated {got} against a newest close of {newest} - the Watchlist page is showing older figures')
+          except SystemExit:
+              raise
+          except Exception as e:
+              print(f'stock facts rebuild failed: {e}')
+              stamp('-', 'red', 'The nightly rebuild of the Watchlist page stock facts failed - the page shows the previous build')
+          PY

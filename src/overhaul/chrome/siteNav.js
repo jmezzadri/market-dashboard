@@ -5,6 +5,10 @@
    else. Methodology, Data and Bugs are reference pages and live in the
    footer.
 
+   Joe, 2026-11-11: Watchlist joins the top bar. It is the one top-bar page
+   behind sign-in, because the lists are saved to the reader's own sign-in;
+   a signed-out visitor who opens it gets the sign-in card in place.
+
    Every surface that names a page reads it from here (top bar, mobile menu,
    footer, the Methodology contents rail), so a rename is one edit and the
    names can never drift apart again (LESSONS 9.11). */
@@ -14,6 +18,7 @@ export const PRIMARY_NAV = [
   { to: '/macro', label: 'Macro Landscape' },
   { to: '/paper', label: 'Paper Portfolio' },
   { to: '/scorecard', label: 'Macro Scorecard' },
+  { to: '/watchlist', label: 'Watchlist' },
 ];
 
 // Footer only. Bugs is the one page behind sign-in, so it is listed only for
@@ -33,6 +38,7 @@ export const PAGE_NAME = {
   macro: 'Macro Landscape',
   paper: 'Paper Portfolio',
   scorecard: 'Macro Scorecard',
+  watchlist: 'Watchlist',
   methodology: 'Methodology',
   data: 'Data',
   bugs: 'Bugs',
@@ -50,6 +56,7 @@ const TITLE_BY_PATH = {
   '/macro': PAGE_NAME.macro,
   '/paper': PAGE_NAME.paper,
   '/scorecard': PAGE_NAME.scorecard,
+  '/watchlist': PAGE_NAME.watchlist,
   '/methodology': PAGE_NAME.methodology,
   '/data': PAGE_NAME.data,
   '/admin/bugs': PAGE_NAME.bugs,
