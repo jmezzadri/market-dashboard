@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-10T21:17:30Z",
+  "generated_at": "2026-11-11T00:44:19Z",
   "window": {
-    "from": "2026-11-03",
-    "to": "2027-01-19"
+    "from": "2026-11-04",
+    "to": "2027-01-20"
   },
   "counts": {
-    "total": 94,
-    "tier1": 28
+    "total": 91,
+    "tier1": 26
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -30,43 +30,10 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-19",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-20",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
-    {
-      "date": "2026-11-03",
-      "time_et": "10:00 AM",
-      "name": "Job openings (JOLTS)",
-      "short": "JOLTS",
-      "tier": 1,
-      "category": "Labor",
-      "blurb": "Job openings, hires, quits and layoffs \u2014 labor demand rather than headcount.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-03",
-      "time_et": "10:00 AM",
-      "name": "Factory orders",
-      "short": "Factory",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Full manufacturers' shipments, inventories and orders.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-03",
-      "time_et": "6:00 PM",
-      "name": "US midterm elections",
-      "short": "Midterms",
-      "tier": 1,
-      "category": "Politics",
-      "blurb": "All 435 House seats and about a third of the Senate. First polls close at 6:00 PM ET (Indiana, Kentucky) and most of the East by 8:00 PM; results arrive overnight, so markets price the outcome at the next session's open.",
-      "source": "US federal election day (2 U.S.C. section 7, computed)",
-      "time_source": "published poll-closing time (first states, ET)"
-    },
     {
       "date": "2026-11-04",
       "time_et": "8:30 AM",
