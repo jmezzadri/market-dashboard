@@ -1,49 +1,52 @@
 {
-  "date": "2026-11-09",
+  "date": "2026-11-11",
   "edition": "midday",
   "label": "Midday Update",
-  "written_at": "2026-11-09T11:37:50-05:00",
-  "headline": "S&P +1.9% at 11:30, VIX -19%, Nasdaq 100 +2.5%, Brent -4.3% to $94.14, DXY -0.45%",
-  "stance": "AI dip buying and a reported Hormuz proposal drove the morning, not data. The Qatar meeting at noon ET decides whether oil, and the rally, hold into Tuesday's CPI.",
+  "written_at": "2026-11-11T11:35:26-05:00",
+  "headline": "S&P +1.2% at 11:34, semis lead, VIX 17.7, Brent $94.00 +2.7%, Treasuries closed",
+  "stance": "Semis carried the open; the Dow and small caps did not join. Rate test waits for PPI on Nov 13 with Treasuries closed today.",
   "trigger": {
     "gate": "Equities",
-    "detail": "S&P 7,519, +1.92% vs Friday's close at 11:30 ET; VIX 20.7, -19%. Brent -4.25% tripped the oil gate too"
+    "detail": "S&P 7,610, +1.18% vs Tuesday's close at 11:34 AM ET; VIX 17.7, -8.8%"
   },
   "scorecard": [
     {
-      "call": "Nasdaq 100 futures flat pre-market: the rebound has not crossed the Pacific.",
-      "actual": "It crossed at the open. Nasdaq 100 +2.5%, US chip index +4.5% at 10:39 ET; S&P +1.9% at 11:30 ET"
+      "call": "S&P futures +0.6%, Nasdaq 100 +1.5% (~3am ET)",
+      "actual": "S&P +1.18% at 11:34. Morning call ran light."
     },
     {
-      "call": "WTI $89.70 pre-market; Trump: new strikes highly unlikely if talks progress.",
-      "actual": "Brent $92.96, -5.5% at 9:35 ET on the reported Hormuz terms; $94.14, -4.3% at 11:30 ET"
+      "call": "Brent $92.74, +1.3% (~4:45am ET)",
+      "actual": "Brent $94.00, +2.7% at 11:24 on a Hormuz mine strike."
     },
     {
-      "call": "Nvidia -5.2% pre-market on the board probe of Huang.",
-      "actual": "Held: -5% at 10:39 ET while the chip index rose 4.5%. A single-stock story, not a sector one"
+      "call": "50bp December odds 9-15% overnight",
+      "actual": "50bp odds 11.5% (~10:40am ET)."
     }
   ],
   "bullets": [
-    "Hormuz terms reported 9:26 ET: Iran reopens the strait, halts tanker attacks. US lifts the blockade, releases $8bn frozen in Qatar. Nuclear program excluded.",
-    "Four cabinet members reportedly oppose those terms. Trump and Vance meet the Qatari PM at noon ET; equities are priced for a yes.",
-    "Rates did not join: 10y 4.87%, +1.4bp at 11:30 ET; MOVE 88.4, -4.4pts. December hike odds near 80% at 11:20 ET.",
-    "DXY 101.84, -0.45% at 11:30 ET; EUR/USD 1.1203, +0.55% at 11:20 ET. The dollar is giving back Friday's +0.8% as oil falls.",
-    "Nine of 11 sectors higher at 9:46 ET, discretionary and communication services leading. The chip index, +4.5% at 10:39 ET, led after its worst week since March."
+    "Tech +2.3%, health care -0.8% (~11am ET). Dow -0.1% (~11am ET).",
+    "Breadth narrow: NYSE advancers 1.01-to-1 (~10:40am ET). Russell 2000 -0.7% at 9:33.",
+    "DXY 102.88, +0.6% at 11:24. Euro at a two-week low on Fed hike odds.",
+    "No Treasury trading today. First rate test: jobless claims Nov 12, 8:30."
   ],
   "items": [
     {
-      "head": "Broadcom +7.5%, Marvell +5%: the AI chip dip was bought",
-      "body": "Broadcom +7.5% at 10:43 ET after -10% Thursday; Marvell +5% at 9:46 ET. Nvidia -5% at 10:39 ET on the Huang probe, the one large chip name lower."
+      "head": "Boyd Group -12% after Q3 miss",
+      "body": "Adjusted EPS $0.68 vs $0.85 expected; sales $1.013bn vs $1.021bn. Shares -12% (~11am ET)."
     }
   ],
   "watch": [
     {
-      "head": "Trump and Vance meet the Qatari PM, noon ET",
-      "body": "Confirmation or rejection of the Hormuz terms lands mid-session. Brent $94.14 at 11:30 ET; the reported cabinet dissent is the risk."
+      "head": "Jobless claims Nov 12, 8:30",
+      "body": "First US data since CPI. Treasuries reopen Thursday with Tuesday's 10bp jump in the 10y to digest."
     },
     {
-      "head": "Barkin 12:15 ET, then the 3y auction at 1pm",
-      "body": "First Fed voice since payrolls with hike odds near 80%. The auction tests a 10y at 4.87% that did not follow equities."
+      "head": "PPI Nov 13, 8:30",
+      "body": "Decides whether 50bp odds for the Dec 9 FOMC move off 11.5%."
+    },
+    {
+      "head": "Oil into the close",
+      "body": "Brent $94.00 at 11:24. Further Hormuz mine reports keep the bid; talks headlines cut it."
     }
   ]
 }
