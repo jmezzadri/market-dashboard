@@ -225,6 +225,14 @@
       "reason": "Only reader was the retired Portfolio Lab page. Workflow, script, pg_cron backup lse-archive-iv-backup-0330utc, trigger-workflow allowlist entry, failure-alert watchlist entry, health row and manifest entries all deleted in the same change.",
       "status": "removed",
       "residue": []
+    },
+    {
+      "id": "news.bigdata-com-connector",
+      "name": "Bigdata.com connector as the brief writers' time-stamped news source (bigdata_search via ToolSearch)",
+      "killed": "2026-11-12",
+      "reason": "Free credit ran out 2026-11-12 11:57 ET; Joe will not pay. Replaced the same day by the free news-wire edge function (publishers' public feeds, publisher's own publication time). Removed from both brief playbooks, the task document and the Midday Update and Market Close task prompts in the same change. Never call it and never re-attach it as a source.",
+      "status": "removed",
+      "residue": []
     }
   ]
 }

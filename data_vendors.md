@@ -1,6 +1,6 @@
 # MacroTilt Data Vendor Ledger
 
-Last updated: 2026-07-28 (Polygon Massive corrected to $0 — free 2-yr tier, verified by API probes 7/27; Joe caught the stale $79 on the Data page 7/28). Owner: Data Steward.
+Last updated: 2026-11-12 (Bigdata.com retired, free publisher headline feeds added — section 15; before that 2026-07-28: Polygon Massive corrected to $0 — free 2-yr tier, verified by API probes 7/27; Joe caught the stale $79 on the Data page 7/28). Owner: Data Steward.
 
 This is the cost + blast-radius ledger for every external data source AND paid infrastructure service that feeds the live site. Run-rate as of 2026-07-20 (verified against receipts in the 2026-07-08 cost sweep, which found this file understating true cost): approximately **$221/month excluding the Claude subscription** (drops to ~$71/month after Unusual Whales lapses 2026-08-12; the previously-stated ~$275 included a Polygon charge that turned out not to exist); ~$525/month (~$6,300/year) including it. Prior versions of this file listed Unusual Whales at $150/YEAR — the receipt says **$150/MONTH** — and omitted Supabase and Vercel entirely.
 
@@ -226,6 +226,19 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ---
 
+## 15. Publisher headline feeds (free — the brief writers' time-stamped news, via `news-wire`)
+
+- **Monthly cost:** $0. Public syndication (RSS) feeds, no key, no account, no allowance to run out.
+- **What it is:** the `news-wire` edge function reads, on demand, the public feeds of CNBC (top news, economy, earnings, markets), MarketWatch (top stories, bulletins), investingLive, Seeking Alpha (market news), Benzinga, OilPrice.com, PR Newswire (company earnings releases), the Federal Reserve, the European Central Bank, the Bank of England and the Bureau of Labor Statistics, and returns one merged list: headline, one-line summary, publisher, link and the publisher's own publication time. Nothing is stored. Items with no stated time are dropped, never stamped.
+- **What it powers:** the outside-news lines of the Morning Brief, the Midday Update and the Market Close, and dated headlines for the Trade Idea research run. No number on the site is computed from it.
+- **Replaces:** the Bigdata.com connector (in use 2026-10-07 to 2026-11-12). It was on a free credit that ran out 2026-11-12 11:57 ET; Joe declined to pay — do not re-pitch. Retired in `killed_elements.json`.
+- **Known limits:** headlines and one-line summaries only, not article text; no street consensus; a publisher can change or withdraw a feed without notice (the service reports each feed's status on every call, and the writers' playbook says what an edition prints when no timed headline is available). investing.com's feeds are left out because their times carry no time zone.
+- **Alternatives evaluated:** Bigdata.com paid plan (declined); web search (no publication times in results); opening news sites from the scheduled sandbox (blocked there).
+- **Contract end date:** None.
+- **Removal blast radius:** Small. The three brief editions lose outside headlines and say so in their own text; every figure, table and chart on the site is unaffected.
+
+---
+
 ## Infrastructure (not data vendors, but real monthly cost — previously missing from this file)
 
 - **Supabase Pro — $25/month.** The database behind the entire site (2.5 GB; 5x over the 500 MB free cap — cannot downgrade). Settled decision 2026-07: stays.
@@ -248,6 +261,8 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 | ISM scrape | $0 | Active |
 | State Street SPDR | $0 | Active |
 | GitHub unitedstates | $0 | Active |
+| Publisher headline feeds (news-wire) | $0 | Active from 2026-11-12 |
+| Bigdata.com | $0 (free credit ran out 2026-11-12; not renewed) | Retired |
 | ZeroHedge Premium | ~$30 | Active |
 | Numerco / Yellow Cake (uranium spot) | $0 | Active |
 | IndexMundi (uranium history) | $0 | One-time seed |

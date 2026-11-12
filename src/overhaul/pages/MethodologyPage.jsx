@@ -998,6 +998,16 @@ export default function MethodologyPage() {
               at midday and the tile says so.
             </p>
             <p className="me-body-p">
+              <b>Where the brief&rsquo;s news comes from.</b> Outside headlines in all three editions
+              come from publishers&rsquo; own public headline feeds (CNBC, MarketWatch, investingLive,
+              Seeking Alpha, Benzinga, OilPrice, company earnings releases on PR Newswire) and from the
+              Federal Reserve, the ECB, the Bank of England and the Bureau of Labor Statistics directly.
+              A headline is used only if its publisher states when it was published, and any level or
+              event taken from it is quoted with that time. A headline with no stated time is left out
+              rather than given one. If no time-stamped headlines can be read when an edition is
+              written, the edition says so and quotes no outside news.
+            </p>
+            <p className="me-body-p">
               The daily rebalance pipeline runs Tuesday through Saturday morning, after Polygon's full
               overnight price batch lands (the batch finishes between 2 AM and 8 AM ET the next morning,
               not same-day). Three jobs run in sequence:

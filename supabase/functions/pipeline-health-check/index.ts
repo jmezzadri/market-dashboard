@@ -61,8 +61,8 @@ type HealthRow = {
   last_check_at: string | null;
   last_value: unknown;
   last_error: string | null;
-  status: "green" | "red" | "unknown" | "amber";
-  prev_status: "green" | "red" | "unknown" | "amber" | null;
+  status: "green" | "red" | "unknown" | "amber" | "skipped";
+  prev_status: "green" | "red" | "unknown" | "amber" | "skipped" | null;
   last_alerted_at: string | null;
   last_skip_at: string | null;
   last_skip_reason: string | null;
@@ -255,7 +255,7 @@ async function handle(req: Request): Promise<Response> {
   // 3) Compute new status + upsert each row + append a row to pipeline_fetch_log
   //    (PR #15 — gives the pipeline panel its "last 7 attempts" history)
   const updates: Array<Partial<HealthRow> & { indicator_id: string }> = [];
-  const alerts: Array<{ row: HealthRow; ageMinutes: number | null; skips: number }> = [];
+  const alerts: Array<{ row: HealthRow; ageMinutes: number | null; skips: number; story: boolean }> = [];
   const escalations: Array<{ row: HealthRow; ageMinutes: number | null; daysStuck: number }> = [];
   // Rows this watchdog skips because they are not in the public manifest, so it
   // has no SLA to grade them against. Anti-clobber doctrine (below) means their
@@ -272,7 +272,7 @@ async function handle(req: Request): Promise<Response> {
   const logRows: Array<{
     indicator_id: string;
     check_at: string;
-    status: "green" | "red" | "unknown" | "amber";
+    status: "green" | "red" | "unknown" | "amber" | "skipped";
     age_minutes: number | null;
     last_value: unknown;
     error_message: string | null;
@@ -629,11 +629,40 @@ async function handle(req: Request): Promise<Response> {
       }
       continue;
     }
-    const newStatus: "green" | "red" | "unknown" =
-      isConfigGap ? "unknown" : (graded.status === "green" ? "green" : "red");
+    const expectedH = ((Number(row.expected_cadence_minutes) ||
+      CADENCE_EXPECTED_MINUTES[row.cadence as CadenceCode] || 1440) / 60);
+    const skipAgeH = row.last_skip_at
+      ? (Date.now() - new Date(row.last_skip_at).getTime()) / 3600_000
+      : Infinity;
+    const skips = row.consecutive_skips ?? 0;
+    // Explained only while the skip is recent enough to be THIS cycle's silence
+    // (1.5x the cadence) and the skipping has not itself become the story.
+    // 2026-11-12: the `skips < SKIP_ESCALATE_AFTER` clause that used to sit here
+    // is gone. It turned the skip story from one email into one a day: from the
+    // 7th skip on, "deliberate" read false, so every time another writer put the
+    // row back to green and this check re-reddened it, the green->red alert went
+    // out again under the "nothing published N times running" subject (Joe got
+    // 7, 8 and 9 on Nov 9, 10 and 12). A producer that turned up inside its
+    // window is alive however long the quiet stretch is; the stretch itself is
+    // reported ONCE, by skipStoryDue below.
+    const silenceIsDeliberate = !lastError && skipAgeH <= expectedH * 1.5;
+    // 2026-11-12 — a red that is explained by a recent recorded skip is stored
+    // as its own state, "skipped", the same state the site has drawn since
+    // 2026-10-02 (freshnessClock.isDeliberateSkip — identical rule). Until now
+    // the stored row said red while every page said "All feeds current", so the
+    // health sweep and anything else reading the column chased a producer that
+    // had run that morning. Not fake green: last_good_at and data_as_of are
+    // untouched, and the moment the skip stamp ages out of the window the row
+    // is red again and alerts as a healthy->red transition.
+    const newStatus: "green" | "red" | "unknown" | "skipped" =
+      isConfigGap ? "unknown"
+        : graded.status === "green" ? "green"
+        : silenceIsDeliberate ? "skipped" : "red";
 
     // Debounced alert on a green→red transition
-    const wasGreen = row.status === "green";
+    // "skipped" is a healthy state: a row that leaves it for red has a producer
+    // that stopped turning up, which is exactly the transition worth an email.
+    const wasGreen = row.status === "green" || row.status === "skipped";
     const nowRed   = newStatus === "red";
     const lastAlertAge = row.last_alerted_at
       ? (Date.now() - new Date(row.last_alerted_at).getTime()) / 3600_000
@@ -657,15 +686,6 @@ async function handle(req: Request): Promise<Response> {
     // freshness: the state is distinct, the content's real date renders beside
     // it, and the moment last_skip_at falls outside the cadence window below,
     // every surface reds again on its own.
-    const expectedH = ((Number(row.expected_cadence_minutes) ||
-      CADENCE_EXPECTED_MINUTES[row.cadence as CadenceCode] || 1440) / 60);
-    const skipAgeH = row.last_skip_at
-      ? (Date.now() - new Date(row.last_skip_at).getTime()) / 3600_000
-      : Infinity;
-    const skips = row.consecutive_skips ?? 0;
-    // Explained only while the skip is recent enough to be THIS cycle's silence
-    // (1.5x the cadence) and the skipping has not itself become the story.
-    const silenceIsDeliberate = skipAgeH <= expectedH * 1.5 && skips < SKIP_ESCALATE_AFTER;
     // The skipping has itself become the story: fires ONCE, on the run where the
     // counter reaches the threshold. Without this the skip-aware subject line
     // below was unreachable — by the time skips hit 7 the row is long since
@@ -673,10 +693,10 @@ async function handle(req: Request): Promise<Response> {
     // Send-once by construction (LESSONS 4.28 rule 3): `=== threshold` fires on
     // one run only — the next skip makes it 8 — and the freshness bound means a
     // producer that dies while parked on 7 cannot re-send it every morning.
-    const skipStoryDue = skips === SKIP_ESCALATE_AFTER && skipAgeH <= 24;
+    const skipStoryDue = newStatus === "skipped" && skips === SKIP_ESCALATE_AFTER && skipAgeH <= 24;
     const shouldAlert =
-      !skipAlerts && nowRed && lastAlertAge >= ALERT_DEBOUNCE_HOURS &&
-      ((wasGreen && !silenceIsDeliberate) || skipStoryDue);
+      !skipAlerts && lastAlertAge >= ALERT_DEBOUNCE_HOURS &&
+      ((nowRed && wasGreen) || skipStoryDue);
 
     // ─── 7-day stuck-red escalation (Joe directive 2026-05-03) ────────────
     // Re-evaluate "is this red?" against manifest SLA + calendar (matches the
@@ -764,7 +784,7 @@ async function handle(req: Request): Promise<Response> {
       red_since: nowRed ? (row.red_since ?? now.toISOString()) : null,
     });
 
-    if (shouldAlert) alerts.push({ row, ageMinutes: ageMin, skips });
+    if (shouldAlert) alerts.push({ row, ageMinutes: ageMin, skips, story: skipStoryDue });
     if (shouldEscalate7Day) escalations.push({ row, ageMinutes: ageMin, daysStuck: Math.round(elapsedRedHours / 24) });
 
     // PR #15 — append a row to pipeline_fetch_log so the pipeline panel
@@ -821,11 +841,11 @@ async function handle(req: Request): Promise<Response> {
   // 5) Fire alerts after the DB write (so last_alerted_at is persisted even if
   //    Resend is down — we won't spam retries)
   let alertsSent = 0;
-  for (const { row, ageMinutes, skips } of alerts) {
+  for (const { row, ageMinutes, skips, story } of alerts) {
     try {
       await sendEmail({
         to: ALERT_TO,
-        subject: skips >= SKIP_ESCALATE_AFTER
+        subject: story
           ? `[MacroTilt] "${row.label}" — nothing published ${skips} times running`
           : `[MacroTilt] "${row.label}" has stopped updating`,
         html: `
@@ -834,7 +854,7 @@ async function handle(req: Request): Promise<Response> {
              ${ageWords(ageMinutes)} ago. It should update
              ${CADENCE_WORDS[row.cadence] || "regularly"}.</p>
           <p><strong>What this is:</strong> ${row.source} supplies it.</p>
-          ${skips >= SKIP_ESCALATE_AFTER ? `
+          ${story ? `
           <p><strong>This one is different:</strong> it is not broken. It has run
              ${skips} times in a row and each time decided there was nothing worth
              publishing. That is allowed — but ${skips} in a row is worth knowing

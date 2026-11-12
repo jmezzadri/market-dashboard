@@ -349,6 +349,12 @@ a quiet half-week is the product working as designed.
   Read it. The contract rejects a repeat of a live instrument inside 21 days.
 - Web search for anything the feeds do not carry — usable only if the page
   carries a visible publication timestamp.
+- `https://yqaqqzseepebrocgibcw.supabase.co/functions/v1/news-wire?hours=24` —
+  MacroTilt's free headline service (2026-11-12): publisher and central-bank
+  feeds, every item with the publisher's own publication time (`published_et`).
+  `q=` filters by term, `since=` sets the window. The shell reaches it (same
+  host as the feeds above). Bigdata.com is retired — its free credit ran out
+  2026-11-12 and Joe will not pay; never call it.
 
 **2. Pick the idea — and source it OUTWARD-FIRST (2026-08-31, binding).**
 Joe, after a week of skips built entirely from indicator percentiles: *"Get the

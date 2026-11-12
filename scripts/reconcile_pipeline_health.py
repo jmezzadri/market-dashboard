@@ -199,8 +199,14 @@ def grade_binary(asof, last_good_at, man_el, freq_hint):
         # No manifest entry: fall back to a pull SLA by frequency so the row
         # still grades (the orphan check reds the whole run regardless).
         sla_pull = FALLBACK_PULL_SLA.get((freq_hint or "D").upper()[:1], 49)
-    if rel_cal not in ("nyse-trading-day", "us-business-day", "wall-clock"): rel_cal = "us-business-day"
-    if data_cal not in ("nyse-trading-day", "us-business-day", "wall-clock"): data_cal = "us-business-day"
+    # 2026-11-12: a calendar name this file does not know ("none", "calendar-day")
+    # counts EVERY day, exactly as the site and the 30-minute checker do
+    # (freshnessClock.isCalendarDay). It used to fall back to business days, so
+    # the Trade Idea notes (release_calendar "none", 192h budget) were red on the
+    # checker's clock from Nov 7 and green on this one until Nov 11 — the row
+    # flipped four times a day and each flip back to red emailed Joe.
+    if rel_cal not in ("nyse-trading-day", "us-business-day", "wall-clock"): rel_cal = "wall-clock"
+    if data_cal not in ("nyse-trading-day", "us-business-day", "wall-clock"): data_cal = "wall-clock"
     # Reference / event-driven: no freshness target at all → neutral, not red.
     if sla_pull <= 0 and win_data <= 0:
         return "unknown", f"{asof or '—'} · reference (no SLA)"
@@ -344,7 +350,7 @@ def load_ph():
            or os.environ.get("SUPABASE_ANON_KEY")
            or "sb_publishable__q_l32rEdPZlC4Bxs6dFnA__NqouiGk")
     base = url or "https://yqaqqzseepebrocgibcw.supabase.co"
-    ep = f"{base}/rest/v1/pipeline_health?select=indicator_id,status,last_check_at,last_good_at&limit=500"
+    ep = f"{base}/rest/v1/pipeline_health?select=indicator_id,status,last_check_at,last_good_at,last_skip_at,last_error,expected_cadence_minutes&limit=500"
     req = urllib.request.Request(ep, headers={"apikey": key, "Authorization": f"Bearer {key}"})
     return json.loads(urllib.request.urlopen(req, timeout=20).read().decode())
 
@@ -395,6 +401,19 @@ def patch(indicator_id, status, asof, cur_last_good=None):
     except Exception as e:
         print(f"  PATCH failed {indicator_id}: {e}"); return False
 
+def is_deliberate_skip(row):
+    """Python twin of freshnessClock.isDeliberateSkip and of the 30-minute
+    checker's rule: the producer recorded a skip inside 1.5x its own cadence and
+    the row carries no error. Such a row is stored as 'skipped', never red."""
+    if not row or row.get("last_error") or not row.get("last_skip_at"):
+        return False
+    try:
+        at = dt.datetime.fromisoformat(str(row["last_skip_at"]).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    window_h = (float(row.get("expected_cadence_minutes") or 1440) / 60.0) * 1.5
+    return (NOW - at).total_seconds() / 3600.0 <= window_h
+
 def main():
     import urllib.parse  # noqa
     commit = "--commit" in sys.argv
@@ -415,6 +434,8 @@ def main():
         iid = r["indicator_id"]
         asof, freq_hint = resolve(iid, ih)
         status, detail = grade_binary(asof, r.get("last_good_at"), man_by_key.get(iid), freq_hint)
+        if status == "red" and is_deliberate_skip(r):
+            status, detail = "skipped", detail + " · ran and published nothing"
         tally[status] += 1
         print(f"  {status:9} {iid:28} {detail}")
         if commit:
