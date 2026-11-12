@@ -1,32 +1,32 @@
 {
-  "date": "2026-11-11",
+  "date": "2026-11-12",
   "edition": "close",
   "label": "Market Close",
-  "written_at": "2026-11-11T18:43:28-05:00",
-  "headline": "S&P +1.31%, SOX +5.66%, Nasdaq 100 +2.28%, Brent $92.76, Nvidia -8% after hours",
-  "stance": "Semis and AI infrastructure led a broad rebound with Treasuries closed. Nasdaq 100 futures gave back 1% by ~6pm ET on the Nvidia report.",
+  "written_at": "2026-11-12T18:43:58-05:00",
+  "headline": "S&P -0.4%, Russell -1.7%, 10y 5.10% +10bp, Brent $95.77, Cerebras +18% after hours",
+  "stance": "Yields jumped on Fed hike bets and a second weak auction; stocks gave up midday gains in the last hour. Nvidia closed -4.3% on Huang's exit.",
   "trigger": null,
   "scorecard": [
     {
-      "call": "Midday: S&P +1.18% at 11:34, semis lead, the Dow did not join.",
-      "actual": "S&P closed +1.31%, SOX +5.66%. Dow joined late, +0.49% at the close."
+      "call": "Morning: Nvidia -6% pre-market, Nasdaq 100 futures -0.9%.",
+      "actual": "Nvidia fell 14.3% at the open, closed -4.3%. Nasdaq 100 closed -0.3%."
     },
     {
-      "call": "Midday: Brent $94.00, +2.7% at 11:24 on a Hormuz mine strike.",
-      "actual": "Brent settled $92.76, +1.4%. Half the midday gain was gone by the settle."
+      "call": "Morning: a low jobless claims number backs the December hike.",
+      "actual": "Claims 200K vs 195K expected (8:30). The 10y still rose 10.5bp to 5.10%."
     },
     {
-      "call": "Morning: EIA crude inventories today; industry data showed a 9.8mb draw.",
-      "actual": "EIA slipped to Thursday for the holiday. Industry data showed a 9.0mb build, not a draw."
+      "call": "Morning: soft 30y demand would push long yields above 5.3%.",
+      "actual": "30y tailed 0.4bp at 5.441%, dealers took 11.39% (1:18pm). 30y closed 5.43%."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "Treasuries closed for Veterans Day. Futures price about 90% odds of a 25bp December hike.",
-        "Brent +1.4% at the settle after Iran said enriched nuclear material will not leave the country.",
-        "Spot gold -1.1%, back under $4,000 for the session."
+        "Biggest one-day jump in yields since 2022 (5:16pm reports). Hammack said policy must move to restrictive.",
+        "$25bn 30y: 2.36x cover vs 2.44x average, dealers 11.39% vs 9.49%. Second weak long auction in two days.",
+        "Brent hit $96 at 12:30pm after Trump said the US needs no Iran deal. Iran reported strikes on Sirik at 2:51pm."
       ],
       "positioning": null,
       "single_name": null
@@ -34,9 +34,9 @@
     {
       "title": "Equity Markets",
       "bullets": [
-        "Every SOX member closed higher. Nasdaq 100 traded up more than 3% intraday, erasing its post-midterm losses.",
-        "Memory, optical and neocloud names led. Three megacaps closed lower.",
-        "After hours: Nasdaq 100 futures -1%, S&P futures -0.4%, Dow futures flat (~6pm ET)."
+        "Nasdaq 100 turned positive by 1:16pm, then indices gave up gains in the final hour.",
+        "Russell 2000 -1.7%, worst of the majors on the day yields jumped.",
+        "Energy +1.5%, the only sector up more than 0.1%. Materials -1.3%, communication services -1.0%."
       ],
       "positioning": null,
       "single_name": null
@@ -44,7 +44,7 @@
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "Spread marks still run to Monday's close. No bond trading today to update them."
+        "LQD -0.9% vs HYG -0.5% at the close. Investment grade duration took the bigger loss."
       ],
       "positioning": null,
       "single_name": null
@@ -52,38 +52,34 @@
   ],
   "items": [
     {
-      "head": "Nvidia -8% after hours on report board may oust CEO",
-      "body": "Board could meet as soon as tonight, per reports. Shares -8.4% at 6pm ET, after +2.9% in the session."
+      "head": "Cerebras +17.7% after hours on raised outlook",
+      "body": "Q3 cloud revenue +265%. Raised 2026 outlook, sees 2027 revenue tripling, $26bn backlog, new Microsoft deal. Shares +17.7% at 6:43pm ET."
     },
     {
-      "head": "Digi International -11.7% after hours on soft guide",
-      "body": "Q4 EPS $0.78 vs $0.76 est; revenue $143.3m, +25%. Q1 revenue guide $140-144m. Shares -11.7% (~5:30pm ET)."
+      "head": "Cisco +0.2% after hours on beat and raise",
+      "body": "Record revenue $18.5bn, +24%; non-GAAP EPS $1.40. Raised FY27 view; AI infrastructure revenue to double. Shares +0.2% at 6:42pm ET."
     },
     {
-      "head": "EZCORP up as much as 11% after hours on beat",
-      "body": "Q4 EPS $0.43 vs $0.42 est; revenue $447.1m vs $427.2m est. Pawn loans +31%. Shares up as much as 11% (~5pm ET)."
+      "head": "Applied Materials +1.3% after hours on Q4 beat",
+      "body": "Beat on Q4 and guided above forecasts (4:27pm). Shares +1.3% at 6:42pm ET."
     },
     {
-      "head": "EnerSys -1.7% after hours on revenue miss",
-      "body": "Revenue $949.9m vs $972.4m est. Q3 revenue guide midpoint $955m, below consensus. Shares -1.7% (~5pm ET)."
+      "head": "Flowers Foods -8.0% after hours on Q3 results",
+      "body": "Reported Q3 results at 4:05pm. Shares -8.0% at 6:38pm ET."
     }
   ],
   "watch": [
     {
-      "head": "Jobless claims, Nov 12 8:30",
-      "body": "Treasuries reopen Thursday. First labor print since the 0.3% core CPI."
+      "head": "PPI, Nov 13 8:30",
+      "body": "Last producer-price read before the FOMC on Dec 9, with the 10y at 5.10%."
     },
     {
-      "head": "EIA crude inventories, Thursday",
-      "body": "Delayed a day by the holiday. The official number tests the industry build."
+      "head": "S&P Italy rating review, Nov 13",
+      "body": "BBB+ with a positive outlook since Jan 30. Published after the European close."
     },
     {
-      "head": "Cisco, Applied Materials after the close Thursday",
-      "body": "First AI-capex reads after today's semis rally. Cerebras and QXO also report."
-    },
-    {
-      "head": "Nvidia board decision",
-      "body": "Any decision tonight hits Thursday's open. AMD +3.8% after hours on the report (~6pm ET)."
+      "head": "Retail sales, Nov 17 8:30",
+      "body": "Next tier-1 consumer read. Empire State survey comes first, Nov 16 8:30."
     }
   ]
 }
