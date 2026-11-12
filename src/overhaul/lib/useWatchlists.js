@@ -132,9 +132,19 @@ export default function useWatchlists(userId) {
     const full = fresh.filter((t) => known.has(t)).length > ok.length;
     if (!ok.length) return { added: [], already, unknown, full };
     let position = mine.reduce((m, x) => Math.max(m, x.position), -1);
+    // The price a stock is added at is the newest close — the one the page
+    // then shows as Last close — so "Since added" starts at zero. On the
+    // evening of a session the stored facts are still the prior close
+    // (2026-11-11): read the same newest row the page reads, fetching the
+    // same-day close first for a stock that has none yet.
+    let closes = await latestTwoCloses(ok);
+    const session = etDay(latestTradingSessionDate());
+    const behind = ok.filter((t) => { const d = closes[t]?.[0]?.trade_date; return session && (!d || String(d) < session); });
+    if (behind.length) { await fetchSameDayCloses(behind); closes = await latestTwoCloses(ok); }
     const rows = ok.map((t) => {
       position += 1;
-      return { watchlist_id: listId, ticker: t, position, added_price: fact[t]?.close ?? null, added_price_date: fact[t]?.price_date ?? null };
+      const at = fact[t] ? carryForward(fact[t], closes[t]) : null;
+      return { watchlist_id: listId, ticker: t, position, added_price: at?.close ?? null, added_price_date: at?.price_date ?? null };
     });
     const { data, error: e } = await supabase.from('watchlist_items').insert(rows)
       .select('id,watchlist_id,ticker,position,added_at,added_price,added_price_date,note,tag');
