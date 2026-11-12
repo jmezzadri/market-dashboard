@@ -1397,6 +1397,22 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Senior Quant, Data Steward, Lead Developer — every function that reads prices_eod across tickers (stock_facts_build, qt_factor_scores and any future screen).
 
+### 4.51 (2026-11-12) — A free credit is a deadline; the writers' news source is a service we own, and an edition with no timed headlines says so
+
+**What happened:** the four scheduled writers took their time-stamped headlines from the Bigdata.com connector (adopted 2026-10-07 because the scheduled sandbox cannot open most news sites and search snippets carry no time). Its free credit ran out at 11:57 ET on 2026-11-12, six hours before the Market Close run; Joe will not pay. Nothing had recorded that the source was on a metered free allowance, and the playbook had no instruction for an edition with no timed news.
+
+**Rule:** (1) The writers read `news-wire`, a free service on our own database host that merges the publishers' public feeds and returns each headline with the publisher's own publication time. An item with no stated time is dropped by the service; nothing is ever stamped with the time it was fetched. (2) Fallback, written into `scripts/brief_agent_playbook.md`: one retry, then the edition publishes from the data feeds and states in its own text that no time-stamped headlines were available — no level, event or time is taken from an untimed story. (3) A source on a free credit or trial is entered in `data_vendors.md` with the allowance and the day it is expected to run out, on the day it is adopted. (4) Bigdata.com is on the retired list: never called, never re-attached.
+
+**Applies to:** Data Steward (ledger, retired list), Lead Developer (the service, the task prompts), Senior Quant (the accuracy contract) — Morning Brief, Midday Update, Market Close, Trade Idea + X Chart.
+
+### 4.52 (2026-11-12) — Two graders that name calendars differently flip a row all day; a quiet stretch is one email, and "ran, published nothing" is a stored state
+
+**What happened:** the Trade Idea notes row was stored red from 2026-11-07 while every page said "All feeds current", and Joe was emailed "nothing published 7 / 8 / 9 times running" on Nov 9, 10 and 12. Three causes. (a) The six-hourly reconciler read the row's calendar name ("none") as business days; the 30-minute checker and the site read it as every day. On the reconciler's clock the 192-hour budget had not run out, so it wrote the row green; the checker wrote it red again half an hour later, and each of those was a green-to-red alert. (b) The checker called a skip "deliberate" only below seven skips, so from the seventh on every such flip went out under the skip-story subject — a once-only email became a daily one. (c) The stored column had no word for what the site has shown since 2026-10-02: the research ran this morning and published nothing.
+
+**Rule:** (1) One calendar vocabulary: a name a grader does not know counts every day, in every grader (`reconcile_pipeline_health.py` now matches `freshnessClock`). A new grader is diffed against the shared clock on every manifest calendar value before it ships. (2) A producer that recorded a skip inside 1.5x its cadence, with no error, is stored as `skipped` by both writers — never red, never green; its dates are untouched and it reds on its own when the skip stamp ages out, which alerts as a healthy-to-red transition. (3) An email meant to be sent once is keyed on the event (`skips == 7`), and no other branch may borrow its subject line. (4) When the site and the stored row disagree about a feed, that disagreement is itself the bug to fix — do not chase the producer.
+
+**Applies to:** Lead Developer, Data Steward — every writer of `pipeline_health.status` and every email keyed on it.
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.

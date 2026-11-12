@@ -14,9 +14,12 @@ gate fires. The product spec is the "MacroTilt Brief Editions — Spec" doc.
 the banned constructions, "every claim carries its time", WHERE THINGS LIVE,
 the hard accuracy contract, the 20-word sentence cap, the data-line headline,
 "never restate a row of the table", no outside research shop named, the
-timestamped-news rule (Bigdata.com, last 12 hours for the morning; for these
-editions the window is **since the last edition was written**). Read that file
-first. This file only says what is different.
+timestamped-news rule (MacroTilt's own free headline service, `news-wire`, last
+12 hours for the morning; for these editions the window is **since the last
+edition was written** — pass that edition's `written_at` as `since=`), and its
+honest fallback: with no timed headlines the edition says so and quotes no
+outside news. Bigdata.com is retired (free credit ran out 2026-11-12; never
+call it). Read that file first. This file only says what is different.
 
 **No email.** Neither edition sends or triggers an email (Joe, 2026-11-03:
 no new emails until the editions are stable). The site is the only output.
@@ -61,7 +64,8 @@ Exit 0 = FIRED. Continue.
 **2. Fetch:** `https://macrotilt.com/daily_brief.json` (this morning's brief —
 its `written_at` is the start of your news window), `brief-latest` (prior
 closes), the gate log you just wrote (its values are your sourced intraday
-levels, with times), and Bigdata.com news since the morning's `written_at`.
+levels, with times), and time-stamped headlines since the morning's `written_at`
+(`curl -s -m 40 'https://yqaqqzseepebrocgibcw.supabase.co/functions/v1/news-wire?since=<written_at>'`).
 
 **3. Compose ONE JSON object** and write it to `/tmp/midday.json`:
 ```
@@ -126,9 +130,12 @@ prepare step exits 2 — stop with one line.
 `midday_update.json` (what was said — the scorecard grades them);
 `brief-latest` only after it has rolled to today's close (its `as_of` dates
 are today's) — if it still shows the prior session, take the closes from the
-Yahoo chart endpoint the gate script uses, labelled "at the close"; Bigdata.com
-news since the midday (or morning) `written_at`, including post-market
-earnings with their after-hours moves and times.
+Yahoo chart endpoint the gate script uses, labelled "at the close"; time-stamped
+headlines from `news-wire` since the midday (or morning) `written_at`
+(`?since=<written_at>`; add `&q=earnings,results,revenue,guidance` for the
+post-market reports), including post-market earnings with their after-hours
+moves and times. An after-hours move is quoted only when a timed headline or
+the Yahoo chart endpoint (with its own time) carries it.
 
 **3. Compose ONE JSON object** → `/tmp/close.json`:
 ```
