@@ -97,7 +97,7 @@ as $function$
   from cur c left join iss_pick i on i.symbol = c.symbol;
 $function$;
 
--- Re-measure the current month's factor read-out with the repaired figure, then
--- the Watchlist facts. The paper book's own holdings and weights are not touched.
-select public.qt_factor_exposure_build('2026-11-02');
-select public.stock_facts_build();
+-- The factor read-out (qt_factor_exposure_build) and the Watchlist facts
+-- (stock_facts_build) are rebuilt separately: run together inside this one
+-- migration they outlasted the Management API's request window and rolled back
+-- (2026-11-12 17:05Z). The next monthly rebalance uses the repaired figure.
