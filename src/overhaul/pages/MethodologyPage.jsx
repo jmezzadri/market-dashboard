@@ -909,8 +909,11 @@ export default function MethodologyPage() {
               figures.
             </p>
             <p className="me-body-p">
-              <b>Company.</b> <b>Market cap</b> and <b>Industry</b> come from the listing reference record and
-              are blank for funds and for companies that record does not cover.
+              <b>Company.</b> <b>Market cap</b> is the share count in the listing reference record priced at
+              the last close shown in the row, so it moves with the price beside it. <b>Industry</b> comes from
+              the same record. Both are blank for funds and for companies that record does not cover. For a
+              stock listed less than a year ago, <b>52-wk high</b>, <b>low</b> and the distance from them are
+              measured since its listing day, which is the whole of its trading year.
             </p>
             <p className="me-body-p">
               <b>Earnings.</b> <b>Next earnings</b> is the earliest date in the next three months on which

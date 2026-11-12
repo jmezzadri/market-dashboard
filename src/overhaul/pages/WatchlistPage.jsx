@@ -154,7 +154,7 @@ function buildColumns({ onRemove, onUpdate, paperDate, factorDate }) {
       cellClass: (r) => { const d = daysUntil(r.f?.next_earnings); return d != null && d <= 7 ? 'warn' : ''; },
       render: (r) => { const d = daysUntil(r.f?.next_earnings); return d == null ? DASH : d === 0 ? 'Today' : String(d); } },
 
-    num('market_cap', 'Market cap', 'Company', 'The total market value of the company’s shares, from the listing reference record. Blank for funds and for companies the record does not cover.', (v) => big(v), { width: 96 }),
+    num('market_cap', 'Market cap', 'Company', 'The total market value of the company’s shares: the share count in the listing reference record times the last close shown in this row. Blank for funds and for companies the record does not cover.', (v) => big(v), { width: 96 }),
     { key: 'industry', label: 'Industry', group: 'Company', tip: 'The industry the company reports under in its regulatory filings.', align: 'l', width: 170, hidden: true,
       sortValue: (r) => r.industry || null, render: (r) => r.industry || DASH },
 

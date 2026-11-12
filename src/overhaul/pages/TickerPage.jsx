@@ -365,7 +365,15 @@ export default function TickerPage() {
   /* Market cap waterfall (2026-07-20): the retiring UW snapshot only covers
      its own ≥$1B flickering universe, which left names like PBF blank.
      ticker_reference (daily Massive cron, ~13K tickers) now backstops it. */
-  const marketcap = deep?.ref?.market_cap ?? null;
+  /* The reference record's market cap is shares x the vendor's close on the
+     day the record was fetched, and records refresh on a slow rotation (13.7K
+     of 14.1K were over a week old on 2026-11-12: NVDA read $5.20T at $173.73,
+     i.e. at its Oct 28 price). Re-price the same share count at the close this
+     page shows, so the cap moves with the price beside it. */
+  const refShares = Number(deep?.ref?.weighted_shares_outstanding);
+  const marketcap = (refShares > 0 && price > 0)
+    ? refShares * price
+    : (deep?.ref?.market_cap ?? null);
   
 
   /* Live price — LSE 1-minute bars (display only; ~10 s behind the tape,
