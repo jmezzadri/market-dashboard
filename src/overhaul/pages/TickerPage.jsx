@@ -377,7 +377,7 @@ export default function TickerPage() {
      shared server cache). Uncovered names (LSE carries ~4,000 US stocks +
      major ETFs) render an em-dash — never a substituted number
      (Joe 2026-07-27; LESSONS 4.4). */
-  const lseLive = useLseLive([sym], { enabled: !!sym });
+  const lseLive = useLseLive(sym && sym !== 'SPY' ? [sym, 'SPY'] : [sym], { enabled: !!sym });
   const liveQ = lseLive.bySymbol?.[sym] || null;
   const livePrice = liveQ && liveQ.covered && liveQ.price != null ? liveQ.price : null;
   /* Move vs the last COMPLETED close. Preference order matters:
@@ -415,6 +415,20 @@ export default function TickerPage() {
      toggled by the buttons under the chart. */
   const tfMap = { '1M': 21, '3M': 63, '6M': 126, '1Y': 252, '5Y': 1260, Max: 100000 };
   const hist = histAll.rows || [];
+  /* During the session, the live price is today's point for the 52-week
+     range and the performance table too, and the S&P column is measured to
+     SPY's live price over the same days (2026-11-12). */
+  const histLive = useMemo(
+    () => (liveSession ? [...hist, { date: todayEt, close: livePrice, high: livePrice, low: livePrice, live: true }] : hist),
+    [hist, liveSession, todayEt, livePrice],
+  );
+  const spyLiveQ = lseLive.bySymbol?.SPY;
+  const spyRowsLive = useMemo(() => {
+    const rows = spyHist.rows || [];
+    const lp = spyLiveQ && spyLiveQ.covered ? spyLiveQ.price : null;
+    if (!liveSession || !(lp > 0) || !rows.length || rows[rows.length - 1].date >= todayEt) return rows;
+    return [...rows, { date: todayEt, close: lp }];
+  }, [spyHist.rows, spyLiveQ, liveSession, todayEt]);
 
   /* Key stats — sourced from data that actually exists for the scanner's
      discovery names. universe_snapshots only covers the large-cap universe, so
@@ -422,8 +436,8 @@ export default function TickerPage() {
      stat blanked out. The real values are in prices_eod (the latest daily bar)
      and the scan row (52-week range, market cap, IV). */
   const lastBar = hist.length ? hist[hist.length - 1] : null;
-  const hi52 =     (hist.length ? Math.max(...hist.slice(-252).map((r) => (r.high ?? r.close))) : null);
-  const lo52 =     (hist.length ? Math.min(...hist.slice(-252).map((r) => (r.low ?? r.close))) : null);
+  const hi52 =     (histLive.length ? Math.max(...histLive.slice(-252).map((r) => (r.high ?? r.close))) : null);
+  const lo52 =     (histLive.length ? Math.min(...histLive.slice(-252).map((r) => (r.low ?? r.close))) : null);
   const avgVol =
     (hist.length ? hist.slice(-30).reduce((s, r) => s + (r.volume || 0), 0) / Math.min(30, hist.length) : null);
   /* Beta + dividend yield are computed from data we already store — a year of
@@ -490,7 +504,7 @@ export default function TickerPage() {
 
 
   /* ---- Performance / risk, all from the stored daily history ---- */
-  const perf = useMemo(() => perfTable(hist, spyHist.rows || []), [hist, spyHist.rows]);
+  const perf = useMemo(() => perfTable(histLive, spyRowsLive), [histLive, spyRowsLive]);
   const risk = useMemo(() => riskStats(hist), [hist]);
 
   const newsEvents = useMemo(
