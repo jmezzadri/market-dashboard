@@ -1373,6 +1373,16 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer, the weekday health sweep — every SMTP sender (brief, self-heal, thesis review, thesis alert).
 
+### 4.49 (2026-11-12, health sweep) — A stored figure that is a product of price is stale the moment the price moves; and a status test must match the words the writer actually writes
+
+**What happened:** (1) The Watchlist and the stock page showed NVDA's market cap as $5.20T beside a $173.73 close. The listing reference record's market cap is the share count times the vendor's close on the day the record was fetched (400 of 400 sampled rows match exactly), and the records refresh on a slow rotation — 13,762 of 14,123 were over a week old — so NVDA's cap was priced at its Oct 28 close, 23% higher. Sorting the Watchlist by market cap put NVDA above Apple. (2) The homepage Trade Idea card and the note's header still read "planned close Nov 11" the morning after the SPY put closed, while the Macro Scorecard listed it closed at +14.7%. `tradeSchedule()` tested `status === 'closed'`; the scorer has only ever written `closed_horizon`, `closed_thesis` and `closed_invalidated`, so no call ever showed as closed outside the Scorecard. (3) SPCX (listed Jun 12) showed "—" for 52-week high and the distance from it: the rule demanded 200 sessions, but a stock listed inside the window has its whole trading year on file.
+
+**Fix:** `stock_facts_build()` prices market cap as `weighted_shares_outstanding × the row's close` (stored figure as fallback) and accepts a listing date inside the 52-week window for the high/low (migration 20261112, applied by APPLY-MIGRATION on merge); the stock page re-prices the same share count at the close it shows; `tradeSchedule()` treats any `closed*` status as closed. Copy on the Watchlist tooltip and Methodology updated.
+
+**Rule:** (1) Any stored figure that is derived from a price (market cap, yield, weight, P/E) is recomputed from the price the page shows, never displayed as stored — or it is labelled with the date it was struck. The sweep's cross-check includes cap ÷ shares = the close beside it. (2) A status test on a page is written against the writer's actual enumerated values (read them off the JSON), never the word you expect; a prefix test where the writer has sub-kinds. (3) "Needs N sessions" is right for a stock with gaps and wrong for a stock that did not exist: test the listing date first. Known and left: the search dropdown still shows the reference record's cap (ordering only).
+
+**Applies to:** Lead Developer, UX Designer — every page that renders a price-derived figure or a call's status.
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.
