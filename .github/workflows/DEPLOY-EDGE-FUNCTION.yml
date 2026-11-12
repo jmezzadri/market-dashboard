@@ -39,5 +39,5 @@ jobs:
             FLAGS="--no-verify-jwt"
             echo "Deploying with --no-verify-jwt (internal cron-invoked function)."
           fi
-          supabase functions deploy "${{ github.event.inputs.function_name }}" \
+          supabase functions deploy --yes "${{ github.event.inputs.function_name }}" \
             --project-ref yqaqqzseepebrocgibcw $FLAGS
