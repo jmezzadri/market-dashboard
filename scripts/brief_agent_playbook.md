@@ -93,6 +93,23 @@ The sentence that triggered it:
 **Never coin a phrase.** If you have not heard a trader, a wire or a central
 bank say it, do not write it. Use the plain words the market already uses.
 
+**Plain English, every line (Joe, 2026-11-12).** He was sent: *"Nvidia's board
+is weighing Huang's removal, and Nasdaq futures carry it."* His answer: *"the
+Nasdaq futures carry it?! What does that even mean! PLAIN ENGLISH."* The same
+brief also said "the 30y auction at 1:00 is the rate test" and "chip leadership
+risk now stacks on a Fed pricing hikes". Every one of those is a metaphor
+standing where a fact should be.
+
+> **WRONG:** Nvidia's board is weighing Huang's removal, and Nasdaq futures carry it.
+> **RIGHT:** Nvidia -6% pre-market on reports its board may replace Jensen Huang. Nasdaq 100 futures -0.9%.
+
+The test for every line, including the headline and stance: **could Joe read
+it aloud to a client without being asked "meaning what?"** If a word is doing
+a job a number could do, put the number there. Markets never carry, stack,
+absorb, digest, shrug off or test anything; they go up or down by an amount.
+The prepare step rejects the known offenders, but the list is a backstop, not
+the rule.
+
 
 ### Every claim carries its time
 
