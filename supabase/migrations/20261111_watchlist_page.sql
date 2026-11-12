@@ -248,7 +248,13 @@ declare
 begin
   -- The session calendar is the S&P 500 fund's own trading days. Row 1 is the
   -- latest close; a window of N sessions back is row N+1.
-  select max(trade_date) into d0 from prices_eod where ticker = 'SPY';
+  -- The newest date that at least 5,000 tickers have a price for. Not simply
+  -- the S&P 500 fund's newest date: on the evening of a trading day a few
+  -- hundred same-day tickers carry that date before the full close file loads,
+  -- and anchoring on it kept only those (505 rows on 2026-11-11; LESSONS 4.50).
+  select max(trade_date) into d0
+    from (select trade_date from prices_eod where trade_date > current_date - 15
+          group by trade_date having count(*) >= 5000) full_days;
   select max(trade_date) filter (where rn = 2),   max(trade_date) filter (where rn = 6),
          max(trade_date) filter (where rn = 22),  max(trade_date) filter (where rn = 50),
          max(trade_date) filter (where rn = 63),  max(trade_date) filter (where rn = 64),
@@ -256,7 +262,7 @@ begin
          max(trade_date) filter (where rn = 253)
     into d1, d5, d21, d50, d63, d64, d200, d252, dprev
   from (select trade_date, row_number() over (order by trade_date desc) rn
-        from prices_eod where ticker = 'SPY' and trade_date > d0 - 420) t;
+        from prices_eod where ticker = 'SPY' and trade_date > d0 - 420 and trade_date <= d0) t;
   select max(trade_date) into dy from prices_eod
    where ticker = 'SPY' and trade_date < date_trunc('year', d0)::date and trade_date > d0 - 420;
   if d0 is null or dprev is null then
