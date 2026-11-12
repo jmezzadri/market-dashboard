@@ -30,6 +30,7 @@ import { supabase } from '../../lib/supabase';
 import DataTable from '../components/DataTable';
 import FreshnessChip from '../components/FreshnessChip';
 import useWatchlists, { useStockFacts, parseTickers, MAX_PER_LIST } from '../lib/useWatchlists';
+import useLseLive from '../../hooks/useLseLive';
 import { primaryFactor } from '../../v2/lib/paperRisk';
 import { PAGE_NAME } from '../chrome/siteNav';
 import '../styles/watchlist.css';
@@ -128,8 +129,8 @@ function buildColumns({ onRemove, onUpdate, paperDate, factorDate }) {
           <span>{r.f?.name || (r.f ? '' : 'no price on file for the latest close')}</span>
         </Link>
       ) },
-    num('close', 'Last close', 'Price and returns', 'The closing price on the most recent trading day on file. Not a live price.', (v) => usd(v), { width: 88 }),
-    signed('chg_1d', 'Day', 'Price and returns', 'How much the stock moved on the most recent trading day, close to close.', { width: 70 }),
+    num('close', 'Price', 'Price and returns', 'While the US market is open: the live price, about a minute behind (a name without a live quote shows its last close, marked "close"). Otherwise the last close.', (v, r) => <>{usd(v)}{r.f?.live === false ? <span className="wl-mut"> close</span> : null}</>, { width: 96 }),
+    signed('chg_1d', 'Day', 'Price and returns', 'While the market is open: today’s move from yesterday’s close. Otherwise the last trading day’s move, close to close.', { width: 80 }),
     signed('ret_1w', '1 week', 'Price and returns', 'Price change over the last 5 trading days.', { width: 74, hidden: true }),
     signed('ret_1m', '1 month', 'Price and returns', 'Price change over the last 21 trading days.', { width: 78 }),
     signed('ret_3m', '3 months', 'Price and returns', 'Price change over the last 63 trading days.', { width: 84, hidden: true }),
@@ -154,7 +155,7 @@ function buildColumns({ onRemove, onUpdate, paperDate, factorDate }) {
       cellClass: (r) => { const d = daysUntil(r.f?.next_earnings); return d != null && d <= 7 ? 'warn' : ''; },
       render: (r) => { const d = daysUntil(r.f?.next_earnings); return d == null ? DASH : d === 0 ? 'Today' : String(d); } },
 
-    num('market_cap', 'Market cap', 'Company', 'The total market value of the company’s shares, from the listing reference record. Blank for funds and for companies the record does not cover.', (v) => big(v), { width: 96 }),
+    num('market_cap', 'Market cap', 'Company', 'The total market value of the company’s shares: the share count in the listing reference record times the last close shown in this row. Blank for funds and for companies the record does not cover.', (v) => big(v), { width: 96 }),
     { key: 'industry', label: 'Industry', group: 'Company', tip: 'The industry the company reports under in its regulatory filings.', align: 'l', width: 170, hidden: true,
       sortValue: (r) => r.industry || null, render: (r) => r.industry || DASH },
 
@@ -174,11 +175,15 @@ function buildColumns({ onRemove, onUpdate, paperDate, factorDate }) {
       sortValue: (r) => r.style?.label ?? null, render: (r) => (r.style ? <span className={r.style.key ? '' : 'wl-mut'}>{r.style.label}</span> : DASH) },
     num('trend_1y', '1-yr trend', PAGE_NAME.paper, `How much the stock rose over the past 12 months, skipping the most recent month.${factorAsOf}`, (v) => (n(v) == null ? DASH : `${n(v) > 0 ? '+' : ''}${Math.round(n(v) * 100)}%`), { width: 88, hidden: true }),
     num('profitability', 'Profitability', PAGE_NAME.paper, 'Gross profit divided by total assets, from the company’s latest annual filing — how much profit the business earns on everything it owns.', (v) => (n(v) == null ? DASH : n(v).toFixed(2)), { width: 100, hidden: true }),
-    num('buybacks', 'Buybacks', PAGE_NAME.paper, 'How much the share count shrank over the past year. Positive means the company bought back its own stock; negative means it issued more.', (v) => pct(v), { width: 88, hidden: true, cellClass: (r) => (n(r.f?.buybacks) < 0 ? 'dn' : '') }),
+    // Shown as the change in the share count, the way a reader thinks about it:
+    // "+284%" means the company nearly quadrupled its shares, not "-284% buybacks"
+    // (Joe, 2026-11-12, on ONDS). The stored factor is the buyback yield, the
+    // negative of this; sorting still runs on it.
+    num('buybacks', 'Share count, 1 yr', PAGE_NAME.paper, `How much the number of shares changed over the past year, from the company’s filings, adjusted for splits. Up means the company issued stock (dilution); down means it bought stock back.${factorAsOf}`, (v) => (n(v) == null ? DASH : pct(-n(v))), { width: 120, hidden: true, cellClass: (r) => (n(r.f?.buybacks) < 0 ? 'dn' : n(r.f?.buybacks) > 0 ? 'up' : '') }),
 
-    { key: 'added_price', label: 'Price when added', group: 'Your list', tip: 'The closing price on file on the day you added this stock to the list.', align: 'r', width: 124, hidden: true,
+    { key: 'added_price', label: 'Price when added', group: 'Your list', tip: 'The price the stock was added at: the live price if added while the market was open, else that day’s close.', align: 'r', width: 124, hidden: true,
       sortValue: (r) => n(r.item.added_price), render: (r) => usd(r.item.added_price) },
-    { key: 'since_added', label: 'Since added', group: 'Your list', tip: 'How much the stock has moved from the close on the day you added it to the last close.', align: 'r', width: 98,
+    { key: 'since_added', label: 'Since added', group: 'Your list', tip: 'How much the stock has moved from the price it was added at (the live price if added while the market was open, else that day’s close) to the price shown now.', align: 'r', width: 98,
       sortValue: (r) => r.since, cellClass: (r) => sign(r.since), render: (r) => pct(r.since) },
     { key: 'added_at', label: 'Date added', group: 'Your list', tip: 'The day you added this stock to the list.', align: 'r', width: 96, hidden: true,
       sortValue: (r) => Date.parse(r.item.added_at), render: (r) => day(r.item.added_at, true) },
@@ -330,9 +335,39 @@ export default function WatchlistPage() {
   const mine = useMemo(() => wl.items.filter((i) => i.watchlist_id === activeId), [wl.items, activeId]);
   const tickers = useMemo(() => mine.map((i) => i.ticker), [mine]);
   const { facts, paper, priceDate, paperDate, loading: factsLoading, error: factsError } = useStockFacts(tickers);
+  /* Live prices while the market is open (Joe, 2026-11-12: "The watchlist has
+     close prices?!"). The stored facts end at the last close; a covered name's
+     price, day move, every return, the distance from its high/low and moving
+     averages and its market cap are re-priced at the live quote. Each stored
+     return is close/base - 1, so at the live price it is (1+r)*live/close - 1. */
+  const lseLive = useLseLive(tickers, { enabled: tickers.length > 0 });
+  const liveOn = lseLive.marketOpen === true;
+  const liveFacts = useMemo(() => {
+    if (!liveOn) return facts;
+    const out = { ...facts };
+    for (const t of Object.keys(facts)) {
+      const f = facts[t]; const q = lseLive.bySymbol?.[t];
+      const c0 = n(f?.close); const lp = q && q.covered ? n(q.price) : null;
+      if (!f || !(c0 > 0) || !(lp > 0)) { if (f) out[t] = { ...f, live: false }; continue; }
+      const k = lp / c0;
+      const re = (v) => (n(v) == null ? null : (1 + n(v)) * k - 1);
+      const base = n(q.prevClose) > 0 ? n(q.prevClose) : c0;
+      out[t] = {
+        ...f, live: true, close: lp, chg_1d: lp / base - 1,
+        ret_1w: re(f.ret_1w), ret_1m: re(f.ret_1m), ret_3m: re(f.ret_3m), ret_ytd: re(f.ret_ytd), ret_1y: re(f.ret_1y),
+        pct_from_high: f.pct_from_high == null ? null : Math.min(0, re(f.pct_from_high)),
+        pct_from_low: f.pct_from_low == null ? null : Math.max(0, re(f.pct_from_low)),
+        pct_vs_ma50: re(f.pct_vs_ma50), pct_vs_ma200: re(f.pct_vs_ma200),
+        market_cap: n(f.market_cap) == null ? null : n(f.market_cap) * k,
+        div_yield: n(f.div_yield) == null ? null : n(f.div_yield) / k,
+      };
+    }
+    return out;
+  }, [facts, liveOn, lseLive.bySymbol]);
+  const liveCount = useMemo(() => Object.values(liveFacts).filter((f) => f?.live).length, [liveFacts]);
 
   const rows = useMemo(() => mine.map((item) => {
-    const f = facts[item.ticker] || null;
+    const f = liveFacts[item.ticker] || null;
     const z = f ? { momentum: f.z_momentum, quality: f.z_quality, buybacks: f.z_buybacks, size: f.z_size, value: f.z_value } : null;
     const hasZ = z && Object.values(z).some((v) => v != null);
     const since = f && n(item.added_price) > 0 && n(f.close) != null ? n(f.close) / n(item.added_price) - 1 : null;
@@ -343,7 +378,7 @@ export default function WatchlistPage() {
       style: hasZ ? primaryFactor(z) : null,
       since,
     };
-  }), [mine, facts, paper]);
+  }), [mine, liveFacts, paper]);
 
   const factorDate = useMemo(() => Object.values(facts).map((f) => f.factor_date).filter(Boolean).sort().pop() || null, [facts]);
 
@@ -417,7 +452,9 @@ export default function WatchlistPage() {
           <span className="tm-code">WL</span>
           <span className="tm-ptitle">{PAGE_NAME.watchlist}</span>
           <span className="wl-asof">
-            {priceDate ? `Prices are the ${weekday(priceDate)} close` : 'Prices are the last close on file'}
+            {liveOn && liveCount > 0
+              ? `Live prices · day move from the ${priceDate ? weekday(priceDate) : 'last'} close${liveCount < rows.length ? ` · ${rows.length - liveCount} without a live quote show the close` : ''}`
+              : (priceDate ? `Prices are the ${weekday(priceDate)} close` : 'Prices are the last close on file')}
             <FreshnessChip elementId={FACTS_ELEMENT} variant="dot" />
           </span>
         </div>

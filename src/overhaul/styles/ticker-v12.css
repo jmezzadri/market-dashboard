@@ -206,7 +206,16 @@
 .home-v12.ticker-v12 .tk-kvrow dd { margin: 0; display: flex; align-items: baseline; gap: var(--sp-8); min-width: 0; }
 .home-v12.ticker-v12 .tk-kvrow b { font-size: var(--v13-t3); font-weight: var(--fw-600); color: var(--ink); white-space: nowrap; }
 .home-v12.ticker-v12 .tk-kvnote { font-size: var(--v13-t1); color: var(--mut); white-space: nowrap; }
-.home-v12.ticker-v12 .tk-kv--2col { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--sp-24); }
+.home-v12.ticker-v12 .tk-kv--2col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--sp-24); }
+/* 2026-11-11 (Joe, /ticker/LUNR): a long Industry line ("SEARCH, DETECTION,
+   NAVIGATION, GUIDANCE, AERONAUTICAL SYS") could not wrap, so its column grew
+   past half the card and pushed HQ / Listed / Website out through the card's
+   right edge. A `1fr` track will not shrink below its content: both tracks are
+   minmax(0, 1fr), the rows may shrink, and a value wraps inside its own half,
+   right-aligned under its label row. The label never shrinks. */
+.home-v12.ticker-v12 .tk-kv--2col .tk-kvrow { min-width: 0; }
+.home-v12.ticker-v12 .tk-kv--2col .tk-kvrow dt { flex: 0 0 auto; }
+.home-v12.ticker-v12 .tk-kv--2col .tk-kvrow b { white-space: normal; overflow-wrap: anywhere; text-align: right; }
 .home-v12.ticker-v12 .tk-kv--2col .tk-kvrow:nth-child(2) { border-top: 0; }
 
 /* ── second row: news · company ── */
@@ -244,7 +253,7 @@
   .home-v12.ticker-v12 .tk-tape-ref { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .home-v12.ticker-v12 .tk-side { grid-template-columns: 1fr; }
   .home-v12.ticker-v12 .tk-secondrow { grid-template-columns: 1fr; }
-  .home-v12.ticker-v12 .tk-kv--2col { grid-template-columns: 1fr; }
+  .home-v12.ticker-v12 .tk-kv--2col { grid-template-columns: minmax(0, 1fr); }
   .home-v12.ticker-v12 .tk-kv--2col .tk-kvrow:nth-child(2) { border-top: 1px solid var(--hair); }
   .home-v12.ticker-v12 .tk-corp { grid-template-columns: 1fr; }
 }

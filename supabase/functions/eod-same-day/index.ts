@@ -54,17 +54,35 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-// Pull today's bar (and yesterday's as a defensive backstop) for a single
-// ticker from Yahoo's free public chart endpoint. Returns the bar matching
-// the most recent NYSE trading session — that is the row we want to write.
-async function fetchYahooLatest(ticker: string): Promise<{
+type Bar = {
   trade_date: string;
   open: number | null;
   high: number | null;
   low: number | null;
   close: number;
   volume: number | null;
-} | null> {
+};
+
+const ET_DATE = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" });
+const etDateOf = (epochSec: number) => ET_DATE.format(new Date(epochSec * 1000));
+
+// Pull the latest sessions for a single ticker from Yahoo's free public
+// chart endpoint. Returns up to two candidate bars, newest first:
+//
+//   1. `settled` — today's finished session rebuilt from the quote block
+//      when Yahoo serves today's bar with a NULL close. Observed
+//      2026-11-11 from ~19:00 ET onward: the day's bar keeps its open /
+//      high / low / volume but the close is null, while the official 16:00
+//      close sits in meta.regularMarketPrice (stamped by
+//      meta.regularMarketTime). Skipping to "the last bar with a close"
+//      then returned YESTERDAY's bar, so the ticker page showed the prior
+//      day's close all evening. Same vendor shape LESSONS records for the
+//      index tiles (2026-10-21).
+//   2. `last` — the last bar that carries a close of its own.
+//
+// The caller writes the newest candidate that passes the
+// completed-session guard.
+async function fetchYahooLatest(ticker: string): Promise<Bar[] | null> {
   // Pull a 5-day window so we always have at least 2 trading sessions
   // even after a weekend or holiday.
   const now = Math.floor(Date.now() / 1000);
@@ -83,29 +101,52 @@ async function fetchYahooLatest(ticker: string): Promise<{
 
   const ts: number[] = result.timestamp || [];
   const q = result.indicators?.quote?.[0] || {};
+  const meta = result.meta || {};
   if (ts.length === 0 || !q.close) return null;
 
-  // Pick the last bar with a non-null close — that's the most recent
-  // session Yahoo has published.
-  let idx = ts.length - 1;
+  const out: Bar[] = [];
+
+  // Candidate 1 — the newest bar has no close of its own, and the vendor's
+  // last regular-session trade belongs to that same New York session.
+  const tail = ts.length - 1;
+  const rmp = Number(meta.regularMarketPrice);
+  const rmt = Number(meta.regularMarketTime);
+  if (
+    q.close[tail] == null &&
+    Number.isFinite(rmp) && rmp > 0 &&
+    Number.isFinite(rmt) && etDateOf(rmt) === etDateOf(ts[tail])
+  ) {
+    out.push({
+      trade_date: etDateOf(ts[tail]),
+      open:   q.open?.[tail]   ?? null,
+      high:   q.high?.[tail]   ?? meta.regularMarketDayHigh ?? null,
+      low:    q.low?.[tail]    ?? meta.regularMarketDayLow  ?? null,
+      close:  rmp,
+      volume: q.volume?.[tail] ?? meta.regularMarketVolume ?? null,
+    });
+  }
+
+  // Candidate 2 — the last bar with a non-null close.
+  let idx = tail;
   while (idx >= 0 && (q.close[idx] == null)) idx -= 1;
-  if (idx < 0) return null;
+  if (idx >= 0) {
+    // Convert Yahoo's bar timestamp to its UTC calendar date — that maps
+    // 1:1 to the trading session date on US listings.
+    const dt = new Date(ts[idx] * 1000);
+    const y  = dt.getUTCFullYear();
+    const m  = String(dt.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(dt.getUTCDate()).padStart(2, "0");
+    out.push({
+      trade_date: `${y}-${m}-${dd}`,
+      open:   q.open?.[idx]   ?? null,
+      high:   q.high?.[idx]   ?? null,
+      low:    q.low?.[idx]    ?? null,
+      close:  Number(q.close[idx]),
+      volume: q.volume?.[idx] ?? null,
+    });
+  }
 
-  // Convert Yahoo's bar timestamp to its UTC calendar date — that maps
-  // 1:1 to the trading session date on US listings.
-  const dt = new Date(ts[idx] * 1000);
-  const y  = dt.getUTCFullYear();
-  const m  = String(dt.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(dt.getUTCDate()).padStart(2, "0");
-
-  return {
-    trade_date: `${y}-${m}-${dd}`,
-    open:   q.open?.[idx]   ?? null,
-    high:   q.high?.[idx]   ?? null,
-    low:    q.low?.[idx]    ?? null,
-    close:  Number(q.close[idx]),
-    volume: q.volume?.[idx] ?? null,
-  };
+  return out.length > 0 ? out : null;
 }
 
 // Run async tasks with a fixed concurrency cap to stay gentle on Yahoo.
@@ -149,9 +190,9 @@ serve(async (req) => {
   // Fetch from Yahoo with concurrency = 6.
   const results = await runConcurrent(tickers, 6, async (t) => {
     try {
-      const bar = await fetchYahooLatest(t);
-      if (!bar) return { ticker: t, ok: false, error: "no bar from Yahoo" };
-      return { ticker: t, ok: true, bar };
+      const bars = await fetchYahooLatest(t);
+      if (!bars) return { ticker: t, ok: false, error: "no bar from Yahoo" };
+      return { ticker: t, ok: true, bars };
     } catch (e) {
       return { ticker: t, ok: false, error: String((e as Error)?.message || e) };
     }
@@ -165,9 +206,12 @@ serve(async (req) => {
   const etToday = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
   const sessionClosed = etNow.getHours() > 16 || (etNow.getHours() === 16 && etNow.getMinutes() >= 5);
   const maxTradeDate = sessionClosed ? etToday : "0000-00-00"; // pre-close: only past dates
+  const settled = (b: Bar) => sessionClosed ? b.trade_date <= maxTradeDate : b.trade_date < etToday;
   const rows = results
-    .filter((r) => r.ok && r.bar)
-    .filter((r) => sessionClosed ? r.bar!.trade_date <= maxTradeDate : r.bar!.trade_date < etToday)
+    .filter((r) => r.ok && r.bars)
+    // Newest candidate whose session has finished in New York.
+    .map((r) => ({ ticker: r.ticker, bar: r.bars!.find(settled) }))
+    .filter((r) => r.bar)
     .map((r) => ({
       ticker:     r.ticker,
       trade_date: r.bar!.trade_date,

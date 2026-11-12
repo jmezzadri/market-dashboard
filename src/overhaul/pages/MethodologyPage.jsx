@@ -841,8 +841,8 @@ export default function MethodologyPage() {
             <p className="me-body-p">
               The {PAGE_NAME.watchlist} page keeps lists of stocks against your sign-in, so the same lists,
               notes, tags, column layout and saved views appear on any device you sign in from. Nobody else
-              can read them. A list holds up to 200 stocks. Each stock is saved with the closing price on
-              file on the day you add it, which is what <b>Price when added</b> and <b>Since added</b> are
+              can read them. A list holds up to 200 stocks. Each stock is saved with its newest closing
+              price at the moment you add it, the same close the page shows, which is what <b>Price when added</b> and <b>Since added</b> are
               measured from.
             </p>
             <p className="me-body-p">
@@ -850,6 +850,17 @@ export default function MethodologyPage() {
               from one stored record per stock that is rebuilt after each close, once the day&rsquo;s prices
               have loaded, and again the next morning. The page names the close its prices are from. A stock
               with no price on the latest close shows dashes and says so.
+            </p>
+            <p className="me-body-p">
+              <b>The same close as the stock page.</b> The full market&rsquo;s closing prices arrive the
+              morning after a session, so on the evening of a session the stored record is still the prior
+              day&rsquo;s. The page does not wait for it: for each stock on your list it reads that
+              day&rsquo;s own closing price, the same one the stock&rsquo;s own page shows, and carries the
+              stored record forward to it. <b>Last close</b>, <b>Day</b> and volume are that session&rsquo;s
+              own figures. Each return is the stored return compounded with the move since, so until the
+              morning rebuild its window is one session longer than its label. The 52-week high and low
+              widen if the session set one, and the comparison with the 50-day and 200-day averages uses
+              the new close against the stored average.
             </p>
 
             <h3 className="me-h3" id="watchlist-columns" style={{ scrollMarginTop: 120 }}>
@@ -898,8 +909,11 @@ export default function MethodologyPage() {
               figures.
             </p>
             <p className="me-body-p">
-              <b>Company.</b> <b>Market cap</b> and <b>Industry</b> come from the listing reference record and
-              are blank for funds and for companies that record does not cover.
+              <b>Company.</b> <b>Market cap</b> is the share count in the listing reference record priced at
+              the last close shown in the row, so it moves with the price beside it. <b>Industry</b> comes from
+              the same record. Both are blank for funds and for companies that record does not cover. For a
+              stock listed less than a year ago, <b>52-wk high</b>, <b>low</b> and the distance from them are
+              measured since its listing day, which is the whole of its trading year.
             </p>
             <p className="me-body-p">
               <b>Earnings.</b> <b>Next earnings</b> is the earliest date in the next three months on which

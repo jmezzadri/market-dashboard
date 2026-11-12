@@ -1228,6 +1228,16 @@ VOICE_BANNED = [
      r"|a third(?!-)|a quarter(?!-))\b",
                                              'write the number: "66%", not "two-thirds"'),
     (r"\bprinted\b(?![^.]*\d)",              '"printed" with no number — give the print'),
+    # Joe, 2026-11-12, on "Nvidia's board is weighing Huang's removal, and
+    # Nasdaq futures carry it": "what does that even mean!!! PLAIN ENGLISH."
+    # Markets do not carry, stack, absorb or test things. Say the move.
+    (r"\b(?:carry|carries|carried|carrying)\s+(?:it|both|them|that|this|the (?:news|risk|move|weight))\b",
+                                             '"futures carry it" — say what the futures did: "Nasdaq 100 futures -0.9%"'),
+    (r"\bstacks? (?:on|onto|up on)\b",       '"stacks on" — state each fact with its number'),
+    (r"\bis the (?:\w+ )?test\b",            '"X is the test" — write "Watch: <event>, <time>"'),
+    (r"\binto the open\b",                   '"into the open" — give the pre-market level'),
+    (r"\b(?:absorbs?|digests?|shrugs? off|prices? in) (?:it|that|this|the news)\b",
+                                             'markets do not digest or shrug — give the move'),
 ]
 _SENT_MAX_WORDS = 20
 
@@ -1853,8 +1863,27 @@ def prepare_file(path):
           f"{len(brief['news'])} news · {len(brief['movers'])} movers\n"
           f"headline: {brief['headline']}")
 
+def render_email_files(brief_path, out_dir):
+    """Write the brief email exactly as send_email() would build it -- subject,
+    HTML and plain text -- so a Claude session can send it through the Gmail
+    connector (Joe, 2026-11-12: "Use Gmail for this", after Google revoked the
+    SMTP app password). The GitHub SMTP send stays as the fallback; the
+    brief_email_log claim keeps it to one email a day either way."""
+    b = json.load(open(brief_path, encoding="utf-8"))
+    os.makedirs(out_dir, exist_ok=True)
+    today = b.get("date") or datetime.datetime.now(ET).strftime("%Y-%m-%d")
+    with open(os.path.join(out_dir, "subject.txt"), "w", encoding="utf-8") as f:
+        f.write(f"Market Brief — {today}")
+    with open(os.path.join(out_dir, "email.html"), "w", encoding="utf-8") as f:
+        f.write(render_email_html(b))
+    with open(os.path.join(out_dir, "email.txt"), "w", encoding="utf-8") as f:
+        f.write(render_email_text(b))
+    print(f"rendered OK — Market Brief — {today} -> {out_dir}")
+
 if __name__ == "__main__":
     if len(sys.argv) == 3 and sys.argv[1] == "--prepare-file":
         prepare_file(sys.argv[2])
+    elif len(sys.argv) == 4 and sys.argv[1] == "--render-email":
+        render_email_files(sys.argv[2], sys.argv[3])
     else:
         main()

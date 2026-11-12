@@ -8,9 +8,18 @@ no API spend on top of the subscription).
 **Division of labor:** the session composes the brief. Everything after that is
 the existing hardened pipeline: `scripts/build_daily_brief.py --prepare-file`
 validates/normalizes, the `agent-write` edge function commits it to `main`
-(Vercel deploys it), and the DAILY-BRIEF-WRITER GitHub workflow emails the
-committed brief (trading-day + morning-window gated, atomic send-once claim).
-**The session never sends email and never pushes with its own git credentials.**
+(Vercel deploys it), and the session itself then sends the email through the
+Gmail connector (step 5b). The DAILY-BRIEF-WRITER GitHub workflow's SMTP send is
+the fallback; one claim table (`brief_email_log`) keeps it to one email a day.
+**The session sends exactly one email — the brief, in step 5b — and never pushes
+with its own git credentials.**
+
+**EMAIL — read this, not the firing message (Joe, 2026-11-12: "Use Gmail for
+this").** Google revoked the SMTP app password on 2026-11-11 and the brief email
+stopped (bug #1280). Joe's answer is to send it with Gmail from this session. The
+scheduled task's stored prompt still says "never send email yourself"; that line
+predates this decision and could not be edited from a scheduled run. On the email,
+this file wins over the firing message, exactly as it does on the deadline.
 
 **DEADLINE — read this, not the firing message (2026-08-25).** The brief must be
 committed by **09:00 ET on the day you are running**, computed from the clock.
@@ -83,6 +92,23 @@ The sentence that triggered it:
 
 **Never coin a phrase.** If you have not heard a trader, a wire or a central
 bank say it, do not write it. Use the plain words the market already uses.
+
+**Plain English, every line (Joe, 2026-11-12).** He was sent: *"Nvidia's board
+is weighing Huang's removal, and Nasdaq futures carry it."* His answer: *"the
+Nasdaq futures carry it?! What does that even mean! PLAIN ENGLISH."* The same
+brief also said "the 30y auction at 1:00 is the rate test" and "chip leadership
+risk now stacks on a Fed pricing hikes". Every one of those is a metaphor
+standing where a fact should be.
+
+> **WRONG:** Nvidia's board is weighing Huang's removal, and Nasdaq futures carry it.
+> **RIGHT:** Nvidia -6% pre-market on reports its board may replace Jensen Huang. Nasdaq 100 futures -0.9%.
+
+The test for every line, including the headline and stance: **could Joe read
+it aloud to a client without being asked "meaning what?"** If a word is doing
+a job a number could do, put the number there. Markets never carry, stack,
+absorb, digest, shrug off or test anything; they go up or down by an amount.
+The prepare step rejects the known offenders, but the list is a backstop, not
+the rule.
 
 
 ### Every claim carries its time
@@ -336,9 +362,8 @@ calling it a problem, and do not improvise a second submit, a deploy hook or a
 no-op commit to "kick" it — the merge is on `main`, the email workflow reads the
 committed file, and the site catches up on its own. (The `?cb=` query does not
 bust Vercel's edge cache for a static file — watch the `age` header instead;
-it resets to 0 when the new deployment is serving.) The email is sent by the
-GitHub workflow from the committed file on its existing schedule — nothing for
-the session to send.
+it resets to 0 when the new deployment is serving.) The email goes out in step
+5b, from the live file, once this step has confirmed it.
 
 **Asia closes beat Asia wires (2026-11-09).** The snapshot tape carries the
 Nikkei (and later the DAX) as a *Monday close* with its own % change. A wire
@@ -404,6 +429,28 @@ hand-built a shim proxy next to it.)
 If the render genuinely fails after that, say so plainly, state what was
 verified from the JSON instead, and never describe the page as visually
 verified.
+
+**5b. Send the brief email through Gmail** — only after step 5 confirmed today's
+brief is live, never in TEST MODE, and only on a trading day.
+
+1. Claim today's send (Supabase MCP `execute_sql`, project yqaqqzseepebrocgibcw):
+   `insert into brief_email_log (brief_date, sent_by) values ('<today, ET>', 'gmail-morning-session') on conflict do nothing returning brief_date;`
+   No row back = today's email already went out. Stop here; report "already sent".
+2. Render it exactly as the SMTP path would:
+   `curl -s "https://macrotilt.com/daily_brief.json?cb=$RANDOM" -o /tmp/live_brief.json`
+   (its `date` must be today), then
+   `cd /tmp/md/scripts && python3 build_daily_brief.py --render-email /tmp/live_brief.json /tmp/email`
+   and require "rendered OK". It writes `subject.txt`, `email.html`, `email.txt`.
+3. Load the Gmail send tool with ToolSearch (query "gmail send") and send ONE
+   message: to josephmezzadri@gmail.com, subject = the text of `subject.txt`,
+   HTML body = `email.html` exactly as rendered (plus `email.txt` as the plain
+   part if the tool takes one). Never send twice; never edit the rendered body.
+4. If the Gmail tools are missing or the send fails: release the claim
+   (`delete from brief_email_log where brief_date = '<today>' and sent_by = 'gmail-morning-session';`),
+   record it (`insert into brief_email_failures (brief_date, run_id, error) values ('<today>', 'gmail-morning-session', '<plain reason>');`)
+   and carry on — the GitHub SMTP send is the fallback. In the report, on its own
+   bold line: the brief email did not go out through Gmail, and if the Gmail tools
+   were missing, Gmail needs reconnecting in Claude's connector settings.
 
 **6. Report** in the numbered-table format, short. Joe is a management
 consultant, not an engineer: nothing he reads may contain a file path, a shell

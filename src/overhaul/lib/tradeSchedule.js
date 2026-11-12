@@ -46,14 +46,17 @@ export function tradeSchedule(idea, score) {
   if (!idea) return null;
   const option = score?.option || null;
   const expiry = option?.expiry || score?.event?.expiry || null;
-  const closed = score?.status === 'closed';
+  /* The scorer writes closed_horizon / closed_thesis / closed_invalidated,
+     never a bare "closed" (2026-11-12 sweep: the SPY put closed Nov 11 still
+     read "planned close Nov 11" on the homepage and in its note). */
+  const closed = String(score?.status || '').startsWith('closed');
   return {
     published: idea.date || null,
     entry: score?.entry_date || null,
     planned: score?.target_date || null,
     closedOn: closed ? (score?.close_date || score?.mark_date || null) : null,
     expiry,
-    status: score ? (STATUS_WORD[score.status] ?? null) : null,
+    status: score ? (closed ? STATUS_WORD.closed : (STATUS_WORD[score.status] ?? null)) : null,
     isOption: !!option,
   };
 }

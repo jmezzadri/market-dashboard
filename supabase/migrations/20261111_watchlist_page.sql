@@ -251,7 +251,7 @@ begin
   -- The newest date that at least 5,000 tickers have a price for. Not simply
   -- the S&P 500 fund's newest date: on the evening of a trading day a few
   -- hundred same-day tickers carry that date before the full close file loads,
-  -- and anchoring on it kept only those (505 rows on 2026-11-11; LESSONS 4.49).
+  -- and anchoring on it kept only those (505 rows on 2026-11-11; LESSONS 4.50).
   select max(trade_date) into d0
     from (select trade_date from prices_eod where trade_date > current_date - 15
           group by trade_date having count(*) >= 5000) full_days;
