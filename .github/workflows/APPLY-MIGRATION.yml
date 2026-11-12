@@ -15,7 +15,7 @@ on:
       # 2026-11-12 (health sweep): stock_facts market cap at the newest close
       # and a 52-week range for recent listings. Idempotent (create or replace
       # + one rebuild). The 2026-11-11 watchlist file this pointed at is applied.
-      - 'supabase/migrations/20261112_stock_facts_live_market_cap.sql'
+      - 'supabase/migrations/20261112b_qt_quality_share_units.sql'
   workflow_dispatch:
     inputs:
       filename:
@@ -32,7 +32,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          MIGRATION_FILENAME: ${{ inputs.filename || '20261112_stock_facts_live_market_cap.sql' }}
+          MIGRATION_FILENAME: ${{ inputs.filename || '20261112b_qt_quality_share_units.sql' }}
         run: |
           python3 - <<'PY'
           import os, json, urllib.request, pathlib, sys
