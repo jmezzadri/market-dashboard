@@ -841,8 +841,8 @@ export default function MethodologyPage() {
             <p className="me-body-p">
               The {PAGE_NAME.watchlist} page keeps lists of stocks against your sign-in, so the same lists,
               notes, tags, column layout and saved views appear on any device you sign in from. Nobody else
-              can read them. A list holds up to 200 stocks. Each stock is saved with the closing price on
-              file on the day you add it, which is what <b>Price when added</b> and <b>Since added</b> are
+              can read them. A list holds up to 200 stocks. Each stock is saved with its newest closing
+              price at the moment you add it, the same close the page shows, which is what <b>Price when added</b> and <b>Since added</b> are
               measured from.
             </p>
             <p className="me-body-p">
