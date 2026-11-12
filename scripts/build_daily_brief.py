@@ -1228,6 +1228,16 @@ VOICE_BANNED = [
      r"|a third(?!-)|a quarter(?!-))\b",
                                              'write the number: "66%", not "two-thirds"'),
     (r"\bprinted\b(?![^.]*\d)",              '"printed" with no number — give the print'),
+    # Joe, 2026-11-12, on "Nvidia's board is weighing Huang's removal, and
+    # Nasdaq futures carry it": "what does that even mean!!! PLAIN ENGLISH."
+    # Markets do not carry, stack, absorb or test things. Say the move.
+    (r"\b(?:carry|carries|carried|carrying)\s+(?:it|both|them|that|this|the (?:news|risk|move|weight))\b",
+                                             '"futures carry it" — say what the futures did: "Nasdaq 100 futures -0.9%"'),
+    (r"\bstacks? (?:on|onto|up on)\b",       '"stacks on" — state each fact with its number'),
+    (r"\bis the (?:\w+ )?test\b",            '"X is the test" — write "Watch: <event>, <time>"'),
+    (r"\binto the open\b",                   '"into the open" — give the pre-market level'),
+    (r"\b(?:absorbs?|digests?|shrugs? off|prices? in) (?:it|that|this|the news)\b",
+                                             'markets do not digest or shrug — give the move'),
 ]
 _SENT_MAX_WORDS = 20
 
