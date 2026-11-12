@@ -371,9 +371,6 @@ export default function TickerPage() {
      i.e. at its Oct 28 price). Re-price the same share count at the close this
      page shows, so the cap moves with the price beside it. */
   const refShares = Number(deep?.ref?.weighted_shares_outstanding);
-  const marketcap = (refShares > 0 && price > 0)
-    ? refShares * price
-    : (deep?.ref?.market_cap ?? null);
   
 
   /* Live price — LSE 1-minute bars (display only; ~10 s behind the tape,
@@ -401,6 +398,16 @@ export default function TickerPage() {
      demotes to the small reference line. Closed market, uncovered names, or
      a missing base keep the close-first block unchanged. */
   const liveHero = lseLive.marketOpen === true && livePrice != null && livePct != null;
+  const marketcap = (refShares > 0 && (liveHero ? livePrice : price) > 0)
+    ? refShares * (liveHero ? livePrice : price)
+    : (deep?.ref?.market_cap ?? null);
+  /* 2026-11-12 (Joe, on NVDA at 10am: "Why would you have a chart that shows
+     173, yesterday's close?"): while the market is open the stored history ends
+     at yesterday's close. The chart, its header and the day stats must show
+     TODAY's session, so the live price becomes the chart's last point and the
+     stats that still describe the prior session say so. */
+  const todayEt = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const liveSession = liveHero && !!priceAsOf && priceAsOf < todayEt;
 
   /* Price chart — REAL daily history from prices_eod. SMAs are computed over
      the full history then sliced to the visible window so they're accurate at
@@ -441,14 +448,15 @@ export default function TickerPage() {
       return hist.filter((r) => (!fromDate || r.date >= fromDate) && (!toDate || r.date <= toDate));
     }
     const n = tfMap[tf] || 252;
-    return hist.slice(Math.max(0, hist.length - n));
-  }, [hist, tf, customRange, fromDate, toDate]);
+    const rows = hist.slice(Math.max(0, hist.length - n));
+    return liveSession ? [...rows, { date: todayEt, close: livePrice, live: true }] : rows;
+  }, [hist, tf, customRange, fromDate, toDate, liveSession, todayEt, livePrice]);
   const windowDates = useMemo(() => new Set(windowRows.map((r) => r.date)), [windowRows]);
   const series   = useMemo(() => windowRows.map((r) => [r.date, r.close]), [windowRows]);
   const sma50Win  = useMemo(() => sma50Full.filter(([d]) => windowDates.has(d)), [sma50Full, windowDates]);
   const sma200Win = useMemo(() => sma200Full.filter(([d]) => windowDates.has(d)), [sma200Full, windowDates]);
   const rsiWin    = useMemo(() => rsiFull.filter(([d]) => windowDates.has(d)), [rsiFull, windowDates]);
-  const volumeWin = useMemo(() => windowRows.map((r) => [r.date, r.volume]), [windowRows]);
+  const volumeWin = useMemo(() => windowRows.filter((r) => !r.live).map((r) => [r.date, r.volume]), [windowRows]);
   const compareSeries = useMemo(() => (compareHist.rows || []).map((r) => [r.date, r.close]), [compareHist.rows]);
   const chartEvents = useMemo(() => {
     if (!windowRows.length) return [];
@@ -633,10 +641,14 @@ export default function TickerPage() {
         </div>
 
         <div className="tk-tape-ref">
-          <TapeStat loading={resolveLoading} label="Open"      value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
-          <TapeStat loading={resolveLoading} label="Day range" value={lastBar?.low != null && lastBar?.high != null ? `${fmt(lastBar.low, 2)} – ${fmt(lastBar.high, 2)}` : '—'} />
-          <TapeStat loading={resolveLoading} label="Prev close" value={prevClose != null ? `$${fmt(prevClose, 2)}` : '—'} />
-          <TapeStat loading={resolveLoading} label="Volume"    value={fmtVol(lastBar?.volume)} sub={avgVol ? `avg ${fmtVol(avgVol)}` : null} />
+          {/* While live, today's open, range and volume are not in our feed yet:
+              the stored bar is the PRIOR session, and it says so rather than
+              posing as today's (2026-11-12). Prev close is the close the live
+              move is measured from. */}
+          <TapeStat loading={resolveLoading} label={liveSession ? `${fmtDateShort(priceAsOf)} open` : 'Open'} value={lastBar?.open != null ? `$${fmt(lastBar.open, 2)}` : '—'} />
+          <TapeStat loading={resolveLoading} label={liveSession ? `${fmtDateShort(priceAsOf)} range` : 'Day range'} value={lastBar?.low != null && lastBar?.high != null ? `${fmt(lastBar.low, 2)} – ${fmt(lastBar.high, 2)}` : '—'} />
+          <TapeStat loading={resolveLoading} label="Prev close" value={liveSession ? `$${fmt(liveBase, 2)}` : (prevClose != null ? `$${fmt(prevClose, 2)}` : '—')} />
+          <TapeStat loading={resolveLoading} label={liveSession ? `${fmtDateShort(priceAsOf)} volume` : 'Volume'} value={fmtVol(lastBar?.volume)} sub={avgVol ? `avg ${fmtVol(avgVol)}` : null} />
           <TapeStat loading={resolveLoading} label="Mkt cap"   value={fmtMcap(marketcap)} />
           <TapeStat loading={resolveLoading} label="Shares out" value={fmtVol(sharesOut)} />
           <TapeStat loading={resolveLoading} label="Div yield" value={deep?.loading || deep?.error ? '—' : divYield.value != null ? `${(divYield.value * 100).toFixed(2)}%` : (divYield.note === 'none' ? 'None' : '—')} />
@@ -653,7 +665,7 @@ export default function TickerPage() {
             <div>
               <div className="mt-eyebrow">Price history</div>
               <div className="mt-h2">
-                {hasPrice ? `$${fmt(price, 2)}` : resolveLoading ? <span className="rd-skel rd-skel--v" /> : '—'} <span className="tk-windowlabel">{chartMode === 'tv' ? '· TradingView · candles · intraday · indicators · drawing tools' : `· ${customRange ? 'custom range' : `${tf} window`}${priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : ''}`}</span>
+                {liveSession ? `$${fmt(livePrice, 2)}` : hasPrice ? `$${fmt(price, 2)}` : resolveLoading ? <span className="rd-skel rd-skel--v" /> : '—'} <span className="tk-windowlabel">{chartMode === 'tv' ? '· TradingView · candles · intraday · indicators · drawing tools' : `· ${customRange ? 'custom range' : `${tf} window`}${liveSession ? ' · live today' : (priceAsOf ? ` · ${asOfVerb} ${fmtDateShort(priceAsOf)}` : '')}`}</span>
               </div>
             </div>
             <div className="tk-chartmodes" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-8)', alignItems: 'center', justifyContent: 'flex-end' }}>

@@ -141,9 +141,23 @@ export default function useWatchlists(userId) {
     const session = etDay(latestTradingSessionDate());
     const behind = ok.filter((t) => { const d = closes[t]?.[0]?.trade_date; return session && (!d || String(d) < session); });
     if (behind.length) { await fetchSameDayCloses(behind); closes = await latestTwoCloses(ok); }
+    // While the market is open the page shows live prices, so a stock added
+    // mid-session is added at its live price and "Since added" starts at zero
+    // (2026-11-12). A name the live feed does not cover keeps the close.
+    let live = {};
+    try {
+      const { data: q } = await supabase.functions.invoke('lse-live', { body: { mode: 'quotes', symbols: ok } });
+      if (q?.marketOpen) {
+        for (const x of q.quotes || []) {
+          if (x.covered !== false && x.price != null && Number(x.price) > 0) live[x.symbol] = Number(x.price);
+        }
+      }
+    } catch { live = {}; }
+    const todayEt = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
     const rows = ok.map((t) => {
       position += 1;
       const at = fact[t] ? carryForward(fact[t], closes[t]) : null;
+      if (live[t] != null) return { watchlist_id: listId, ticker: t, position, added_price: live[t], added_price_date: todayEt };
       return { watchlist_id: listId, ticker: t, position, added_price: at?.close ?? null, added_price_date: at?.price_date ?? null };
     });
     const { data, error: e } = await supabase.from('watchlist_items').insert(rows)
