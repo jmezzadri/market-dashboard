@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { latestTradingSessionDate } from '../../lib/freshnessClock';
 
 const DEFAULT_LIST = 'My watchlist';
 export const MAX_PER_LIST = 200;
@@ -201,6 +202,94 @@ export default function useWatchlists(userId) {
   }), [loading, error, lists, items, settings, setSettings, createList, renameList, deleteList, addTickers, removeItem, restoreItem, updateItem, moveItem]);
 }
 
+/* ── The newest close, the same one the stock page shows ──────────────────
+   2026-11-11 (Joe: "why is the price on the watch list not the price when I
+   open up the ticker detail?"). stock_facts is one stored row per stock,
+   rebuilt once the whole market's closes are in — the morning after a
+   session. The stock page does not wait: after the bell it fetches that
+   stock's own close for the day. So all evening the Watchlist read the
+   prior session ($143.09, Nov 10) beside a stock page reading today
+   ($139.75, Nov 11).
+
+   The Watchlist now reads the same two rows the stock page reads — the
+   newest and the one before it in prices_eod — asks for the same same-day
+   close when a stock on the list has none yet, and carries a stored row
+   forward to that close:
+     Last close, Day, Volume      the newest session's own figures
+     every return (1 week … 1 yr) the stored return compounded with the
+                                  sessions since: (1 + r) x (new / stored) - 1.
+                                  Its start date is unchanged, so until the
+                                  morning rebuild the window is one session
+                                  longer than its label.
+     52-week high / low           widened if the new session set one
+     vs 50- / 200-day average     the new close against the stored average
+                                  (the average itself moves by under 1/50th
+                                  and 1/200th of one day's change)
+   A stock whose stored row is already the newest close is left untouched. */
+const etDay = (d) => (d ? d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }) : null);
+const num = (v) => { const x = Number(v); return v == null || !Number.isFinite(x) ? null : x; };
+
+async function latestTwoCloses(list) {
+  // Ten calendar days back always spans two sessions, long weekends included.
+  const since = new Date(Date.now() - 10 * 86400000).toISOString().slice(0, 10);
+  const { data, error } = await supabase.from('prices_eod')
+    .select('ticker,trade_date,close,high,low,volume')
+    .in('ticker', list).gte('trade_date', since)
+    .order('trade_date', { ascending: false }).limit(list.length * 10);
+  if (error) return {};
+  const by = {};
+  (data || []).forEach((r) => { (by[r.ticker] = by[r.ticker] || []).push(r); });
+  return by;
+}
+
+async function fetchSameDayCloses(tickers) {
+  try {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess?.session?.access_token;
+    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/eod-same-day`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ tickers }),
+    });
+  } catch (_) { /* the stored close stays on screen */ }
+}
+
+export function carryForward(fact, rows) {
+  const cur = rows && rows[0];
+  if (!fact || !cur) return fact;
+  const c1 = num(cur.close);
+  const c0 = num(fact.close);
+  if (c1 == null || c1 <= 0 || c0 == null || c0 <= 0) return fact;
+  if (!fact.price_date || String(cur.trade_date) <= String(fact.price_date)) return fact;
+  const prev = rows[1] ? num(rows[1].close) : null;
+  const r = c1 / c0;
+  const grow = (v) => (num(v) == null ? v : (1 + num(v)) * r - 1);
+  const hi = num(fact.high_52w) == null ? null : Math.max(num(fact.high_52w), num(cur.high) ?? c1, c1);
+  const lo = num(fact.low_52w) == null ? null : Math.min(num(fact.low_52w), num(cur.low) || c1, c1);
+  const v1 = num(cur.volume);
+  const v0 = num(fact.volume);
+  return {
+    ...fact,
+    price_date: String(cur.trade_date),
+    close: c1,
+    chg_1d: prev != null && prev > 0 ? c1 / prev - 1 : grow(0),
+    ret_1w: grow(fact.ret_1w), ret_1m: grow(fact.ret_1m), ret_3m: grow(fact.ret_3m),
+    ret_ytd: grow(fact.ret_ytd), ret_1y: grow(fact.ret_1y),
+    high_52w: hi == null ? fact.high_52w : hi,
+    low_52w: lo == null ? fact.low_52w : lo,
+    pct_from_high: hi == null ? fact.pct_from_high : c1 / hi - 1,
+    pct_from_low: lo == null || lo <= 0 ? fact.pct_from_low : c1 / lo - 1,
+    pct_vs_ma50: grow(fact.pct_vs_ma50),
+    pct_vs_ma200: grow(fact.pct_vs_ma200),
+    volume: v1 == null ? fact.volume : v1,
+    vol_vs_avg: v1 != null && v0 != null && v0 > 0 && num(fact.vol_vs_avg) != null ? num(fact.vol_vs_avg) * (v1 / v0) : fact.vol_vs_avg,
+  };
+}
+
 /* The stored facts for a set of tickers, plus the paper book's latest
    holdings (weight = market value / equity, the same division the Paper
    Portfolio ledger makes from the same record). */
@@ -216,14 +305,28 @@ export function useStockFacts(tickers) {
         supabase.from('qt_nav_daily').select('d,equity,positions').order('d', { ascending: false }).order('created_at', { ascending: false }).limit(1),
       ]);
       if (cancelled) return;
-      const facts = Object.fromEntries((f.data || []).map((r) => [r.ticker, r]));
+      // Bring every stock to the newest close the stock page would show.
+      let closes = list.length ? await latestTwoCloses(list) : {};
+      if (cancelled) return;
+      const session = etDay(latestTradingSessionDate());
+      const behind = list.filter((t) => {
+        const newest = closes[t]?.[0]?.trade_date;
+        return session && (!newest || String(newest) < session);
+      });
+      if (behind.length) {
+        await fetchSameDayCloses(behind);
+        if (cancelled) return;
+        closes = await latestTwoCloses(list);
+        if (cancelled) return;
+      }
+      const facts = Object.fromEntries((f.data || []).map((r) => [r.ticker, carryForward(r, closes[r.ticker])]));
       const row = (nav.data || [])[0];
       const paper = {};
       const equity = row ? Number(row.equity) : null;
       if (row && equity > 0) {
         (row.positions || []).forEach((p) => { if (Number(p.qty) > 0 && p.mv != null) paper[p.symbol] = Number(p.mv) / equity; });
       }
-      const dates = (f.data || []).map((r) => r.price_date).filter(Boolean).sort();
+      const dates = Object.values(facts).map((r) => r.price_date).filter(Boolean).sort();
       setState({
         facts, paper,
         priceDate: dates.length ? dates[dates.length - 1] : null,
