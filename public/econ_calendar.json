@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-11-12T01:57:16Z",
+  "generated_at": "2026-11-12T17:40:23Z",
   "window": {
     "from": "2026-11-05",
     "to": "2027-01-21"
   },
   "counts": {
-    "total": 89,
+    "total": 88,
     "tier1": 25
   },
   "sources": [
@@ -164,17 +164,6 @@
       "category": "Labor",
       "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
       "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-12",
-      "time_et": "10:00 AM",
-      "name": "Existing home sales",
-      "short": "Existing",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "Closed sales of previously owned homes \u2014 the bulk of the housing market.",
-      "source": "NAR statistical news release schedule",
       "time_source": "published release policy"
     },
     {
