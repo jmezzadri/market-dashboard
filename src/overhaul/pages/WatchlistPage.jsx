@@ -175,7 +175,11 @@ function buildColumns({ onRemove, onUpdate, paperDate, factorDate }) {
       sortValue: (r) => r.style?.label ?? null, render: (r) => (r.style ? <span className={r.style.key ? '' : 'wl-mut'}>{r.style.label}</span> : DASH) },
     num('trend_1y', '1-yr trend', PAGE_NAME.paper, `How much the stock rose over the past 12 months, skipping the most recent month.${factorAsOf}`, (v) => (n(v) == null ? DASH : `${n(v) > 0 ? '+' : ''}${Math.round(n(v) * 100)}%`), { width: 88, hidden: true }),
     num('profitability', 'Profitability', PAGE_NAME.paper, 'Gross profit divided by total assets, from the company’s latest annual filing — how much profit the business earns on everything it owns.', (v) => (n(v) == null ? DASH : n(v).toFixed(2)), { width: 100, hidden: true }),
-    num('buybacks', 'Buybacks', PAGE_NAME.paper, 'How much the share count shrank over the past year. Positive means the company bought back its own stock; negative means it issued more.', (v) => pct(v), { width: 88, hidden: true, cellClass: (r) => (n(r.f?.buybacks) < 0 ? 'dn' : '') }),
+    // Shown as the change in the share count, the way a reader thinks about it:
+    // "+284%" means the company nearly quadrupled its shares, not "-284% buybacks"
+    // (Joe, 2026-11-12, on ONDS). The stored factor is the buyback yield, the
+    // negative of this; sorting still runs on it.
+    num('buybacks', 'Share count, 1 yr', PAGE_NAME.paper, `How much the number of shares changed over the past year, from the company’s filings, adjusted for splits. Up means the company issued stock (dilution); down means it bought stock back.${factorAsOf}`, (v) => (n(v) == null ? DASH : pct(-n(v))), { width: 120, hidden: true, cellClass: (r) => (n(r.f?.buybacks) < 0 ? 'dn' : n(r.f?.buybacks) > 0 ? 'up' : '') }),
 
     { key: 'added_price', label: 'Price when added', group: 'Your list', tip: 'The price the stock was added at: the live price if added while the market was open, else that day’s close.', align: 'r', width: 124, hidden: true,
       sortValue: (r) => n(r.item.added_price), render: (r) => usd(r.item.added_price) },
