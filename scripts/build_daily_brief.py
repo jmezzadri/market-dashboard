@@ -1012,8 +1012,11 @@ def build_ideas(scores):
         }
     n_open = len(out_open)
     if book:
+        # The band names its own mark date (LESSONS 9.33): the brief is written
+        # before the stock-price panel lands, so the book is often a session
+        # behind the snapshot above it, and must say so (2026-11-13).
         line = (f"{book['ret']} since {_mdy(book['since'])} vs {book['bench']} "
-                f"{book['bench_ret']} · {n_open} open")
+                f"{book['bench_ret']} · to {_mdy(book['as_of'])} close · {n_open} open")
     else:
         line = f"{n_open} open"
     return {"open": out_open, "book": book, "as_of": scores.get("as_of"), "line": line}

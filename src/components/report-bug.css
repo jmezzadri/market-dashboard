@@ -45,6 +45,14 @@
 }
 .rb-launch:focus-visible { outline: 2px solid var(--ch-gold-deep, var(--c-b7975c)); outline-offset: 2px; }
 .rb-launch-icon { width: 15px; height: 15px; flex: 0 0 auto; opacity: .75; }
+/* At rest the launcher is a 36px circle, label folded away: the 150px pill sat
+   on top of whatever row scrolled under the bottom-right corner — a table's
+   last column, a calendar time, the footer links (health sweep 2026-11-13,
+   "text under a floating button"). Hover or keyboard focus unfolds the label. */
+.rb-launch { width: 36px; padding: 0; justify-content: center; gap: 0; }
+.rb-launch-label { max-width: 0; overflow: hidden; white-space: nowrap; transition: max-width var(--dur-180); }
+.rb-launch:hover, .rb-launch:focus-visible { width: auto; padding: 0 var(--sp-14); gap: var(--sp-7); }
+.rb-launch:hover .rb-launch-label, .rb-launch:focus-visible .rb-launch-label { max-width: 140px; }
 
 /* ── dialog ───────────────────────────────────────────────────────────── */
 .rb-veil {
@@ -209,7 +217,7 @@
 
 /* ── narrow screens (390px check, LESSONS 8.10) ───────────────────────── */
 @media (max-width: 560px) {
-  .rb-launch { height: 34px; padding: 0 var(--sp-12); font-size: var(--v13-t2); right: 10px; bottom: 10px; }
+  .rb-launch { height: 34px; width: 34px; padding: 0; font-size: var(--v13-t2); right: 10px; bottom: 10px; }
   .rb-dialog { border-radius: var(--r-14); max-height: 92vh; }
   .rb-head { padding: var(--sp-13) var(--sp-15) var(--sp-10); }
   .rb-title { font-size: var(--v13-t5); }

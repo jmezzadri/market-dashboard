@@ -494,6 +494,24 @@ class TestPortfolio(unittest.TestCase):
         self.assertAlmostEqual(rows[0]["book"]["return_pct"], 10.0, places=4)
         self.assertAlmostEqual(rows[0]["mark"], 50.0, places=4)     # the row's own mark is untouched
 
+    def test_the_book_waits_for_an_open_call_that_has_not_printed_the_index_session(self):
+        """2026-11-13: the index has closed 01-08 but the call's price panel
+        (vendor T+1) has not. The book and its benchmark both stop at 01-07,
+        so the S&P's 01-08 move is never set against a flat book."""
+        h = hist(px=days("2026-01-05", [100, 110, 121]), spx_index=self.SPX[:4])
+        rows = self._rows([idea(sizing={"weight": 10})], h, "2026-01-08")
+        p = S.portfolio(rows, h)["summary"]
+        self.assertEqual(p["as_of"], "2026-01-07")
+        self.assertAlmostEqual(p["total_return_pct"], 2.1, places=4)
+        self.assertAlmostEqual(p["benchmark_total_pct"], 0.1 * (1.0 + (102 / 101 - 1) * 100), places=3)
+        self.assertEqual(rows[0]["book"]["as_of"], "2026-01-07")
+
+    def test_a_call_whose_feed_has_stalled_does_not_hold_the_book_back(self):
+        h = hist(px=days("2026-01-05", [100, 110]), spx_index=self.SPX[:9])
+        rows = self._rows([idea(sizing={"weight": 10}, scorecard={"horizon_months": 12})], h, "2026-01-15")
+        p = S.portfolio(rows, h)["summary"]
+        self.assertEqual(p["as_of"], "2026-01-15")
+
     def test_a_missing_print_carries_the_last_value(self):
         px = [("2026-01-05", 100.0), ("2026-01-06", 110.0), ("2026-01-08", 121.0)]   # no 01-07 print
         h = hist(px=px, spx_index=self.SPX[:4])

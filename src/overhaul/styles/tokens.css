@@ -1441,9 +1441,13 @@
 /* from src/components/report-bug.css */
 [data-mt-theme='dark'] .rb-root,
 [data-mt-theme='navy'] .rb-root {
-  --ch-bg: var(--c-0c1218);
-  --ch-surface: var(--c-111927);
-  --ch-putty: var(--c-161f2a);
+  /* The widget lives in <body>, outside .mt-overhaul, so it reads the page
+     skin's panel tokens directly. --c-111927 is remapped to the skin's accent
+     (amber on the terminal skin), which painted the launcher and the dialog
+     amber with grey type (health sweep 2026-11-13). */
+  --ch-bg: var(--lg-ground, var(--c-0c1218));
+  --ch-surface: var(--lg-panel, var(--c-111927));
+  --ch-putty: var(--lg-panel-on, var(--c-161f2a));
   --ch-ink: var(--c-f5efe3);
   --ch-ink-soft: var(--c-c9c3b4);
   --ch-mut: var(--c-8b95a0);
