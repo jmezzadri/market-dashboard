@@ -1,6 +1,6 @@
 {
-  "date": "2026-11-12",
-  "checked_at": "2026-11-12T11:33:45-05:00",
+  "date": "2026-11-13",
+  "checked_at": "2026-11-13T11:42:33-05:00",
   "fired": false,
   "fired_gates": [],
   "gates": [
@@ -14,37 +14,37 @@
     },
     {
       "name": "Data surprise",
-      "measure": "tier-1 release vs consensus",
-      "value": "no tier-1 release asserted",
+      "measure": "Producer prices (PPI)",
+      "value": "0.3 vs 0.4 consensus = -0.23 sigma",
       "threshold": "±1.0 sigma",
       "fired": false,
-      "source": ""
+      "source": "CNBC, 10:44 AM ET: October PPI final demand +0.3% m/m vs +0.4% Dow Jones consensus"
     },
     {
       "name": "Equities",
       "measure": "S&P 500 vs prior close; VIX",
-      "value": "S&P 7,628, +0.11% vs 2026-11-11 close; VIX 17.4, -0.2%",
+      "value": "S&P 7,521, -0.94% vs 2026-11-12 close; VIX 20.3, +8.3%",
       "threshold": "S&P ±1.0% or VIX +15% or VIX ≥30",
       "fired": false,
-      "as_of": "11:33 AM ET",
+      "as_of": "11:42 AM ET",
       "source": "Yahoo chart endpoint vs brief-latest prior close"
     },
     {
       "name": "Rates",
       "measure": "10y yield; MOVE",
-      "value": "10y 5.07%, +9.2bp vs 2026-11-10 close; MOVE 95.3, +2.89",
+      "value": "10y 5.13%, +3.3bp vs 2026-11-12 close; MOVE 100.8, +2.35",
       "threshold": "10y ±10bp or MOVE +8pts",
       "fired": false,
-      "as_of": "11:18 AM ET",
+      "as_of": "11:27 AM ET",
       "source": "Yahoo chart endpoint vs brief-latest prior close"
     },
     {
       "name": "Oil and dollar",
       "measure": "Brent; DXY",
-      "value": "Brent $93.63, +0.94% vs 2026-11-11 close; DXY 103.17, +0.25%",
+      "value": "Brent $95.80, -0.02% vs 2026-11-12 close; DXY 103.33, +0.16%",
       "threshold": "Brent ±4% or DXY ±0.75%",
       "fired": false,
-      "as_of": "11:23 AM ET",
+      "as_of": "11:32 AM ET",
       "source": "Yahoo chart endpoint vs brief-latest prior close"
     },
     {
