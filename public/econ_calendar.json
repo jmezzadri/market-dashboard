@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-11-12T21:50:42Z",
+  "generated_at": "2026-11-13T01:17:05Z",
   "window": {
-    "from": "2026-11-05",
-    "to": "2027-01-21"
+    "from": "2026-11-06",
+    "to": "2027-01-22"
   },
   "counts": {
-    "total": 88,
+    "total": 85,
     "tier1": 25
   },
   "sources": [
@@ -30,54 +30,10 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-21",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-22",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
-    {
-      "date": "2026-11-05",
-      "time_et": "7:00 AM",
-      "name": "Bank of England decision (MPC)",
-      "short": "BoE",
-      "tier": 1,
-      "category": "Policy",
-      "blurb": "Bank of England rate decision with the MPC vote split, published at noon London time.",
-      "source": "Bank of England MPC dates (bankofengland.co.uk)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-05",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-05",
-      "time_et": "8:30 AM",
-      "name": "Productivity & unit labor costs",
-      "short": "Prod",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Output per hour and what each unit of output costs in labor.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-05",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-11-06",
       "time_et": "8:30 AM",
@@ -1014,6 +970,17 @@
       "category": "Agriculture",
       "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
       "source": "USDA OCE WASDE schedule (usda.gov)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2027-01-22",
+      "time_et": "overnight",
+      "name": "Bank of Japan decision (MPM)",
+      "short": "BoJ",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "Bank of Japan rate decision, released around midday Tokyo on the meeting's final day \u2014 overnight for US markets.",
+      "source": "Bank of Japan MPM schedule (boj.or.jp)",
       "time_source": "published release policy"
     }
   ]
