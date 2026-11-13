@@ -140,7 +140,7 @@
   {
    "sender": "alex@macro-ops.com",
    "received": "2026-11-02",
-   "subject": "STILL NO CAPITULATION\u2026",
+   "subject": "STILL NO CAPITULATION…",
    "link": "https://mail.google.com/mail/?authuser=josephmezzadri@gmail.com#all/thread-f:1880751722770776239",
    "read_on": "2026-11-03",
    "fed": "fact base (stated book: long crude, short USTs and 2s, short NQ, long HRW wheat, long commodities ETF; liquidity gauge at 25%, 3-year low); challenge queue (liquidity gauge level+trend vs forward 3m equity returns; retail margin as anti-washout gauge)"
@@ -256,6 +256,30 @@
    "link": "gmail thread 1a1c06b888568488",
    "read_on": "2026-11-10",
    "fed": "payrolls +165k vs ~59k, claims at a 57-year low, Q3 GDP 3.4%, productivity +3.6%; Dec hike odds ~80%; mortgage rate 7.4% peak to ~7.2%; pending home sales -7.3% m/m; Moderna +760% YTD"
+  },
+  {
+   "sender": "squad@thedailyupside.com",
+   "received": "2026-11-10",
+   "subject": "Nvidia's Foreign Affairs",
+   "link": "gmail thread 1a1c594e1729edaa",
+   "read_on": "2026-11-13",
+   "fed": "fact base: Nvidia -4.3% on Nov 9 while the Nasdaq-100 rose 2.7% (market read the CEO probe as isolated); sell-side kept ratings; Anthropic IPO talk $1.1-1.3tn; Nvidia as the sector's financier is the second-order risk"
+  },
+  {
+   "sender": "squad@thedailyupside.com",
+   "received": "2026-11-11",
+   "subject": "Inflation's Crude Cushion",
+   "link": "gmail thread 1a1cac4662d3aac5",
+   "read_on": "2026-11-13",
+   "fed": "fact base: Oct CPI +0.4% m/m vs 0.3%; Dec 9 pricing 90.5% for 25bp, 9.5% for 50bp; soft 10-year auction; method noted: strip energy and tariffs from CPI to get underlying inflation near 2% (consensus challenge to the 50bp event candidate)"
+  },
+  {
+   "sender": "squad@thedailyupside.com",
+   "received": "2026-11-12",
+   "subject": "Anthropic's S-1 Anthropology",
+   "link": "gmail thread 1a1cfe313dae299c",
+   "read_on": "2026-11-13",
+   "fed": "fact base: Anthropic IPO $70-78, book multiple times covered, trades Nov 19; CoreWeave +24.7% with CDS above 1,100bp; card-spend data shows 1% of businesses drive 80% of lab revenue and that spend is slowing; fed the giant-IPO supply test (nine listings, no index edge at 10 or 21 sessions)"
   }
  ]
 }
