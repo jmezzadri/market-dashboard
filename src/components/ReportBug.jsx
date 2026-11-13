@@ -238,14 +238,14 @@ export default function ReportBug() {
   return createPortal(
     <div className="rb-root" data-bug-ignore="">
       {!open && (
-        <button type="button" className="rb-launch" onClick={start} title="Report a problem on this page">
+        <button type="button" className="rb-launch" onClick={start} title="Report a problem on this page" aria-label="Report a bug">
           <svg viewBox="0 0 20 20" aria-hidden="true" className="rb-launch-icon">
             <path
               d="M10 2.6a3 3 0 0 1 2.7 1.7l.5.1a4 4 0 0 1 2.6 3.1h1.3a.8.8 0 0 1 0 1.6h-1.2v1.3h1.2a.8.8 0 0 1 0 1.6h-1.3a5.6 5.6 0 0 1-11 0H3.5a.8.8 0 0 1 0-1.6h1.2V9.1H3.5a.8.8 0 0 1 0-1.6h1.3a4 4 0 0 1 2.6-3.1l.5-.1A3 3 0 0 1 10 2.6Zm0 3.6a4 4 0 0 0-4 4v1.4a4 4 0 1 0 8 0V10.2a4 4 0 0 0-4-4Z"
               fill="currentColor"
             />
           </svg>
-          Report a bug
+          <span className="rb-launch-label">Report a bug</span>
         </button>
       )}
 

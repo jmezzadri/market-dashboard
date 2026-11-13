@@ -1413,6 +1413,16 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer, Data Steward — every writer of `pipeline_health.status` and every email keyed on it.
 
+### 4.53 (2026-11-13, health sweep) — A book is cut at the date its SLOWEST open leg has printed, not only its yardstick's; and a site-wide widget that lives outside the page shell reads the skin's tokens, not the remapped palette
+
+**What happened:** (1) From the 22:38Z scorer run on Nov 12 until the 05:30 ET price panel landed, the Macro Scorecard summary read "+0.27% as of Nov 12 vs S&P -0.98%": the three open ETF calls are marked from the stock-price panel (vendor T+1) and had no Nov 12 print, so `portfolio()` carried their Nov 11 value through Nov 12 while charging the S&P's Nov 12 move to the benchmark. The 05:06 ET morning brief copied it into the email under a "Thu Nov 12 close" snapshot; after the panel landed the same book read +0.65%. The page's own "marks pending" label never fired, because the summary claimed Nov 12. LESSONS 6.24 had cut the book at the benchmark's last close so a leg could not run AHEAD of the yardstick; nothing stopped a leg running BEHIND it. (2) The floating "Report a bug" pill (150×36, bottom-right, every page) sat on table values, calendar times and footer links at every width; and in dark mode it and its dialog rendered amber with grey type, because the widget lives in `<body>` outside `.mt-overhaul` and its dark block used `--c-111927`, which the terminal skin remaps to its accent.
+
+**Fixes:** `portfolio()` stops the book on the last session every open call has a mark for (a leg stalled longer than `BENCHMARK_MAX_LAG_DAYS` is a dead feed and does not hold the book back); tests `test_the_book_waits_for_an_open_call_that_has_not_printed_the_index_session` and `test_a_call_whose_feed_has_stalled_does_not_hold_the_book_back`. The brief's Macro Portfolio band names its mark date ("· to Nov 12 close"). The launcher is a 36px circle at rest that unfolds its label on hover/focus; the widget's dark surface reads `--lg-panel` / `--lg-ground`.
+
+**Rule:** (1) Two-sided cut: a book, an index of calls, or any sum over legs with different publication clocks is marked to the EARLIEST last print among its live legs, and says that date. (2) An email section that copies a page's figure copies its date with it. (3) A widget portalled outside the themed shell is checked in dark mode explicitly — a palette alias that is a neutral in one skin can be the accent in another.
+
+**Applies to:** Senior Quant (the cut), Lead Developer, UX Designer (site-wide widgets).
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.

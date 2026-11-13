@@ -1306,6 +1306,31 @@ def portfolio(rows: list[dict], hist: dict) -> dict | None:
     days = [d for d, _ in bseries if d >= inception]
     if len(days) < 2:
         return None
+    # ...and never AHEAD of the open calls either (2026-11-13 health sweep).
+    # Calls marked from the stock-price panel (vendor T+1) trail the index by a
+    # session every evening until the panel lands next morning. Carrying their
+    # last value through the index's newest session priced the S&P's move
+    # against a flat book: on the evening of Nov 12 the summary read "+0.27%
+    # as of Nov 12 vs S&P -0.98%" — Nov 11 marks against a Nov 12 yardstick —
+    # and the morning email printed it. The book now stops on the last session
+    # every open call has a mark for. A call whose marks have stalled for longer
+    # than BENCHMARK_MAX_LAG_DAYS is a dead feed, not a pending print, and does
+    # not hold the whole book back (it carries, as before).
+    bench_last = days[-1]
+    trailing = []
+    for r in marked:
+        if r.get("status") != "open":
+            continue
+        last = max((d for d, _ in r["path"]), default=None)
+        if not last or last >= bench_last or last < days[0]:
+            continue
+        lag = (dt.date.fromisoformat(bench_last) - dt.date.fromisoformat(last)).days
+        if lag <= BENCHMARK_MAX_LAG_DAYS:
+            trailing.append(last)
+    if trailing:
+        cut = [d for d in days if d <= min(trailing)]
+        if len(cut) >= 2:
+            days = cut
     as_of = days[-1]
     bmap = dict(bseries)
     paths = {id(r): dict((d, float(m)) for d, m in r["path"]) for r in marked}
