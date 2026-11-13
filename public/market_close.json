@@ -1,32 +1,32 @@
 {
-  "date": "2026-11-12",
+  "date": "2026-11-13",
   "edition": "close",
   "label": "Market Close",
-  "written_at": "2026-11-12T18:43:58-05:00",
-  "headline": "S&P -0.4%, Russell -1.7%, 10y 5.10% +10bp, Brent $95.77, Cerebras +18% after hours",
-  "stance": "Yields jumped on Fed hike bets and a second weak auction; stocks gave up midday gains in the last hour. Nvidia closed -4.3% on Huang's exit.",
+  "written_at": "2026-11-13T18:42:54-05:00",
+  "headline": "S&P -0.4%, Nasdaq 100 -1.2%, Dow +0.1%, 10y 5.15% +5bp, PPI +0.3% vs +0.4%, Nvidia -2.0%",
+  "stance": "Chips fell again and the 10y rose 5bp despite a soft PPI. Two Fed speakers backed more hikes.",
   "trigger": null,
   "scorecard": [
     {
-      "call": "Morning: Nvidia -6% pre-market, Nasdaq 100 futures -0.9%.",
-      "actual": "Nvidia fell 14.3% at the open, closed -4.3%. Nasdaq 100 closed -0.3%."
+      "call": "A hot PPI at 8:30 lifts 50bp December odds from 13%.",
+      "actual": "PPI +0.3% m/m vs +0.4% expected (8:30). Not hot, yet the 10y still closed +5bp at 5.15%."
     },
     {
-      "call": "Morning: a low jobless claims number backs the December hike.",
-      "actual": "Claims 200K vs 195K expected (8:30). The 10y still rose 10.5bp to 5.10%."
+      "call": "Nvidia +0.7% pre-market after Huang resigns.",
+      "actual": "Nvidia closed -2.0% at $162.85. The pre-market bounce did not hold."
     },
     {
-      "call": "Morning: soft 30y demand would push long yields above 5.3%.",
-      "actual": "30y tailed 0.4bp at 5.441%, dealers took 11.39% (1:18pm). 30y closed 5.43%."
+      "call": "Higher yields hit the Nasdaq 100 harder than the Dow.",
+      "actual": "Right. Nasdaq 100 -1.2%, Dow +0.1% at the close."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "Biggest one-day jump in yields since 2022 (5:16pm reports). Hammack said policy must move to restrictive.",
-        "$25bn 30y: 2.36x cover vs 2.44x average, dealers 11.39% vs 9.49%. Second weak long auction in two days.",
-        "Brent hit $96 at 12:30pm after Trump said the US needs no Iran deal. Iran reported strikes on Sirik at 2:51pm."
+        "PPI +0.3% m/m vs +0.4% expected; core +0.3% as expected (8:30). Yields rose anyway.",
+        "Daly: 'in all likelihood' the Fed needs to raise rates (12:23pm ET). Collins: more tightening warranted soon (10:42am ET).",
+        "Iran says a gas tanker hit a mine in Hormuz (7:45am ET). Brent held above $96 at the close."
       ],
       "positioning": null,
       "single_name": null
@@ -34,9 +34,8 @@
     {
       "title": "Equity Markets",
       "bullets": [
-        "Nasdaq 100 turned positive by 1:16pm, then indices gave up gains in the final hour.",
-        "Russell 2000 -1.7%, worst of the majors on the day yields jumped.",
-        "Energy +1.5%, the only sector up more than 0.1%. Materials -1.3%, communication services -1.0%."
+        "Selling stayed in chips and AI names. Most S&P 500 stocks were higher (2:33pm ET).",
+        "Small caps fell with the large-cap indices. Russell 2000 -0.3% at the close."
       ],
       "positioning": null,
       "single_name": null
@@ -44,7 +43,7 @@
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "LQD -0.9% vs HYG -0.5% at the close. Investment grade duration took the bigger loss."
+        "Fed survey ranks AI as the top risk to the financial system (4:18pm ET). No funding stress yet."
       ],
       "positioning": null,
       "single_name": null
@@ -52,34 +51,34 @@
   ],
   "items": [
     {
-      "head": "Cerebras +17.7% after hours on raised outlook",
-      "body": "Q3 cloud revenue +265%. Raised 2026 outlook, sees 2027 revenue tripling, $26bn backlog, new Microsoft deal. Shares +17.7% at 6:43pm ET."
+      "head": "Nvidia down 6 straight weeks, longest run since 2012",
+      "body": "Closed -2.0% Friday. Market value down $1.7 trillion in the slide (5:18pm ET)."
     },
     {
-      "head": "Cisco +0.2% after hours on beat and raise",
-      "body": "Record revenue $18.5bn, +24%; non-GAAP EPS $1.40. Raised FY27 view; AI infrastructure revenue to double. Shares +0.2% at 6:42pm ET."
+      "head": "AMD -8.8% as the week's chip rotation reversed",
+      "body": "Closed at $534.06 after a run through Thursday. Broadcom -4.8% at the close."
     },
     {
-      "head": "Applied Materials +1.3% after hours on Q4 beat",
-      "body": "Beat on Q4 and guided above forecasts (4:27pm). Shares +1.3% at 6:42pm ET."
-    },
-    {
-      "head": "Flowers Foods -8.0% after hours on Q3 results",
-      "body": "Reported Q3 results at 4:05pm. Shares -8.0% at 6:38pm ET."
+      "head": "SunPower delays its 10-Q, sees Q3 revenue below guidance",
+      "body": "Stock at a 52-week low (6:07pm ET)."
     }
   ],
   "watch": [
     {
-      "head": "PPI, Nov 13 8:30",
-      "body": "Last producer-price read before the FOMC on Dec 9, with the 10y at 5.10%."
+      "head": "FAA nationwide ground stop, Friday evening",
+      "body": "Ordered at 4:43pm ET. More than 10,000 flights delayed by 5:44pm ET. Airlines trade on it Monday."
     },
     {
-      "head": "S&P Italy rating review, Nov 13",
-      "body": "BBB+ with a positive outlook since Jan 30. Published after the European close."
+      "head": "Empire State survey, Nov 16, 8:30",
+      "body": "First regional factory read for November."
     },
     {
-      "head": "Retail sales, Nov 17 8:30",
-      "body": "Next tier-1 consumer read. Empire State survey comes first, Nov 16 8:30."
+      "head": "Retail sales, Nov 17, 8:30",
+      "body": "Next tier-1 data before the Dec 9 FOMC."
+    },
+    {
+      "head": "Nvidia report and Anthropic IPO, next week",
+      "body": "Nvidia's first report since Huang resigned. Anthropic prices its IPO next week."
     }
   ]
 }
