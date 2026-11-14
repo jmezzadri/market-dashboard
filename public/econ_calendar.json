@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-13T21:24:43Z",
+  "generated_at": "2026-11-14T00:57:03Z",
   "window": {
-    "from": "2026-11-06",
-    "to": "2027-01-22"
+    "from": "2026-11-07",
+    "to": "2027-01-23"
   },
   "counts": {
-    "total": 85,
-    "tier1": 25
+    "total": 82,
+    "tier1": 24
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -30,43 +30,10 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-22",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-23",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
-    {
-      "date": "2026-11-06",
-      "time_et": "8:30 AM",
-      "name": "Jobs report",
-      "short": "Jobs",
-      "tier": 1,
-      "category": "Labor",
-      "blurb": "Nonfarm payrolls, the unemployment rate and average hourly earnings.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-06",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan, preliminary)",
-      "short": "UMich prelim",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment, preliminary reading \u2014 the first look at household inflation expectations for the month.",
-      "source": "UMich release schedule (computed: two Fridays before the final)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-06",
-      "time_et": "3:00 PM",
-      "name": "Consumer credit",
-      "short": "Credit",
-      "tier": 3,
-      "category": "Consumer",
-      "blurb": "Revolving and non-revolving household borrowing.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-11-09",
       "time_et": "10:00 AM",
