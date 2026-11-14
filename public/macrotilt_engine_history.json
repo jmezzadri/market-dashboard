@@ -18020,16 +18020,16 @@
     },
     {
       "date": "2026-11-13",
-      "move": 98.4,
-      "move_pctile_5y": 0.4598,
+      "move": 98.8,
+      "move_pctile_5y": 0.4751,
       "watch_threshold": 115.8,
       "risk_off_threshold": 123.7,
-      "delta_y_3m_bp": 30.0,
-      "delta_y_3m_pctile_5y": 0.6437,
-      "inflationary_threshold_bp": 36.0,
+      "delta_y_3m_bp": 42.0,
+      "delta_y_3m_pctile_5y": 0.7318,
+      "inflationary_threshold_bp": 37.0,
       "deflationary_threshold_bp": -6.0,
       "stress_state": "Risk On",
-      "yield_regime": "Neutral",
+      "yield_regime": "Inflationary",
       "equity_pct": 100,
       "defensive_pct": 0
     }
