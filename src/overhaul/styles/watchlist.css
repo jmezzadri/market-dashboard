@@ -82,6 +82,7 @@
 .wl-name span { font-family: var(--mt-type-sans); color: var(--tm-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wl-name:hover span { color: var(--tm-text); }
 .wl-mut { color: var(--tm-text-3); }
+.wl-foot { margin: 10px 0 0; font-family: var(--mt-type-sans); font-size: var(--v13-t2); color: var(--tm-text-3); }
 .wl-inline { font: inherit; font-family: var(--mt-type-sans); background: none; border: 0; padding: 0; cursor: text; color: var(--tm-text); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
 .wl-inline.empty { color: var(--tm-text-4); }
 .wl-inline.empty:hover { color: var(--tm-text-2); }

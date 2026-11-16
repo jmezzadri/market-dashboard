@@ -134,7 +134,12 @@ function buildColumns({ onRemove, onUpdate, paperDate, factorDate }) {
     signed('ret_1w', '1 week', 'Price and returns', 'Price change over the last 5 trading days.', { width: 74, hidden: true }),
     signed('ret_1m', '1 month', 'Price and returns', 'Price change over the last 21 trading days.', { width: 78 }),
     signed('ret_3m', '3 months', 'Price and returns', 'Price change over the last 63 trading days.', { width: 84, hidden: true }),
-    signed('ret_ytd', 'YTD', 'Price and returns', 'Price change since the last close of the previous calendar year.', { width: 72 }),
+    // A stock listed this year has no close at the end of last year; its YTD is
+    // measured from its first close and marked † (health sweep 2026-11-16: SPCX
+    // read "—" here while its own page showed "Since listing (Jun 12) -13.6%").
+    num('ret_ytd', 'YTD', 'Price and returns', 'Price change since the last close of the previous calendar year. A stock listed this year, marked †, is measured from its first close.',
+      (v, r) => (n(v) == null ? DASH : <>{pct(v)}{r.f?.ytd_from ? <span className="wl-mut" title={`Listed this year: change since its first close on ${day(r.f.ytd_from)}`}>†</span> : null}</>),
+      { width: 72, cellClass: (r) => sign(r.f?.ret_ytd) }),
     signed('ret_1y', '1 year', 'Price and returns', 'Price change over the last 252 trading days. Dividends are not included.', { width: 76, hidden: true }),
 
     signed('pct_from_high', 'From 52-wk high', 'Technicals', 'How far the last close sits below the highest price of the past year. Zero means it closed at the high.', { width: 118 }),
@@ -507,6 +512,11 @@ export default function WatchlistPage() {
               summary={summary}
               toolbarLeft={<span className="wl-hint">Click a heading to sort; hold Shift and click another to sort within it. Drag a heading to move a column, drag its right edge to resize, double-click the edge to fit.</span>}
             />
+          )}
+          {rows.some((r) => r.f?.ytd_from) && (
+            <p className="wl-foot">
+              † Listed this year, so YTD is the change since the first close: {rows.filter((r) => r.f?.ytd_from).map((r) => `${r.ticker} since ${day(r.f.ytd_from)}`).join(', ')}.
+            </p>
           )}
         </div>
       </section>

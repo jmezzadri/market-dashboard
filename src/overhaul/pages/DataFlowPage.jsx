@@ -995,7 +995,9 @@ export default function DataFlowPage() {
        — and "Research", the off-site Trade Idea run, as live pages). Any other
        consumer tab is listed under Workflows as "not a page", so no feed
        disappears from view, and only real pages are counted. */
-    const SURFACE_ORDER = ['home', 'overview', 'paper', 'scorecard', 'indicators', 'readme', 'ticker', 'admin'];
+    // 'watchlist' is a page since 2026-11-11 (/watchlist); it read "Watchlist —
+    // not a page" under Workflows until the 2026-11-16 health sweep.
+    const SURFACE_ORDER = ['home', 'overview', 'paper', 'scorecard', 'watchlist', 'indicators', 'readme', 'ticker', 'admin'];
     const PAGE_TABS = new Set([...SURFACE_ORDER, 'macro', 'methodology', 'data']);
     const sTiles = [];
     const offSite = [];

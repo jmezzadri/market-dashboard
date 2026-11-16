@@ -1423,6 +1423,16 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Senior Quant (the cut), Lead Developer, UX Designer (site-wide widgets).
 
+### 4.54 (2026-11-16, health sweep) — A fix on one page is a fix to the same figure on every page; and a page list in code is copy that goes stale
+
+**What happened:** (1) The 2026-11-11 fix (0.19 addendum) taught the stock page to show "Since listing (Jun 12) -13.6%" for SPCX, but the Watchlist read the same stock's YTD from `stock_facts`, which still computed close / last-year-end close - 1 and printed "—". Same stock, same figure, two answers. (2) The Data page listed the Watchlist under Workflows as "Watchlist — not a page" and counted 5 live surfaces: its `SURFACE_ORDER` list of real pages predates /watchlist (shipped 2026-11-11).
+
+**Fix:** `stock_facts_build()` measures YTD for a stock listed this year from its first close, when that close is within a week of the listing date, and stores the base date in the new column `ytd_from`; the Watchlist marks such a cell with † and names the date under the table (migration 20261116). `SURFACE_ORDER` includes `watchlist`.
+
+**Rule:** (1) When a figure's definition changes on one page, grep every other reader of that figure (here `ret_ytd`: stock page, Watchlist, stock_facts) and change them in the same PR. (2) Any hard-coded list of pages (nav, Methodology TOC, Data page surfaces, manifest tabs) is updated in the PR that adds a page — LESSONS 9.11 applies to additions as well as renames. Known and left: ~9,000 tickers (mostly small caps and funds) have no closes before April 2026, when the price panel widened from ~3,500 names, so their YTD and 1-year read "—" honestly; filling them needs a one-off history backfill.
+
+**Applies to:** Lead Developer, UX Designer — every page that shows a return; every list of pages.
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.
