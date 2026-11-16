@@ -1,91 +1,70 @@
 {
-  "generated_at": "2026-11-09T11:54:58Z",
+  "generated_at": "2026-11-16T11:49:05Z",
   "cadence": "weekly, Monday before the US open",
   "method": "Every Monday each open call is re-examined against the claims its note made. The numbers are computed from the record: where the call stands against what the note called for, how far the stop is, and a price-only range for where it can finish, drawn from the position's own recent volatility with no view assumed. The verdict is a judgment, stated with dated evidence: each claim the note relied on is re-measured and marked as holding or not, and the verdict has to follow from those marks. A broken thesis closes the call on the Scorecard from the review date. The return a note called for is written once and never changed.",
   "latest": {
-    "review_date": "2026-11-09",
-    "marked_to": "2026-11-07",
-    "scores_generated_at": "2026-11-07T18:05:17Z",
-    "book_now": "After this week's review the book holds four calls: the S&P 500 put against widening credit, long US energy stocks, long the yen and long US natural gas. Two reasons are fully in place and two are weakened. The put is the book's story: the index fell 4.9% from the entry close, more than the 3.2% the five earlier cases called for, and the put is worth about 38 a share against the 11.71 paid, a gain of about 225%, with three sessions to the planned close on Wednesday. We take half of that off now and let the rest run to the close. The energy call went the other way: oil fell 13% in a week on hopes of a negotiated end to the Iran war, the fund fell 12% and is 5.5% under entry, and the bond-yield half of its setup has handed back more than half of its rise, so we cut it to half size while oil is still expensive enough to keep the thesis alive. The yen call is flat with Tokyo still on the record as ready to act and the Bank of Japan leaning toward a December rise, and the gas call has delivered in the commodity, where gas is up 6% from entry and the oil-to-gas gap has closed from both ends as the note said, but the fund has given it all back to contract rolls and sits 8% under entry; we hold what is left of both. Credit and the put carry the most conviction this week, energy stocks the least. A reader holding the calls trims the put and the energy fund today and leaves the yen and gas positions as they are.",
+    "review_date": "2026-11-16",
+    "marked_to": "2026-11-14",
+    "scores_generated_at": "2026-11-14T18:49:03Z",
+    "book_now": "After this week's review the book holds three calls: long US energy stocks, long the yen and long US natural gas. The S&P 500 put reached its planned close on Wednesday and is off the book. One reason is fully in place and two are weakened; none is broken. The week's story was a hot US inflation report on Nov 10 that sent the 10-year Treasury yield from 4.86% back to 5.15% and the dollar to a 19-month high. That restored the bond-yield half of the energy call, whose fund rose 5.4% to sit level with entry, and it is why that call moves back to intact; we hold the half position and let the exit rule manage it. The same move hurt the yen call: dollar-yen broke out of its eight-week range and touched 160.30, Tokyo answered with words rather than money, and a New York Fed report showed the US share of the summer rescue was far smaller than advertised, so we now expect roughly a break-even finish and hold without adding. The gas call has done what it said in the commodity, with gas at 3.23 against a 3.05 target, and a 9% week brought the fund back to level with entry; with the gap it was built on mostly closed and four weeks left, we take half of what remains off. Energy stocks carry the most conviction this week, the yen the least. A reader holding the calls trims the gas fund today and leaves the energy and yen positions as they are.",
     "book_risk": {
       "pairs": [
         {
           "a": "Long US natural gas (UNG)",
+          "b": "Long Japanese yen via FXY",
+          "correlation": -0.14
+        },
+        {
+          "a": "Long US natural gas (UNG)",
           "b": "Long US energy stocks (XLE)",
-          "correlation": -0.06
-        },
-        {
-          "a": "Long US natural gas (UNG)",
-          "b": "Long Japanese yen via FXY",
-          "correlation": -0.19
-        },
-        {
-          "a": "Long US natural gas (UNG)",
-          "b": "Long SPY 773 put, Nov 13",
-          "correlation": -0.07
-        },
-        {
-          "a": "Long US energy stocks (XLE)",
-          "b": "Long Japanese yen via FXY",
-          "correlation": 0.03
-        },
-        {
-          "a": "Long US energy stocks (XLE)",
-          "b": "Long SPY 773 put, Nov 13",
-          "correlation": 0.14
+          "correlation": -0.04
         },
         {
           "a": "Long Japanese yen via FXY",
-          "b": "Long SPY 773 put, Nov 13",
-          "correlation": -0.02
+          "b": "Long US energy stocks (XLE)",
+          "correlation": 0.0
         }
       ],
       "flagged_pairs": [],
       "exposures": [
         {
           "trade_label": "Long US natural gas (UNG)",
-          "US equities": 0.2,
-          "10-year yield": 0.55,
-          "the dollar": 0.53
-        },
-        {
-          "trade_label": "Long US energy stocks (XLE)",
-          "US equities": -0.25,
-          "10-year yield": 0.63,
-          "the dollar": 0.04
+          "US equities": 0.45,
+          "10-year yield": 0.78,
+          "the dollar": -0.45
         },
         {
           "trade_label": "Long Japanese yen via FXY",
           "US equities": 0.01,
           "10-year yield": -0.35,
-          "the dollar": -1.11
+          "the dollar": -1.08
         },
         {
-          "trade_label": "Long SPY 773 put, Nov 13",
-          "US equities": -0.99,
-          "10-year yield": 0.0,
-          "the dollar": 0.41
+          "trade_label": "Long US energy stocks (XLE)",
+          "US equities": -0.15,
+          "10-year yield": 0.68,
+          "the dollar": 0.35
         }
       ],
       "book": {
-        "positions": 4,
-        "sigma_day_pct": 0.702,
-        "annualised_pct": 11.1,
+        "positions": 3,
+        "sigma_day_pct": 0.972,
+        "annualised_pct": 15.4,
         "range_21_sessions": {
-          "p10": -4.12,
-          "p90": 4.12
+          "p10": -5.71,
+          "p90": 5.71
         },
         "beta": {
-          "US equities": -0.26,
-          "10-year yield": 0.21,
-          "the dollar": -0.04
+          "US equities": 0.1,
+          "10-year yield": 0.37,
+          "the dollar": -0.39
         },
         "basis": "equal weight across the open calls, one unit each, trailing 63 sessions; a 21-session driftless range"
       },
       "note": "correlations are of daily mark changes over the trailing 63 sessions; exposure is the position's % move per 1% in equities or the dollar and per +10bp in the 10-year yield"
     },
     "counts": {
-      "intact": 2,
+      "intact": 1,
       "weakened": 2,
       "broken": 0
     },
@@ -99,29 +78,29 @@
         "horizon_months": 3,
         "horizon_label": "3 months",
         "verdict": "weakened",
-        "action": "hold",
+        "action": "trim",
         "called_for_pct": 7.6,
         "called_for_basis": "the note's base rate: median front-month gas gain over three months after an oil-to-gas ratio reading at or above the 95th percentile (42 episodes since 2004)",
-        "expected_return_now_pct": -9.0,
-        "expected_basis": "the note's full-sample median target of 3.05 is 1.7% above Friday's 2.998, and the fund gives back about that much again on the December-to-January contract roll later this month, so from 8% under entry we expect a finish of about 9% under entry",
-        "view_now": "The gap the note was built on has closed the way it said it would: oil fell 13% in the week on hopes of an end to the Iran war while gas rose to 3.00, up 6% from entry and within 2% of the target, and the ratio has come in from the 96th to the 92nd percentile. The fund has received none of it, sitting 8% under entry, because the two contract rolls since September cost more than the gas price gained. Funds still hold the largest short in three years and are adding to it, which is fuel for a sharp rise if the mild November forecast turns cold, and the exit is 18% away, so we do not call the thesis broken; but with the extreme mostly closed and another roll ahead we expect the call to finish about where it is, with roughly a one-in-four chance of getting back to even.",
-        "action_reason": "Hold what is left after last week's trim and do not add. The gas price has nearly reached the target the note set and every condition still holds, so the thesis is not broken; the record short in gas and an exit 18% away justify carrying the remainder to the planned close on Dec 11, where a cold turn is the only route back to even",
-        "weakened_reason": "The thesis has largely played out in the commodity and the fund has not received it. Front-month gas is up 6% from entry at 2.998, within 2% of the 3.05 target, and the oil-to-gas gap has closed from the 96th to the 92nd percentile from both ends, but the fund the reader holds is 8% under entry because the November and December contract rolls cost it more than the gas price gained. With the gap now under the 95th-percentile line the edge was measured from, the remaining expected gas move is small and another contract roll lies ahead before the planned close",
+        "expected_return_now_pct": -1.0,
+        "expected_basis": "gas is already above the note's 3.05 target and the gap is under the line the edge was measured from, so we credit no further gain in gas over the four weeks left; a flat gas price costs the fund a little on the contract roll before Dec 11, so from level with entry we expect a finish about 1% under entry",
+        "view_now": "The call worked in the commodity: gas is up 15% from entry and through the target, oil is down 11%, and the gap between them has mostly closed, as the note said it would. A cold snap and record export demand lifted gas 8% this week and brought the fund from 8% under entry back to level. From here there is little of the original edge left to collect: the gap is no longer extreme, forecasts turn milder late in the month, and the fund pays for another contract roll before Dec 11. We expect it to finish about where it is, slightly under entry.",
+        "action_reason": "Take off half of what is left. The gas price has passed the target the note set and this week's rally has returned the fund to level with entry, which is the best exit the fund has offered since October; we keep the other half to the planned close on Dec 11 because the exit level is 24% away, export demand is at a record and funds were still record short in the last report, so a cold December could still pay",
+        "weakened_reason": "Every line holds, and the thesis is weakened because it has largely been used up rather than because it failed. Gas has passed the note's 3.05 target and the oil-to-gas gap has come in from the 96th to the 87th percentile, well under the line the edge was measured from, so the history behind the call says little about the next four weeks. The fund is only back to level with entry, because the autumn contract rolls cost it roughly what the gas price gained, and another roll falls before the planned close",
         "driver_checks": [
           {
             "claim": "The oil-to-gas price ratio was at an extreme, and such extremes close from both ends: gas up, oil flat to down.",
             "at_publication": "35.5 on Sep 11, the 96th percentile of readings since 2000",
-            "now": "30.3 at Friday's close, the 92nd percentile, from 35.9 a week earlier. The gap closed from both ends exactly as the note said: US crude fell 13% in the week to $90.83 and front-month gas rose to 2.998, up 6% from the 2.82 at entry and within 2% of the note's 3.05 target. The reading is now below the 95th-percentile line the edge was measured from, so the extreme the call rests on has mostly closed",
+            "now": "27.4 at Friday's close, the 87th percentile, from 30.3 a week earlier. The gap has closed from both ends as the note said: front-month gas is 3.23, up 15% from the 2.82 at entry and above the note's 3.05 target, and US crude is $88.56, down 11% from entry. The reading is now well below the 95th-percentile line the edge was measured from, so most of the extreme the call rests on is gone",
             "source": "macrotilt.com indicator history (US crude and front-month natural gas)",
-            "as_of": "2026-11-06",
+            "as_of": "2026-11-13",
             "holds": true,
             "critical": true
           },
           {
             "claim": "Managed money is short gas at an extreme: the short is extended, not fresh.",
             "at_publication": "8th percentile of three years, six weeks running",
-            "now": "1st percentile of three years, net short 15.4% of open interest, the largest short in the three-year record and still growing from 15.2% a week earlier; funds have not begun to buy back",
-            "source": "CFTC positioning via macrotilt.com (Nov 3 report)",
+            "now": "1st percentile of three years, net short 15.4% of open interest, the largest short in the three-year record, in the latest published report; that report predates this week's 8% rise in gas, so some of the short has probably been bought back since",
+            "source": "CFTC positioning via macrotilt.com (Nov 3 report, the latest published)",
             "as_of": "2026-11-03",
             "holds": true,
             "critical": false
@@ -129,158 +108,61 @@
           {
             "claim": "No weekly close in front-month gas below 2.45.",
             "at_publication": "2.82 on Sep 11",
-            "now": "2.998 at Friday's close on the December contract, the highest close in three weeks; the exit level is 18% below the market, and a fall of that size over the sessions left has happened about 16% of the time in the series' own history. Storage is about 1.4% above the five-year average and the November weather outlook is mild",
-            "source": "macrotilt.com indicator history (front-month natural gas); Natural Gas Intelligence weekly report (Nov 6)",
-            "as_of": "2026-11-06",
+            "now": "3.23 at Friday's close, after 3.34 on Thursday, the week's high; the exit level is 24% below the market, and a fall of that size over the sessions left has happened about 5% of the time in the series' own history. Storage was 2.0% above the five-year average in the report for the week to Nov 6, exports of liquefied gas ran at a record, and an early cold spell hit the Northeast, though some forecasts turn milder after Nov 20",
+            "source": "macrotilt.com indicator history (front-month natural gas); Premier Energy Management market report, Nov 13 (government storage report of Nov 12)",
+            "as_of": "2026-11-13",
             "holds": true,
             "critical": false
           }
         ],
         "called_for_restated": null,
         "quant": {
-          "mark_pct": -8.0629,
-          "mark_date": "2026-11-06",
+          "mark_pct": -0.1967,
+          "mark_date": "2026-11-13",
           "entry_date": "2026-09-11",
           "target_date": "2026-12-11",
-          "sessions_held": 41,
-          "vs_spx_pp": -4.4045,
+          "sessions_held": 46,
+          "vs_spx_pp": 1.048,
           "max_favourable_pct": 13.5693,
           "max_adverse_pct": -11.5044,
-          "sessions_left": 24,
-          "horizon_elapsed_pct": 61.9,
+          "sessions_left": 19,
+          "horizon_elapsed_pct": 69.8,
           "vol": {
-            "sigma_day_pct": 2.313,
+            "sigma_day_pct": 2.558,
             "sessions_used": 63,
-            "annualised_pct": 36.72,
+            "annualised_pct": 40.61,
             "at_entry_annualised_pct": 58.309,
-            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-11-06"
+            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-11-13"
           },
           "range_at_horizon": {
-            "p10": -22.58,
-            "p25": -15.71,
-            "p50": -8.06,
-            "p75": -0.42,
-            "p90": 6.46,
-            "width_pct": 11.331,
+            "p10": -14.49,
+            "p25": -7.72,
+            "p50": -0.2,
+            "p75": 7.32,
+            "p90": 14.09,
+            "width_pct": 11.15,
             "basis": "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"
           },
-          "p_finish_positive": 0.238,
+          "p_finish_positive": 0.493,
           "called_for_pct": 7.6,
-          "p_finish_at_or_above_called_for": 0.083,
-          "remaining_to_called_for_pct": 15.66,
+          "p_finish_at_or_above_called_for": 0.242,
+          "remaining_to_called_for_pct": 7.8,
           "stop": {
             "series": "cmdty_natgas",
             "label": "front-month gas",
             "rule": "cmdty_natgas <= 2.45 (weekly close)",
             "level": 2.45,
-            "now": 2.998,
-            "as_of": "2026-11-06",
-            "distance": 0.548,
-            "distance_pct_of_level": 22.37,
+            "now": 3.23,
+            "as_of": "2026-11-13",
+            "distance": 0.78,
+            "distance_pct_of_level": 31.84,
             "units": "proportional (%)",
-            "sigma_day": 2.71559,
-            "sigmas_away": 6.73,
+            "sigma_day": 2.92532,
+            "sigmas_away": 8.26,
             "basis": "weekly_close",
-            "p_touch_before_horizon": 0.16,
-            "p_touch_windows": 6554,
-            "p_touch_note": "share of the series' own 6554 past windows of 24 sessions in which it moved at least this far down, on closes; the rule needs a weekly close, which fires less often"
-          }
-        }
-      },
-      {
-        "id": "2026-10-09-yields-and-oil-are-surging-together-energy-stock",
-        "date": "2026-10-09",
-        "kind": "equity",
-        "trade_label": "Long US energy stocks (XLE)",
-        "title": "Yields and oil are surging together. Energy stocks gained after that in 7 of 8 cases.",
-        "horizon_months": 6,
-        "horizon_label": "6 months",
-        "verdict": "weakened",
-        "action": "trim",
-        "called_for_pct": 10.1,
-        "called_for_basis": "the note's expected return: the average fund return over six months in the eight earlier cases, with the 10% weekly-close exit applied",
-        "expected_return_now_pct": -2.0,
-        "expected_basis": "the note's two cases with oil above $90 averaged +6.7%, but both had the bond-yield leg still rising, which this call no longer has, so we credit none of the eight-case average; from 5.5% under entry we weigh a recovery toward entry if the Iran talks fail against a close near the exit 10% under entry if a deal takes oil under about $83, and the two roughly balance to a finish about 2% under entry",
-        "view_now": "The reason for the call is weaker than at any point since it was made. Oil is still expensive, at the 87th percentile of three years, but it fell 13% in a week on reports of a draft proposal to end the Iran war even though no deal exists and attacks on shipping in the Strait of Hormuz continued; the bond-yield half of the setup has given back more than half of its rise. The fund fell 12% in the week to 61.62, 5.5% under entry and 4.9% above its exit, and the broad market fell with it. We no longer expect the call to finish ahead: with the yield leg gone we stop crediting the eight-case average, and if a deal takes oil under about $83 the thesis breaks and the call most likely ends near the exit 10% under entry; if talks fail and oil holds above $90, the fund can recover toward entry.",
-        "action_reason": "Cut the position to half size. The move the call was built on in bond yields has handed back more than half of itself, the critical oil condition is one headline from breaking, and the fund is within 5% of its exit with a 64% base-rate chance of a move that size over the sessions left; we keep half because oil is still at the 87th percentile and the war has not ended, so the exit rule, not our view, decides the rest",
-        "weakened_reason": "Every line still holds, but half of the setup is gone and the other half is moving the wrong way. The note's cause was bond yields and oil surging together: the 10-year yield has handed back 56% of the rise the note was built on, and the daily check has flagged that since Oct 30. Oil, the critical half, fell 13% in the week on hopes of a negotiated end to the war and is now 9% above the line that would break the call. The fund fell 12% in the week to 61.62, 5.5% under entry and within 5% of its exit; over the sessions left, a move of that size down has happened about 64% of the time in the fund's own history",
-        "driver_checks": [
-          {
-            "claim": "Oil remains expensive relative to its recent range: US crude in the top fifth of its three-year range.",
-            "at_publication": "93rd percentile of three years, $96.24 on Oct 6",
-            "now": "87th percentile of three years, $90.83 at Friday's close, down 13% in the week from $104.12 on Oct 30 after reports of a draft proposal to end the Iran war and Democratic wins in the midterms; Brent fell 16% to $98.32. The line that would undo the call is the 80th percentile, about $83, now 9% below the market. No deal has been announced and attacks on shipping in the Strait of Hormuz continued through the week",
-            "source": "macrotilt.com indicator history (US crude, West Texas Intermediate; Brent); OilPrice.com weekly report, Nov 6; Global Oil Shock week 45 report, Nov 4",
-            "as_of": "2026-11-06",
-            "holds": true,
-            "critical": true
-          },
-          {
-            "claim": "Energy stocks are in an uptrend: the fund closes the week above its 200-day average.",
-            "at_publication": "65.24 against a 200-day average of 56.95 on Oct 8",
-            "now": "closed Friday at 61.62 against a 200-day average of 59.13, about 4% above it, after falling 12% in the week from 70.02 on Oct 30; the fund is 5.5% under the entry close and 4.9% above the exit level of 58.72",
-            "source": "MacroTilt end-of-day prices (XLE)",
-            "as_of": "2026-11-06",
-            "holds": true,
-            "critical": false
-          },
-          {
-            "claim": "Bond yields have not collapsed: the 10-year Treasury yield stays at or above 4.75%.",
-            "at_publication": "5.22% on Oct 8",
-            "now": "4.86% at Friday's close, from 4.94% a week earlier and 11 basis points above the line that would undo the call. The rise the note was built on, from 4.56% on Jul 10 to 5.24% on Oct 9, has now given back 56% of itself, past the one-third limit, and the daily check has kept the call tripped since Oct 30",
-            "source": "macrotilt.com indicator history (Treasury daily yield curve); macrotilt.com daily thesis check",
-            "as_of": "2026-11-06",
-            "holds": true,
-            "critical": false
-          }
-        ],
-        "called_for_restated": null,
-        "quant": {
-          "mark_pct": -5.5487,
-          "mark_date": "2026-11-06",
-          "entry_date": "2026-10-08",
-          "target_date": "2027-04-08",
-          "sessions_held": 22,
-          "vs_spx_pp": -0.5457,
-          "max_favourable_pct": 7.3268,
-          "max_adverse_pct": -5.5487,
-          "sessions_left": 106,
-          "horizon_elapsed_pct": 15.9,
-          "vol": {
-            "sigma_day_pct": 1.5206,
-            "sessions_used": 63,
-            "annualised_pct": 24.14,
-            "at_entry_annualised_pct": 22.103,
-            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-11-06"
-          },
-          "range_at_horizon": {
-            "p10": -25.61,
-            "p25": -16.11,
-            "p50": -5.55,
-            "p75": 5.01,
-            "p90": 14.51,
-            "width_pct": 15.656,
-            "basis": "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"
-          },
-          "p_finish_positive": 0.362,
-          "called_for_pct": 10.1,
-          "p_finish_at_or_above_called_for": 0.159,
-          "remaining_to_called_for_pct": 15.65,
-          "stop": {
-            "series": "ticker:XLE",
-            "label": "XLE",
-            "rule": "ticker:XLE <= 58.72 (weekly close)",
-            "level": 58.72,
-            "now": 61.62,
-            "as_of": "2026-11-06",
-            "distance": 2.9,
-            "distance_pct_of_level": 4.94,
-            "units": "proportional (%)",
-            "sigma_day": 1.50952,
-            "sigmas_away": 3.12,
-            "basis": "weekly_close",
-            "p_touch_before_horizon": 0.638,
-            "p_touch_windows": 6906,
-            "p_touch_note": "share of the series' own 6906 past windows of 106 sessions in which it moved at least this far down, on closes; the rule needs a weekly close, which fires less often"
+            "p_touch_before_horizon": 0.053,
+            "p_touch_windows": 6564,
+            "p_touch_note": "share of the series' own 6564 past windows of 19 sessions in which it moved at least this far down, on closes; the rule needs a weekly close, which fires less often"
           }
         }
       },
@@ -292,185 +174,189 @@
         "title": "The record yen rescue looks dead. So did the last three at exactly this point.",
         "horizon_months": 4,
         "horizon_label": "4 months",
-        "verdict": "intact",
+        "verdict": "weakened",
         "action": "hold",
         "called_for_pct": 6.0,
         "called_for_basis": "the note's target: 147 on dollar-yen by late January 2027, the median months-two-to-six move applied from 157.34, roughly +6% on the fund",
-        "expected_return_now_pct": 4.0,
-        "expected_basis": "the median move of the three earlier campaigns, 6.9% on dollar-yen or about 6% on the fund, less the 0.7% already given up and a haircut for 38% of the window having passed with the move not begun; a quarter of the pattern's four-month window is now unavailable to it",
-        "view_now": "The driver is in place and nothing has moved against it: Tokyo repeated on Nov 2 that it is ready to act against disorderly moves, the minutes of the Bank of Japan's September meeting lean toward a December rate rise, and dollar-yen has spent eight weeks in a 156.5 to 158.6 range, closing Friday at 157.50, about where the call started. Price has done nothing in either direction: the fund is 0.7% under entry with 38% of the horizon gone and the move the pattern calls for not yet begun. We still expect the call to pan out, because in all three earlier campaigns the real move came in months two to six and this one is in month four of the campaign, but we shade the expected finish a little for the time that has passed with no start.",
-        "action_reason": "Leave the position as it is. The campaign stands, the Bank of Japan is leaning toward a December rise, speculators have not run ahead of the move, and the exit is 4% away; there is no new fact against the call, only the passage of time, which the pattern allows for",
-        "weakened_reason": null,
+        "expected_return_now_pct": 0.5,
+        "expected_basis": "three outcomes weighed: about a one-in-two chance that Tokyo acts or the Bank of Japan's December rise turns the yen and the fund finishes about 3% ahead, a shortened version of the three earlier campaigns' median; about a one-in-three chance of a weekly close above 164, which ends the call about 4% under entry; and the rest a flat finish near today's 1.4% under entry. Together about half a per cent ahead, down from 4% a week ago",
+        "view_now": "The campaign has not been withdrawn, but it is being tested and so far defended only with words. Dollar-yen broke its two-month range on the back of higher US yields and sits at 159.56, inside the 160 to 164 zone where Tokyo spent money in July and August; the note said a push into that zone was expected to draw action, and this week will show whether it does. With 43% of the horizon gone, the yen 1.4% weaker than at entry and the US backing shown to be thin, we no longer expect the 6% the note called for. We see roughly even odds between Tokyo acting and the pattern playing out late, and a weekly close above 164 that ends the call, which nets to about break-even.",
+        "action_reason": "Leave the position as it is and do not add. The note treated a push into the 160 to 164 zone as the place the authorities act, the campaign has not been withdrawn and a December rate rise in Japan is increasingly expected, so the thesis is not broken; but the US backing has turned out thin and the exit is under 3% away, so the weekly-close rule at 164 decides it from here rather than more of our money",
+        "weakened_reason": "Every line still holds, but the week moved against the call on two fronts. Price: a hot US inflation report lifted the dollar to a 19-month high and dollar-yen broke out of its eight-week range to 160.30, leaving the exit 2.8% away instead of 4.1%, with the base-rate chance of reaching it up from about 30% to about 44%. The driver itself: Tokyo answered the break with warnings rather than yen buying, and the New York Fed's report showed the US put only about $0.5 billion into the summer campaign, which makes the joint action the note leaned on a weaker deterrent than it looked",
         "driver_checks": [
           {
             "claim": "An official yen-buying campaign is under way and the authorities have not stepped back from their stated readiness to act.",
             "at_publication": "Record 15.4 trillion yen campaign begun Jul 30 with the United States; finance minister pledged further coordinated action on Aug 3",
-            "now": "No retraction: on Monday Nov 2 Japan's finance minister said again that the government is ready to respond to disorderly moves in the currency market whenever necessary. The Bank of Japan held its rate at 1.25% on Oct 30, and the minutes of its September meeting published this week showed members arguing for further rises, which the market reads as a December increase; strong US jobs data on Friday lifted the dollar",
-            "source": "The Japan Times and Bloomberg reports of the finance minister's remarks (Nov 2); Bank of Japan decision (Oct 30) and September meeting minutes (published Nov 5)",
-            "as_of": "2026-11-06",
+            "now": "No retraction, but words only: on Nov 12 Japan's top currency official said the yen's fall was too rapid and that it was too early to forget the summer, and on Nov 13 the finance minister said one-sided, sharp moves were emerging and Japan would respond appropriately with the US Treasury. No yen buying has been reported since Aug 3. A New York Fed report in the week showed the US share of the summer campaign was about $0.5 billion, far below the up to $10 billion the Treasury Secretary had hinted at. Markets increasingly expect the Bank of Japan to raise its rate in December",
+            "source": "Reuters, Nov 12-13 (finance minister and currency official remarks; New York Fed report); Seoul Economic Daily, Nov 14",
+            "as_of": "2026-11-13",
             "holds": true,
             "critical": true
           },
           {
             "claim": "The pattern is a month-two retest followed by the real move in months two to six; this call entered at the retest.",
             "at_publication": "Dollar-yen 157.34 on Sep 22, within 2% of the level where the buying began",
-            "now": "seven weeks in, dollar-yen read 157.50 on Friday, after trading between 157.68 and 158.47 during the week; the range of the past eight weeks, 156.5 to 158.6, is intact and the move the pattern calls for has not started. The fund is 0.7% under entry with 52 sessions to the planned close. Speculators hold a long yen position at the 84th percentile of three years, little changed from a week earlier",
-            "source": "macrotilt.com indicator history (dollar-yen); CFTC positioning via macrotilt.com (Nov 3 report)",
-            "as_of": "2026-11-06",
+            "now": "eight weeks in, the move has not started and the retest has gone further: dollar-yen broke above the 156.5 to 158.6 range of the past eight weeks, touched 160.30 on Nov 12, the weakest yen since early September, and closed Friday at 159.56, 1.4% above the level at entry. The campaign is in its fourth month, so the window the pattern allows runs to the end of January and is still open. The fund is 1.4% under entry with 48 sessions to the planned close. Speculators held a long yen position at the 83rd percentile of three years in the latest report, which predates this week's fall",
+            "source": "macrotilt.com indicator history (dollar-yen); MacroTilt end-of-day prices (FXY); CFTC positioning via macrotilt.com (Nov 3 report, the latest published)",
+            "as_of": "2026-11-13",
             "holds": true,
             "critical": false
           },
           {
             "claim": "No weekly close in dollar-yen above 164, the July 28 weak point.",
             "at_publication": "157.34 on Sep 22",
-            "now": "157.50 on Friday; the exit level is 4.1% away, and over the sessions left a move of that size up has happened about 30% of the time in the series' own history",
+            "now": "159.56 on Friday; the exit level is 2.8% away, down from 4.1% a week ago, and over the sessions left a move of that size up has happened about 44% of the time in the series' own history",
             "source": "macrotilt.com indicator history (dollar-yen)",
-            "as_of": "2026-11-06",
+            "as_of": "2026-11-13",
             "holds": true,
             "critical": false
           }
         ],
         "called_for_restated": null,
         "quant": {
-          "mark_pct": -0.7045,
-          "mark_date": "2026-11-06",
+          "mark_pct": -1.4089,
+          "mark_date": "2026-11-13",
           "entry_date": "2026-09-21",
           "target_date": "2027-01-21",
-          "sessions_held": 35,
-          "vs_spx_pp": 4.2904,
+          "sessions_held": 40,
+          "vs_spx_pp": 1.2059,
           "max_favourable_pct": 0.4124,
-          "max_adverse_pct": -0.8935,
-          "sessions_left": 52,
-          "horizon_elapsed_pct": 38.1,
+          "max_adverse_pct": -1.6151,
+          "sessions_left": 48,
+          "horizon_elapsed_pct": 42.9,
           "vol": {
-            "sigma_day_pct": 0.4916,
+            "sigma_day_pct": 0.5082,
             "sessions_used": 63,
-            "annualised_pct": 7.8,
+            "annualised_pct": 8.07,
             "at_entry_annualised_pct": null,
-            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-11-06"
+            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-11-13"
           },
           "range_at_horizon": {
-            "p10": -5.25,
-            "p25": -3.1,
-            "p50": -0.7,
-            "p75": 1.69,
-            "p90": 3.84,
-            "width_pct": 3.545,
+            "p10": -5.92,
+            "p25": -3.78,
+            "p50": -1.41,
+            "p75": 0.97,
+            "p90": 3.1,
+            "width_pct": 3.521,
             "basis": "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"
           },
-          "p_finish_positive": 0.421,
+          "p_finish_positive": 0.345,
           "called_for_pct": 6.0,
-          "p_finish_at_or_above_called_for": 0.029,
-          "remaining_to_called_for_pct": 6.7,
+          "p_finish_at_or_above_called_for": 0.018,
+          "remaining_to_called_for_pct": 7.41,
           "stop": {
             "series": "fx_jpy",
             "label": "dollar-yen",
             "rule": "fx_jpy >= 164 (weekly close)",
             "level": 164.0,
-            "now": 157.498,
-            "as_of": "2026-11-06",
-            "distance": 6.502,
-            "distance_pct_of_level": 3.96,
+            "now": 159.56,
+            "as_of": "2026-11-13",
+            "distance": 4.44,
+            "distance_pct_of_level": 2.71,
             "units": "proportional (%)",
-            "sigma_day": 0.47905,
-            "sigmas_away": 8.62,
+            "sigma_day": 0.49409,
+            "sigmas_away": 5.63,
             "basis": "weekly_close",
-            "p_touch_before_horizon": 0.305,
-            "p_touch_windows": 7733,
-            "p_touch_note": "share of the series' own 7733 past windows of 52 sessions in which it moved at least this far up, on closes; the rule needs a weekly close, which fires less often"
+            "p_touch_before_horizon": 0.442,
+            "p_touch_windows": 7742,
+            "p_touch_note": "share of the series' own 7742 past windows of 48 sessions in which it moved at least this far up, on closes; the rule needs a weekly close, which fires less often"
           }
         }
       },
       {
-        "id": "2026-10-22-credit-broke-first-the-s-p-500-has-two-weeks-to-",
-        "date": "2026-10-22",
-        "kind": "cross-asset",
-        "trade_label": "Long SPY 773 put, Nov 13",
-        "title": "Credit spreads widening, S&P 500 likely to close the gap",
-        "horizon_months": 0.69,
-        "horizon_label": "3 weeks",
+        "id": "2026-10-09-yields-and-oil-are-surging-together-energy-stock",
+        "date": "2026-10-09",
+        "kind": "equity",
+        "trade_label": "Long US energy stocks (XLE)",
+        "title": "Yields and oil are surging together. Energy stocks gained after that in 7 of 8 cases.",
+        "horizon_months": 6,
+        "horizon_label": "6 months",
         "verdict": "intact",
-        "action": "trim",
-        "called_for_pct": 109.0,
-        "called_for_basis": "the note's expected return on the put, restated on Oct 29 when the Scorecard was corrected to mark the SPY 773 put the note told the reader to buy instead of the index: the put's modelled value if the S&P 500 falls the median 3.2% of the five cases by the planned close on Nov 11, about 24.5 a share against the 11.71 premium (+109%). Frozen at +3.2% on the index on Oct 26, before the correction",
-        "expected_return_now_pct": 225.0,
-        "expected_basis": "the put's value at Friday's close, about 38 a share against the 11.71 paid: with the index already 4.9% under entry, past the 3.2% median fall of the five cases, and only three sessions left, the no-view range centres on where it stands now",
-        "view_now": "Both conditions hold and the call has done what it said: credit is at its widest since the move began at 348 basis points, and the S&P 500 fell 4.4% on Thursday to 7,377, which puts it 4.9% under the entry close after thirteen of the sixteen sessions, past the 3.2% median fall of the five earlier cases. The put the note told the reader to buy is worth about 38 a share against the 11.71 paid, a gain of about 225%, with three sessions to the planned close on Wednesday and the exit level 6% away. From here the put is 5% in the money, so the most likely finish is about where it stands; a 2% bounce in the index before Wednesday would still leave it roughly doubled, while a further fall adds about 7 a share for each 1% the index loses.",
-        "action_reason": "Take half the position off now and let the rest run to the planned close on Wednesday. The thesis has delivered more than the note called for, the gain is about 225% on the premium, and the three sessions left hold Tuesday's inflation report and a bounce risk after the worst day in nineteen months; halving locks in roughly the whole of what the note called for while keeping the rest on for the exit the scorer records",
+        "action": "hold",
+        "called_for_pct": 10.1,
+        "called_for_basis": "the note's expected return: the average fund return over six months in the eight earlier cases, with the 10% weekly-close exit applied",
+        "expected_return_now_pct": 4.0,
+        "expected_basis": "oil is now in the top fifth of its three-year range rather than the top tenth, and the note's own test of that looser condition gave an average of +5.6% over six months across 12 cases; scaled to the four-fifths of the horizon still ahead that is about +4.5%, less the 0.4% the fund is under entry, for a finish about 4% ahead",
+        "view_now": "Both halves of the setup are back in place. The bond-yield half, which had handed back more than half of its rise a week ago, was restored by a hot inflation report: the 10-year yield is at 5.15%, within a tenth of a point of where the note was written. Oil slipped another 2.5% but is still at the 85th percentile of three years, and the peace hopes that drove the prior week's fall have faded. The fund rose 5.4% in the week to sit level with entry, with the exit now more than 10% away. We expect the call to finish ahead, though by less than the note called for, because oil is in the top fifth of its range rather than the top tenth the strongest cases had.",
+        "action_reason": "Hold the half position left after last week's cut and do not rebuild it yet. Every condition holds and the yield half of the setup is restored, but oil is only 6% above the line that would break the call and one headline on Iran can cover that distance; a second week with oil holding above about $83.50 is the case for going back to full size",
         "weakened_reason": null,
         "driver_checks": [
           {
-            "claim": "Credit remains wider than before the move began: the high-yield spread stays at or above 300 basis points.",
-            "at_publication": "333 basis points on Oct 20; 267 on Sep 8 when the move began",
-            "now": "348 basis points on Thursday Nov 5, the latest published day, the widest reading since the move began and 81 points above where it started; none of the move has been given back. Investment-grade spreads 93 basis points, from 87 at publication. Friday's figure is not yet published",
-            "source": "macrotilt.com indicator history (ICE BofA US high-yield and investment-grade spreads); macrotilt.com daily thesis check",
-            "as_of": "2026-11-05",
+            "claim": "Oil remains expensive relative to its recent range: US crude in the top fifth of its three-year range.",
+            "at_publication": "93rd percentile of three years, $96.24 on Oct 6",
+            "now": "85th percentile of three years, $88.56 at Friday's close, down 2.5% in the week after the 13% fall the week before. The line that would undo the call is the 80th percentile, about $83.50, now 6% below the market. Hopes of a negotiated end to the Iran war faded: the President said on Thursday that no deal with Iran is needed, and October saw the most attacks on commercial ships in the Gulf since the war began, with more ships hit this week",
+            "source": "macrotilt.com indicator history (US crude, West Texas Intermediate); Bloomberg via Rigzone, Nov 13; Reuters via RTE, Nov 13",
+            "as_of": "2026-11-13",
             "holds": true,
             "critical": true
           },
           {
-            "claim": "The index has not made a new record close: no S&P 500 close above 7,818.",
-            "at_publication": "7,757.17 on Oct 21, 0.8% under the Oct 6 record of 7,818.93",
-            "now": "7,376.86 at Friday's close, 4.9% below the entry close, after a 4.4% fall on Thursday Nov 5, the worst day since April 2025, led by chip and AI stocks; the highest close since entry was 7,743.98 on Oct 28, still under the record. The exit level is 6% above the market",
-            "source": "macrotilt.com indicator history (S&P 500 daily closes); Associated Press market report, Nov 5",
-            "as_of": "2026-11-06",
+            "claim": "Energy stocks are in an uptrend: the fund closes the week above its 200-day average.",
+            "at_publication": "65.24 against a 200-day average of 56.95 on Oct 8",
+            "now": "closed Friday at 64.96 against a 200-day average of 59.47, about 9% above it, up 5.4% in the week from 61.62; the fund is 0.4% under the entry close and 10.6% above the exit level of 58.72",
+            "source": "MacroTilt end-of-day prices (XLE)",
+            "as_of": "2026-11-13",
+            "holds": true,
+            "critical": false
+          },
+          {
+            "claim": "Bond yields have not collapsed: the 10-year Treasury yield stays at or above 4.75%.",
+            "at_publication": "5.22% on Oct 8",
+            "now": "5.15% at Friday's close, up from 4.86% a week earlier after October consumer prices rose 0.4% on the month, above forecasts, and markets priced a Federal Reserve rate rise in December. The rise the note was built on, from 4.56% on Jul 10 to 5.24% on Oct 9, has now given back only 13% of itself, inside the one-third limit, and the daily check no longer flags the call",
+            "source": "macrotilt.com indicator history (Treasury daily yield curve); macrotilt.com daily thesis check, Nov 14; Seoul Economic Daily, Nov 14 (inflation report of Nov 10)",
+            "as_of": "2026-11-13",
             "holds": true,
             "critical": false
           }
         ],
-        "called_for_restated": {
-          "from_pct": 3.2,
-          "fixed_on": "2026-10-26",
-          "note_corrected_at": "2026-10-30",
-          "reason": "the note was corrected onto a different vehicle after the first review; the figure follows the note's restated expected return in the new units"
-        },
+        "called_for_restated": null,
         "quant": {
-          "mark_pct": 224.8811,
-          "mark_date": "2026-11-06",
-          "entry_date": "2026-10-21",
-          "target_date": "2026-11-11",
-          "sessions_held": 13,
-          "vs_spx_pp": 229.7838,
-          "max_favourable_pct": 248.565,
-          "max_adverse_pct": -10.6912,
-          "sessions_left": 3,
-          "horizon_elapsed_pct": 78.6,
-          "option": {
-            "structure": "put",
-            "underlying": "SPY",
-            "strike": 773.0,
-            "expiry": "2026-11-13",
-            "premium": 11.7143,
-            "premium_basis": "modelled at the entry close: put struck 773 on 773.09, vix 16.68, rate 4.81%, 23 days to expiry",
-            "iv_series": "vix",
-            "underlying_close": 735.29,
-            "underlying_as_of": "2026-11-06",
-            "iv_pct": 25.64,
-            "value_per_share": 38.0574,
-            "intrinsic_per_share": 37.71,
-            "days_to_expiry": 7,
-            "state": "open — 7 days to expiry"
+          "mark_pct": -0.4292,
+          "mark_date": "2026-11-13",
+          "entry_date": "2026-10-08",
+          "target_date": "2027-04-08",
+          "sessions_held": 27,
+          "vs_spx_pp": 2.1939,
+          "max_favourable_pct": 7.3268,
+          "max_adverse_pct": -5.5487,
+          "sessions_left": 101,
+          "horizon_elapsed_pct": 19.8,
+          "vol": {
+            "sigma_day_pct": 1.5335,
+            "sessions_used": 63,
+            "annualised_pct": 24.34,
+            "at_entry_annualised_pct": 22.103,
+            "basis": "standard deviation of the position's one-session mark changes over the trailing 63 sessions to 2026-11-13"
           },
-          "range_at_horizon": null,
-          "note": "option idea: marked as the option the note named, valued from the underlying's close; the premium is the most it can lose",
-          "called_for_pct": 109.0,
-          "remaining_to_called_for_pct": -115.88,
+          "range_at_horizon": {
+            "p10": -20.18,
+            "p25": -10.82,
+            "p50": -0.43,
+            "p75": 9.97,
+            "p90": 19.32,
+            "width_pct": 15.411,
+            "basis": "driftless: finish = mark now + sigma x sqrt(sessions left) x Z; price only, no view"
+          },
+          "p_finish_positive": 0.489,
+          "called_for_pct": 10.1,
+          "p_finish_at_or_above_called_for": 0.247,
+          "remaining_to_called_for_pct": 10.53,
           "stop": {
-            "series": "spx_index",
-            "label": "the S&P 500",
-            "rule": "spx_index > 7818 (close)",
-            "level": 7818.0,
-            "now": 7376.86,
-            "as_of": "2026-11-06",
-            "distance": 441.14,
-            "distance_pct_of_level": 5.64,
+            "series": "ticker:XLE",
+            "label": "XLE",
+            "rule": "ticker:XLE <= 58.72 (weekly close)",
+            "level": 58.72,
+            "now": 64.96,
+            "as_of": "2026-11-13",
+            "distance": 6.24,
+            "distance_pct_of_level": 10.63,
             "units": "proportional (%)",
-            "sigma_day": 0.85482,
-            "sigmas_away": 7.0,
-            "basis": "close",
-            "p_touch_before_horizon": 0.006,
-            "p_touch_windows": 5242,
-            "p_touch_note": "share of the series' own 5242 past windows of 3 sessions in which it moved at least this far up, on closes"
+            "sigma_day": 1.52194,
+            "sigmas_away": 6.31,
+            "basis": "weekly_close",
+            "p_touch_before_horizon": 0.378,
+            "p_touch_windows": 6916,
+            "p_touch_note": "share of the series' own 6916 past windows of 101 sessions in which it moved at least this far down, on closes; the rule needs a weekly close, which fires less often"
           }
         }
       }
@@ -789,6 +675,52 @@
           "called_for_pct": 109.0,
           "expected_return_now_pct": 100.0,
           "mark_pct": 81.4141,
+          "p_finish_at_or_above_called_for": null
+        }
+      ]
+    },
+    {
+      "review_date": "2026-11-09",
+      "marked_to": "2026-11-07",
+      "calls": [
+        {
+          "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
+          "trade_label": "Long US natural gas (UNG)",
+          "verdict": "weakened",
+          "action": "hold",
+          "called_for_pct": 7.6,
+          "expected_return_now_pct": -9.0,
+          "mark_pct": -8.0629,
+          "p_finish_at_or_above_called_for": 0.083
+        },
+        {
+          "id": "2026-10-09-yields-and-oil-are-surging-together-energy-stock",
+          "trade_label": "Long US energy stocks (XLE)",
+          "verdict": "weakened",
+          "action": "trim",
+          "called_for_pct": 10.1,
+          "expected_return_now_pct": -2.0,
+          "mark_pct": -5.5487,
+          "p_finish_at_or_above_called_for": 0.159
+        },
+        {
+          "id": "2026-09-22-the-record-yen-rescue-looks-dead-so-did-the-last",
+          "trade_label": "Long Japanese yen via FXY",
+          "verdict": "intact",
+          "action": "hold",
+          "called_for_pct": 6.0,
+          "expected_return_now_pct": 4.0,
+          "mark_pct": -0.7045,
+          "p_finish_at_or_above_called_for": 0.029
+        },
+        {
+          "id": "2026-10-22-credit-broke-first-the-s-p-500-has-two-weeks-to-",
+          "trade_label": "Long SPY 773 put, Nov 13",
+          "verdict": "intact",
+          "action": "trim",
+          "called_for_pct": 109.0,
+          "expected_return_now_pct": 225.0,
+          "mark_pct": 224.8811,
           "p_finish_at_or_above_called_for": null
         }
       ]
