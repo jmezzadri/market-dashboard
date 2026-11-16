@@ -56,7 +56,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useDataHealth, VENDOR_MONTHLY_COST, VENDOR_BLAST_RADIUS } from '../../hooks/useDataHealth';
 import { IND } from '../../data/indicatorRegistry';
-import FreshnessChip from '../components/FreshnessChip';
+import FreshnessChip, { fmtMonth, isMonthly } from '../components/FreshnessChip';
 import '../styles/cream-system.css';
 import '../styles/data-v12.css';
 // v13 last — it overrides the page's own v12 stylesheet.
@@ -495,8 +495,10 @@ function fmtDateTime(iso) {
 // it (Joe 2026-06-23): a forward-dated / midnight-UTC stamp on a late-evening
 // pull must not render a day AHEAD of a Last-pull shown in ET. When the as-of
 // anchored to its session close is after the pull, show the pull's own ET date.
-function fmtAsOfClamped(asOfIso, lastPullIso) {
+function fmtAsOfClamped(asOfIso, lastPullIso, cadence) {
   if (!asOfIso) return '—';
+  // A monthly reading is named by its month, as on the chip (2026-11-09).
+  if (isMonthly(cadence)) return fmtMonth(asOfIso);
   if (lastPullIso) {
     const a = String(asOfIso);
     const aMs = Date.parse(a.length === 10 ? `${a}T20:00:00Z` : a);
@@ -518,7 +520,7 @@ function ElementRow({ el }) {
   const cad = prettyCadence(el.cadence);
   const fetchAt = prettyFetchET(el.scheduled_fetch_time_et);
   const lastPullIso = f?.lastRefreshedAt || f?.lastGoodAt;
-  const asOf = fmtAsOfClamped(f?.dataAsOf || el.data_as_of, lastPullIso);
+  const asOf = fmtAsOfClamped(f?.dataAsOf || el.data_as_of, lastPullIso, el.cadence || f?.cadence);
   const lastPull = fmtDateTime(lastPullIso);
   const sla = prettySla(el.freshness_sla_hours);
 
@@ -591,7 +593,7 @@ function ElementRow({ el }) {
 function CotRow({ el }) {
   const f = useFreshness(el.healthId || COT_HEALTH_ID);
   const lastPullIso = f?.lastRefreshedAt || f?.lastGoodAt;
-  const asOf = fmtAsOfClamped(el.data_as_of || f?.dataAsOf, lastPullIso);
+  const asOf = fmtAsOfClamped(el.data_as_of || f?.dataAsOf, lastPullIso, el.cadence || f?.cadence);
   const lastPull = fmtDateTime(lastPullIso);
   const pct = (v) => (v == null ? '—' : `${v}`);
   return (
@@ -857,6 +859,21 @@ export default function DataFlowPage() {
     });
     // Order: most elements first (FRED / Yahoo lead), stable.
     tiles.sort((a, b) => b.count - a.count || a.vendor.localeCompare(b.vendor));
+    // Every feed with no outside vendor in one tile at the foot, so the
+    // column's counts add up to the feed total (2026-11-09; LESSONS 9.12).
+    const vendored = new Set(tiles.flatMap((t) => t.members.map((m) => m.name)));
+    const inhouse = elements.filter((e) => !vendored.has(e.name));
+    if (inhouse.length) {
+      tiles.push({
+        id: 'src:inhouse',
+        vendor: null,
+        inhouse: true,
+        name: 'Built in-house',
+        sub: 'Computed from the feeds above · $0',
+        count: inhouse.length,
+        members: inhouse,
+      });
+    }
     return tiles;
   }, [elements, classified]);
 
@@ -1496,6 +1513,7 @@ export default function DataFlowPage() {
   const selectedTile = selectedId ? tileById[selectedId] : null;
   const selectedRole = selectedId
     ? ((selectedId === COT_TILE_ID || selectedId === CREDIT_TILE_ID) ? 'Indicator family'
+      : selectedId === 'src:inhouse' ? 'Built in-house'
       : selectedId.startsWith('src:') ? 'Source vendor'
         : selectedId.startsWith('dom:') ? 'Indicator family'
           : selectedId.startsWith('eng:') ? 'Engine / model'
@@ -1542,9 +1560,14 @@ export default function DataFlowPage() {
   const totals = useMemo(() => {
     const indicators = elements.filter((e) => classified[e.name] === 'derived' && isLiveIndicator(e.name)).length;
     const positioningFeeds = elements.filter((e) => isCotElement(e) || isCreditPosElement(e)).length;
+    const inhouseTile = sourceTiles.find((t) => t.inhouse);
+    const inhouse = inhouseTile ? inhouseTile.count : 0;
     return {
       elements: elements.length,
-      vendors: sourceTiles.length,
+      vendors: sourceTiles.filter((t) => !t.inhouse).length,
+      vendored: elements.length - inhouse,
+      inhouse,
+      placements: surfaceTiles.reduce((n, t) => n + (t.count || 0), 0),
       indicators,
       positioningFeeds,
       positioningSignals: cotMembers.length + creditMembers.length,
@@ -1604,6 +1627,9 @@ export default function DataFlowPage() {
                 <div className="df-col">
                   <div className="df-col-h">External sources</div>
                   <div className="df-stack">{sourceTiles.map((t) => renderTile(t, 'source'))}</div>
+                  <div className="df-col-note">
+                    {totals.vendors} outside sources supply {totals.vendored} feeds; {totals.inhouse} are built in-house — {totals.elements} in all.
+                  </div>
                 </div>
 
                 <div className="df-col">
@@ -1620,6 +1646,9 @@ export default function DataFlowPage() {
                   <div className="df-col-h">Surfaces &amp; workflows</div>
                   <div className="df-sub-h">Live surfaces</div>
                   <div className="df-stack">{surfaceTiles.map((t) => renderTile(t, 'surface'))}</div>
+                  <div className="df-col-note">
+                    A feed is counted on every page it appears on: {totals.placements} placements of {totals.elements} feeds.
+                  </div>
                   {workflowTiles.length > 0 && <div className="df-sub-h">Workflows</div>}
                   <div className="df-stack">{workflowTiles.map((t) => renderTile(t, 'workflow'))}</div>
                 </div>

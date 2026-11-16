@@ -24,6 +24,7 @@ import React, { useMemo, useState } from 'react';
 import DetailModal from './DetailModal';
 import BigHistoryChart from './BigHistoryChart';
 import useLseLive from '../../hooks/useLseLive';
+import { stampLive } from '../lib/quoteStamp';
 
 const TFS = ['1Y', '3Y', '5Y', '10Y', 'Max'];
 
@@ -197,7 +198,7 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
               {/* "live" only while the market is open (LESSONS 4.32; 2026-10-29: this
                   read "live" at 10 PM). After the bell the same quote is the close. */}
               {livePrice != null
-                ? (live.marketOpen === true ? <>live · vs prev close {fmtLevel(prevClose)}</> : <>close · vs prev close {fmtLevel(prevClose)}</>)
+                ? (live.marketOpen === true ? <>{stampLive(q.barTs, q.fetchedAt)} · vs prev close {fmtLevel(prevClose)}</> : <>close · vs prev close {fmtLevel(prevClose)}</>)
                 : (asOf ? <>close {asOf}</> : null)}
             </div>
           </div>

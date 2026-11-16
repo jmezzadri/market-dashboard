@@ -570,7 +570,8 @@
         "excess_pct": 16.4439,
         "contribution_pct": 0.7334,
         "days_held": 21
-      }
+      },
+      "peak_contribution_pct": 12.4283
     },
     {
       "id": "2026-10-09-yields-and-oil-are-surging-together-energy-stock",
@@ -656,7 +657,8 @@
         "excess_pct": 2.1939,
         "contribution_pct": -0.0429,
         "days_held": 36
-      }
+      },
+      "peak_contribution_pct": 0.7327
     },
     {
       "id": "2026-09-22-the-record-yen-rescue-looks-dead-so-did-the-last",
@@ -742,7 +744,8 @@
         "excess_pct": 1.2059,
         "contribution_pct": -0.1409,
         "days_held": 53
-      }
+      },
+      "peak_contribution_pct": 0.0412
     },
     {
       "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
@@ -830,7 +833,8 @@
         "excess_pct": 1.048,
         "contribution_pct": -0.0197,
         "days_held": 63
-      }
+      },
+      "peak_contribution_pct": 1.3569
     },
     {
       "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
@@ -916,7 +920,8 @@
         "excess_pct": 17.3759,
         "contribution_pct": 1.6988,
         "days_held": 61
-      }
+      },
+      "peak_contribution_pct": 1.7214
     },
     {
       "id": "2026-08-24-the-people-who-actually-own-the-bond-market-are-",
@@ -1005,7 +1010,8 @@
         "excess_pct": -2.5848,
         "contribution_pct": -0.2934,
         "days_held": 24
-      }
+      },
+      "peak_contribution_pct": 0.0
     },
     {
       "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
@@ -1107,7 +1113,8 @@
         "excess_pct": -10.5021,
         "contribution_pct": -1.2226,
         "days_held": 47
-      }
+      },
+      "peak_contribution_pct": 0.0116
     },
     {
       "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
@@ -1209,7 +1216,8 @@
         "excess_pct": 1.9548,
         "contribution_pct": 0.0231,
         "days_held": 47
-      }
+      },
+      "peak_contribution_pct": 0.0899
     },
     {
       "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
@@ -1300,7 +1308,8 @@
         "excess_pct": -2.3519,
         "contribution_pct": -0.2783,
         "days_held": 56
-      }
+      },
+      "peak_contribution_pct": 0.1335
     }
   ]
 }

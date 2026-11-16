@@ -21,6 +21,11 @@
 import React, { useMemo, useState } from 'react';
 import BigHistoryChart from './BigHistoryChart';
 import PercentileBar from './PercentileBar';
+import FreshnessChip from './FreshnessChip';
+
+// The one health row every CFTC market shares; the credit rows share theirs.
+const COT_HEALTH_ID = 'cftc-cot';
+const CREDIT_HEALTH_ID = 'credit_positioning';
 
 function ordSuffix(n) {
   const v = Math.abs(Math.round(n)), k = v % 100;
@@ -94,6 +99,14 @@ export default function PositioningDetail({ item, domain, blurb, onClose }) {
             {ord(spec)}
           </div>
           <div style={{ ...label, marginTop: 'var(--sp-4)' }}>Speculator percentile</div>
+          <div style={{ marginTop: 'var(--sp-6)' }}>
+            <FreshnessChip
+              elementId={domain === 'Credit' ? CREDIT_HEALTH_ID : COT_HEALTH_ID}
+              fallback={{ asOfIso: asof }}
+              variant="label"
+              showDates
+            />
+          </div>
         </div>
       </header>
 

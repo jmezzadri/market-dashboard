@@ -20,7 +20,7 @@ import { createPortal } from 'react-dom';
 import IdeaChart from './IdeaChart';
 import useScrollLock from '../lib/useScrollLock';
 import useModalEscape from '../lib/useModalEscape';
-import FreshnessChip from './FreshnessChip';
+import FreshnessChip, { fmtMonth } from './FreshnessChip';
 import useEconReleaseHistory from '../lib/useEconReleaseHistory';
 import ImpactMark, { IMPACT_WORD } from './ImpactMark';
 import { isReleased, releaseResult } from '../lib/releaseStatus';
@@ -123,7 +123,7 @@ function MeasurePanel({ measure }) {
     decimals: dec,
     window: 'full',
     zero_rule: measure.transform !== 'level',
-    source: `${measure.source || ''}${measure.as_of ? ` · series updated ${shortDate(measure.as_of)}` : ''}`,
+    source: `${measure.source || ''}${measure.frequency === 'M' && last ? ` · latest reading ${fmtMonth(last[0])}` : (measure.as_of ? ` · series updated ${shortDate(measure.as_of)}` : '')}`,
   };
   const expected = nc ? { date: nc.period, value: nc.value, label: nc.short || 'forecast' } : null;
 

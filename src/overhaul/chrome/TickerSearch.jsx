@@ -79,7 +79,14 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
   }, [q]);
 
   useEffect(() => {
-    const h = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
+    // Clicking away closes the menu AND clears the box: text left behind with
+    // no menu under it read as a search still in force (2026-11-16 check).
+    const h = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) {
+        enterPending.current = false; latestTerm.current = '';
+        setOpen(false); setQ(''); setRes([]);
+      }
+    };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
@@ -151,7 +158,7 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
       />
       <span className="rd-search-cursor" aria-hidden="true" />
       {open && q.trim() && (
-        <div className="rd-search-menu" role="listbox" aria-label="Matching stocks">
+        <div className={`rd-search-menu${phase === 'searching' && res.length ? ' is-stale' : ''}`} role="listbox" aria-label="Matching stocks" aria-busy={phase === 'searching' ? 'true' : undefined}>
           {res.length > 0 ? (
             <>
               {res.map((r, i) => (
@@ -168,7 +175,9 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
                   <span className="rd-search-cap">{fmtCap(r.market_cap)}</span>
                 </div>
               ))}
-              <div className="rd-search-foot">Opens the stock&rsquo;s page · ↑ ↓ to move, Enter to open</div>
+              <div className="rd-search-foot">
+                {phase === 'searching' ? <>Searching&hellip;</> : <>Opens the stock&rsquo;s page · ↑ ↓ to move, Enter to open</>}
+              </div>
             </>
           ) : phase === 'searching' ? (
             <div className="rd-search-empty">Searching…</div>

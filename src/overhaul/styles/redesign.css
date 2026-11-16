@@ -78,6 +78,8 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-sum-legend { margin: var(--sp-6) var(--sp-2) var(--sp-12); font-family: var(--mt-type-sans); font-size: var(--v13-t2); line-height: 1.5; color: var(--tm-text-5); }
 .mt-overhaul .tm-sum-legend b { color: var(--tm-num); font-weight: var(--fw-600); }
 .mt-overhaul .rd-search-foot { padding: var(--sp-6) var(--sp-12); border-top: 1px solid var(--ed-rule-2); font-family: var(--mt-type-sans); font-size: var(--v13-t1); color: var(--ed-ink-3); }
+/* An answer to the PREVIOUS term, shown faded while the next search runs. */
+.mt-overhaul .rd-search-menu.is-stale .rd-search-item { opacity: var(--op-stale); transition: opacity var(--dur-120); }
 .mt-overhaul .rd-search-row { display: none; }
 .mt-overhaul .rd-search--phone { width: 100%; height: var(--ed-tap); }
 
@@ -794,3 +796,9 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
   .mt-overhaul .rd-auth-email { display: none; }
   .mt-overhaul .rd-search.rd-search--desk, .mt-overhaul[data-skin='terminal'] .rd-search.rd-search--desk { width: var(--rd-search-narrow); }
 }
+
+/* The two clocks beside a detail pop-up's freshness dot (FreshnessChip
+   showDates, 2026-11-09). */
+.mt-overhaul .mt-chip-dates { font-family: var(--mt-type-sans); font-size: var(--v13-t2); color: var(--mt-ink-2); white-space: nowrap; }
+.mt-overhaul .mt-chip-dates b { font-weight: var(--fw-600); color: var(--mt-ink-0); }
+@media (max-width: 767px) { .mt-overhaul .mt-chip-dates { white-space: normal; } }

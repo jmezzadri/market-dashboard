@@ -272,6 +272,7 @@ Read this first. Jump to the section the task touches; do not read the whole fil
 - `9.31` A site-wide element (the market banner) takes one skin on every page; and a rule that sizes anything off a phone-only token is wrapped in that token's own breakpoint, because the token is 0 everywhere else
 - `9.32` One close control per pop-up (the ×); Escape and the backdrop close the top layer only, through `useModalEscape`
 - `9.33` A label describes a fact, never a moment that passes (no stored "pre-market"); every number names its own observation — weekday on a close, tick time on a live quote, the date a day count runs to, the moment a note went out; an empty cell says why; a total beside its parts is printed as their sum
+- `9.34` A moving target is paused for every pointer, a stale answer is marked stale, and an unknown address is a page that says so; a week of fixes that never published is a week of repeat findings
 
 **10 · THE PUBLISHED BOOK — trade ideas & notes**
 
@@ -2970,6 +2971,14 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 4. A total printed beside its parts is printed AS the sum of those parts (9.12); a whole that includes things no tile shows is broken down until it adds.
 
 **Applies to:** UX Designer, Lead Developer, Data Steward — every surface that prints a time, a session word or a count.
+
+### 9.34 (2026-11-09) — A moving target is paused for every pointer, a stale answer is marked stale, and an unknown address is a page that says so
+
+**What happened:** The weekly check (run through Muse) found three interaction defects with one shape — the page let a reader act on something no longer true. The scrolling market banner paused only for a mouse, so on a phone a tap landed on the neighbouring tile; the ticker search kept the previous term's matches at full strength while the next search ran; and every unknown address rendered the homepage. The Data page also dimmed everything outside a selection to 22%. The same check found one ISM print dated three ways (the scraper stamped its run date — a repeat of 4.7), the Russell 2000 stamped "live" while fifteen minutes behind (a repeat of 4.32), detail pop-ups with a bare freshness dot, a Paper Day column mixing two measurements, and Data page counts that did not add up (repeats of 9.33). *2026-11-16:* all of it was built on Nov 9 and never published — the session could not push, the patch sat in the project for a week, and the next weekly check listed every item again. The Nov 16 check added: the Scorecard line peaking twelve points on one option's best day with nothing on the page to explain it, the exposure figure printed twice from two moments (101.4% and 101.3%), and search text left in the box after its menu closed.
+
+**Rule:** (1) Anything that moves on its own holds still the moment any pointer is over it or down on it, and a reader's pause is remembered. (2) A result list being replaced is visibly stale until the new one lands; closing the menu clears the box. (3) An address that is not a page gets a not-found page listing the pages that exist, read from `siteNav`. (4) "Recede" is a token (`--op-recede`), never a per-component opacity. (5) A series' `as_of` is the date of its latest reading, never the run date; a monthly reading is shown by its month on every surface. (6) "Live" also means the quote keeps up with the clock — more than three minutes behind is "delayed" (`lib/quoteStamp.js`). (7) A chart peak the table beside it cannot explain is named under the chart, from the scorer's own fields. (8) Built is not live: a fix that cannot be published is reported as blocked that day, and the next session that can push ships it before anything else.
+
+**Applies to:** All four specialists.
 
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 

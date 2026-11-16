@@ -483,9 +483,9 @@ const PERF_ROWS = [
   // Each row names the FUND it is computed from (2026-10-29 audit: "Nasdaq
   // 100" here and "NASDAQ" — the Composite — on the banner read as the same
   // number disagreeing).
-  { id: 'spx', label: 'SPY', col: 'spy_close' },
-  { id: 'ndx', label: 'QQQ', col: 'qqq_close' },
-  { id: 'dji', label: 'DIA', col: 'dia_close' },
+  { id: 'spx', label: 'SPY', col: 'spy_close', snap: 'spy_snap' },
+  { id: 'ndx', label: 'QQQ', col: 'qqq_close', snap: 'qqq_snap' },
+  { id: 'dji', label: 'DIA', col: 'dia_close', snap: 'dia_snap' },
 ];
 function perfTable(nav, heldIdx) {
   if (!nav || !nav.length) return null;
@@ -519,9 +519,22 @@ function perfTable(nav, heldIdx) {
     const cell = (from) => (cur == null || from == null
       ? { usd: null, pct: null }
       : { usd: cur - from, pct: cur / from - 1 });
+    // DAY, every row on the same basis: the latest snapshot's marks against
+    // the previous snapshot's marks (2026-11-09). An index row falls back to
+    // the official closes only when a snapshot mark is missing.
+    let day;
+    if (def.snap && n >= 2) {
+      const a = num(held[n - 1][def.snap]);
+      const b = num(held[n - 2][def.snap]);
+      day = a != null && b != null
+        ? { usd: START_CAPITAL * (a / b - 1), pct: a / b - 1 }
+        : cell(before(n - 1));
+    } else {
+      day = cell(before(n - 1));
+    }
     return {
       ...def,
-      day: cell(before(n - 1)),
+      day,
       ytd: cell(ytdFromStart ? START_CAPITAL : before(y0)),
       since: cell(START_CAPITAL),
     };
@@ -587,7 +600,11 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           const v = Number(q.close);
           if (Number.isFinite(v) && v > 0) (official[q.trade_date] ||= {})[COL[q.ticker]] = v;
         });
-        navRows = navRows.map((r) => ({ ...r, ...(official[String(r.d).slice(0, 10)] || {}) }));
+        navRows = navRows.map((r) => ({
+          ...r,
+          spy_snap: r.spy_close, qqq_snap: r.qqq_close, dia_snap: r.dia_close,
+          ...(official[String(r.d).slice(0, 10)] || {}),
+        }));
       }
       // 2026-08-28: pick the newest account that ACTUALLY HELD SOMETHING, not
       // simply the newest account. A funded-but-never-traded account produces
@@ -798,6 +815,17 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           : markInSessionHours
             ? `prices at ${markDayET ? `${markDayET}, ` : ''}${fmtTimeET(latestNav.created_at)}`
             : `after-hours prices · ${markIsToday ? '' : `${markDayET}, `}${fmtTimeET(latestNav.created_at)}`)
+    : null;
+
+  // The two marks the DAY column runs between, in words.
+  const prevNav = nav && nav.length >= 2 ? nav[nav.length - 2] : null;
+  const markWords = (row) => {
+    if (!row?.created_at) return null;
+    const sameDay = etDay(row.created_at) === etDay(Date.now());
+    return `${sameDay ? 'today' : fmtDayET(row.created_at)}, ${fmtTimeET(row.created_at)}`;
+  };
+  const dayBasis = prevNav && latestNav && markWords(prevNav) && markWords(latestNav)
+    ? `from the marks taken ${markWords(prevNav)} to the marks taken ${markWords(latestNav)}${markIsLivePrice ? ' (live prices)' : ''}`
     : null;
 
   const weights = (latestNav?.positions || [])
@@ -1109,8 +1137,13 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
      the rule the risk job actually checked, with the figure it checked when
      the row carries one. */
   const grossChecked = Number(cockpit.row?.detail?.gross_exposure);
-  const grossLine = Number.isFinite(grossChecked)
-    ? `invested ${fmtPctPlain(grossChecked, 1)} of equity, under the 105% borrowing limit`
+  // 2026-11-16 weekly check: this sentence printed the risk job's figure
+  // (101.3%) beside the Exposure tile's (101.4%) — one concept, two moments.
+  // While the latest mark is itself under the limit the sentence prints the
+  // tile's figure (LESSONS 4.5); otherwise it falls back to what was checked.
+  const grossShown = latestNav && invested > 0 && invested < 1.05 ? invested : grossChecked;
+  const grossLine = Number.isFinite(grossShown)
+    ? `invested ${fmtPctPlain(grossShown, 1)} of equity, under the 105% borrowing limit`
     : 'invested under the 105% borrowing limit';
 
   const kpis = [
@@ -1216,6 +1249,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
           </div>
         </div>
       )}
+      {dayBasis && <div className="tm-pnote tm-pnote--block">Day, every row: {dayBasis}.</div>}
       {perf && perf.ytdFromStart && <div className="tm-pnote tm-pnote--block">Index rows: $1,000,000 in each index’s fund (SPY, QQQ, DIA) at the close before the book’s first day. The book started this year, so YTD and inception match until January.</div>}
     </div>
   );

@@ -36,6 +36,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useMarketLevels from '../lib/useMarketLevels';
 import { rollArtifacts } from '../lib/futuresRoll';
+import { stampLive } from '../lib/quoteStamp';
 import useLseLive from '../../hooks/useLseLive';
 import IndicatorDrillModal from '../components/IndicatorDrillModal';
 import IndexDrillModal, { INDEX_DRILLS } from '../components/IndexDrillModal';
@@ -135,12 +136,8 @@ function stampClose(iso) {
   if (!Number.isFinite(d.getTime())) return 'close';
   return `${d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })} close`;
 }
-function stampLive(ts) {
-  const d = ts ? new Date(ts) : null;
-  if (!d || !Number.isFinite(d.getTime())) return 'live';
-  const t = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }).toLowerCase();
-  return `live ${t}`;
-}
+/* "live 12:48 pm" / "delayed 12:33 pm" — lib/quoteStamp.js, shared with the
+   index detail panel. */
 function tapeTile(r, lv, liveQ, marketOpen) {
   const live = r.live && liveQ && liveQ.covered && liveQ.price != null ? liveQ : null;
   if (live) {
@@ -149,7 +146,7 @@ function tapeTile(r, lv, liveQ, marketOpen) {
       value: live.price,
       pct: base != null ? ((live.price / base) - 1) * 100 : null,
       dd: base != null ? live.price - base : null,
-      stamp: marketOpen === true ? stampLive(live.barTs) : stampClose(live.barTs),
+      stamp: marketOpen === true ? stampLive(live.barTs, live.fetchedAt) : stampClose(live.barTs),
     };
   }
   if (!lv) return null;
@@ -260,7 +257,15 @@ export default function MarketTape() {
        focusIn     a tile has keyboard focus;
        dragging    a finger or mouse is sliding the strip by hand;
        a drill is open, so the tile is still where it was on close. */
-  const [userPaused, setUserPaused] = useState(false);
+  /* The reader's pause is remembered across pages and visits (2026-11-09). */
+  const [userPaused, setUserPausedState] = useState(() => {
+    try { return window.localStorage.getItem('mt.tape.paused') === '1'; } catch { return false; }
+  });
+  const setUserPaused = (fn) => setUserPausedState((v) => {
+    const next = typeof fn === 'function' ? fn(v) : fn;
+    try { window.localStorage.setItem('mt.tape.paused', next ? '1' : '0'); } catch { /* private mode */ }
+    return next;
+  });
   const [hover, setHover] = useState(false);
   const [focusIn, setFocusIn] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -370,9 +375,12 @@ export default function MarketTape() {
     if (!sectionRef.current?.contains(e.relatedTarget)) setFocusIn(false);
   };
 
-  const onPointerEnter = (e) => { if (e.pointerType === 'mouse') setHover(true); };
-  const onPointerLeave = (e) => { if (e.pointerType === 'mouse') setHover(false); };
+  /* Any pointer over the strip holds it still — a finger as much as a mouse
+     (2026-11-09: on a phone the tile kept sliding under a tap). */
+  const onPointerEnter = () => setHover(true);
+  const onPointerLeave = () => setHover(false);
   const onPointerDown = (e) => {
+    setHover(true);   // the first thing a tap does is stop the target moving
     if (e.button !== 0 || reducedMotion()) return;
     drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, last: e.clientX, moved: false };
   };

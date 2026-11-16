@@ -58,6 +58,9 @@ import '../styles/v13.css';
 import '../styles/pages-v13.css';
 import '../styles/scorecard-v13.css';
 
+// A closed call is named under the cumulative chart when its best day added
+// this many points of the book more than it finally contributed.
+const PEAK_NOTE_POINTS = 3;
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 function parts(iso) { const [y, m, d] = String(iso || '').slice(0, 10).split('-').map(Number); return y && m && d ? { y, m, d } : null; }
 /* "Sep 21, 2026" in tables, "September 21, 2026" in the key facts. */
@@ -511,6 +514,19 @@ export default function ScorecardPage() {
                 <span><i className="sc-key sc-key--port" />Portfolio</span>
                 <span><i className="sc-key sc-key--bench" />Benchmark ({bench})</span>
               </div>
+              {/* A peak the attribution table cannot explain is named here
+                  (2026-11-16 weekly check): a call whose best day added far
+                  more to the book than it finally kept. Both figures are the
+                  scorer's; nothing is computed on the page. */}
+              {(data?.scores || [])
+                .filter((r) => String(r.status || '').startsWith('closed')
+                  && Number.isFinite(Number(r.peak_contribution_pct)) && Number.isFinite(Number(r.contribution_pct))
+                  && Number(r.peak_contribution_pct) - Number(r.contribution_pct) >= PEAK_NOTE_POINTS)
+                .map((r) => (
+                  <p className="sc-fn" key={r.id}>
+                    The high on {dShort(r.max_favourable?.date)} is one position: {r.trade_label || r.title}. At a weight of {weightTxt(r)} it was adding {pct(r.peak_contribution_pct)} to the portfolio that day (the position itself was at {pct(r.max_favourable?.value)}), and it closed on {dShort(r.close_date)} adding {pct(r.contribution_pct)}.
+                  </p>
+                ))}
               <p className="sc-fn">Cumulative total return since inception, in points of a book of 100. Each position is held at the weight stated in its note; the benchmark is the {bench} held at the same total weight.</p>
             </section>
           )}

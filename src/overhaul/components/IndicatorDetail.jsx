@@ -233,6 +233,7 @@ export default function IndicatorDetail({ ind, onClose, catalog = [], indexSerie
               elementId={ind.manifestId || ind.id}
               fallback={{ asOfIso: ind.asOf }}
               variant="label"
+              showDates
             />
           </div>
         </div>

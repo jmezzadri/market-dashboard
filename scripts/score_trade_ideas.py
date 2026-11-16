@@ -1253,6 +1253,13 @@ def score_row(idea: dict, hist: dict, today: str, review_closes: dict | None = N
                         if bf else f"no weight stated; counted at the standard {STANDARD_WEIGHT:g} of 100")
     mark = r.get("mark")
     r["contribution_pct"] = round(w / BOOK_BASE * mark, 4) if isinstance(mark, (int, float)) else None
+    # The most this call ever added to the book, and the day it did. The
+    # cumulative line can peak far above a call's final contribution (an
+    # option worth 3.5x its premium for one session); the page names that
+    # day under the chart so the peak is explained (2026-11-16 weekly check).
+    mfe = r.get("max_favourable")
+    r["peak_contribution_pct"] = (round(w / BOOK_BASE * mfe["value"], 4)
+                                  if isinstance(mfe, dict) and isinstance(mfe.get("value"), (int, float)) else None)
     return r
 MIN_DAYS_TO_ANNUALIZE = 28
 

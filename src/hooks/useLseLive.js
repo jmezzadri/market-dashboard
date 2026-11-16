@@ -74,6 +74,10 @@ export default function useLseLive(tickers, { enabled = true } = {}) {
             price: q.price != null && Number.isFinite(Number(q.price)) ? Number(q.price) : null,
             prevClose: q.prevClose != null && Number.isFinite(Number(q.prevClose)) ? Number(q.prevClose) : null,
             barTs: q.barTs || null,
+            // When the vendor was asked. A quote whose own time trails this
+            // by more than a few minutes is a DELAYED feed and must not be
+            // called live — LESSONS 4.32 (2026-11-09 check).
+            fetchedAt: q.fetchedAt || null,
             covered: q.covered !== false,
             source: q.source || null,
           };

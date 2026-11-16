@@ -295,7 +295,12 @@ export default function IdeaChart({ spec, series, asOf = null, width: widthProp 
                label to the right would run off the figure, and one to the
                left would sit on the line's final stretch. Flips below when
                the ring is near the top. */
-            const above = ey - PAD.t > 26;
+            /* The label goes on the side the line is NOT coming from, then
+               flips at the edges (2026-11-09 check). */
+            const lineFromAbove = last[1] > exp.value;
+            let above = !lineFromAbove;
+            if (above && ey - PAD.t <= 26) above = false;
+            if (!above && PAD.t + ih - ey <= 26) above = true;
             const labY = above ? ey - 12 : ey + 16;
             return (
               <g className="ic-expected">

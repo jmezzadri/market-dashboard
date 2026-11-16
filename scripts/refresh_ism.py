@@ -148,6 +148,17 @@ def scrape(url: str) -> List[Tuple[str, float]]:
 # Supabase hydration — the "can't go missing" backstop. Added 2026-05-11
 # after the third recurrence of ISM history being clobbered in main.
 # ---------------------------------------------------------------------------
+def series_asof(points) -> str:
+    """The series' as_of is the DATE OF ITS LATEST READING — the month the
+    print describes — never the day this script ran. 2026-11-09 weekly check:
+    ism_mfg read "Nov 2", ism_svc "Nov 4" (run dates) while the sibling `ism`
+    series read "Oct 31" (its last point), so one ISM reading carried three
+    "latest data" dates across the site. LESSONS 4.7: never derive a data
+    date from a refresh time."""
+    pts = sorted(points or [])
+    return str(pts[-1][0])[:10] if pts else dt.date.today().isoformat()
+
+
 def supabase_hydrate(indicator_id: str) -> List[Tuple[str, float]]:
     """Pull full series for indicator_id from public.indicator_observations.
     Returns [] silently if Supabase env not set or the call fails — the
@@ -188,7 +199,7 @@ def maybe_hydrate(series: dict, indicator_id: str) -> bool:
     series["source"] = (
         "Supabase public.indicator_observations (hydrated by refresh_ism.py)"
     )
-    series["as_of"] = dt.date.today().isoformat()
+    series["as_of"] = series_asof(series["points"])
     return True
 
 
@@ -253,7 +264,7 @@ def main() -> int:
             merged = list(series.get("points") or []) + [[p, v] for p, v in added]
             merged.sort()
             series["points"] = merged
-            series["as_of"] = dt.date.today().isoformat()
+            series["as_of"] = series_asof(merged)
             appended += len(added)
         else:
             print(f"  no new readings (latest scraped: {scraped[0][0]} = {scraped[0][1]})")
