@@ -1,151 +1,148 @@
 {
   "eyebrow": "Morning Brief",
-  "headline": "10y 5.13%, Dec hike fully priced, 50bp odds 13%, PPI 8:30, Nvidia +0.7% pre-market",
-  "stance": "Rates lead today. A hot PPI at 8:30 lifts the odds of a 50bp December hike from 13%.",
+  "headline": "Nvidia reports Tue, Brent $95.24, 2 more Hormuz tankers hit, Japan Q3 GDP -0.1%",
+  "stance": "Nvidia results Tuesday after the close decide this week's equity direction. Oil fell overnight despite two more tanker hits in Hormuz.",
   "news": [
     {
-      "head": "Nvidia +0.7% pre-market after Huang resigns as CEO",
-      "body": "Huang resigned Thursday. Stock fell 4.34% Thursday, then +0.7% pre-market (~4:19am ET)."
+      "head": "Nvidia reports Tuesday after the close",
+      "body": "Results ~4:20pm ET Nov 17. Bessent urged an outside CEO. US drafting chip export licence rules for Malaysia, Indonesia, Singapore."
     },
     {
-      "head": "Applied Materials guides FQ1 revenue above estimates",
-      "body": "FQ1 revenue guide $11.10bn, +/- $0.5bn, vs $10.89bn expected. FQ4 adj. EPS $4.16. Chip systems revenue +64% to $8bn."
+      "head": "Baidu Q3 beats on EPS and revenue",
+      "body": "Non-GAAP EPADS $1.01, $0.09 above estimates. Revenue $4.6bn, -1.2% y/y. Core business back to growth."
     },
     {
-      "head": "Cisco order growth slows to 21% from 35%",
-      "body": "Guides fiscal Q2 revenue to about $18.1bn. Orders +21% year over year, down from 35% the prior quarter."
-    },
-    {
-      "head": "Microsoft 365 outage hits Outlook and Teams",
-      "body": "Outage began Thursday and was still running overnight. Shares lower in off-hours trading."
+      "head": "Anthropic IPO expected this week",
+      "body": "IPO slated alongside Nvidia results this week (~4:48am ET). Pricing date not confirmed."
     }
   ],
   "implications": [
-    "A hot PPI pushes 50bp in December above 13% odds. Higher yields hit the Nasdaq 100 harder than the Dow.",
-    "Tokyo has warned on the yen two days running near 160. Intervention risk caps USD/JPY upside."
+    "Fed's Jefferson named energy as the main channel to broader inflation. Lower oil cuts the odds of a 50bp December hike.",
+    "Japan Q3 GDP -0.1% and BOJ's Takata wants faster hikes. USD/JPY near 160 with both pulling against each other."
   ],
   "watch": [
     {
-      "head": "PPI, 8:30",
-      "body": "October PPI expected +0.4%, after 1.3% in September. A hot print lifts 50bp odds for December."
+      "head": "Empire State survey, 8:30",
+      "body": "First regional factory read for November."
     },
     {
-      "head": "S&P Italy rating review, after Europe's close",
-      "body": "Italy BBB+ with a positive outlook since Jan 30. An upgrade is possible."
+      "head": "Nvidia results, Nov 17, after the close",
+      "body": "Results ~4:20pm ET, call 5pm ET. First report since Huang resigned as CEO."
     },
     {
       "head": "Retail sales, Nov 17, 8:30",
-      "body": "Next tier-1 data before the FOMC on Dec 9."
+      "body": "Tier-1 consumer data before the FOMC on Dec 9."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "10y 5.13%, +2bp; 30y 5.46%, +3bp; 2y 4.85%, -1bp (~4:30am ET). December hike fully priced; 50bp odds 13%.",
-        "Trump said Thursday the US does not need an Iran deal. Iran attacked 4 ships in Hormuz. Brent $95.87, WTI $88.49 (~12:45am ET).",
-        "USD/JPY near 160. PM Takaichi warned on the yen overnight. Finance Minister Katayama said Japan will coordinate with the US Treasury."
+        "Iran's IRGC says two more tankers hit mines in Hormuz (~5:00am ET). Brent $95.24, WTI $88.31 (~12:25am ET), both below Friday's close.",
+        "Fed's Jefferson: PCE inflation still 3.6%, inflation is the key signal for rates (~7:53pm ET Sunday). Gold near $3,876.",
+        "Japan Q3 GDP -0.1% annualised vs +0.3% expected. China October industrial output +4.8% vs 5.3% expected; retail sales +0.4%."
       ],
-      "positioning": "No new rates COT extreme. USD/JPY at the 92nd %ile of 3 years, a new extreme this week.",
+      "positioning": "USD/JPY 159.56 Friday, 91st %ile of 3 years, a new extreme. Crude at the 85th %ile, also new. No new COT extreme in rates.",
       "single_name": null
     },
     {
       "title": "Equity Markets",
       "bullets": [
-        "Futures: S&P flat, Nasdaq 100 -0.13%, Dow +0.06% (~4:26am ET).",
-        "Nikkei +0.5% at Friday's close. European stocks opened slightly lower (~3:29am ET)."
+        "S&P 500, Nasdaq and Dow each rose more than 2% last week, the biggest weekly gains since August.",
+        "US futures mixed (~4:48am ET). Asian chipmakers fell overnight.",
+        "European stocks higher; FTSE 100 near a record high (~4:15am ET). Bitcoin hit a 4-month low near $62,000 over the weekend."
       ],
       "positioning": "Spec Russell 2000 longs 99th %ile, Nasdaq 100 longs 89th %ile. Both standing for weeks, not new.",
       "single_name": {
-        "ticker": "WW",
-        "note": "On the screen since Nov 10, score 4. Two insider rules fired; latest buy filed Nov 10. Trades above its 200-day line."
+        "ticker": "BLMN",
+        "note": "Score 5, on the screen since Nov 12. Two insider rules fired; latest buy filed Nov 12. Trades above its 200-day line."
       }
     },
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "HYG/LQD fell Thursday for a 5th straight session. High yield is lagging high grade through the rate selloff.",
-        "No funding stress from the rate jump. SOFR-OIS at 0-1bp every day since Nov 6."
+        "AI-linked circular financing just over $1 trillion, about 67% of it debt (~4:14am ET).",
+        "Bitcoin liquidations topped $2bn over the weekend. No sign of funding stress: SOFR-OIS 2bp on Nov 12."
       ],
-      "positioning": "No credit COT extreme. Listed BDCs at 0.89x NAV, unchanged since Nov 6.",
+      "positioning": "No credit COT extreme. Listed BDCs at 0.94x NAV Friday.",
       "single_name": null
     }
   ],
   "movers": [
     {
       "ticker": "WW",
-      "pct": 8.6,
-      "link": true
-    },
-    {
-      "ticker": "CMCO",
-      "pct": 7.3,
+      "pct": -15.5,
       "link": true
     },
     {
       "ticker": "UPBD",
-      "pct": -5.5,
+      "pct": 5.1,
       "link": true
     },
     {
-      "ticker": "NXG",
-      "pct": 5.3,
+      "ticker": "BLMN",
+      "pct": 2.5,
       "link": true
     },
     {
-      "ticker": "LSCC",
-      "pct": -3.2,
+      "ticker": "CMCO",
+      "pct": -2.1,
+      "link": true
+    },
+    {
+      "ticker": "TRNS",
+      "pct": -2.1,
       "link": true
     }
   ],
-  "date": "2026-11-13",
-  "recap_session": "Thu Nov 12",
-  "written_at": "2026-11-13T05:06:23-05:00",
+  "date": "2026-11-16",
+  "recap_session": "Fri Nov 13",
+  "written_at": "2026-11-16T05:04:29-05:00",
   "metrics": [
     {
       "group": "Rates",
       "rows": [
         {
           "label": "2y",
-          "level": "4.86%",
-          "chg": "+13bp",
+          "level": "4.88%",
+          "chg": "+2bp",
           "dir": "up"
         },
         {
           "label": "10y",
-          "level": "5.10%",
-          "chg": "+12bp",
+          "level": "5.15%",
+          "chg": "+5bp",
           "dir": "up"
         },
         {
           "label": "20y",
-          "level": "5.48%",
-          "chg": "+9bp",
+          "level": "5.52%",
+          "chg": "+4bp",
           "dir": "up"
         },
         {
           "label": "30y",
-          "level": "5.43%",
-          "chg": "+8bp",
+          "level": "5.47%",
+          "chg": "+4bp",
           "dir": "up"
         },
         {
           "label": "2s10s",
-          "level": "24bp",
-          "chg": "-1bp",
-          "dir": "down"
+          "level": "27bp",
+          "chg": "+3bp",
+          "dir": "up"
         },
         {
           "label": "10y real",
-          "level": "2.86%",
-          "chg": "+8bp",
+          "level": "2.91%",
+          "chg": "+5bp",
           "dir": "up"
         },
         {
           "label": "10y B/E",
           "level": "2.24%",
-          "chg": "+4bp",
-          "dir": "up"
+          "chg": "unch",
+          "dir": "flat"
         },
         {
           "label": "Term prem",
@@ -156,8 +153,8 @@
         },
         {
           "label": "MOVE",
-          "level": "98.40",
-          "chg": "+6.00",
+          "level": "98.80",
+          "chg": "+0.40",
           "dir": "up"
         }
       ]
@@ -167,43 +164,43 @@
       "rows": [
         {
           "label": "S&P 500",
-          "level": "7,592.40",
-          "chg": "-0.35%",
+          "level": "7,561.67",
+          "chg": "-0.40%",
           "dir": "down"
         },
         {
           "label": "Nasdaq",
-          "level": "25,366.09",
-          "chg": "-0.39%",
+          "level": "25,136.27",
+          "chg": "-0.91%",
           "dir": "down"
         },
         {
           "label": "Dow",
-          "level": "52,297.09",
-          "chg": "-0.36%",
-          "dir": "down"
+          "level": "52,347.55",
+          "chg": "+0.10%",
+          "dir": "up"
         },
         {
           "label": "VIX",
-          "level": "18.70",
-          "chg": "+1.21",
+          "level": "19.30",
+          "chg": "+0.60",
           "dir": "up"
         },
         {
           "label": "VIX 1m/3m",
-          "level": "0.932",
-          "chg": "+0.023",
+          "level": "0.936",
+          "chg": "+0.004",
           "dir": "up"
         },
         {
           "label": "SKEW",
-          "level": "150.20",
-          "chg": "+1.10",
-          "dir": "up"
+          "level": "147.10",
+          "chg": "-3.10",
+          "dir": "down"
         },
         {
           "label": "CAPE",
-          "level": "40.09",
+          "level": "39.95",
           "chg": null,
           "dir": "flat"
         }
@@ -214,40 +211,40 @@
       "rows": [
         {
           "label": "IG OAS",
-          "level": "90bp",
+          "level": "89bp",
           "chg": "-1bp",
           "dir": "down",
-          "as_of": "Nov 11"
+          "as_of": "Nov 12"
         },
         {
           "label": "HY OAS",
-          "level": "330bp",
-          "chg": "-4bp",
+          "level": "320bp",
+          "chg": "-10bp",
           "dir": "down",
-          "as_of": "Nov 11"
+          "as_of": "Nov 12"
         },
         {
           "label": "HYG/LQD",
-          "level": "1.339",
-          "chg": "-0.005",
+          "level": "1.336",
+          "chg": "-0.002",
           "dir": "down"
         },
         {
           "label": "SOFR-OIS",
-          "level": "1bp",
-          "chg": "unch",
-          "dir": "flat",
-          "as_of": "Nov 11"
+          "level": "2bp",
+          "chg": "+1bp",
+          "dir": "up",
+          "as_of": "Nov 12"
         },
         {
           "label": "CP spread",
-          "level": "15bp",
-          "chg": "+6bp",
+          "level": "22bp",
+          "chg": "+13bp",
           "dir": "up"
         },
         {
           "label": "RRP",
-          "level": "$0.2bn",
+          "level": "$0.3bn",
           "chg": "unch",
           "dir": "flat"
         },
@@ -265,44 +262,44 @@
       "rows": [
         {
           "label": "WTI",
-          "level": "$88.74",
-          "chg": "+2.55%",
-          "dir": "up"
+          "level": "$88.56",
+          "chg": "-0.20%",
+          "dir": "down"
         },
         {
           "label": "Brent",
-          "level": "$95.82",
-          "chg": "+3.30%",
+          "level": "$95.84",
+          "chg": "+0.02%",
           "dir": "up"
         },
         {
           "label": "Gold",
-          "level": "$3,885.30",
-          "chg": "-2.88%",
-          "dir": "down"
+          "level": "$3,886.30",
+          "chg": "+0.03%",
+          "dir": "up"
         },
         {
           "label": "Copper",
-          "level": "$6.18",
-          "chg": "-1.47%",
+          "level": "$6.08",
+          "chg": "-1.67%",
           "dir": "down"
         },
         {
           "label": "DXY",
-          "level": "103.19",
-          "chg": "+0.27%",
+          "level": "103.41",
+          "chg": "+0.23%",
           "dir": "up"
         },
         {
           "label": "USD/JPY",
-          "level": "159.82",
-          "chg": "+0.05%",
-          "dir": "up"
+          "level": "159.56",
+          "chg": "-0.19%",
+          "dir": "down"
         },
         {
           "label": "EUR/USD",
-          "level": "1.1059",
-          "chg": "-0.33%",
+          "level": "1.1038",
+          "chg": "-0.10%",
           "dir": "down"
         }
       ]
@@ -314,9 +311,9 @@
         "trade": "Long US energy stocks (XLE)",
         "date": "2026-10-09",
         "kind": "equity",
-        "held": 25,
-        "pnl": "-2.87%",
-        "vs": "-0.99pp",
+        "held": 27,
+        "pnl": "-0.43%",
+        "vs": "+2.19pp",
         "bench": "S&P 500",
         "horizon": 6
       },
@@ -324,9 +321,9 @@
         "trade": "Long Japanese yen via FXY",
         "date": "2026-09-22",
         "kind": "fx",
-        "held": 38,
-        "pnl": "-1.56%",
-        "vs": "+0.31pp",
+        "held": 40,
+        "pnl": "-1.41%",
+        "vs": "+1.21pp",
         "bench": "S&P 500",
         "horizon": 4
       },
@@ -334,35 +331,35 @@
         "trade": "Long US natural gas (UNG)",
         "date": "2026-09-12",
         "kind": "commodity",
-        "held": 44,
-        "pnl": "+0.49%",
-        "vs": "+0.98pp",
+        "held": 46,
+        "pnl": "-0.20%",
+        "vs": "+1.05pp",
         "bench": "S&P 500",
         "horizon": 3
       }
     ],
     "book": {
       "since": "2026-08-13",
-      "as_of": "2026-11-12",
-      "ret": "+0.27%",
+      "as_of": "2026-11-13",
+      "ret": "+0.46%",
       "bench": "S&P 500",
-      "bench_ret": "-0.98%",
-      "excess": "+1.25pp",
+      "bench_ret": "-1.10%",
+      "excess": "+1.56pp",
       "closed": 6
     },
-    "as_of": "2026-11-13",
-    "line": "+0.27% since Aug 13 vs S&P 500 -0.98% · 3 open"
+    "as_of": "2026-11-14",
+    "line": "+0.46% since Aug 13 vs S&P 500 -1.10% · to Nov 13 close · 3 open"
   },
   "qt_book": {
-    "equity": 1049572.82,
-    "day": "-1.18%",
-    "since": "+4.96%",
+    "equity": 1044418.99,
+    "day": "-0.49%",
+    "since": "+4.44%",
     "since_date": "2026-09-01",
-    "as_of": "2026-11-12",
+    "as_of": "2026-11-13",
     "bench": "S&P 500",
-    "bench_since": "-1.27%",
-    "excess": "+6.23pp",
+    "bench_since": "-2.06%",
+    "excess": "+6.50pp",
     "names": 20,
-    "line": "+4.96% since Sep 1 vs S&P 500 -1.27% · 20 names"
+    "line": "+4.44% since Sep 1 vs S&P 500 -2.06% · 20 names"
   }
 }
