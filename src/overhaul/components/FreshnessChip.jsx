@@ -39,8 +39,18 @@ function fmtExact(iso) {
   });
 }
 
-function fmtAsOf(iso, cutoffEt) {
+/* A monthly reading is named by its MONTH ("Oct 2026") on every surface, so
+   one print can never carry two day-of-month dates (2026-11-09). */
+export function fmtMonth(iso) {
+  const dt = new Date(`${String(iso).slice(0, 10)}T12:00:00Z`);
+  if (Number.isNaN(dt.getTime())) return '—';
+  return dt.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+export const isMonthly = (cadence) => /^m/i.test(String(cadence || ''));
+
+function fmtAsOf(iso, cutoffEt, cadence) {
   if (!iso) return '—';
+  if (isMonthly(cadence)) return fmtMonth(iso);
   const dateOnly = iso.length === 10;
   if (!dateOnly) {
     const dt = new Date(iso);
@@ -93,6 +103,9 @@ export default function FreshnessChip({
   variant = 'dot', // 'dot' | 'label' | 'pill'
   label,
   style,
+  // label variant only: print the two clocks beside the dot — "Latest data
+  // Oct 2026 · checked Nov 9, 6:09 AM". Detail pop-ups use it (2026-11-09).
+  showDates = false,
 }) {
   const f = useFreshness(elementId, fallback);
   // Report this chip's on-screen grade to the site-wide header rollup, so the
@@ -164,7 +177,7 @@ export default function FreshnessChip({
     Number.isFinite(_pullMs) && Number.isFinite(_asOfMs) && _asOfMs > _pullMs
       ? (f?.lastRefreshedAt || f?.lastGoodAt)
       : f?.dataAsOf;
-  const asOfExact = fmtAsOf(asOfForDisplay, f?.asOfCutoffEt);
+  const asOfExact = fmtAsOf(asOfForDisplay, f?.asOfCutoffEt, f?.cadence);
   const fetchedExact = fmtFetched(f?.lastRefreshedAt || f?.lastGoodAt);
 
   // Plain SLA line (Joe 2026-06-23: "just put what the SLA is"). The freshness
@@ -231,7 +244,14 @@ export default function FreshnessChip({
       >
         {dot}
         {/* Joe 2026-06-22: no time-text next to freshness chips, site-wide.
-            The colored dot carries status; full detail is in the hover tooltip. */}
+            The colored dot carries status; full detail is in the hover tooltip.
+            The exception is a detail pop-up (showDates), where the number on
+            screen must name its own observation (LESSONS 9.33). */}
+        {showDates && (
+          <span className="mt-chip-dates">
+            Latest data <b>{asOfExact}</b> · checked {fetchedExact}
+          </span>
+        )}
       </span>
     );
   } else {

@@ -76,7 +76,7 @@ import TickerPage from './pages/TickerPage';
 import DataFlowPage from './pages/DataFlowPage';
 import ScorecardPage from './pages/ScorecardPage';
 import WatchlistPage from './pages/WatchlistPage';
-import { AboutPage, TermsPage, PrivacyPage, DisclaimerPage } from './pages/StaticPages';
+import { AboutPage, TermsPage, PrivacyPage, DisclaimerPage, NotFoundPage } from './pages/StaticPages';
 // Real Admin · Bugs triage page. Restored 2026-06-01 — the same commit that
 // dropped /paper also swapped this route to a placeholder, breaking the
 // bugs page. The page itself lives at src/AdminBugs.jsx and still works.
@@ -281,7 +281,10 @@ function Shell() {
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/disclaimer" element={<DisclaimerPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* An unknown address is a not-found page, not the homepage
+                (2026-11-09). Retired pages that were once public keep their
+                own redirects above so old links still land somewhere real. */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
           </div>
           <SiteFooter />

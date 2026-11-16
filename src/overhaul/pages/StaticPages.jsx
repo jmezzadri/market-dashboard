@@ -3,7 +3,9 @@
    legal-pages draft (2026-07-29). Plain prose pages on the cream (v12)
    system; styling lives in styles/footer-v12.css (.mt-static-page). */
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { PRIMARY_NAV, REFERENCE_NAV } from '../chrome/siteNav';
 import '../styles/v13.css';
 import '../styles/pages-v13.css';
 
@@ -244,6 +246,34 @@ export function DisclaimerPage() {
         All investments involve risk, including possible loss of principal.
         Markets can move against any position, model, or signal.
       </p>
+      <Contact />
+    </div>
+  );
+}
+
+/* NotFoundPage — an address that is not a page (2026-11-09: every unknown
+   address used to render the homepage). The way out is the pages that exist,
+   read from siteNav, never typed here. */
+export function NotFoundPage() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const m = document.createElement('meta');
+    m.name = 'robots'; m.content = 'noindex';
+    document.head.appendChild(m);
+    return () => { m.remove(); };
+  }, []);
+  return (
+    <div className="v13 mt-static-page mt-notfound">
+      <p className="mt-static-updated">Page not found</p>
+      <h1>There is no page at <code>{pathname}</code></h1>
+      <p>
+        The address may be mistyped, or the page may have been retired. The
+        pages that exist are below.
+      </p>
+      <ul>
+        {PRIMARY_NAV.map((p) => <li key={p.to}><Link to={p.to}>{p.label}</Link></li>)}
+        {REFERENCE_NAV.filter((p) => !p.signedInOnly).map((p) => <li key={p.to}><Link to={p.to}>{p.label}</Link></li>)}
+      </ul>
       <Contact />
     </div>
   );

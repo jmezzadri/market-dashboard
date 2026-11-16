@@ -76,6 +76,7 @@
 .home-v12.data-v12 .df-cols { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: var(--sp-10); position: relative; z-index: 2; }
 .home-v12.data-v12 .df-col { min-width: 0; }
 .home-v12.data-v12 .df-col-h { font-size: var(--v13-t1); letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: var(--fw-700); margin: 0 0 var(--sp-8); padding-bottom: var(--sp-7); border-bottom: 1px solid var(--hair); }
+.home-v12.data-v12 .df-col-note { font-size: var(--v13-t1); color: var(--mut); line-height: 1.45; margin: var(--sp-8) var(--sp-2) 0; }
 .home-v12.data-v12 .df-sub-h { font-size: var(--v13-t1); letter-spacing: .14em; text-transform: uppercase; color: var(--mut); font-weight: var(--fw-700); margin: var(--sp-14) 0 var(--sp-6) var(--sp-2); }
 .home-v12.data-v12 .df-stack { display: flex; flex-direction: column; gap: var(--sp-7); }
 
@@ -94,7 +95,7 @@
 .home-v12.data-v12 .df-tile--workflow { border-left-color: var(--navy); background: var(--putty); }
 .home-v12.data-v12 .df-tile--selected { background: color-mix(in srgb, var(--gold-deep) 14%, var(--bg2)); box-shadow: var(--shx-5); }
 .home-v12.data-v12 .df-tile--lit { border-color: var(--gold-deep); background: color-mix(in srgb, var(--gold-deep) 12%, var(--bg2)); }
-.home-v12.data-v12 .df-tile--dim { opacity: 0.22; }
+.home-v12.data-v12 .df-tile--dim { opacity: var(--op-recede); }
 
 .home-v12.data-v12 .df-tile-name { display: block; font-size: var(--v13-t3); font-weight: var(--fw-600); color: var(--ink); line-height: 1.25; }
 .home-v12.data-v12 .df-tile-cd { display: block; font-size: var(--v13-t1); color: var(--mut); margin-top: var(--sp-2); line-height: 1.25; }

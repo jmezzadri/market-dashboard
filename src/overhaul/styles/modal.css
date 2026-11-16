@@ -48,6 +48,9 @@
   cursor: pointer; z-index: 2;
 }
 .mt-glassmodal .mt-modal-x:hover { color: var(--mt-ink-0); }
+/* The detail card's header keeps clear of the × hit area, so a right-aligned
+   headline figure never sits under the close control (2026-11-09 check). */
+.mt-glassmodal .ind-detail > header { padding-right: var(--sp-44); }
 
 /* ── Engine track record (components/EngineTrackRecord) ─────────────────
    2026-10-09: this component shipped 2026-07-29 with eng-* classNames but NO

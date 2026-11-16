@@ -72,5 +72,5 @@ export function pageTitle(pathname) {
   if (p === '/') return `${SITE_NAME} — Macro research and market dashboard`;
   const tk = p.match(/^\/ticker\/([^/]+)$/);
   if (tk) return `${decodeURIComponent(tk[1]).toUpperCase()} — ${SITE_NAME}`;
-  return TITLE_BY_PATH[p] ? `${TITLE_BY_PATH[p]} — ${SITE_NAME}` : SITE_NAME;
+  return TITLE_BY_PATH[p] ? `${TITLE_BY_PATH[p]} — ${SITE_NAME}` : `Page not found — ${SITE_NAME}`;
 }

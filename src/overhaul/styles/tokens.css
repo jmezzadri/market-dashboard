@@ -542,6 +542,13 @@
   --fw-600: 600;
   --fw-700: 700;
 
+  /* Opacity (2) — 2026-11-09. Receding, not vanishing: a tile outside the
+     selected lineage on the Data page, or a search list that answers the
+     previous term, stays legible. Same value in both themes; it is a
+     relationship, not a colour. */
+  --op-recede: 0.55;
+  --op-stale: 0.45;
+
   /* Durations (18) */
   --dur-120: 120ms;
   --dur-150: 150ms;

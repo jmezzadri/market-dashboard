@@ -610,10 +610,16 @@ export default function MethodologyPage() {
               holding stock; the cash days before launch are account setup, not a month the book was
               invested. The current month is labelled month-to-date.
               <b>Index rows.</b> SPY, QQQ and DIA in the returns table are measured on each fund&rsquo;s
-              official daily close (the same closes the market tape uses), not on the broker snapshot,
-              so their Day, YTD and inception figures are close-to-close. On the evening of a session,
-              before that day&rsquo;s official close is loaded, the row uses the snapshot price for that
-              one day. QQQ tracks the Nasdaq-100, not the Nasdaq Composite shown on the tape.
+              official daily close (the same closes the market tape uses) for YTD and inception, so those
+              figures are close-to-close. On the evening of a session, before that day&rsquo;s official
+              close is loaded, the row uses the snapshot price for that one day.
+              <b>The Day column</b> is one measurement for every row: the latest snapshot&rsquo;s marks
+              against the previous snapshot&rsquo;s marks, for the book and for the three funds alike,
+              because the snapshot records them at the same minute. A note under the table names the
+              two marks it runs between. QQQ tracks the Nasdaq-100, not the Nasdaq Composite shown on
+              the tape.
+              <b>Exposure.</b> The Exposure tile and the sentence in the risk checks print the same
+              figure: stock held as a share of the book&rsquo;s value at the latest mark.
               <b>Held since.</b> The holdings table shows the first day of each name&rsquo;s current run
               in the book, read from the daily position records: a name present on a day it was absent
               the day before starts a run that day, and a name that drops out ends its run, so a
@@ -775,6 +781,10 @@ export default function MethodologyPage() {
               Treasury yield; intrinsic value at expiry) and the return is on the premium, which is the
               most it can lose. The premium is the price the note stated or the model&rsquo;s price at the
               entry close, and the row says which. The exit level on the underlying still closes it.
+              Because an option can be worth several times its premium for a day and then give it back,
+              the cumulative chart can peak well above what a call finally contributes; when a closed
+              call&rsquo;s best day added three points or more above its final contribution, a line under
+              the chart names the call, the day and both figures.
             </p>
             <p className="me-body-p">
               <b>The book figures.</b> A call&rsquo;s <b>contribution</b> is its weight multiplied by its
@@ -957,8 +967,19 @@ export default function MethodologyPage() {
               source, how often it updates, the <b>latest data</b> (the data&rsquo;s own date — for a
               monthly series, the month of the latest print), the <b>last checked</b> time (when the
               job last ran), and the target after which it turns red. The two dates are always shown
-              separately and never as a single &ldquo;days ago&rdquo;. When a section depends on multiple inputs, the chip rolls up: if
-              any input's job has stalled, the section's chip turns red and names it.
+              separately and never as a single &ldquo;days ago&rdquo;. A monthly reading is dated by its
+              month wherever it appears (&ldquo;Oct 2026&rdquo;), so the same print carries the same
+              date on the indicator detail, the release detail and the Data page. Every detail pop-up
+              prints the two dates beside its dot. When a section depends on multiple inputs, the chip
+              rolls up: if any input's job has stalled, the section's chip turns red and names it.
+            </p>
+            <p className="me-body-p">
+              <b>How the Data page counts.</b> The strip&rsquo;s total is the number of tracked feeds.
+              In the sources column each outside vendor&rsquo;s count is the feeds it supplies, and one
+              &ldquo;Built in-house&rdquo; tile holds every feed computed from the others, so the column
+              adds to the total. In the surfaces column a feed is counted on every page it appears on,
+              so those counts add to more than the total; the column says so. Selecting a tile lights
+              its lineage and recedes the rest; nothing is hidden.
             </p>
             <p className="me-body-p">
               <b>Data refresh is not event status.</b> A chip says when the data last refreshed, never
@@ -973,8 +994,12 @@ export default function MethodologyPage() {
             </p>
             <p className="me-body-p">
               <b>Every price names its session.</b> In the price strip at the top of each page, a US
-              index during the session shows the time of its last tick (&ldquo;live 9:44 am&rdquo;);
-              every other figure shows the weekday of the close it belongs to (&ldquo;Fri close&rdquo;,
+              index during the session shows the time of its last tick (&ldquo;live 9:44 am&rdquo;).
+              &ldquo;Live&rdquo; is a claim about the quote as well as the session: when the quote&rsquo;s
+              own time trails the moment it was fetched by more than three minutes, the strip says{' '}
+              <b>delayed</b> and gives the time of the quote it shows (the Russell 2000 runs about
+              fifteen minutes behind the other three US indexes on the free feed). Every other figure
+              shows the weekday of the close it belongs to (&ldquo;Fri close&rdquo;,
               and &ldquo;Sun close&rdquo; for Bitcoin, which trades through the weekend). Overseas
               closes, currencies and commodities have no intraday feed, so during a US session they
               still show the last completed close with its day. The Morning Brief carries the time it
@@ -983,8 +1008,8 @@ export default function MethodologyPage() {
               strip&rsquo;s prior close.
             </p>
             <p className="me-body-p">
-              <b>The brief has three editions.</b> The <b>Morning Brief</b> is written about 5:15 am ET
-              every trading day. The <b>Midday Update</b> (about 12:15 pm) is written only when a gate
+              <b>The brief has three editions.</b> The <b>Morning Brief</b> is written between about 5:00 and
+              5:45 am ET every trading day, and carries the exact time it was written. The <b>Midday Update</b> (about 12:15 pm) is written only when a gate
               fires at the 11:30 check: a CPI, jobs-report or FOMC day, or the trading day after a US
               election; a tier-1 release more than one standard deviation from consensus; the S&amp;P 500
               &plusmn;1.0%, the VIX +15% or at 30 or above; the 10-year &plusmn;10bp or the MOVE index
