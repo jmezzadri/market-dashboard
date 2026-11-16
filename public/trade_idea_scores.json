@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-14T18:49:03Z",
-  "as_of": "2026-11-14",
+  "generated_at": "2026-11-16T22:37:06Z",
+  "as_of": "2026-11-16",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. The book is a notional 100: each call is held at the weight its note stated when it was published (10 for a standard idea, 5 for one published with fewer than five matching past cases, 1 to 2 of premium for an event idea), the rest is cash, and a call's contribution is its weight times its own return. An event idea — a defined-risk options spread on a named event — is marked at expiry from the underlying's closing price against its strikes; the premium paid is the most it can lose, and before expiry it is shown as open. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
@@ -562,6 +562,7 @@
       "weight_stated": true,
       "weight_note": null,
       "contribution_pct": 0.7334,
+      "peak_contribution_pct": 12.4283,
       "book": {
         "as_of": "2026-11-11",
         "weight": 5.0,
@@ -570,8 +571,7 @@
         "excess_pct": 16.4439,
         "contribution_pct": 0.7334,
         "days_held": 21
-      },
-      "peak_contribution_pct": 12.4283
+      }
     },
     {
       "id": "2026-10-09-yields-and-oil-are-surging-together-energy-stock",
@@ -649,6 +649,7 @@
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": -0.0429,
+      "peak_contribution_pct": 0.7327,
       "book": {
         "as_of": "2026-11-13",
         "weight": 10.0,
@@ -657,8 +658,7 @@
         "excess_pct": 2.1939,
         "contribution_pct": -0.0429,
         "days_held": 36
-      },
-      "peak_contribution_pct": 0.7327
+      }
     },
     {
       "id": "2026-09-22-the-record-yen-rescue-looks-dead-so-did-the-last",
@@ -736,6 +736,7 @@
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": -0.1409,
+      "peak_contribution_pct": 0.0412,
       "book": {
         "as_of": "2026-11-13",
         "weight": 10.0,
@@ -744,8 +745,7 @@
         "excess_pct": 1.2059,
         "contribution_pct": -0.1409,
         "days_held": 53
-      },
-      "peak_contribution_pct": 0.0412
+      }
     },
     {
       "id": "2026-09-12-oil-carries-a-war-premium-us-natural-gas-carries",
@@ -825,6 +825,7 @@
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": -0.0197,
+      "peak_contribution_pct": 1.3569,
       "book": {
         "as_of": "2026-11-13",
         "weight": 10.0,
@@ -833,8 +834,7 @@
         "excess_pct": 1.048,
         "contribution_pct": -0.0197,
         "days_held": 63
-      },
-      "peak_contribution_pct": 1.3569
+      }
     },
     {
       "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
@@ -912,6 +912,7 @@
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": 1.6988,
+      "peak_contribution_pct": 1.7214,
       "book": {
         "as_of": "2026-11-04",
         "weight": 10.0,
@@ -920,8 +921,7 @@
         "excess_pct": 17.3759,
         "contribution_pct": 1.6988,
         "days_held": 61
-      },
-      "peak_contribution_pct": 1.7214
+      }
     },
     {
       "id": "2026-08-24-the-people-who-actually-own-the-bond-market-are-",
@@ -1002,6 +1002,7 @@
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": -0.2934,
+      "peak_contribution_pct": 0.0,
       "book": {
         "as_of": "2026-09-18",
         "weight": 10.0,
@@ -1010,8 +1011,7 @@
         "excess_pct": -2.5848,
         "contribution_pct": -0.2934,
         "days_held": 24
-      },
-      "peak_contribution_pct": 0.0
+      }
     },
     {
       "id": "2026-08-17-the-volatility-curve-is-at-its-steepest-in-five-",
@@ -1105,6 +1105,7 @@
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": -1.2226,
+      "peak_contribution_pct": 0.0116,
       "book": {
         "as_of": "2026-09-30",
         "weight": 10.0,
@@ -1113,8 +1114,7 @@
         "excess_pct": -10.5021,
         "contribution_pct": -1.2226,
         "days_held": 47
-      },
-      "peak_contribution_pct": 0.0116
+      }
     },
     {
       "id": "2026-08-16-two-prices-for-the-same-insurance-and-only-one-o",
@@ -1208,6 +1208,7 @@
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": 0.0231,
+      "peak_contribution_pct": 0.0899,
       "book": {
         "as_of": "2026-09-30",
         "weight": 10.0,
@@ -1216,8 +1217,7 @@
         "excess_pct": 1.9548,
         "contribution_pct": 0.0231,
         "days_held": 47
-      },
-      "peak_contribution_pct": 0.0899
+      }
     },
     {
       "id": "2026-08-14-the-most-one-sided-trade-in-the-market-is-not-on",
@@ -1300,6 +1300,7 @@
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
       "contribution_pct": -0.2783,
+      "peak_contribution_pct": 0.1335,
       "book": {
         "as_of": "2026-10-08",
         "weight": 10.0,
@@ -1308,8 +1309,7 @@
         "excess_pct": -2.3519,
         "contribution_pct": -0.2783,
         "days_held": 56
-      },
-      "peak_contribution_pct": 0.1335
+      }
     }
   ]
 }
