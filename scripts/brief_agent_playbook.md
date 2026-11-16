@@ -449,6 +449,12 @@ brief is live, never in TEST MODE, and only on a trading day.
    message: to josephmezzadri@gmail.com, subject = the text of `subject.txt`,
    HTML body = `email.html` exactly as rendered (plus `email.txt` as the plain
    part if the tool takes one). Never send twice; never edit the rendered body.
+   **The HTML goes in the message body — always (Joe, 2026-11-16: "yes always
+   format emails. Are you insane!?").** On 2026-11-16 a session sent the plain
+   text as the body with the HTML as an attachment because pasting ~33KB of HTML
+   felt costly. That is a failure, not a fallback. Paste `email.html` verbatim
+   into the HTML body field every time, however long it is. A plain-text-only
+   email or an attached HTML file is never acceptable.
 4. If the Gmail tools are missing or the send fails: release the claim
    (`delete from brief_email_log where brief_date = '<today>' and sent_by = 'gmail-morning-session';`),
    record it (`insert into brief_email_failures (brief_date, run_id, error) values ('<today>', 'gmail-morning-session', '<plain reason>');`)
