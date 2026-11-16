@@ -1433,6 +1433,8 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer, UX Designer — every page that shows a return; every list of pages.
 
+**2026-11-16 addendum (same sweep) — the Monday Thesis Review email has the same dead SMTP password and no Gmail path.** THESIS-REVIEW-WEEKLY failed at "Send to Joe" (login rejected, as in 4.48). The sweep rendered the committed review, claimed `thesis_review_email_log` (sent_by `gmail-health-sweep`) and sent it through the Gmail connector, then re-stamped `pipeline_health.thesis_reviews`. Until a new Google app password exists, every Monday needs that fallback. Also fixed: the review's "marks to" copied the scorer's run date (`trade_idea_scores.as_of`, a Saturday, "2026-11-14"); `thesis_review.py` now uses the newest mark date of the calls it keeps (rule 9.33: a label names an observation, never a run).
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.
