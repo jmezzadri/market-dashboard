@@ -720,7 +720,10 @@ def prepare(sub_path: str, out_path: str, ideas_path=IDEAS_PATH, scores_path=SCO
     risk = book_risk(keep, hist, mark_to) if keep else None
     latest = {
         "review_date": sub["review_date"],
-        "marked_to": scores.get("as_of"),
+        # The newest session the kept calls are marked to, never the scorer's run
+        # date: as_of is the day the scorer ran (a Saturday run read "marks to
+        # 2026-11-14", a day with no session). Health sweep 2026-11-16.
+        "marked_to": mark_to,
         "scores_generated_at": scores.get("generated_at"),
         "book_now": _txt(sub.get("book_now")),
         "book_risk": risk,
