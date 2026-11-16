@@ -1,32 +1,32 @@
 {
-  "date": "2026-11-13",
+  "date": "2026-11-16",
   "edition": "close",
   "label": "Market Close",
-  "written_at": "2026-11-13T18:42:54-05:00",
-  "headline": "S&P -0.4%, Nasdaq 100 -1.2%, Dow +0.1%, 10y 5.15% +5bp, PPI +0.3% vs +0.4%, Nvidia -2.0%",
-  "stance": "Chips fell again and the 10y rose 5bp despite a soft PPI. Two Fed speakers backed more hikes.",
+  "written_at": "2026-11-16T18:42:42-05:00",
+  "headline": "S&P -1.92%, Nasdaq 100 -2.49%, VIX 22.91, Brent $91.84 -4.2%, Red Cat -25% after hours",
+  "stance": "Chip stocks pulled the S&P down 1.92%, a day before Nvidia reports. Bonds rallied and oil fell, so the damage stayed in equities.",
   "trigger": null,
   "scorecard": [
     {
-      "call": "A hot PPI at 8:30 lifts 50bp December odds from 13%.",
-      "actual": "PPI +0.3% m/m vs +0.4% expected (8:30). Not hot, yet the 10y still closed +5bp at 5.15%."
+      "call": "Morning: Tuesday's chip results decide this week's equity direction.",
+      "actual": "S&P closed -1.92% Monday, a day early. The 11:33 loss of 1.02% nearly doubled into the close."
     },
     {
-      "call": "Nvidia +0.7% pre-market after Huang resigns.",
-      "actual": "Nvidia closed -2.0% at $162.85. The pre-market bounce did not hold."
+      "call": "Morning: oil fell overnight despite two more tanker hits in Hormuz.",
+      "actual": "Brent closed $91.84, -4.2%. Iran reported a fourth tanker hit at 5:32pm; crude still fell."
     },
     {
-      "call": "Higher yields hit the Nasdaq 100 harder than the Dow.",
-      "actual": "Right. Nasdaq 100 -1.2%, Dow +0.1% at the close."
+      "call": "Midday: rates held flat and oil fell, so this is an equity selloff.",
+      "actual": "Right. 10y closed 5.12%, -3bp; 2y -5bp. Bonds rallied while stocks fell."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "PPI +0.3% m/m vs +0.4% expected; core +0.3% as expected (8:30). Yields rose anyway.",
-        "Daly: 'in all likelihood' the Fed needs to raise rates (12:23pm ET). Collins: more tightening warranted soon (10:42am ET).",
-        "Iran says a gas tanker hit a mine in Hormuz (7:45am ET). Brent held above $96 at the close."
+        "Cleveland Fed's Hammack: economy can handle more restriction, inflation going the wrong way (2:28pm).",
+        "Iran says a fourth tanker hit in 24 hours; UKMTO reports a Hormuz attack near Oman (5:32pm).",
+        "Canada October CPI 3.1% vs 3.2% expected (4:19pm wrap)."
       ],
       "positioning": null,
       "single_name": null
@@ -34,8 +34,9 @@
     {
       "title": "Equity Markets",
       "bullets": [
-        "Selling stayed in chips and AI names. Most S&P 500 stocks were higher (2:33pm ET).",
-        "Small caps fell with the large-cap indices. Russell 2000 -0.3% at the close."
+        "Commerce rule requires licences for AI chip exports to data centers in five Asian and Latin American countries (2:30pm). Chip stocks led the drop.",
+        "VIX3M 23.02 with VIX 22.91: the curve is flat, one step from inversion.",
+        "S&P futures little changed after the close (6:14pm)."
       ],
       "positioning": null,
       "single_name": null
@@ -43,7 +44,7 @@
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "Fed survey ranks AI as the top risk to the financial system (4:18pm ET). No funding stress yet."
+        "HYG/LQD ratio rose on the day. High yield held up while stocks fell 2%."
       ],
       "positioning": null,
       "single_name": null
@@ -51,34 +52,30 @@
   ],
   "items": [
     {
-      "head": "Nvidia down 6 straight weeks, longest run since 2012",
-      "body": "Closed -2.0% Friday. Market value down $1.7 trillion in the slide (5:18pm ET)."
+      "head": "Red Cat -25.5% after hours (6:41pm)",
+      "body": "Q3 missed on revenue and EPS; revenue guidance withdrawn (4:21pm)."
     },
     {
-      "head": "AMD -8.8% as the week's chip rotation reversed",
-      "body": "Closed at $534.06 after a run through Thursday. Broadcom -4.8% at the close."
+      "head": "Intel -4.7% after hours (6:41pm)",
+      "body": "Closed -7.0% on a shareholder suit over PC disclosures. Extended losses after Nvidia cut its stake (5:48pm)."
     },
     {
-      "head": "SunPower delays its 10-Q, sees Q3 revenue below guidance",
-      "body": "Stock at a 52-week low (6:07pm ET)."
+      "head": "SharonAI -4.1% after hours (6:37pm)",
+      "body": "Q3 missed on revenue and EPS (4:39pm). Stock closed -10.8%."
     }
   ],
   "watch": [
     {
-      "head": "FAA nationwide ground stop, Friday evening",
-      "body": "Ordered at 4:43pm ET. More than 10,000 flights delayed by 5:44pm ET. Airlines trade on it Monday."
-    },
-    {
-      "head": "Empire State survey, Nov 16, 8:30",
-      "body": "First regional factory read for November."
-    },
-    {
       "head": "Retail sales, Nov 17, 8:30",
-      "body": "Next tier-1 data before the Dec 9 FOMC."
+      "body": "Tier-1 consumer data. Import prices also at 8:30; industrial production at 9:15."
     },
     {
-      "head": "Nvidia report and Anthropic IPO, next week",
-      "body": "Nvidia's first report since Huang resigned. Anthropic prices its IPO next week."
+      "head": "Nvidia results, Nov 17, after the close",
+      "body": "Results ~4:20pm ET. Stock closed -4.1% Monday ahead of the report."
+    },
+    {
+      "head": "Home Depot reports Nov 17",
+      "body": "Options price a large post-report move (3:32pm)."
     }
   ]
 }
