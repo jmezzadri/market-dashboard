@@ -69,7 +69,24 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
         enterPending.current = false;
         if (list.length) { go(list[0].ticker); return; }
       }
-      setRes(list);
+      // The reference record's market cap is struck at the close on the day
+      // the record was fetched, on a slow rotation (LESSONS 4.49): NVDA read
+      // $5.2T here at a $156 close while its own page said $3.77T
+      // (2026-11-17 sweep). The figure shown is stock_facts' cap — shares x
+      // the last close, the same number the stock page and Watchlist show;
+      // a name with no such row shows no cap rather than a stale one. The
+      // reference cap still only orders the matches.
+      let capOf = {};
+      if (list.length) {
+        const { data: facts } = await supabase.from('stock_facts')
+          .select('ticker,market_cap').in('ticker', list.map((r) => r.ticker));
+        (facts || []).forEach((f) => { const c = Number(f.market_cap); if (Number.isFinite(c) && c > 0) capOf[f.ticker] = c; });
+        if (id !== reqId.current || term !== latestTerm.current) return;
+        if (enterPending.current) { enterPending.current = false; go(list[0].ticker); return; }
+      }
+      const priced = list.map((r) => ({ ...r, market_cap: capOf[r.ticker] ?? null }));
+      shown.current = { term, list: priced };
+      setRes(priced);
       setPhase(error ? 'error' : 'done');
       setDoneFor(term);
       setOpen(true);
