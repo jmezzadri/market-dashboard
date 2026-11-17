@@ -7,7 +7,11 @@
 
    The bar is now three equal zones, one per label, with the engine thresholds
    as the zone edges. A marker can only sit over the label of the zone the
-   engine is actually in. Display only — no engine number changes. */
+   engine is actually in. Display only — no engine number changes.
+
+   2026-11-17: every function takes the lines it draws (regime.stressThresholds /
+   regime.yieldThresholds, read from the Engine file); the constants are only
+   the fallback. */
 import { STRESS_THRESH, YIELD_THRESH } from './useEngineRegime';
 
 const THIRD = 100 / 3;
@@ -24,31 +28,31 @@ function zonePct(v, lo, a, b, hi) {
 const MOVE_LO = 40, MOVE_HI = 160;
 const YIELD_LO = -40, YIELD_HI = 60;
 
-export function stressGaugePct(move) {
-  return zonePct(move, MOVE_LO, STRESS_THRESH.watch, STRESS_THRESH.riskOff, MOVE_HI);
+export function stressGaugePct(move, t = STRESS_THRESH) {
+  return zonePct(move, MOVE_LO, t.watch, t.riskOff, MOVE_HI);
 }
 
-/* Deflationary is "≤ −11", so −11 itself belongs to the left zone: nudge the
+/* Deflationary is "≤ <line>", so the line itself belongs to the left zone: nudge the
    lower edge so an exact −11 does not draw inside Neutral. */
-export function yieldGaugePct(bp) {
-  if (bp != null && bp <= YIELD_THRESH.deflBp) {
-    return zonePct(bp, YIELD_LO, YIELD_THRESH.deflBp + 1e-9, YIELD_THRESH.inflBp, YIELD_HI);
+export function yieldGaugePct(bp, t = YIELD_THRESH) {
+  if (bp != null && bp <= t.deflBp) {
+    return zonePct(bp, YIELD_LO, t.deflBp + 1e-9, t.inflBp, YIELD_HI);
   }
-  return zonePct(bp, YIELD_LO, YIELD_THRESH.deflBp, YIELD_THRESH.inflBp, YIELD_HI);
+  return zonePct(bp, YIELD_LO, t.deflBp, t.inflBp, YIELD_HI);
 }
 
 /* Caption under the MOVE gauge. States the distance to the next line instead
    of an adjective ("far"), so the words can never outrun the number. */
-export function stressMessage(zone, move) {
+export function stressMessage(zone, move, t = STRESS_THRESH) {
   const ok = move != null && Number.isFinite(move);
   const pts = (n) => `${n} point${n === 1 ? '' : 's'}`;
   if (zone === 'Risk On') {
     if (!ok) return 'Calm — below the watch line.';
-    return `Calm — ${pts(Math.max(1, Math.round(STRESS_THRESH.watch - move)))} below the ${STRESS_THRESH.watch} watch line.`;
+    return `Calm — ${pts(Math.max(1, Math.round(t.watch - move)))} below the ${t.watch} watch line.`;
   }
   if (zone === 'Watch') {
     if (!ok) return 'Watch — approaching the de-risk line.';
-    return `Watch — ${pts(Math.max(1, Math.round(STRESS_THRESH.riskOff - move)))} below the ${STRESS_THRESH.riskOff} de-risk line.`;
+    return `Watch — ${pts(Math.max(1, Math.round(t.riskOff - move)))} below the ${t.riskOff} de-risk line.`;
   }
   if (zone === 'Risk Off') return 'Risk off — the de-risk line is breached.';
   return '—';
