@@ -1446,6 +1446,8 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer, UX Designer — every regime/engine dial.
 
+**2026-11-17 addendum (same sweep) — a column hidden by CSS still counts in a colspan.** On a phone the Watchlist hides its drag-handle column with `display: none`, but the table footer folded that column into its label's colspan, so the label covered Ticker, Price AND Day and every footer value printed one column to the right: the day average under "1 month", the since-added average under "Tag". Desktop was correct, so only a 390px read showed it. The footer now gives the drag column its own cell with the drag column's class, so whatever hides the column hides the cell. **Rule:** a cell that stands in for a column carries that column's class; never fold an optional column into another cell's colspan. Sweep check: at 390, each footer value's left edge = its column header's left edge.
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.

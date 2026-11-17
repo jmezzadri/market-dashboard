@@ -456,7 +456,13 @@ export default function DataTable({
                 const trailing = visible.length - ai - 1;
                 return (
                   <tr key={s.label} className={`dt-foot${s.strong ? ' strong' : ''}${si === 0 ? ' first' : ''}`}>
-                    <td className="dt-foot-label" colSpan={ai + (showDragCol ? 1 : 0)}>
+                    {/* The drag column gets its own cell, with the drag column's
+                        class, so a page that hides that column (the Watchlist on
+                        phones) hides this cell too. Folding it into the label's
+                        colspan put every value one column to the right on a phone
+                        (2026-11-17 sweep: the day average sat under "1 month"). */}
+                    {showDragCol && <td className="dt-drag off" aria-hidden="true" />}
+                    <td className="dt-foot-label" colSpan={ai}>
                       {s.labelTip ? <span className="dt-tip" data-tip={s.labelTip}>{s.label}</span> : s.label}
                     </td>
                     <td className={`r ${s.valueClass || ''}`}>{s.value}</td>
