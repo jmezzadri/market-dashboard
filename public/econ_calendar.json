@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-11-16T23:44:28Z",
+  "generated_at": "2026-11-17T03:01:25Z",
   "window": {
-    "from": "2026-11-09",
-    "to": "2027-01-25"
+    "from": "2026-11-10",
+    "to": "2027-01-26"
   },
   "counts": {
-    "total": 82,
+    "total": 81,
     "tier1": 24
   },
   "sources": [
@@ -30,21 +30,10 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-25",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-26",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
-    {
-      "date": "2026-11-09",
-      "time_et": "10:00 AM",
-      "name": "Wholesale inventories",
-      "short": "Wholesale",
-      "tier": 3,
-      "category": "Growth",
-      "blurb": "Wholesale-level sales and inventories \u2014 an input to the GDP inventory line.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-11-10",
       "time_et": "6:00 AM",
