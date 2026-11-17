@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-11-17T03:01:25Z",
+  "generated_at": "2026-11-17T18:41:56Z",
   "window": {
     "from": "2026-11-10",
     "to": "2027-01-26"
   },
   "counts": {
-    "total": 81,
+    "total": 82,
     "tier1": 24
   },
   "sources": [
@@ -258,6 +258,17 @@
       "tier": 3,
       "category": "Surveys",
       "blurb": "Philadelphia Fed non-manufacturing outlook survey.",
+      "source": "FRED release calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-11-24",
+      "time_et": "9:15 AM",
+      "name": "Industrial production",
+      "short": "Ind Prod",
+      "tier": 2,
+      "category": "Growth",
+      "blurb": "Factory, mining and utility output plus capacity utilisation.",
       "source": "FRED release calendar",
       "time_source": "published release policy"
     },
