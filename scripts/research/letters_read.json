@@ -280,6 +280,46 @@
    "link": "gmail thread 1a1cfe313dae299c",
    "read_on": "2026-11-13",
    "fed": "fact base: Anthropic IPO $70-78, book multiple times covered, trades Nov 19; CoreWeave +24.7% with CDS above 1,100bp; card-spend data shows 1% of businesses drive 80% of lab revenue and that spend is slowing; fed the giant-IPO supply test (nine listings, no index edge at 10 or 21 sessions)"
+  },
+  {
+   "sender": "alex@macro-ops.com",
+   "received": "2026-11-16",
+   "subject": "REMNANTS OF DEC 21'...",
+   "link": "gmail thread 1a1e4745f044cb8b",
+   "read_on": "2026-11-17",
+   "fed": "fact base (dated position facts, Nov 16): elevated cash; long crude, HRW wheat and a commodity basket; short Treasuries incl. the 2-year; short Nasdaq-100, added through the week; no exits disclosed; watching coal equities. Used as the challenge to the oil-fall candidates: stocks after a 18%+ three-week fall in Brent did worse than any start, so falling oil is not a reason to buy the beneficiaries"
+  },
+  {
+   "sender": "macro-ops.com (Vol Street Journal)",
+   "received": "2026-11-15",
+   "subject": "Vol Street Journal :: Episode 48",
+   "link": "https://macro-ops.com/wp-content/uploads/2026/11/VSJ-Ep.-48-Market-Brief.pdf",
+   "read_on": "2026-11-17",
+   "fed": "challenge log 2026-11-17: method tested - implied volatility below realized with a flat VIX curve as an instability signal (vol_instability_test.py). Result: drawdown odds double, return edge none; not on for the S&P today"
+  },
+  {
+   "sender": "squad@thedailyupside.com",
+   "received": "2026-11-13",
+   "subject": "Lisa Su's Big Moment",
+   "link": "gmail thread 1a1d5092473b2638",
+   "read_on": "2026-11-17",
+   "fed": "fact base: AMD +162% YTD vs Nvidia -12%; 40 of 48 analysts rate AMD a buy; existing home sales lowest since 2010 (consensus on semis going into the Nov 17 Nvidia report)"
+  },
+  {
+   "sender": "squad@thedailyupside.com",
+   "received": "2026-11-15",
+   "subject": "Takin' PTO for GTA",
+   "link": "gmail thread 1a1dff4f1026ac81",
+   "read_on": "2026-11-17",
+   "fed": "nothing - single-company feature, no macro content"
+  },
+  {
+   "sender": "squad@thedailyupside.com",
+   "received": "2026-11-16",
+   "subject": "Can Microsoft Ignite ROI?",
+   "link": "gmail thread 1a1e47c4254c30a4",
+   "read_on": "2026-11-17",
+   "fed": "fact base: Microsoft briefly passed Nvidia in market value after Nvidia's $1.6tn fall; IEA calls oil back in surplus; third chip-export crackdown reauthorized"
   }
  ]
 }

@@ -145,9 +145,22 @@
 "processed": "2026-11-10",
 "published": "2026-11-09",
 "source": "alex@macro-ops.com"
+},
+{
+"url": "https://macro-ops.com/remnants-of-dec-21/",
+"read": "full letter from the inbox (gmail thread 1a1e4745f044cb8b)",
+"processed": "2026-11-17",
+"published": "2026-11-16",
+"source": "alex@macro-ops.com"
+},
+{
+"url": "https://macro-ops.com/vol-street-journal-episode-48/",
+"read": "full (PDF brief)",
+"processed": "2026-11-17",
+"published": "2026-11-15"
 }
 ],
-"source": "Macro Ops \u2014 macro-ops.com/research/ \u2014 public pages only, never a member login",
+"source": "Macro Ops — macro-ops.com/research/ — public pages only, never a member login",
 "letters": [
 {
 "url": "https://go.pracap.com/hubfs/Quarterly Letters/2026/2026 Q3 Investor Letter - Approved.pdf",
@@ -155,8 +168,8 @@
 "source": "pracap.com",
 "processed": "2026-10-21",
 "published": "2026-10-21",
-"method_to_test": "exit a commodity-adjacent equity when its price reaches replacement cost (the refiner exit) \u2014 test on our refiner screen"
+"method_to_test": "exit a commodity-adjacent equity when its price reaches replacement cost (the refiner exit) — test on our refiner screen"
 }
 ],
-"last_checked": "2026-11-03"
+"last_checked": "2026-11-17"
 }

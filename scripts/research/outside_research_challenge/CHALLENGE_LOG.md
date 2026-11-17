@@ -19,6 +19,76 @@ Procedure: `PLAYBOOK.md`. Posts already read: `processed_posts.json`.
 
 ---
 
+## 2026-11-17 — implied volatility under realized with a flat curve: an "unstable calm", or just a description of a selloff?
+
+Two new reads since Nov 10 (a macro letter of Nov 16 and a volatility brief of
+Nov 15, both in `letters_read.json`). Two public posts of Nov 13-14 are not
+read yet and stay unprocessed. Nothing from Praetorian or Greenhaven Road.
+
+**What their work does that ours does not.** The volatility brief reads the
+GAP between what options charge and what the index is delivering: implied
+volatility and implied correlation below realized, with spot VIX level with
+the futures, is treated as a calm that cannot hold. We carry the VIX curve
+(`vix_ts`) and have only ever tested its steep end (the Aug 17 note); we have
+never tested implied against realized. The macro letter, separately, is long
+crude and short the Nasdaq-100 after oil's three-week fall.
+
+**The question that puts to us.** Is "implied below realized, flat curve" a
+signal to own index protection (the closed Oct 22 put was that trade), or is
+it only what the middle of any selloff looks like? And does a fast fall in
+oil help the equity beneficiaries the street is rotating into?
+
+**The test.** `vol_instability_test.py`, output `results_2026-11-17.txt`. VIX
+minus the S&P 500's 21-session realized volatility at or below zero AND
+VIX / three-month VIX at or above 0.98; 2006-07 to 2026-11; S&P return and
+worst close over the next 5, 10, 21 and 63 sessions against every start;
+independent episodes; halves; split by the 200-day. The oil question was run
+in the Trade Idea sweep the same morning (Brent down 18%+ in 21 sessions,
+2007-2026, sector funds from the price store).
+
+**The result.** 23 independent episodes at 21 sessions. Return: +1.3% median
+against +1.4% for any start, up 61% against 65% — no edge in direction. Risk:
+a 5%+ drawdown inside the month in 39% of cases against 18%, and at a quarter
+64% against 35%; both halves agree on the drawdown and disagree on the return
+(first half -3.0% mean at a quarter, second half +5.4%). Eighteen of the 23
+came with the index already under its 200-day: the signal mostly describes a
+selloff in progress. It is NOT on for the S&P today (VIX 22.9, realized 22.0,
+curve 0.995, index above its 200-day); it is on for the Nasdaq-100. Oil: after
+Brent fell 18%+ in three weeks the S&P was lower a quarter later in 10 of 14
+cases (median -0.7% against +3.7%), and retail, homebuilders, transports and
+airlines all did worse than their own baselines — most oil collapses in the
+sample were demand collapses.
+
+**What changed in MacroTilt.** Nothing in the book. Two habits: (1) implied
+under realized is written as "the odds of a 5% drop inside a month roughly
+double", never as a direction call, and it does not justify a put on its own
+— the return test is flat; (2) "oil is falling, buy the consumers of oil" is
+not a candidate without a supply-versus-demand split, and that split leaves
+too few cases (four) to test. Both go to the skip table as tested-and-empty.
+
+### Not yet tested — carried to the next read
+
+- Forward P/E down 10%+ inside a calendar year, next 12 months (needs a
+  forward-earnings series; we carry CAPE only).
+- Six and twelve months after a midterm, split by whether the Fed was raising
+  rates (seven midterms since 1998 — expect "too thin").
+- Silver after a 15%+ three-week fall below its 200-day: +12.5% median a
+  quarter later in 13 cases (2000-2026) against +2.3%, but 6 of 13 closed 11%
+  or more under the entry on the way — is there an entry rule (first higher
+  close after the trigger, a reclaimed 10-day average) that keeps the gain
+  with a stop a note can state? (from the Nov 17 Trade Idea sweep)
+- Retail margin debt (FINRA) against currency in circulation (needs the FINRA
+  series on file) (carried).
+- One-month implied correlation above 25 as a correlation event (needs COR1M
+  history) (carried).
+- MOVE up 25+ points in 21 sessions while VIX <= 18 (carried).
+- Tight range followed by a break to a new 3-month high (carried).
+- Corporate-bond-to-Treasury relative strength, spread-based (carried).
+- Gold miners after the 10-year falls 30bp+ in a month off a one-year high:
+  an entry rule that skips the first drawdown (carried from Nov 10).
+
+---
+
 ## 2026-11-10 — a first close under the 200-day "confirms" a bear case: does it?
 
 One new letter since the last read (Nov 9, read in full from the inbox) and
