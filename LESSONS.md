@@ -1436,6 +1436,16 @@ They are not the same series and they are nowhere near each other:
 
 **2026-11-16 addendum (same sweep) — the Monday Thesis Review email has the same dead SMTP password and no Gmail path.** THESIS-REVIEW-WEEKLY failed at "Send to Joe" (login rejected, as in 4.48). The sweep rendered the committed review, claimed `thesis_review_email_log` (sent_by `gmail-health-sweep`) and sent it through the Gmail connector, then re-stamped `pipeline_health.thesis_reviews`. Until a new Google app password exists, every Monday needs that fallback. Also fixed: the review's "marks to" copied the scorer's run date (`trade_idea_scores.as_of`, a Saturday, "2026-11-14"); `thesis_review.py` now uses the newest mark date of the calls it keeps (rule 9.33: a label names an observation, never a run).
 
+### 4.55 (2026-11-17, health sweep) — A dial is the series its label names, measured the way the engine measures it, against the engine's own lines
+
+**What happened:** Home and Macro Landscape showed "Yield regime · 3-month change in 10Y **+51bp**", with lines "Deflationary ≤-11 · Inflationary ≥+32". The 10-year (5.12% on the tape) had moved +40bp over 91 days. The figure was the 10-year TIPS (real) yield's change — `useEngineRegime` preferred `real_rates` since the overhaul — under a label, and a click-through chart, for the nominal 10-year; and the lines were constants while the Engine (FRED DGS10, 13 weeks, 70th/30th percentiles of five years of Fridays) was calling the regime on +37 / -6 that week. The regime word agreed by luck: a reading between +32 and +37 would have printed "Inflationary" on Home while the Engine said Neutral. The MOVE dial was already fixed this way on 2026-10-01 (useEngineLevels); the yield dial next to it was not. Methodology printed the same stale constants.
+
+**Fix:** `useEngineRegime` reads `ust_10y` and measures latest minus the close on or before 91 calendar days earlier (the Engine's `delta_y_3m_bp_live` method); every line on Home, Macro and Methodology comes from `macrotilt_engine.json` via `useEngineLevels` (stress and yield), the constants only as fallback; `engineGauges` takes the lines as arguments.
+
+**Rule:** (1) A number under a label is the series the label names — check the hook's source series, not just the figure's format. (2) When two dials sit side by side and one is fixed to read the engine's lines, the other is fixed in the same change (4.54 rule 1). (3) Any threshold printed as a constant next to a rolling engine is copy that drifts; read it from the engine file. **Sweep check:** Home/Macro "10Y · 3-month change" = `ust_10y` latest minus the close 91 days back, ±1bp; the lines = `macrotilt_engine.json` yield_regime thresholds, rounded.
+
+**Applies to:** Lead Developer, UX Designer — every regime/engine dial.
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.

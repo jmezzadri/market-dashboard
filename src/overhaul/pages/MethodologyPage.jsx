@@ -46,6 +46,7 @@ import useIndicators from '../lib/useIndicators';
 import { PAGE_NAME } from '../chrome/siteNav';
 import FreshnessChip from '../components/FreshnessChip';
 import '../styles/cream-system.css';
+import useEngineRegime from '../lib/useEngineRegime';
 import '../styles/methodology-v12.css';
 // v13 last — it overrides the page's own v12 stylesheet.
 import '../styles/v13.css';
@@ -110,6 +111,10 @@ function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
 export default function MethodologyPage() {
   const { active } = useIndicators();
   const liveIndicatorCount = active.length || '—';
+  // The Engine's current lines (2026-11-17) — the formula below once printed
+  // fixed +32 / -11 while the Engine called the regime on its own rolling lines.
+  const { stressThresholds: ST, yieldThresholds: YT } = useEngineRegime();
+  const sgn = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');
 
   const [backtest, setBacktest] = useState(null);
   const [manifest, setManifest] = useState(null);
@@ -292,11 +297,12 @@ export default function MethodologyPage() {
             </p>
             <div className="me-formula" data-mono="code">
               stress_signal = MOVE<br />
-              stress_zone   = MOVE &lt; 116 → Risk On · 116 ≤ MOVE &lt; 124 → Watch · MOVE ≥ 124 → Risk Off<br />
-              entry_filter  = a de-risk only starts after 2 consecutive Fridays at or above 116;
+              stress_zone   = MOVE &lt; {ST.watch} → Risk On · {ST.watch} ≤ MOVE &lt; {ST.riskOff} → Watch · MOVE ≥ {ST.riskOff} → Risk Off<br />
+              entry_filter  = a de-risk only starts after 2 consecutive Fridays at or above {ST.watch};
               the return to full equity is immediate<br />
               equity_pct    = Risk On 100% · Watch 80% · Risk Off 50%  (set by stress alone)<br />
-              yield_regime  = 3M Δ 10y ≥ +32 bp → Inflationary · ≤ −11 bp → Deflationary · else Neutral<br />
+              yield_regime  = 3M Δ 10y ≥ {sgn(YT.inflBp)} bp → Inflationary · ≤ {sgn(YT.deflBp)} bp → Deflationary · else Neutral<br />
+              lines         = the 75th / 85th (MOVE) and 70th / 30th (3M Δ 10y) percentiles of five years of Friday readings, re-set every week — today&rsquo;s values shown<br />
               defensive_mix = Inflationary 50% cash / 30% gold / 20% short Treasuries ·
               Deflationary 25% cash / 25% gold / 50% long Treasuries ·
               Neutral 50% cash / 25% gold / 25% long Treasuries

@@ -43,7 +43,6 @@ import { tradeSchedule, scheduleParts } from '../lib/tradeSchedule';
 import useIndicatorSeries from '../lib/useIndicatorSeries';
 import IdeaChart from '../components/IdeaChart';
 import TradeIdeaNoteModal from '../components/TradeIdeaNote';
-import { STRESS_THRESH, YIELD_THRESH } from '../lib/useEngineRegime';
 // The modals keep the cockpit's own sheets (they carry the .home-v12 scope on
 // their veil), so those sheets stay loaded here.
 import '../styles/cream-system.css';
@@ -211,10 +210,12 @@ export default function HomePage() {
     setAmbient((v) => { try { window.localStorage.setItem(AMBIENT_KEY, v ? 'off' : 'on'); } catch {} return !v; });
   };
 
-  const stressMk = stressGaugePct(regime.move);
-  const yieldMk = yieldGaugePct(regime.yieldDeltaBp);
+  const ST = regime.stressThresholds;
+  const YT = regime.yieldThresholds;
+  const stressMk = stressGaugePct(regime.move, ST);
+  const yieldMk = yieldGaugePct(regime.yieldDeltaBp, YT);
   const stressZone = regime.stressZone;
-  const stressMsg = stressMessage(stressZone, regime.move);
+  const stressMsg = stressMessage(stressZone, regime.move, ST);
   const yReg = regime.yieldRegime;
   const yDelta = regime.yieldDeltaBp;
   /* One plain sentence under the yield meter, stating the distance to the
@@ -224,8 +225,8 @@ export default function HomePage() {
     if (yReg === 'Inflationary') return 'Inflationary — the Fed is back in play.';
     if (yReg === 'Deflationary') return 'Deflationary — a growth scare.';
     if (yReg === 'Neutral' && yDelta != null && Number.isFinite(yDelta)) {
-      const toInfl = Math.round(YIELD_THRESH.inflBp - yDelta);
-      const toDefl = Math.round(yDelta - YIELD_THRESH.deflBp);
+      const toInfl = Math.round(YT.inflBp - yDelta);
+      const toDefl = Math.round(yDelta - YT.deflBp);
       const bp = (n) => `${n} basis point${n === 1 ? '' : 's'}`;
       return toInfl <= toDefl
         ? `Neutral — ${bp(Math.max(1, toInfl))} short of the inflationary line.`
@@ -340,7 +341,7 @@ export default function HomePage() {
                 <span className="ed-zone ed-zone--off" />
                 {stressMk != null && <span className="ed-pin" />}
               </div>
-              <div className="ed-meter-scale rd-num"><span>Risk on ≤{STRESS_THRESH.watch}</span><span>Watch</span><span>Risk off ≥{STRESS_THRESH.riskOff}</span></div>
+              <div className="ed-meter-scale rd-num"><span>Risk on ≤{ST.watch}</span><span>Watch</span><span>Risk off ≥{ST.riskOff}</span></div>
               <div className="ed-meter-read">{stressMsg}</div>
             </button>
 
@@ -352,7 +353,7 @@ export default function HomePage() {
                 <span className="ed-zone ed-zone--watch" />
                 {yieldMk != null && <span className="ed-pin" />}
               </div>
-              <div className="ed-meter-scale rd-num"><span>Deflationary ≤{YIELD_THRESH.deflBp}</span><span>Neutral</span><span>Inflationary ≥+{YIELD_THRESH.inflBp}</span></div>
+              <div className="ed-meter-scale rd-num"><span>Deflationary ≤{YT.deflBp}</span><span>Neutral</span><span>Inflationary ≥+{YT.inflBp}</span></div>
               <div className="ed-meter-read">{yMsg}</div>
             </button>
 

@@ -53,7 +53,6 @@ import '../styles/cream-system.css';
 import '../styles/v13.css';
 import '../styles/macro-v13.css';   /* the hover tooltip (.mac-tip) and the detail modals */
 import '../styles/modal.css';
-import { STRESS_THRESH, YIELD_THRESH } from '../lib/useEngineRegime';
 import DetailModal from '../components/DetailModal';
 import EngineTrackRecord from '../components/EngineTrackRecord';
 
@@ -254,7 +253,8 @@ export default function MacroPage() {
   const posTip = (m) => { const L=[m.market+' · positioning']; if(Number.isFinite(m.spec)) L.push('Specs '+ord(m.spec)+' pct · 3y range'+(m.spec>=90?' · crowded':m.spec<=10?' · washed out':'')); L.push('Click for chart.'); return L.join('\n'); };
 
   const sZone = regime.stressZone, yReg = regime.yieldRegime;
-  const sMsg = stressMessage(sZone, regime.move);
+  const STRESS_THRESH = regime.stressThresholds, YIELD_THRESH = regime.yieldThresholds;  // the Engine's own lines (2026-11-17)
+  const sMsg = stressMessage(sZone, regime.move, STRESS_THRESH);
   const yDelta = regime.yieldDeltaBp;
   const yMsg = (() => {
     if (yReg === 'Inflationary') return 'Inflationary — the Fed is back in play.';

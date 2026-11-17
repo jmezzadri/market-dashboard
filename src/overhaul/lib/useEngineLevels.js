@@ -8,7 +8,13 @@
 
    Source: /macrotilt_engine.json (stress.watch_threshold_value /
    risk_off_threshold_value), the same file the Engine card reads. Falls back
-   to STRESS_THRESH, the constants the Home and Macro regime call uses. */
+   to STRESS_THRESH, the constants the Home and Macro regime call uses.
+
+   2026-11-17 (health sweep): the same file also carries the yield regime's
+   lines (`yield_regime.inflationary_threshold_bp` / `deflationary_threshold_bp`,
+   the 70th / 30th percentile of five years of Friday 3-month changes in the
+   10-year). Home and Macro had drawn hard-coded +32 / -11 while the Engine
+   called the regime on +37 / -6. They now read the Engine's own lines too. */
 
 import { useEffect, useState } from 'react';
 // The fallback lives here (not in useEngineRegime) because useIndicators reads
@@ -26,8 +32,11 @@ function load() {
       .then((d) => {
         const w = d?.stress?.watch_threshold_value;
         const r = d?.stress?.risk_off_threshold_value;
+        const yi = d?.yield_regime?.inflationary_threshold_bp;
+        const yd = d?.yield_regime?.deflationary_threshold_bp;
+        const yOk = Number.isFinite(yi) && Number.isFinite(yd) && yi > yd;
         if (Number.isFinite(w) && Number.isFinite(r) && r > w) {
-          cached = { watch: w, riskOff: r, asOf: d.as_of || null };
+          cached = { watch: w, riskOff: r, inflBp: yOk ? yi : null, deflBp: yOk ? yd : null, asOf: d.as_of || null };
         }
         return cached;
       })
@@ -44,7 +53,7 @@ export default function useEngineLevels() {
     load().then((v) => { if (!dead && v) setLv(v); });
     return () => { dead = true; };
   }, []);
-  return lv || { watch: STRESS_THRESH.watch, riskOff: STRESS_THRESH.riskOff, asOf: null };
+  return lv || { watch: STRESS_THRESH.watch, riskOff: STRESS_THRESH.riskOff, inflBp: null, deflBp: null, asOf: null };
 }
 
 export function engineZone(value, lv) {

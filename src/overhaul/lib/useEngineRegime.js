@@ -6,27 +6,39 @@
      stress: MOVE < 116 Risk On · 116-124 Watch · ≥ 124 Risk Off
      yield : 3M Δ 10y ≥ +32 bp Inflationary · ≤ -11 bp Deflationary · else Neutral
 
+   2026-11-17 (health sweep): the dial read "10Y · 3-month change +51bp"
+   while the 10-year had moved +40bp. The number was the 10-year TIPS (real)
+   yield's change, under a label — and a click-through chart — for the
+   nominal 10-year, and was ranked against hard-coded +32 / -11 lines while the
+   Engine (FRED DGS10, 13 weeks) called the regime on its own +37 / -6. Now:
+   the series is the nominal 10-year (`ust_10y`, the Treasury curve the tape
+   shows; same yields as DGS10), the change is measured over 91 calendar days
+   exactly as the Engine's daily headline is, and every line comes from
+   /macrotilt_engine.json (useEngineLevels), the constants below being only
+   the fallback when that file cannot be read.
+
    Surfaced wherever the regime is shown — Home stat tiles, Home Engine Call
    card, Tilt hero, Tilt gauges. Never derive these inline in a page. */
 
 import { useMemo } from 'react';
 import useIndicators from './useIndicators';
-import { STRESS_THRESH } from './useEngineLevels';
+import useEngineLevels, { STRESS_THRESH } from './useEngineLevels';
 
 export { STRESS_THRESH };
+// Fallback only — the live lines come from the Engine file (see above).
 export const YIELD_THRESH = { inflBp: 32, deflBp: -11 };
 
-function stressZone(moveValue) {
+function stressZone(moveValue, t) {
   if (moveValue == null || !Number.isFinite(moveValue)) return null;
-  if (moveValue < STRESS_THRESH.watch) return 'Risk On';
-  if (moveValue < STRESS_THRESH.riskOff) return 'Watch';
+  if (moveValue < t.watch) return 'Risk On';
+  if (moveValue < t.riskOff) return 'Watch';
   return 'Risk Off';
 }
 
-function yieldRegime(threeMonthDeltaBp) {
+function yieldRegime(threeMonthDeltaBp, t) {
   if (threeMonthDeltaBp == null || !Number.isFinite(threeMonthDeltaBp)) return null;
-  if (threeMonthDeltaBp >= YIELD_THRESH.inflBp) return 'Inflationary';
-  if (threeMonthDeltaBp <= YIELD_THRESH.deflBp) return 'Deflationary';
+  if (threeMonthDeltaBp >= t.inflBp) return 'Inflationary';
+  if (threeMonthDeltaBp <= t.deflBp) return 'Deflationary';
   return 'Neutral';
 }
 
@@ -43,18 +55,24 @@ function colorForYield(regime) {
   return 'var(--mt-ink-2)';
 }
 
-// Compute the 3-month rates delta in basis points from the 10y/curve series.
-// Prefer real_rates (10y TIPS) → yield_curve (10-2 slope) → fall back null.
-// All input series store [date, value]; values are already in their natural
-// unit (TIPS in %, curve in bp). For 3M change we look ~63 trading days back.
+// 3-month change in the 10-year, in bp: the latest close minus the close on
+// or before the date 91 calendar days earlier — the Engine's own daily
+// headline (compute_macrotilt_engine.py, delta_y_3m_bp_live). Series values
+// in % are converted to bp.
 function threeMonthDeltaBp(ind) {
-  if (!ind?.points || ind.points.length < 65) return null;
-  const last = ind.points[ind.points.length - 1]?.[1];
-  const prev = ind.points[Math.max(0, ind.points.length - 64)]?.[1];
-  if (!Number.isFinite(last) || !Number.isFinite(prev)) return null;
+  const pts = ind?.points;
+  if (!pts || pts.length < 65) return null;
+  const [lastDate, last] = pts[pts.length - 1] || [];
+  if (!Number.isFinite(last) || !lastDate) return null;
+  const anchor = new Date(`${lastDate}T00:00:00Z`);
+  anchor.setUTCDate(anchor.getUTCDate() - 91);
+  const anchorIso = anchor.toISOString().slice(0, 10);
+  let prev = null;
+  for (let i = pts.length - 1; i >= 0; i--) {
+    if (pts[i]?.[0] <= anchorIso && Number.isFinite(pts[i]?.[1])) { prev = pts[i][1]; break; }
+  }
+  if (prev == null) return null;
   const delta = last - prev;
-  // real_rates / be10 are in %; multiply by 100 to get bp.
-  // yield_curve / tp / move are already in bp / index points.
   const unit = (ind.unit || '').toLowerCase();
   if (unit === '%') return delta * 100;
   return delta;
@@ -67,8 +85,17 @@ function percentileOf(ind) {
 
 export default function useEngineRegime() {
   const { active, loading } = useIndicators();
+  const lv = useEngineLevels();
 
   return useMemo(() => {
+    // Lines: the Engine's own (raw values for the call, as useIndicators'
+    // engineZone does; whole numbers for display), constants as fallback.
+    const stressT = { watch: lv.watch, riskOff: lv.riskOff };
+    const yieldT = Number.isFinite(lv.inflBp) && Number.isFinite(lv.deflBp)
+      ? { inflBp: lv.inflBp, deflBp: lv.deflBp }
+      : YIELD_THRESH;
+    const stressShow = { watch: Math.round(stressT.watch), riskOff: Math.round(stressT.riskOff) };
+    const yieldShow = { inflBp: Math.round(yieldT.inflBp), deflBp: Math.round(yieldT.deflBp) };
     if (loading || !active?.length) {
       return {
         loading: true,
@@ -80,20 +107,19 @@ export default function useEngineRegime() {
         yieldColor: 'var(--mt-ink-2)',
         regimeLabel: '—',
         sleeveMix: null,
+        stressThresholds: stressShow,
+        yieldThresholds: yieldShow,
       };
     }
     const move = active.find((i) => i.id === 'move');
-    // Prefer real_rates for the yield change (10y TIPS direction is the
-    // cleaner regime proxy); fall back to yield_curve.
-    const yieldInd =
-      active.find((i) => i.id === 'real_rates') ||
-      active.find((i) => i.id === 'yield_curve') ||
-      active.find((i) => i.id === 'tp');
+    // The nominal 10-year — the series the label, the click-through chart and
+    // the Engine all mean. (Until 2026-11-17 this read the 10-year TIPS.)
+    const yieldInd = active.find((i) => i.id === 'ust_10y') || null;
 
     const moveVal = move?.value ?? null;
     const yDelta = threeMonthDeltaBp(yieldInd);
-    const sZone = stressZone(moveVal);
-    const yReg = yieldRegime(yDelta);
+    const sZone = stressZone(moveVal, stressT);
+    const yReg = yieldRegime(yDelta, yieldT);
 
     // Sleeve mix per the methodology grid: only fires when stress ≥ Watch.
     const sleeveMix =
@@ -121,8 +147,8 @@ export default function useEngineRegime() {
       regimeLabel: [sZone, yReg].filter(Boolean).join(' · ') || '—',
       sleeveMix,
       // Thresholds (so pages can render legend numbers consistently)
-      stressThresholds: STRESS_THRESH,
-      yieldThresholds: YIELD_THRESH,
+      stressThresholds: stressShow,
+      yieldThresholds: yieldShow,
     };
-  }, [active, loading]);
+  }, [active, loading, lv]);
 }
