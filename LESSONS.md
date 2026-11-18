@@ -40,6 +40,7 @@ again. So:
 |---|---|
 | Does Joe approve merges? | **No.** The agent ships its own work; Joe never touches GitHub. See 0.2. |
 | How long may a message to Joe be? | **Three sentences**, crisp bullets, anything needed from him on its own bolded line. Numbered table when he has listed bugs. See 0.1. |
+| Should a background (scheduled) task reply in chat? | **One line, unless something needs Joe** (2026-11-18). Then the request in bold first. See 1.0. |
 | Is there a fourth specialist? | **Yes — Data Steward**, now a real member of the council, owning data quality and the sign-off required by 0.4. |
 | Upgrade the Supabase compute (Micro → Small) for the Disk IO warnings? | **No — held, 2026-10-13.** Do not raise it again unless the site really degrades: a job failing on database timeouts, the site slow or erroring for readers, or Supabase reporting the instance unresponsive. A Disk IO warning email alone is not a reason. Keep trimming heavy reads quietly (#1264, closed). |
 
@@ -599,6 +600,8 @@ Same run: closing the two reports with a raw `update bug_reports` hung in the MC
 **What happened:** The health sweep fixed two real bugs and then sent a 9-row table of checks that passed, plus a vague line saying two connectors needed reconnecting without naming them. Neither connector (Canva, HyperFrames by HeyGen) is used by the sweep, so the line should not have been there at all.
 
 **Rule:** (1) The reply opens with one line per problem found: what was wrong, in plain English, and whether it is fixed. (2) Checks that passed get ONE line total ("everything else checked out"). The per-check record (bug queue, tile dates, evening tape, site read) goes in the run log or this file, not into Joe's reply. (3) Never mention a connector the task does not use. If one the task needs is broken, name it and say exactly where to click to reconnect it. (4) Anything Joe must do goes on its own bolded line, with the name of the thing.
+
+**2026-11-18 — widened to every daily background task (Joe: "I don't want chat responses for things that should be running in the background unless there are things needed from me.").** Binds the Health Sweep, Morning Brief, Midday Update and Market Close, and overrides any "report in a table" step in those tasks' own instructions until the instructions themselves are edited. The final reply of a run is ONE line when nothing needs Joe, including runs that fixed their own problems ("Health sweep: all clear — nothing needs you.", "Morning brief: published 5:04 AM ET — nothing needs you.", "Midday: quiet — nothing posted."). No tables, no check lists, no file attachments, no SendUserMessage, no PushNotification. When something needs his decision, approval or action, that request goes in bold on the first line, then at most three short lines. The per-check record goes in the run's working notes, the database or this file, never in the reply. Not yet covered: the Trade Idea task (its skip-day table, 1.6, is a reply Joe asked for) and the Daily Action Brief (reads nothing from this repo).
 
 ### 1.1 (2026-08-26) — Never tell Joe to approve or tap something unless the prompt is CONFIRMED visible to him
 
