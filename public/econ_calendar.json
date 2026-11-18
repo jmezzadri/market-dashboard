@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-17T22:51:49Z",
+  "generated_at": "2026-11-18T02:29:55Z",
   "window": {
-    "from": "2026-11-10",
-    "to": "2027-01-26"
+    "from": "2026-11-11",
+    "to": "2027-01-27"
   },
   "counts": {
-    "total": 82,
-    "tier1": 24
+    "total": 80,
+    "tier1": 23
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -30,43 +30,10 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-26",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-27",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
-    {
-      "date": "2026-11-10",
-      "time_et": "6:00 AM",
-      "name": "Small business optimism (NFIB)",
-      "short": "NFIB",
-      "tier": 3,
-      "category": "Surveys",
-      "blurb": "Monthly survey of small-business owners \u2014 hiring plans, prices charged and outlook.",
-      "source": "NFIB published schedule (computed)",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-10",
-      "time_et": "8:30 AM",
-      "name": "Consumer prices (CPI)",
-      "short": "CPI",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Headline and core consumer inflation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-10",
-      "time_et": "12:00 PM",
-      "name": "WASDE (USDA)",
-      "short": "WASDE",
-      "tier": 1,
-      "category": "Agriculture",
-      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
-      "source": "USDA OCE WASDE schedule (usda.gov)",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-11-12",
       "time_et": "8:30 AM",
@@ -948,6 +915,17 @@
       "category": "Policy",
       "blurb": "Bank of Japan rate decision, released around midday Tokyo on the meeting's final day \u2014 overnight for US markets.",
       "source": "Bank of Japan MPM schedule (boj.or.jp)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2027-01-27",
+      "time_et": "2:00 PM",
+      "name": "Fed decision (FOMC)",
+      "short": "FOMC",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "Federal Reserve rate decision and statement, followed by a 2:30 PM press conference.",
+      "source": "Federal Reserve FOMC calendar",
       "time_source": "published release policy"
     }
   ]
