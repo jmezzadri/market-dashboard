@@ -1,6 +1,6 @@
 # Midday Update and Market Close — scheduled-session playbook
 
-> **Final reply (Joe, 2026-11-18 — overrides any "report in a table" step in the task's own instructions):** this task runs in the background. If nothing needs Joe, the run's whole final reply is ONE line (e.g. "Morning brief: published 5:04 AM ET — nothing needs you.", "Midday: quiet — nothing posted.", "Market close: published 6:44 PM ET — nothing needs you.", or "not a trading day"). No tables, no step lists, no attachments, no SendUserMessage, no PushNotification. Only when something needs a decision from Joe: that request in bold on the first line, then at most three short lines. LESSONS 1.0.
+> **Final reply (Joe, 2026-11-18 — overrides any reporting step in the task's own instructions):** this task runs in the background. When nothing needs Joe, end the run WITH NO FINAL TEXT AT ALL: no one-liner, no "all clear", no summary, no table, no attachment, no SendUserMessage, no PushNotification. Only when something needs a decision or action from Joe: that request in bold on the first line, then at most three short lines. LESSONS 1.0.
 
 **Who runs this:** two weekday scheduled Cowork tasks on Joe's subscription —
 "MacroTilt Midday Update" (~11:33 ET) and "MacroTilt Market Close" (~6:41 PM
