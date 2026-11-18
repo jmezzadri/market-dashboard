@@ -195,7 +195,10 @@ function buildColumns({ onRemove, onUpdate, paperDate, factorDate }) {
     { key: 'tag', label: 'Tag', group: 'Your list', tip: 'Your own label for this stock. Group the list by tag to gather stocks that share one.', align: 'l', width: 110,
       sortValue: (r) => r.item.tag || null,
       render: (r) => <InlineEdit value={r.item.tag} placeholder="Add tag" label={`Tag for ${r.ticker}`} maxLength={40} onSave={(v) => onUpdate(r.item.id, { tag: v })} /> },
-    { key: 'note', label: 'Note', group: 'Your list', tip: 'Your own note on this stock.', align: 'l', width: 200,
+    // 130, not 200 (2026-11-18 health sweep): at 200 the default columns summed
+    // to 1460px, so at a 1440px window the remove (×) column sat past the
+    // card's right edge behind a sideways scroll. At 130 they fit a 1440 window.
+    { key: 'note', label: 'Note', group: 'Your list', tip: 'Your own note on this stock.', align: 'l', width: 130,
       sortValue: (r) => r.item.note || null,
       render: (r) => <InlineEdit value={r.item.note} placeholder="Add note" label={`Note for ${r.ticker}`} maxLength={500} onSave={(v) => onUpdate(r.item.id, { note: v })} /> },
     { key: 'remove', label: '', menuLabel: 'Remove button', group: 'Your list', align: 'r', width: 44, minWidth: 44, noHide: true, sortValue: () => null,

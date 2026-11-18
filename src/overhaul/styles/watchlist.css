@@ -105,3 +105,13 @@
   .wl-table [data-col="ticker"] { position: sticky; left: 0; z-index: 2; background: var(--tm-panel); }
   .wl-table .dt-drag, .wl-table col.dt-col-drag { display: none; }
 }
+
+/* The remove (×) column stays pinned to the right edge of the table's scroll
+   box (2026-11-18 health sweep). The default columns plus a saved layout can
+   be wider than the card at 1440px and below; the × then sat past the card's
+   edge, reachable only by scrolling the table sideways. Pinned, it is always
+   on screen; the row's other cells scroll beneath it. */
+.mt-overhaul .mt-terminal .wl-panel .dt-table th[data-col="remove"],
+.mt-overhaul .mt-terminal .wl-panel .dt-table td[data-col="remove"] {
+  position: sticky; right: 0; z-index: 1; background: var(--tm-panel);
+}
