@@ -1,5 +1,7 @@
 # Trade Idea + X Chart — scheduled-session playbook
 
+> **Final reply (Joe, 2026-11-18 — overrides step 10 of the task's own instructions and the skip-day table in LESSONS 1.6):** this task runs in the background. The chat reply is ONE line: on a queued day "Trade idea: queued — approval email sent." (the approval email IS how Joe sees and approves it; do NOT attach the chart PNG in chat, do NOT call SendUserFile); on a skip day "Trade idea: no trade today — <dominant reason in ten words>." The candidate statistics table goes in the run's working notes, and the skip reason is recorded with ops_record_skip as before. No tables, no SendUserMessage, no PushNotification. Only when something failed and needs Joe (data unreachable, delivery error, no approval email after two checks): that request in bold on the first line, then at most three short lines. LESSONS 1.0.
+
 **Who runs this:** the "MacroTilt Trade Idea + X Chart" scheduled task, every
 weekday before the US open (merged 2026-10-14 from the separate Trade Idea and
 X Chart tasks — LESSONS 6.25). The model runs on Joe's Claude subscription —
