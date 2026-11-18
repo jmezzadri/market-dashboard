@@ -4373,6 +4373,10 @@
     {
      "tab": "home",
      "tile": "Trade idea"
+    },
+    {
+     "tab": "scorecard",
+     "tile": "Every published call, open and closed, held as one book"
     }
    ],
    "dependencies": [

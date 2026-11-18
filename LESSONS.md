@@ -2992,6 +2992,14 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 
 **Applies to:** All four specialists.
 
+### 9.35 (2026-11-18, health sweep) — A table's action column is pinned to the edge; and a page counts as a surface only if a feed says it reads one
+
+**What happened:** (1) At 1440px the Watchlist's default columns summed to 1460px in a 1398px card, so the remove (×) control sat past the card's right edge — reachable only by scrolling the table sideways; at 1280 and 1366 it was further off. Changing the default width alone could not fix it for anyone who had ever touched the table: the layout saves EVERY column width, defaults included, on the first sort or drag, so a saved layout carries the old 200px Note column forever. (2) The Data page listed six live surfaces and left out the Macro Scorecard, a page in the top bar: no manifest feed declared `scorecard` as a consumer except the thesis-review feed, which is grouped under Workflows, so the page had no tile.
+
+**Fix:** the remove column is `position: sticky; right: 0` on the panel background (`watchlist.css`), so it stays on screen at every width and in both themes; the Note default is 130px so a fresh layout fits a 1440 window. `trade_ideas` in `data_manifest.json` now names the Scorecard as a consumer (the page reads `trade_ideas.json`), so the Data page shows seven live surfaces.
+
+**Rule:** (1) A row's action control (remove, open, edit) never depends on the table fitting its box: pin it, and check it at 1280, 1366 and 1440 with a SAVED layout, not only a fresh one. A default that is persisted on first touch is not a default you can change later. (2) Every page in the top bar must appear as a live surface on the Data page; when one is missing, the gap is in the manifest's `consumer_surfaces`, not in the page list. Known and left: `trade_idea_scores.json`, which the Scorecard reads for every return it shows, has no manifest entry and no `pipeline_health` row — its producer (TRADE-IDEA-SCORECARD-DAILY) is graded only by its workflow colour.
+
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 
 **What happened:** the Sunday gold note found a real, well-measured signal whose
