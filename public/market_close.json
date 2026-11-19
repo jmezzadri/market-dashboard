@@ -1,32 +1,32 @@
 {
-  "date": "2026-11-18",
+  "date": "2026-11-19",
   "edition": "close",
   "label": "Market Close",
-  "written_at": "2026-11-18T18:43:18-05:00",
-  "headline": "Dow -1.1%, Nasdaq +0.4%, Nvidia -2.9%, Palo Alto +7.8% after hours, Anthropic IPO priced at $83",
-  "stance": "The Dow fell again while the Nasdaq rose. Fed minutes and Waller put a 50bp December hike in play.",
+  "written_at": "2026-11-19T18:43:39-05:00",
+  "headline": "S&P -2.0%, 6th straight loss, VIX 28.44, Anthropic +17% in debut, Intuit -9.7% after hours",
+  "stance": "Stocks reversed an early gain and every major index closed down more than 2%. Anthropic's record debut did not lift tech.",
   "trigger": null,
   "scorecard": [
     {
-      "call": "Nvidia ~+4% pre-market on beat.",
-      "actual": "Wrong way by the close: Nvidia -2.9% at $150.96. Up 1.0% after hours at 6:42pm."
+      "call": "S&P 500 down 5 straight; Fed speakers leaned toward more hikes.",
+      "actual": "Sixth straight loss: S&P -2.0% at the close. Goolsbee said inflation is 'way higher' than 2% (12:59pm)."
     },
     {
-      "call": "Fed minutes today, with the 10y at 5.10%.",
-      "actual": "Minutes (2:00pm): a couple of officials open to more than 25bp in December. 10y closed 5.07%."
+      "call": "Record $81bn IPO trades today.",
+      "actual": "Anthropic closed $97.17, +17% on the $83 offer. Nasdaq still fell 2.3%."
     },
     {
-      "call": "US futures rose overnight on the chip results.",
-      "actual": "Only the Nasdaq held the gain, +0.4%. S&P -0.2%, Dow -1.1% at the close."
+      "call": "Midday check: S&P -0.2% at 11:34, nothing tripped, no update posted.",
+      "actual": "The selling came after 11:34. S&P closed -2.0%, VIX 28.44."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "Fed's Waller floated a 50bp hike to break 3% inflation (10:13am). Barr backed further hikes (1:39pm).",
-        "20y auction 5.459%, no tail, bid-to-cover 2.63x (1:04pm).",
-        "Gold and silver at 14-month lows (5:50pm). Dollar index 103.81, +0.3%, at 6:04pm."
+        "Goolsbee sees no clear path back to 2% inflation (4:00pm). Markets favour 25bp on Dec 9 (4:16pm).",
+        "10y fell only 1bp on a 2% S&P loss. Treasuries did not hedge equities today.",
+        "Gold $3,622, -3.2%, at 6:32pm on hike bets. Euro below $1.10 on French election risk (5:52pm)."
       ],
       "positioning": null,
       "single_name": null
@@ -34,9 +34,9 @@
     {
       "title": "Equity Markets",
       "bullets": [
-        "VIX 24.56 at the close, -0.90. First drop in 5 sessions.",
-        "Russell 2000 +0.5%. Its 50-day average is now below its 200-day (6:12pm).",
-        "Nasdaq 100 futures +0.8% at 6:32pm."
+        "S&P 500 was up as much as 1.3% early before the reversal (4:25pm).",
+        "All 11 S&P sectors fell, 10 by more than 1% (6:11pm). Cybersecurity was the only group higher.",
+        "All four major indexes on pace for their worst week since April 2025 (5:12pm)."
       ],
       "positioning": null,
       "single_name": null
@@ -44,8 +44,8 @@
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "IG OAS 92bp Tuesday, +2bp from Monday. Today's moves are not in it yet.",
-        "ETFs tracking credit default swaps on AI borrowers are set to launch (6:38pm)."
+        "HYG -0.2%, LQD -0.1% at the close. Credit fell far less than equities.",
+        "IG OAS 93bp Wednesday, +1bp. Today's sell-off is not in it yet."
       ],
       "positioning": null,
       "single_name": null
@@ -53,38 +53,38 @@
   ],
   "items": [
     {
-      "head": "Anthropic prices IPO at $83, above range",
-      "body": "Raises over $81bn, the largest offering on record (6:39pm). Trading starts Thursday on Nasdaq."
+      "head": "Intuit -9.7% after hours on soft outlook",
+      "body": "Fiscal Q1 results with a weak outlook (4:24pm). Selling Mailchimp for $3.68bn (4:40pm). Shares -9.7% at 6:42pm."
     },
     {
-      "head": "Palo Alto +7.8% after hours on beat",
-      "body": "Fiscal Q1 beat on sales and profit (4:26pm). Buying Applied Compute for $4.5bn. Shares +7.8% at 6:42pm."
+      "head": "Ross Stores -6.0% after hours on revenue miss",
+      "body": "Q3 revenue missed and Q4 EPS guidance was cut (4:38pm). Shares -6.0% at 6:32pm."
     },
     {
-      "head": "Everpure +4.1% after hours",
-      "body": "Revenue +51% y/y and raised full-year guidance (4:05pm). Shares +4.1% at 6:37pm."
+      "head": "Gap +3.0% after hours despite guidance cut",
+      "body": "Comps flat, margin beat, full-year guidance lowered (4:22pm). New Athleta CEO named. Shares +3.0% at 6:40pm."
     },
     {
-      "head": "UnitedHealth -10.2%, biggest Dow drag",
-      "body": "Fell on a federal proposal to expand Medicare Advantage audits (4:18pm)."
+      "head": "Anthropic closes debut +17% at $97.17",
+      "body": "Largest IPO on record (4:17pm). Shares -2.9% after hours at 6:42pm on reports Apple is building an AI agent (5:13pm)."
     }
   ],
   "watch": [
     {
-      "head": "Jobless claims and Philly Fed, Nov 19, 8:30",
-      "body": "Fed balance sheet at 4:30pm."
-    },
-    {
-      "head": "Trump, Xi and Putin meet Thursday",
-      "body": "Rare three-way meeting in China (2:47pm)."
-    },
-    {
-      "head": "UMich sentiment, final, Nov 20, 10:00",
+      "head": "UMich final sentiment, Nov 20, 10:00",
       "body": "Household inflation expectations, final November read."
     },
     {
-      "head": "FOMC, Dec 9",
-      "body": "Decision 2:00pm, projections and press conference 2:30pm."
+      "head": "Fed's Paulson speaks Friday",
+      "body": "Next Fed voice after Goolsbee. China loan prime rate overnight."
+    },
+    {
+      "head": "Japan core CPI 2.2% vs 2.3% expected",
+      "body": "Released 6:36pm ET, highest this year. USD/JPY near 160."
+    },
+    {
+      "head": "Iran strike decision",
+      "body": "Trump weighing another strike on Iran as Hormuz shipping risks rise (1:39pm)."
     }
   ]
 }
