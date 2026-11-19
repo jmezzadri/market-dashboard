@@ -2,7 +2,7 @@
   "date": "2026-11-19",
   "edition": "close",
   "label": "Market Close",
-  "written_at": "2026-11-19T18:43:39-05:00",
+  "written_at": "2026-11-19T18:45:30-05:00",
   "headline": "S&P -2.0%, 6th straight loss, VIX 28.44, Anthropic +17% in debut, Intuit -9.7% after hours",
   "stance": "Stocks reversed an early gain and every major index closed down more than 2%. Anthropic's record debut did not lift tech.",
   "trigger": null,
@@ -25,7 +25,7 @@
       "title": "Macro & Rates",
       "bullets": [
         "Goolsbee sees no clear path back to 2% inflation (4:00pm). Markets favour 25bp on Dec 9 (4:16pm).",
-        "10y fell only 1bp on a 2% S&P loss. Treasuries did not hedge equities today.",
+        "10y fell only 3bp on a 2% S&P loss. Treasuries did not hedge equities today.",
         "Gold $3,622, -3.2%, at 6:32pm on hike bets. Euro below $1.10 on French election risk (5:52pm)."
       ],
       "positioning": null,
