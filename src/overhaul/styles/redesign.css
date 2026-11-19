@@ -234,6 +234,15 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul[data-skin='terminal'] .rd-foot-disc { color: var(--tm-text-5); font-size: var(--v13-t2); font-family: var(--mt-type-sans); text-transform: none; letter-spacing: 0; }
 .mt-overhaul[data-skin='terminal'] .rd-foot-nav a { color: var(--tm-text-5); }
 .mt-overhaul[data-skin='terminal'] .rd-foot-nav a:hover { color: var(--tm-amber); }
+/* The terminal footer runs edge to edge with a 24px right gutter — the same
+   inset as the fixed Report-a-bug button — so on a wide screen, where the
+   footer is one line tall, the last link (Disclaimer) sat under the button
+   (health sweep 2026-11-19, 1560px: /macro, /paper, /ticker). Keep the links
+   clear of the button's 36px + gutter. Phones stack the footer, no overlap. */
+@media (min-width: 861px) {
+  .mt-overhaul[data-skin='terminal'] .rd-foot-nav { margin-right: 52px; }
+  .mt-overhaul .rd-foot-nav { margin-right: max(0px, calc(76px - var(--ed-gutter) - max(0px, (100vw - var(--ed-wrap)) / 2))); }
+}
 
 /* ── the live dot's pulse — every page, both skins ───────────────────── */
 .mt-overhaul .rd-live { animation: rd-ping var(--ed-dur-ping) ease-out infinite; }

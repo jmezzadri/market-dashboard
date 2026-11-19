@@ -33,6 +33,7 @@ import useWatchlists, { useStockFacts, parseTickers, MAX_PER_LIST } from '../lib
 import useLseLive from '../../hooks/useLseLive';
 import { primaryFactor } from '../../v2/lib/paperRisk';
 import { PAGE_NAME } from '../chrome/siteNav';
+import shortName from '../lib/shortName';
 import '../styles/watchlist.css';
 
 const FACTS_ELEMENT = 'equity.stock-facts';
@@ -124,9 +125,9 @@ function buildColumns({ onRemove, onUpdate, paperDate, factorDate }) {
   return [
     { key: 'ticker', label: 'Ticker', group: 'Company', align: 'l', width: 190, maxWidth: 280, noHide: true, sortValue: (r) => r.ticker,
       render: (r) => (
-        <Link to={`/ticker/${encodeURIComponent(r.ticker)}`} className="wl-name">
+        <Link to={`/ticker/${encodeURIComponent(r.ticker)}`} className="wl-name" title={r.f?.name || undefined}>
           <b>{r.ticker}</b>
-          <span>{r.f?.name || (r.f ? '' : 'no price on file for the latest close')}</span>
+          <span>{r.f?.name ? shortName(r.f.name) : (r.f ? '' : 'no price on file for the latest close')}</span>
         </Link>
       ) },
     num('close', 'Price', 'Price and returns', 'While the US market is open: the live price, about a minute behind (a name without a live quote shows its last close, marked "close"). Otherwise the last close.', (v, r) => <>{usd(v)}{r.f?.live === false ? <span className="wl-mut"> close</span> : null}</>, { width: 96 }),

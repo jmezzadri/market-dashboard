@@ -50,6 +50,12 @@
    control had been invisible since 2026-08-11. Headers are short; they do not
    need an ellipsis. */
 .dt-th { cursor: pointer; display: inline-block; max-width: 100%; white-space: nowrap; vertical-align: bottom; }
+/* A two-word header in a column the table has scaled down wraps onto a second
+   line instead of running into its neighbour (health sweep 2026-11-19: at
+   1366 and 1440 the Paper holdings read "Risk shareStyle" — 66px of label in
+   a 57px column — and "Held since" was clipped). Words never break. */
+.dt-table th { white-space: normal; }
+.dt-th { white-space: normal; overflow-wrap: normal; word-break: keep-all; text-wrap: balance; }
 .dt-sort { margin-left: var(--sp-4); font-size: var(--v13-t2); }
 
 /* resize grip — invisible until hovered, 8px target either side of the edge */

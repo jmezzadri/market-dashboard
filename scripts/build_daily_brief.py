@@ -986,7 +986,10 @@ def build_ideas(scores):
             "trade": sc.get("trade_label") or sc.get("instrument") or sc.get("title", "")[:60],
             "date": sc.get("date"),
             "kind": sc.get("kind"),
-            "held": sc.get("sessions_held"),
+            # Calendar days, the same count the Scorecard prints under "Days
+            # held" (health sweep 2026-11-19: the email said "XLE 30d" — trading
+            # sessions — while the Scorecard said 41 days for the same call).
+            "held": sc.get("days_held") if sc.get("days_held") is not None else sc.get("sessions_held"),
             "pnl": _pp(sc.get("mark") if sc.get("mark") is not None else sc.get("position_pct")),
             "vs": None,
             "bench": (sc.get("benchmark") or {}).get("label"),
