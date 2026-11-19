@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-18T22:34:36Z",
+  "generated_at": "2026-11-19T01:56:22Z",
   "window": {
-    "from": "2026-11-11",
-    "to": "2027-01-27"
+    "from": "2026-11-12",
+    "to": "2027-01-28"
   },
   "counts": {
     "total": 80,
@@ -30,7 +30,7 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-27",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-28",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
