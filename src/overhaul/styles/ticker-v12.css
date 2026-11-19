@@ -286,3 +286,21 @@
 .home-v12.ticker-v12 .tk-chartsec { display: flex; flex-direction: column; }
 .home-v12.ticker-v12 .tk-chartbody { flex: 1 1 auto; min-height: 260px; }
 .home-v12.ticker-v12 .tk-chartbody > div { height: 100% !important; }
+
+/* Phone: the site-wide rule in mobile-v12.css turns every table into a block
+   whose thead and tbody are two separate max-content tables (so a wide table
+   scrolls). For this 4-column performance table that split the header from the
+   body and, with the 0 side padding above, printed "LUNRS&P+/−" over
+   "-16.9%-3.9%-13.0%" (health sweep 2026-11-19, 390px). It fits a phone as a
+   real table, so it stays one. */
+@media (max-width: 780px) {
+  .mt-overhaul .home-v12.ticker-v12 .tk-ptable { display: table; width: 100%; overflow: visible; }
+  .mt-overhaul .home-v12.ticker-v12 .tk-ptable thead { display: table-header-group; width: auto; min-width: 0; }
+  .mt-overhaul .home-v12.ticker-v12 .tk-ptable tbody { display: table-row-group; width: auto; min-width: 0; }
+  .mt-overhaul .home-v12.ticker-v12 .tk-ptable th,
+  .mt-overhaul .home-v12.ticker-v12 .tk-ptable td { padding-right: 0; }
+  .mt-overhaul .home-v12.ticker-v12 .tk-ptable th + th,
+  .mt-overhaul .home-v12.ticker-v12 .tk-ptable td + td { padding-left: var(--sp-10); }
+  .mt-overhaul .home-v12.ticker-v12 .tk-ptable th:first-child,
+  .mt-overhaul .home-v12.ticker-v12 .tk-ptable td:first-child { padding-left: 0; }
+}
