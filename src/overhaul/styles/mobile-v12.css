@@ -230,6 +230,22 @@
   }
 }
 
+/* The split above makes thead and tbody two separate tables, so a header's
+   columns line up with the body's only by luck. Where that showed (health sweep
+   2026-11-19, 390px: the Scorecard's performance summary printed "Since
+   inception / Annualized" over the row labels, 126px left of the numbers; the
+   Methodology vendor tables' headers ran a different width from their rows),
+   the table keeps ONE table box: a small one stays a normal table, a wide one
+   scrolls as a block whose rows the browser wraps in a single anonymous table,
+   which keeps the columns aligned. */
+@media (max-width: 780px) {
+  .mt-overhaul table.sc-sum { display: table; width: 100%; overflow: visible; }
+  .mt-overhaul table.sc-sum thead { display: table-header-group; width: auto; min-width: 0; }
+  .mt-overhaul table.sc-sum tbody { display: table-row-group; width: auto; min-width: 0; }
+  .mt-overhaul table.me-vendors thead { display: table-header-group; width: auto; min-width: 0; }
+  .mt-overhaul table.me-vendors tbody { display: table-row-group; width: auto; min-width: 0; }
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    TAP TARGETS. The audit found 24-41 controls per page under 40px, some at
    15px. Anything a finger has to find gets 44px.
