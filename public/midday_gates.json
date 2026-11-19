@@ -1,6 +1,6 @@
 {
-  "date": "2026-11-18",
-  "checked_at": "2026-11-18T11:34:53-05:00",
+  "date": "2026-11-19",
+  "checked_at": "2026-11-19T11:34:31-05:00",
   "fired": false,
   "fired_gates": [],
   "gates": [
@@ -23,7 +23,7 @@
     {
       "name": "Equities",
       "measure": "S&P 500 vs prior close; VIX",
-      "value": "S&P 7,310, -0.42% vs 2026-11-17 close; VIX 25.3, -0.6%",
+      "value": "S&P 7,307, -0.22% vs 2026-11-18 close; VIX 25.3, +3.2%",
       "threshold": "S&P ±1.0% or VIX +15% or VIX ≥30",
       "fired": false,
       "as_of": "11:34 AM ET",
@@ -32,7 +32,7 @@
     {
       "name": "Rates",
       "measure": "10y yield; MOVE",
-      "value": "10y 5.07%, -3.2bp vs 2026-11-17 close; MOVE 98.5, -3.44",
+      "value": "10y 5.07%, +0.2bp vs 2026-11-18 close; MOVE 94.3, -3.85",
       "threshold": "10y ±10bp or MOVE +8pts",
       "fired": false,
       "as_of": "11:19 AM ET",
@@ -41,7 +41,7 @@
     {
       "name": "Oil and dollar",
       "measure": "Brent; DXY",
-      "value": "Brent $89.07, -1.44% vs 2026-11-17 close; DXY 103.87, +0.37%",
+      "value": "Brent $90.06, -2.06% vs 2026-11-18 close; DXY 103.86, -0.00%",
       "threshold": "Brent ±4% or DXY ±0.75%",
       "fired": false,
       "as_of": "11:24 AM ET",
@@ -64,9 +64,7 @@
       "source": ""
     }
   ],
-  "problems": [
-    "Brent: contract roll detected (feed prior 93.14 vs same-contract prior 90.37); measured against the same contract"
-  ],
+  "problems": [],
   "thresholds": {
     "spx_pct": 1.0,
     "vix_pct": 15.0,
