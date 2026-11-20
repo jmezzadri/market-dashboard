@@ -1,6 +1,6 @@
 {
   "_doc": "Live weekly observation history for the MacroTilt 2-axis engine (MOVE value + percentile, \u0394Y-3M + percentile, classified regime per Friday close). Refreshed by scripts/compute_macrotilt_engine.py / macrotilt-engine-daily. Separate from the locked strategy backtest.",
-  "as_of": "2026-11-13",
+  "as_of": "2026-11-20",
   "calibration_label": "1986-2026 validated (confirmation filter added 2026-07-29)",
   "weekly": [
     {
@@ -18030,6 +18030,21 @@
       "deflationary_threshold_bp": -6.0,
       "stress_state": "Risk On",
       "yield_regime": "Inflationary",
+      "equity_pct": 100,
+      "defensive_pct": 0
+    },
+    {
+      "date": "2026-11-20",
+      "move": 96.0,
+      "move_pctile_5y": 0.4291,
+      "watch_threshold": 115.8,
+      "risk_off_threshold": 123.7,
+      "delta_y_3m_bp": 33.0,
+      "delta_y_3m_pctile_5y": 0.6705,
+      "inflationary_threshold_bp": 37.0,
+      "deflationary_threshold_bp": -6.0,
+      "stress_state": "Risk On",
+      "yield_regime": "Neutral",
       "equity_pct": 100,
       "defensive_pct": 0
     }
