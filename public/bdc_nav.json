@@ -1,105 +1,105 @@
 {
- "as_of": "2026-11-18",
- "basket_median": 0.8664,
+ "as_of": "2026-11-19",
+ "basket_median": 0.8786,
  "bdcs": [
   {
    "ticker": "ARCC",
-   "date": "2026-11-18",
-   "close": 18.78,
+   "date": "2026-11-19",
+   "close": 18.6,
    "nav": 19.31,
    "nav_period_end": "2026-09-30",
    "nav_filed": "2026-10-27",
-   "price_to_nav": 0.9726
+   "price_to_nav": 0.9632
   },
   {
    "ticker": "OBDC",
-   "date": "2026-11-18",
-   "close": 10.67,
+   "date": "2026-11-19",
+   "close": 10.62,
    "nav": 14.32,
    "nav_period_end": "2026-09-30",
    "nav_filed": "2026-11-04",
-   "price_to_nav": 0.7451
+   "price_to_nav": 0.7416
   },
   {
    "ticker": "FSK",
-   "date": "2026-11-18",
-   "close": 11.1,
+   "date": "2026-11-19",
+   "close": 10.94,
    "nav": 18.28,
    "nav_period_end": "2026-09-30",
    "nav_filed": "2026-11-05",
-   "price_to_nav": 0.6072
+   "price_to_nav": 0.5985
   },
   {
    "ticker": "BXSL",
-   "date": "2026-11-18",
-   "close": 23.43,
+   "date": "2026-11-19",
+   "close": 23.27,
    "nav": 25.25,
    "nav_period_end": "2026-09-30",
    "nav_filed": "2026-11-04",
-   "price_to_nav": 0.9279
+   "price_to_nav": 0.9216
   },
   {
    "ticker": "GBDC",
-   "date": "2026-11-18",
-   "close": 12.13,
+   "date": "2026-11-19",
+   "close": 12.3,
    "nav": 14.0,
    "nav_period_end": "2026-09-30",
    "nav_filed": "2026-11-17",
-   "price_to_nav": 0.8664
+   "price_to_nav": 0.8786
   },
   {
    "ticker": "TSLX",
-   "date": "2026-11-18",
-   "close": 17.19,
+   "date": "2026-11-19",
+   "close": 17.03,
    "nav": 16.19,
    "nav_period_end": "2026-09-30",
    "nav_filed": "2026-11-03",
-   "price_to_nav": 1.0618
+   "price_to_nav": 1.0519
   },
   {
    "ticker": "OCSL",
-   "date": "2026-11-18",
-   "close": 11.9,
+   "date": "2026-11-19",
+   "close": 11.83,
    "nav": 15.63,
    "nav_period_end": "2026-09-30",
    "nav_filed": "2026-11-17",
-   "price_to_nav": 0.7614
+   "price_to_nav": 0.7569
   },
   {
    "ticker": "MAIN",
-   "date": "2026-11-18",
-   "close": 55.87,
+   "date": "2026-11-19",
+   "close": 55.66,
    "nav": 34.22,
    "nav_period_end": "2026-09-30",
    "nav_filed": "2026-11-06",
-   "price_to_nav": 1.6327
+   "price_to_nav": 1.6265
   },
   {
    "ticker": "HTGC",
-   "date": "2026-11-18",
-   "close": 15.41,
+   "date": "2026-11-19",
+   "close": 15.18,
    "nav": 12.26,
    "nav_period_end": "2026-09-30",
    "nav_filed": "2026-10-29",
-   "price_to_nav": 1.2569
+   "price_to_nav": 1.2382
   },
   {
    "ticker": "PSEC",
-   "date": "2026-11-18",
-   "close": 1.27,
+   "date": "2026-11-19",
+   "close": 1.26,
    "nav": 5.36,
    "nav_period_end": "2026-09-30",
    "nav_filed": "2026-11-04",
-   "price_to_nav": 0.2369
+   "price_to_nav": 0.2351
   },
   {
    "ticker": "BBDC",
-   "date": "2026-11-18",
-   "close": 8.43,
+   "date": "2026-11-19",
+   "close": 8.36,
    "nav": 10.92,
    "nav_period_end": "2026-09-30",
    "nav_filed": "2026-11-05",
-   "price_to_nav": 0.772
+   "price_to_nav": 0.7656
   }
  ]
 }
