@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-19T21:21:38Z",
-  "as_of": "2026-11-19",
+  "generated_at": "2026-11-20T01:59:54Z",
+  "as_of": "2026-11-20",
   "method": "Each call is marked from the last closing price that existed when the note was published — the price a reader was actually looking at. We then show what the thing we said to buy has done, what the thing we said to sell has done, and the difference between them, which is the return on the position. Next to every call, whatever its market, is the same yardstick: what the S&P 500 did over the same days, and the gap between the two. One caveat, stated once: some calls are spreads built to be roughly neutral to the stock market, so trailing the S&P is not by itself failure — the comparison answers “was this better than doing the obvious thing”, not “did it work”. Returns are price only — no dividends on shares, no interest on bonds — on both sides of every trade. If a note named a level at which it would be wrong and that level printed, the call is closed there. If the weekly thesis review finds the reason for a call has gone, the call is closed at the last close before that review. Every note is listed, including the ones that did not work, and no win rate is shown until there are enough closed calls for one to mean anything. The book is a notional 100: each call is held at the weight its note stated when it was published (10 for a standard idea, 5 for one published with fewer than five matching past cases, 1 to 2 of premium for an event idea), the rest is cash, and a call's contribution is its weight times its own return. An event idea — a defined-risk options spread on a named event — is marked at expiry from the underlying's closing price against its strikes; the premium paid is the most it can lose, and before expiry it is shown as open. Nothing on this page is typed in by hand.",
   "disclaimer": "MacroTilt research is published for information only. It is not investment advice and it is not a recommendation to buy or sell any security. These marks are the movement of the named reference series; they are not the returns of any account and include no costs, financing or slippage.",
   "summary": {
@@ -16,7 +16,7 @@
       "marked": 9,
       "open": 3,
       "closed": 6,
-      "avg_mark_pct": 1.23,
+      "avg_mark_pct": 0.75,
       "best": {
         "id": "2026-09-06-the-last-buyers-just-showed-up-in-wheat",
         "trade_label": "Short WEAT (Teucrium wheat fund)",
@@ -28,31 +28,31 @@
         "mark": -12.23
       },
       "basis": "Equal-weight average of every marked call. Open calls are still moving, and these are price-only moves of the named series, not the returns of any account.",
-      "avg_vs_spx_pp": 3.68,
-      "ahead_of_spx": 5,
-      "behind_spx": 4,
-      "line": "9 calls marked (3 open, 6 closed). Taken as one book they average +1.2% a call and sit 3.7 points ahead of the S&P 500 over the same days — 5 ahead of the index, 4 behind. Best: Short WEAT (Teucrium wheat fund), +17.0%. Worst: Long KBW / Short NASDAQ, -12.2%."
+      "avg_vs_spx_pp": 3.84,
+      "ahead_of_spx": 6,
+      "behind_spx": 3,
+      "line": "9 calls marked (3 open, 6 closed). Taken as one book they average +0.8% a call and sit 3.8 points ahead of the S&P 500 over the same days — 6 ahead of the index, 3 behind. Best: Short WEAT (Teucrium wheat fund), +17.0%. Worst: Long KBW / Short NASDAQ, -12.2%."
     },
     "stats_withheld": true,
     "stats_withheld_reason": "6 closed call(s). A hit rate is not reported below 10, because at that sample a single outcome moves it by ten points or more and the number would mislead more than it informs. Every individual call is listed regardless.",
     "portfolio": {
       "inception": "2026-08-13",
-      "as_of": "2026-11-18",
-      "calendar_days": 97,
+      "as_of": "2026-11-19",
+      "calendar_days": 98,
       "history_weeks": 14,
       "benchmark_label": "S&P 500",
       "book_base": 100.0,
       "invested_now": 30.0,
       "cash_now": 70.0,
-      "total_return_pct": 0.3696,
-      "benchmark_total_pct": -2.0566,
-      "excess_total_pct": 2.4262,
-      "annualized_pct": 1.3978,
-      "benchmark_annualized_pct": -7.5217,
-      "excess_annualized_pct": 8.9195,
+      "total_return_pct": -0.0582,
+      "benchmark_total_pct": -2.6621,
+      "excess_total_pct": 2.6039,
+      "annualized_pct": -0.2166,
+      "benchmark_annualized_pct": -9.5608,
+      "excess_annualized_pct": 9.3442,
       "annualized_withheld_reason": null,
       "realized_contribution_pct": 0.661,
-      "unrealized_contribution_pct": -0.2914,
+      "unrealized_contribution_pct": -0.7192,
       "realized_by_year": {
         "2026": 0.661
       },
@@ -479,6 +479,12 @@
       0.3696,
       -2.0566,
       3
+    ],
+    [
+      "2026-11-19",
+      -0.0582,
+      -2.6621,
+      3
     ]
   ],
   "scores": [
@@ -616,14 +622,14 @@
           "entry_value": 65.24,
           "label": "US energy sector fund (XLE)",
           "short_label": "US energy stocks (XLE)",
-          "return_pct": -6.0546
+          "return_pct": -6.6677
         }
       ],
-      "buy_pct": -6.0546,
+      "buy_pct": -6.6677,
       "sell_pct": null,
       "trade_label": "Long US energy stocks (XLE)",
-      "position_pct": -6.0546,
-      "risk_sized_pct": -2.7367,
+      "position_pct": -6.6677,
+      "risk_sized_pct": -3.0138,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.452,
@@ -638,21 +644,21 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7765.36,
-        "as_of": "2026-11-18",
-        "move": -5.6885,
-        "difference": -0.3661,
+        "as_of": "2026-11-19",
+        "move": -7.5918,
+        "difference": 0.9241,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -6.0546,
-      "mark_date": "2026-11-18",
-      "sessions_held": 30,
+      "mark": -6.6677,
+      "mark_date": "2026-11-19",
+      "sessions_held": 31,
       "max_favourable": {
         "value": 7.3268,
         "date": "2026-10-30"
       },
       "max_adverse": {
-        "value": -6.0546,
-        "date": "2026-11-18"
+        "value": -6.6677,
+        "date": "2026-11-19"
       },
       "invalidation": {
         "rule": "ticker:XLE <= 58.72 (weekly close)",
@@ -662,20 +668,20 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 41,
+      "days_held": 42,
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
-      "contribution_pct": -0.6055,
+      "contribution_pct": -0.6668,
       "peak_contribution_pct": 0.7327,
       "book": {
-        "as_of": "2026-11-18",
+        "as_of": "2026-11-19",
         "weight": 10.0,
-        "return_pct": -6.0546,
-        "benchmark_pct": -5.6885,
-        "excess_pct": -0.3661,
-        "contribution_pct": -0.6055,
-        "days_held": 41
+        "return_pct": -6.6677,
+        "benchmark_pct": -7.5918,
+        "excess_pct": 0.9241,
+        "contribution_pct": -0.6668,
+        "days_held": 42
       }
     },
     {
@@ -703,14 +709,14 @@
           "entry_value": 58.2,
           "label": "Japanese yen via FXY",
           "short_label": "Japanese yen via FXY",
-          "return_pct": -1.1856
+          "return_pct": -1.4089
         }
       ],
-      "buy_pct": -1.1856,
+      "buy_pct": -1.4089,
       "sell_pct": null,
       "trade_label": "Long Japanese yen via FXY",
-      "position_pct": -1.1856,
-      "risk_sized_pct": -1.1856,
+      "position_pct": -1.4089,
+      "risk_sized_pct": -1.4089,
       "sizing": {
         "method": "none",
         "multiple": 1.0,
@@ -725,14 +731,14 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7764.7,
-        "as_of": "2026-11-18",
-        "move": -5.6805,
-        "difference": 4.4949,
+        "as_of": "2026-11-19",
+        "move": -7.5839,
+        "difference": 6.175,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": -1.1856,
-      "mark_date": "2026-11-18",
-      "sessions_held": 43,
+      "mark": -1.4089,
+      "mark_date": "2026-11-19",
+      "sessions_held": 44,
       "max_favourable": {
         "value": 0.4124,
         "date": "2026-10-22"
@@ -749,20 +755,20 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 58,
+      "days_held": 59,
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
-      "contribution_pct": -0.1186,
+      "contribution_pct": -0.1409,
       "peak_contribution_pct": 0.0412,
       "book": {
-        "as_of": "2026-11-18",
+        "as_of": "2026-11-19",
         "weight": 10.0,
-        "return_pct": -1.1856,
-        "benchmark_pct": -5.6805,
-        "excess_pct": 4.4949,
-        "contribution_pct": -0.1186,
-        "days_held": 58
+        "return_pct": -1.4089,
+        "benchmark_pct": -7.5839,
+        "excess_pct": 6.175,
+        "contribution_pct": -0.1409,
+        "days_held": 59
       }
     },
     {
@@ -790,14 +796,14 @@
           "entry_value": 10.17,
           "label": "US natural gas fund (UNG)",
           "short_label": "US natural gas (UNG)",
-          "return_pct": 4.3265
+          "return_pct": 0.885
         }
       ],
-      "buy_pct": 4.3265,
+      "buy_pct": 0.885,
       "sell_pct": null,
       "trade_label": "Long US natural gas (UNG)",
-      "position_pct": 4.3265,
-      "risk_sized_pct": 1.0816,
+      "position_pct": 0.885,
+      "risk_sized_pct": 0.2213,
       "sizing": {
         "method": "risk_parity",
         "multiple": 0.25,
@@ -814,14 +820,14 @@
         "label": "S&P 500",
         "measure": "pct_change",
         "entry_value": 7656.98,
-        "as_of": "2026-11-18",
-        "move": -4.3535,
-        "difference": 8.68,
+        "as_of": "2026-11-19",
+        "move": -6.2838,
+        "difference": 7.1688,
         "note": "What the obvious alternative did over exactly the same days."
       },
-      "mark": 4.3265,
-      "mark_date": "2026-11-18",
-      "sessions_held": 49,
+      "mark": 0.885,
+      "mark_date": "2026-11-19",
+      "sessions_held": 50,
       "max_favourable": {
         "value": 13.5693,
         "date": "2026-09-24"
@@ -838,20 +844,20 @@
       "thesis_review_close": null,
       "close_date": null,
       "close_reason": null,
-      "days_held": 68,
+      "days_held": 69,
       "weight": 10.0,
       "weight_stated": false,
       "weight_note": "weight assigned on 2026-10-21, when the book gained its capital base; the note did not state one",
-      "contribution_pct": 0.4327,
+      "contribution_pct": 0.0885,
       "peak_contribution_pct": 1.3569,
       "book": {
-        "as_of": "2026-11-18",
+        "as_of": "2026-11-19",
         "weight": 10.0,
-        "return_pct": 4.3265,
-        "benchmark_pct": -4.3535,
-        "excess_pct": 8.68,
-        "contribution_pct": 0.4327,
-        "days_held": 68
+        "return_pct": 0.885,
+        "benchmark_pct": -6.2838,
+        "excess_pct": 7.1688,
+        "contribution_pct": 0.0885,
+        "days_held": 69
       }
     },
     {
