@@ -1,53 +1,56 @@
 {
-  "date": "2026-11-17",
+  "date": "2026-11-20",
   "edition": "midday",
   "label": "Midday Update",
-  "written_at": "2026-11-17T11:35:10-05:00",
-  "headline": "S&P -1.1% at 11:29, VIX 25.2, Dow -1.5% at 11:34, Nvidia reports after the close",
-  "stance": "Stocks are down a second day, across tech, small caps and the Dow. The 10-year yield is 5.11% at 11:18, little changed.",
+  "written_at": "2026-11-20T11:34:32-05:00",
+  "headline": "S&P 500 -1.5% at 11:33, VIX 30, SOX -7%, Nasdaq negative for 2026, 10y -8.6bp",
+  "stance": "The morning's lower open held and the selling deepened in chips. Treasuries rallied and Brent fell, so the market is pricing slower growth.",
   "trigger": {
     "gate": "Equities",
-    "detail": "S&P 500 7,337 at 11:29, -1.07% vs Monday's close. VIX 25.2, +10%."
+    "detail": "S&P 500 7,066, -1.54% vs Thursday's close, VIX 30.0, at 11:33am ET"
   },
   "scorecard": [
     {
-      "call": "A strong retail sales number adds to January hike risk.",
-      "actual": "Retail sales +0.2%, as expected (8:30). Control group +0.6% vs +0.4%. 10y -0.7bp at 11:18."
+      "call": "Nasdaq futures lower pre-market",
+      "actual": "Right. Nasdaq turned negative for 2026 (~11:23am ET)."
     },
     {
-      "call": "S&P -1.9% Monday. US futures lower (~4:48am ET).",
-      "actual": "Selling continued after the open. S&P -1.1% at 11:29, VIX 25.2."
+      "call": "Oil rose overnight on Houthi attacks on Saudi targets",
+      "actual": "Reversed. Brent $88.49, -3.79% at 11:23am ET."
+    },
+    {
+      "call": "UMich final at 10:00 is today's only US data",
+      "actual": "Sentiment 51.5 vs 51.5 expected (~10:04am ET). Current conditions 49.4 vs 51.6 expected."
     }
   ],
   "bullets": [
-    "Nasdaq -1.3% and Dow -1.5% at 11:34. Russell 2000 -1.3% at 11:19.",
-    "Semiconductor index -1.3% at 11:34, in line with the Nasdaq.",
-    "Import prices +1.1% in October vs +0.7% expected (8:30). Nonfuel import prices +0.8%.",
-    "Industrial production -0.4% in October vs +0.1% expected (9:15). Utilities output -4.3%.",
-    "Fed's Musalem said four more rate hikes may be needed in coming months (8:40)."
+    "SOX -7% (~11:05am ET). Memory and storage lead the AI selloff.",
+    "71 of 101 Nasdaq 100 stocks sat 20%+ below record highs shortly after the open (~10:41am ET).",
+    "10y 4.95%, -8.6bp at 11:18am ET. Bonds rally as equities fall.",
+    "S&P 500 and Nasdaq on pace for their worst week since April 2025 (~9:33am ET)."
   ],
   "items": [
     {
-      "head": "Nvidia: Huang open to returning as CEO",
-      "body": "Former CEO said at 11:00 he would return if the board allows. Chip stocks pared losses after (11:26)."
+      "head": "Anthropic -9.7% early, nearer its $83 IPO price",
+      "body": "$87.72 at 7:43am ET vs $97.17 Thursday close. Underwriters took the greenshoe, $93.5bn raised (~9:59am ET)."
     },
     {
-      "head": "Home Depot beats, names Richard McPhail CEO",
-      "body": "Q3 sales $43.4bn, +4.9% (6:00). Full-year profit outlook below estimates. Shares -1.9% pre-market (10:02)."
+      "head": "Nvidia heads for longest weekly losing run since 2008",
+      "body": "$811bn of market value lost in 7 days (~11:19am ET)."
     },
     {
-      "head": "Disney beats, targets $3bn of savings",
-      "body": "Fiscal Q4 beat estimates (9:15). Shares fell nearly 2% pre-market (9:04), then traded higher after the open (11:11)."
+      "head": "Micron leads chip stocks lower",
+      "body": "Memory names fell hardest as the chip index dropped (~11:05am ET)."
     }
   ],
   "watch": [
     {
-      "head": "Nvidia results, after today's close",
-      "body": "First report since Huang resigned. Huang said at 11:00 he is open to returning."
+      "head": "Weekly close, 4:00pm",
+      "body": "S&P 500 would log a 7th straight down session if it closes lower."
     },
     {
-      "head": "Housing starts and permits, Nov 18, 8:30",
-      "body": "Homebuilder index 25 in November vs 29 expected (10:00), a 14-year low."
+      "head": "Iran decision",
+      "body": "Futures fell earlier as Trump weighed an Iran decision (~8:36am ET)."
     }
   ]
 }
