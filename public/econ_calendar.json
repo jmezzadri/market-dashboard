@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-11-19T22:39:30Z",
+  "generated_at": "2026-11-20T01:49:44Z",
   "window": {
-    "from": "2026-11-12",
-    "to": "2027-01-28"
+    "from": "2026-11-13",
+    "to": "2027-01-29"
   },
   "counts": {
-    "total": 80,
+    "total": 78,
     "tier1": 23
   },
   "sources": [
@@ -30,32 +30,10 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-28",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-29",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
-    {
-      "date": "2026-11-12",
-      "time_et": "8:30 AM",
-      "name": "Jobless claims",
-      "short": "Claims",
-      "tier": 2,
-      "category": "Labor",
-      "blurb": "Weekly initial and continuing unemployment claims \u2014 the highest-frequency labor signal.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-12",
-      "time_et": "4:30 PM",
-      "name": "Fed balance sheet (H.4.1)",
-      "short": "H.4.1",
-      "tier": 3,
-      "category": "Liquidity",
-      "blurb": "Federal Reserve assets, reserve balances and the Treasury General Account.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-11-13",
       "time_et": "8:30 AM",
