@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-20T17:55:24Z",
+  "generated_at": "2026-11-20T22:14:15Z",
   "window": {
     "from": "2026-11-13",
     "to": "2027-01-29"
   },
   "counts": {
-    "total": 76,
-    "tier1": 21
+    "total": 78,
+    "tier1": 23
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -31,8 +31,7 @@
   ],
   "problems": [
     "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-29",
-    "NASS calendar parsed to zero rows across the window",
-    "WASDE page fetch failed: HTTP Error 403: Forbidden"
+    "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
     {
@@ -524,6 +523,17 @@
     },
     {
       "date": "2026-12-10",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2026-12-10",
       "time_et": "4:30 PM",
       "name": "Fed balance sheet (H.4.1)",
       "short": "H.4.1",
@@ -861,6 +871,17 @@
       "category": "Surveys",
       "blurb": "Monthly survey of small-business owners \u2014 hiring plans, prices charged and outlook.",
       "source": "NFIB published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2027-01-12",
+      "time_et": "12:00 PM",
+      "name": "WASDE (USDA)",
+      "short": "WASDE",
+      "tier": 1,
+      "category": "Agriculture",
+      "blurb": "USDA's World Agricultural Supply and Demand Estimates \u2014 the monthly balance-sheet update for the grain and oilseed markets, released at noon ET.",
+      "source": "USDA OCE WASDE schedule (usda.gov)",
       "time_source": "published release policy"
     },
     {
