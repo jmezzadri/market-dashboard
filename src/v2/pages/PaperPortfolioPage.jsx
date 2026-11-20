@@ -972,7 +972,8 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
       { key: 'company', label: 'Name', align: 'l', width: 110, noHide: true, sortValue: (r) => r.symbol,
         render: (r) => (
           <button type="button" onClick={() => onOpenTicker && onOpenTicker(r.symbol)}
-            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            title={r.company || undefined}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left', maxWidth: '100%', overflow: 'hidden', whiteSpace: 'normal', lineHeight: 1.25, display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2 }}>
             <span style={{ fontWeight: 'var(--fw-700)' }}>{r.symbol}</span>
             <span style={{ color: INK3, marginLeft: 'var(--sp-5)', fontSize: 'var(--v13-t1)' }}>
               {shortName(r.company)}

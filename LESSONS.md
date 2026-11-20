@@ -3017,6 +3017,14 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 
 **Rule:** (1) A fixed or floating control is re-checked against the footer and the last table column at 1100, 1280, 1366, 1440, 1560 and 1920 — a layout that changes height with width moves what sits under it. (2) A table header never depends on its column being wide enough: it wraps. (3) A phone table is checked for header/body column alignment (the sweep's script compares each header cell's right edge with the first row's) — the generic split-table rule cannot guarantee it; open item: replace that rule with one table box everywhere, checked page by page. (4) A count that appears on two surfaces ("days held") is the same field on both. (5) No `brief_email_log` row by 06:00 ET on a trading day with today's brief live is a red the sweep fixes by sending it (playbook 5b), never by waiting for the SMTP fallback, which failed on login on 2026-11-12 and 11-13.
 
+### 9.37 (2026-11-20, health sweep) — A step that can fail goes after the step that saves the work; and a fix is checked against the exact case it names
+
+**What happened:** (1) TRADE-IDEA-SCORECARD-DAILY went red two nights running (Nov 18, Nov 19) at "Alert on a tripped thesis": the Energy call (Oct 9, XLE) tripped its critical condition — WTI fell to the 78th percentile of three years against a floor of 80 — and the alert email died at SMTP login (the dead app password, 4.48). The alert sat BEFORE the commit step, so each failed send also skipped the commit and that evening's scores and thesis checks were never saved; Joe was never told the call had tripped. (2) The 11-19 sweep fixed the Watchlist's name column with `shortName()` and quoted "Space Exploration Techn…" as the case it fixed — but SpaceX's name has no legal suffix, so the fix never touched it; the Paper holdings cut "Lattice Semicon…", "Abercrombie & Fit…" the same way.
+
+**Fix:** the alert step now runs after the commit (a failure still turns the run red). The sweep claimed `thesis_check_alerts` (sent_by `gmail-health-sweep`) and sent the alert through the Gmail connector. Company names in the Watchlist and Paper holdings wrap to two lines before any ellipsis (`watchlist.css`, `PaperPortfolioPage.jsx`); full name in the tooltip.
+
+**Rule:** (1) In any job, a step that can fail on an outside service (email, a post, a webhook) runs after the step that writes the job's own output, never before it. (2) A fix is verified against the exact example its own comment quotes. (3) Until a new Google app password exists, every SMTP-only email (thesis alert, Monday thesis review) needs the sweep's Gmail fallback: check `workflow_failure_log` for an email step and send the missed email the same morning.
+
 ### 10.1 (2026-08-24) — If there is no trade, publish nothing. Never rename an empty note to get it past the gate.
 
 **What happened:** the Sunday gold note found a real, well-measured signal whose

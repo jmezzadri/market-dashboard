@@ -79,7 +79,13 @@
 .wl-hint { font-family: var(--mt-type-sans); font-size: var(--v13-t2); color: var(--tm-text-3); }
 .mt-overhaul .mt-terminal .wl-name { display: flex; align-items: baseline; gap: var(--sp-8); min-width: 0; }
 .wl-name b { flex: none; color: var(--tm-amber); font-weight: var(--fw-600); }
-.wl-name span { font-family: var(--mt-type-sans); color: var(--tm-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The company name wraps to a second line before it is cut (2026-11-20 health
+   sweep): shortName() strips a legal suffix, but a name with none ("Space
+   Exploration Technologies") still printed "Space Exploration Techn…" at
+   1440 and 1560. Two lines, then the ellipsis; the full name stays in the
+   link's tooltip. */
+.wl-name span { font-family: var(--mt-type-sans); color: var(--tm-text-2); overflow: hidden; white-space: normal; line-height: 1.25;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
 .wl-name:hover span { color: var(--tm-text); }
 .wl-mut { color: var(--tm-text-3); }
 .wl-foot { margin: 10px 0 0; font-family: var(--mt-type-sans); font-size: var(--v13-t2); color: var(--tm-text-3); }
