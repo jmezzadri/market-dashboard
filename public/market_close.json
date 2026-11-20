@@ -1,32 +1,32 @@
 {
-  "date": "2026-11-19",
+  "date": "2026-11-20",
   "edition": "close",
   "label": "Market Close",
-  "written_at": "2026-11-19T18:45:30-05:00",
-  "headline": "S&P -2.0%, 6th straight loss, VIX 28.44, Anthropic +17% in debut, Intuit -9.7% after hours",
-  "stance": "Stocks reversed an early gain and every major index closed down more than 2%. Anthropic's record debut did not lift tech.",
+  "written_at": "2026-11-20T18:43:15-05:00",
+  "headline": "S&P -3.7%, 7th straight loss, Nasdaq -5.3%, SOX -10.7%, 10y -14bp, Zscaler +17% after hours",
+  "stance": "Chips led a 7th straight S&P 500 loss and put the S&P and Dow in correction. Treasuries rallied even after Cook called for tighter policy.",
   "trigger": null,
   "scorecard": [
     {
-      "call": "S&P 500 down 5 straight; Fed speakers leaned toward more hikes.",
-      "actual": "Sixth straight loss: S&P -2.0% at the close. Goolsbee said inflation is 'way higher' than 2% (12:59pm)."
+      "call": "Morning: S&P 500 down 6 straight, Nasdaq futures lower again.",
+      "actual": "Seventh straight loss. S&P -3.7%, Nasdaq -5.3% at the close; S&P and Dow in correction (4:23pm ET)."
     },
     {
-      "call": "Record $81bn IPO trades today.",
-      "actual": "Anthropic closed $97.17, +17% on the $83 offer. Nasdaq still fell 2.3%."
+      "call": "Midday: Treasuries rallied and Brent fell at 11:30.",
+      "actual": "10y 4.91%, -14bp at the close, extending the -8.6bp at 11:18. Brent $89.87, -2.3%, vs -3.8% at 11:23."
     },
     {
-      "call": "Midday check: S&P -0.2% at 11:34, nothing tripped, no update posted.",
-      "actual": "The selling came after 11:34. S&P closed -2.0%, VIX 28.44."
+      "call": "Midday: a lower close would make 7 straight down sessions.",
+      "actual": "Right. S&P 500 closed 6,910, down 7 sessions in a row."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "Goolsbee sees no clear path back to 2% inflation (4:00pm). Markets favour 25bp on Dec 9 (4:16pm).",
-        "10y fell only 3bp on a 2% S&P loss. Treasuries did not hedge equities today.",
-        "Gold $3,622, -3.2%, at 6:32pm on hike bets. Euro below $1.10 on French election risk (5:52pm)."
+        "Fed's Cook said policy is not restrictive enough (12:21pm ET). Treasuries rallied anyway: 30y -10bp at the close.",
+        "Gold $3,539, -4.0% at the close. Gold and silver posted their worst week in 8 months (5:50pm ET).",
+        "Trump threatened a large tax on US firms building data centers abroad (3:47pm ET)."
       ],
       "positioning": null,
       "single_name": null
@@ -34,9 +34,9 @@
     {
       "title": "Equity Markets",
       "bullets": [
-        "S&P 500 was up as much as 1.3% early before the reversal (4:25pm).",
-        "All 11 S&P sectors fell, 10 by more than 1% (6:11pm). Cybersecurity was the only group higher.",
-        "All four major indexes on pace for their worst week since April 2025 (5:12pm)."
+        "Nasdaq erased its 2026 gain Friday. Nasdaq 100 -10.4% on the week, worst since March 2020 (5:03pm ET).",
+        "Chip stocks lost $2.3tn of value this week (5:44pm ET). Large bearish options bets placed on chips Friday (2:33pm ET).",
+        "Russell 2000 -2.8% at the close, a smaller loss than the Nasdaq."
       ],
       "positioning": null,
       "single_name": null
@@ -44,8 +44,7 @@
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "HYG -0.2%, LQD -0.1% at the close. Credit fell far less than equities.",
-        "IG OAS 93bp Wednesday, +1bp. Today's sell-off is not in it yet."
+        "LQD +0.6%, HYG -0.3% at the close. Investment grade gained with Treasuries; high yield fell with stocks."
       ],
       "positioning": null,
       "single_name": null
@@ -53,38 +52,34 @@
   ],
   "items": [
     {
-      "head": "Intuit -9.7% after hours on soft outlook",
-      "body": "Fiscal Q1 results with a weak outlook (4:24pm). Selling Mailchimp for $3.68bn (4:40pm). Shares -9.7% at 6:42pm."
+      "head": "Nvidia -14% at the close on SEC probe report",
+      "body": "Shares fell after a report of an SEC probe into possible accounting issues (2:59pm ET). Longest weekly losing run since 2008."
     },
     {
-      "head": "Ross Stores -6.0% after hours on revenue miss",
-      "body": "Q3 revenue missed and Q4 EPS guidance was cut (4:38pm). Shares -6.0% at 6:32pm."
+      "head": "Anthropic -8.5%, closes $88.91",
+      "body": "Second session after its $83 IPO. Shares stayed above the offer price (4:25pm ET)."
     },
     {
-      "head": "Gap +3.0% after hours despite guidance cut",
-      "body": "Comps flat, margin beat, full-year guidance lowered (4:22pm). New Athleta CEO named. Shares +3.0% at 6:40pm."
-    },
-    {
-      "head": "Anthropic closes debut +17% at $97.17",
-      "body": "Largest IPO on record (4:17pm). Shares -2.9% after hours at 6:42pm on reports Apple is building an AI agent (5:13pm)."
+      "head": "Zscaler +16.7% after hours on takeover report",
+      "body": "Report says CrowdStrike is in talks to buy it (4:35pm ET). Zscaler +16.7% at 6:42pm; CrowdStrike -4.3% at 6:41pm."
     }
   ],
   "watch": [
     {
-      "head": "UMich final sentiment, Nov 20, 10:00",
-      "body": "Household inflation expectations, final November read."
-    },
-    {
-      "head": "Fed's Paulson speaks Friday",
-      "body": "Next Fed voice after Goolsbee. China loan prime rate overnight."
-    },
-    {
-      "head": "Japan core CPI 2.2% vs 2.3% expected",
-      "body": "Released 6:36pm ET, highest this year. USD/JPY near 160."
+      "head": "Chicago Fed activity index, Nov 23, 8:30",
+      "body": "Monday's only US release."
     },
     {
       "head": "Iran strike decision",
-      "body": "Trump weighing another strike on Iran as Hormuz shipping risks rise (1:39pm)."
+      "body": "Trump is weighing renewed strikes on Iran as the military warns of strain (3:42pm ET)."
+    },
+    {
+      "head": "Industrial production, Nov 24, 9:15",
+      "body": "Factory, mining and utility output plus capacity use."
+    },
+    {
+      "head": "PCE and GDP, Nov 25, 8:30",
+      "body": "Last inflation data before the Dec 9 FOMC."
     }
   ]
 }
