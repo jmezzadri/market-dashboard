@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-20T22:14:15Z",
+  "generated_at": "2026-11-21T01:37:59Z",
   "window": {
-    "from": "2026-11-13",
-    "to": "2027-01-29"
+    "from": "2026-11-14",
+    "to": "2027-01-30"
   },
   "counts": {
-    "total": 78,
-    "tier1": 23
+    "total": 76,
+    "tier1": 22
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -30,39 +30,10 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-29",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-30",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
-    {
-      "date": "2026-11-13",
-      "time_et": "8:30 AM",
-      "name": "Producer prices (PPI)",
-      "short": "PPI",
-      "tier": 1,
-      "category": "Inflation",
-      "blurb": "Prices received by producers \u2014 the pipeline into consumer inflation.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-13",
-      "time_et": "12:00 PM",
-      "name": "S&P Italy rating review",
-      "short": "S&P Italy",
-      "tier": 2,
-      "category": "Sovereign",
-      "blurb": "S&P's scheduled review of Italy (BBB+, positive outlook since Jan 30, 2026). Published after the European close on a date fixed a year ahead under EU rules. Worth watching: positive outlook.",
-      "source": "S&P published sovereign rating calendar 2026 (EU regulation 1060/2009 art. 8a)",
-      "time_source": "EU publication rule \u2014 after the European close",
-      "country": "Italy",
-      "agency": "S&P",
-      "rating": "BBB+",
-      "outlook": "positive",
-      "rating_as_of": "2026-01-30",
-      "watch": true,
-      "watch_reason": "positive outlook"
-    },
     {
       "date": "2026-11-16",
       "time_et": "8:30 AM",
