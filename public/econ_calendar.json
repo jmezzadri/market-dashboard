@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-22T17:16:29Z",
+  "generated_at": "2026-11-23T00:59:41Z",
   "window": {
-    "from": "2026-11-15",
-    "to": "2027-01-31"
+    "from": "2026-11-16",
+    "to": "2027-02-01"
   },
   "counts": {
-    "total": 76,
-    "tier1": 22
+    "total": 77,
+    "tier1": 23
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -30,7 +30,7 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-01-31",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-02-01",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
@@ -875,6 +875,17 @@
       "category": "Policy",
       "blurb": "Federal Reserve rate decision and statement, followed by a 2:30 PM press conference.",
       "source": "Federal Reserve FOMC calendar",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2027-02-01",
+      "time_et": "10:00 AM",
+      "name": "ISM Manufacturing",
+      "short": "ISM Mfg",
+      "tier": 1,
+      "category": "Surveys",
+      "blurb": "Factory-sector survey; above 50 means the sector is expanding.",
+      "source": "ISM published schedule (computed)",
       "time_source": "published release policy"
     }
   ]
