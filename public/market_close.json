@@ -1,32 +1,32 @@
 {
-  "date": "2026-11-20",
+  "date": "2026-11-23",
   "edition": "close",
   "label": "Market Close",
-  "written_at": "2026-11-20T18:43:15-05:00",
-  "headline": "S&P -3.7%, 7th straight loss, Nasdaq -5.3%, SOX -10.7%, 10y -14bp, Zscaler +17% after hours",
-  "stance": "Chips led a 7th straight S&P 500 loss and put the S&P and Dow in correction. Treasuries rallied even after Cook called for tighter policy.",
+  "written_at": "2026-11-23T18:43:14-05:00",
+  "headline": "S&P 500 +4.7%, Nasdaq 100 +6.9%, VIX 26.6, WTI $80.17, HPE -8% after hours",
+  "stance": "Stocks had their best day since April 2025 after Nvidia reinstated its CEO. Treasuries sat still and Williams kept a Dec 9 hike in play.",
   "trigger": null,
   "scorecard": [
     {
-      "call": "Morning: S&P 500 down 6 straight, Nasdaq futures lower again.",
-      "actual": "Seventh straight loss. S&P -3.7%, Nasdaq -5.3% at the close; S&P and Dow in correction (4:23pm ET)."
+      "call": "Morning: Nasdaq 100 futures +3% pre-market.",
+      "actual": "Rally more than doubled. Nasdaq 100 closed +6.9% at 26,746."
     },
     {
-      "call": "Midday: Treasuries rallied and Brent fell at 11:30.",
-      "actual": "10y 4.91%, -14bp at the close, extending the -8.6bp at 11:18. Brent $89.87, -2.3%, vs -3.8% at 11:23."
+      "call": "Morning: Treasuries are working as an equity hedge into the Dec 9 FOMC.",
+      "actual": "Not needed today. 10y closed 4.92%, +1bp, while the S&P 500 rose 4.7%."
     },
     {
-      "call": "Midday: a lower close would make 7 straight down sessions.",
-      "actual": "Right. S&P 500 closed 6,910, down 7 sessions in a row."
+      "call": "Midday: Brent -6.6% on returning supply; VIX 27.4 at 11:33.",
+      "actual": "Both held. Brent $86.72 at the close, -6.3%. VIX closed 26.6."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "Fed's Cook said policy is not restrictive enough (12:21pm ET). Treasuries rallied anyway: 30y -10bp at the close.",
-        "Gold $3,539, -4.0% at the close. Gold and silver posted their worst week in 8 months (5:50pm ET).",
-        "Trump threatened a large tax on US firms building data centers abroad (3:47pm ET)."
+        "Fed's Williams: higher rates likely over time; inflation near 2% in 2027 (~4:02pm ET). Dec 9 hike still in play.",
+        "WTI settled $80.17, lowest since Aug 26 (~3:52pm ET). Gold +3.2% near $3,654 (~1:57pm ET) despite a firmer dollar.",
+        "$69bn 2y auction stopped at 4.700% vs 4.703% when-issued (~1:03pm ET). EUR/USD hit its lowest since April 2025 (~12:21pm ET)."
       ],
       "positioning": null,
       "single_name": null
@@ -34,9 +34,9 @@
     {
       "title": "Equity Markets",
       "bullets": [
-        "Nasdaq erased its 2026 gain Friday. Nasdaq 100 -10.4% on the week, worst since March 2020 (5:03pm ET).",
-        "Chip stocks lost $2.3tn of value this week (5:44pm ET). Large bearish options bets placed on chips Friday (2:33pm ET).",
-        "Russell 2000 -2.8% at the close, a smaller loss than the Nasdaq."
+        "S&P 500 seven-day losing streak ended. S&P and Nasdaq Composite posted their best day since April 9, 2025 (~4:25pm ET).",
+        "Semiconductor ETF +15.0% at the close. Consumer stocks were among the S&P 500's biggest losers (~4:45pm ET).",
+        "Small caps lagged: Russell 2000 +3.4% at the close vs Nasdaq 100 +6.9%."
       ],
       "positioning": null,
       "single_name": null
@@ -44,7 +44,7 @@
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "LQD +0.6%, HYG -0.3% at the close. Investment grade gained with Treasuries; high yield fell with stocks."
+        "HYG +0.25%, LQD +0.23% at the close. Credit ETFs rose far less than stocks."
       ],
       "positioning": null,
       "single_name": null
@@ -52,34 +52,38 @@
   ],
   "items": [
     {
-      "head": "Nvidia -14% at the close on SEC probe report",
-      "body": "Shares fell after a report of an SEC probe into possible accounting issues (2:59pm ET). Longest weekly losing run since 2008."
+      "head": "HPE -8.2% after hours (~6:42pm ET)",
+      "body": "Beat estimates and raised its forecast on AI demand (~4:25pm ET). Stock had closed +17.4%."
     },
     {
-      "head": "Anthropic -8.5%, closes $88.91",
-      "body": "Second session after its $83 IPO. Shares stayed above the offer price (4:25pm ET)."
+      "head": "Agilent +7.6% after hours (~6:30pm ET)",
+      "body": "Beat on revenue and earnings per share, plus guidance (~5:40pm ET)."
     },
     {
-      "head": "Zscaler +16.7% after hours on takeover report",
-      "body": "Report says CrowdStrike is in talks to buy it (4:35pm ET). Zscaler +16.7% at 6:42pm; CrowdStrike -4.3% at 6:41pm."
+      "head": "Zoom -0.2% after hours (~6:40pm ET)",
+      "body": "Beat on revenue and earnings per share, raised its outlook (~4:20pm ET)."
+    },
+    {
+      "head": "Nvidia closed +31.5% at $165.05",
+      "body": "Largest one-day gain in market history (~4:26pm ET). Trump says the White House assured the board on Huang (~6:15pm ET)."
     }
   ],
   "watch": [
     {
-      "head": "Chicago Fed activity index, Nov 23, 8:30",
-      "body": "Monday's only US release."
-    },
-    {
-      "head": "Iran strike decision",
-      "body": "Trump is weighing renewed strikes on Iran as the military warns of strain (3:42pm ET)."
-    },
-    {
       "head": "Industrial production, Nov 24, 9:15",
-      "body": "Factory, mining and utility output plus capacity use."
+      "body": "Philadelphia Fed services survey at 8:30."
     },
     {
-      "head": "PCE and GDP, Nov 25, 8:30",
-      "body": "Last inflation data before the Dec 9 FOMC."
+      "head": "Dell reports Tuesday",
+      "body": "Options price a 13% move (~3:32pm ET)."
+    },
+    {
+      "head": "Tokyo reopens Tuesday after a holiday",
+      "body": "First Japanese session since Monday's US chip rally (~5:30pm ET)."
+    },
+    {
+      "head": "PCE, GDP, claims, durables, Nov 25, 8:30",
+      "body": "Last inflation read before the Dec 9 FOMC. US markets close Thursday for Thanksgiving."
     }
   ]
 }
