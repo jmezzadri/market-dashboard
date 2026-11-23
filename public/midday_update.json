@@ -1,56 +1,57 @@
 {
-  "date": "2026-11-20",
+  "date": "2026-11-23",
   "edition": "midday",
   "label": "Midday Update",
-  "written_at": "2026-11-20T11:34:32-05:00",
-  "headline": "S&P 500 -1.5% at 11:33, VIX 30, SOX -7%, Nasdaq negative for 2026, 10y -8.6bp",
-  "stance": "The morning's lower open held and the selling deepened in chips. Treasuries rallied and Brent fell, so the market is pricing slower growth.",
+  "written_at": "2026-11-23T11:34:26-05:00",
+  "headline": "S&P 500 +5.0% at 11:33, Brent -6.6%, VIX 27.4, 10y 4.94%",
+  "stance": "Stocks rebounded hard on news before the open; the S&P 500 is up 5% after seven straight losses. Oil fell on returning supply; Treasuries barely moved.",
   "trigger": {
     "gate": "Equities",
-    "detail": "S&P 500 7,066, -1.54% vs Thursday's close, VIX 30.0, at 11:33am ET"
+    "detail": "S&P 500 7,256 at 11:33, +5.0% vs Friday's close. Brent $86.51 at 11:23, -6.6%."
   },
   "scorecard": [
     {
-      "call": "Nasdaq futures lower pre-market",
-      "actual": "Right. Nasdaq turned negative for 2026 (~11:23am ET)."
+      "call": "Nasdaq 100 futures +3% pre-market.",
+      "actual": "Rally more than doubled: Nasdaq +7% at 11:13 (CNBC). Biggest Nasdaq opening gain since at least 1991."
     },
     {
-      "call": "Oil rose overnight on Houthi attacks on Saudi targets",
-      "actual": "Reversed. Brent $88.49, -3.79% at 11:23am ET."
+      "call": "Treasuries are working as an equity hedge into the Dec 9 FOMC.",
+      "actual": "Untested today: 10y 4.94% at 11:18, +1.6bp, while stocks rose 5%."
     },
     {
-      "call": "UMich final at 10:00 is today's only US data",
-      "actual": "Sentiment 51.5 vs 51.5 expected (~10:04am ET). Current conditions 49.4 vs 51.6 expected."
+      "call": "Libya output down; Houthis claim a strike on a Saudi refinery.",
+      "actual": "Brent fell anyway: $86.51 at 11:23, -6.6% on returning supply."
     }
   ],
   "bullets": [
-    "SOX -7% (~11:05am ET). Memory and storage lead the AI selloff.",
-    "71 of 101 Nasdaq 100 stocks sat 20%+ below record highs shortly after the open (~10:41am ET).",
-    "10y 4.95%, -8.6bp at 11:18am ET. Bonds rally as equities fall.",
-    "S&P 500 and Nasdaq on pace for their worst week since April 2025 (~9:33am ET)."
+    "S&P 500 7,256 at 11:33, +5.0% vs Friday. VIX 27.4, down from 35.9 at Friday's close.",
+    "US services flash purchasing managers index 54.7 vs 55.7 expected (~9:45am ET). Manufacturing 54.5 vs 54.9.",
+    "Brent $86.51 at 11:23, -6.6%. West Texas crude at its lowest since late August (~10:51am ET).",
+    "Dollar index 104.47 at 11:23, +0.6%. 10y yield 4.94% at 11:18, +1.6bp.",
+    "MOVE bond volatility index 104.0 at 11:18, down 2.3 points."
   ],
   "items": [
     {
-      "head": "Anthropic -9.7% early, nearer its $83 IPO price",
-      "body": "$87.72 at 7:43am ET vs $97.17 Thursday close. Underwriters took the greenshoe, $93.5bn raised (~9:59am ET)."
+      "head": "Nvidia reinstates Jensen Huang as CEO",
+      "body": "Board says it had input from senior US officials (~8:56am ET). Stock +33% (~11:17am ET)."
     },
     {
-      "head": "Nvidia heads for longest weekly losing run since 2008",
-      "body": "$811bn of market value lost in 7 days (~11:19am ET)."
+      "head": "CoreWeave +24% in AI-linked rally",
+      "body": "Oracle also higher on the Nvidia news (~10:03am ET, ~11:27am ET)."
     },
     {
-      "head": "Micron leads chip stocks lower",
-      "body": "Memory names fell hardest as the chip index dropped (~11:05am ET)."
+      "head": "UnitedHealth, Humana, CVS fall",
+      "body": "US government targets Medicare Advantage star ratings (~9:39am ET)."
     }
   ],
   "watch": [
     {
-      "head": "Weekly close, 4:00pm",
-      "body": "S&P 500 would log a 7th straight down session if it closes lower."
+      "head": "PCE, GDP, claims, durables, Wed 8:30",
+      "body": "All four land Wednesday morning. US markets close Thursday for Thanksgiving."
     },
     {
-      "head": "Iran decision",
-      "body": "Futures fell earlier as Trump weighed an Iran decision (~8:36am ET)."
+      "head": "Iran",
+      "body": "Trump told Fox News strikes on Iran could resume after New Year without a deal (~7:30am ET)."
     }
   ]
 }
