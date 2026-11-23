@@ -24,7 +24,7 @@ import React, { useMemo, useState } from 'react';
 import DetailModal from './DetailModal';
 import BigHistoryChart from './BigHistoryChart';
 import useLseLive from '../../hooks/useLseLive';
-import { stampLive } from '../lib/quoteStamp';
+import { stampLive, quoteSession } from '../lib/quoteStamp';
 
 const TFS = ['1Y', '3Y', '5Y', '10Y', 'Max'];
 
@@ -55,8 +55,9 @@ export const INDEX_DRILLS = {
   },
   // Added 2026-10-14 (Joe: "why cant I click and open a modal?"). Same rule as
   // the three above — these are levels that trend, so they get the level
-  // panel, not a percentile pill. Nikkei, DAX and Bitcoin have no live quote
-  // on the site price feed; the panel shows the last stored close.
+  // panel, not a percentile pill. Nikkei and DAX have no live quote on the
+  // site price feed; the panel shows the last stored close. Bitcoin never
+  // closes, so its live quote shows around the clock (2026-11-23).
   rut_index: {
     key: 'rut_index',
     live: '^RUT',
@@ -82,11 +83,13 @@ export const INDEX_DRILLS = {
   },
   crypto_btc: {
     key: 'crypto_btc',
+    live: 'BTC-USD',
+    allHours: true,
     name: 'Bitcoin',
     eyebrow: 'Crypto — risk appetite',
     blurb: 'Bitcoin in US dollars, traded around the clock. On a macro desk it is read as a high-beta risk-appetite and dollar-liquidity gauge: it leads or exaggerates the Nasdaq when liquidity is easing and sells off hardest when it tightens.',
     returnNote: 'Bitcoin pays nothing, so these price returns are its total returns.',
-    source: 'Yahoo Finance BTC-USD daily closes (UTC date; the market never closes, so each point is the day\'s last price).',
+    source: 'Yahoo Finance BTC-USD daily closes (UTC date; the market never closes, so each point is the day\'s last price), live quote via the site price feed.',
   },
 };
 
@@ -178,6 +181,20 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
 
   const headline = livePrice != null ? livePrice : (points.length ? Number(points[points.length - 1][1]) : null);
   const asOf = points.length ? String(points[points.length - 1][0]).slice(0, 10) : null;
+  /* What the day move is ABOUT, read off the quote's own time (2026-11-23
+     check: the Russell pop-up said "today" on Monday morning for Friday's
+     move, because its delayed quote was still Friday's last print).
+       quote from today, market open   → "today", stamped live/delayed h:mm
+       quote from an earlier day       → "on Friday", stamped "Fri close"
+       market closed                   → "on the day", stamped "close"
+       a market that never closes      → "since the last daily close", live h:mm */
+  const sess = q ? quoteSession(q.barTs) : null;
+  const quoteIsOld = !!sess && !sess.today;
+  const showLive = !quoteIsOld && (live.marketOpen === true || !!def.allHours);
+  const moveWords = def.allHours
+    ? 'since the last daily close'
+    : quoteIsOld ? `on ${sess.weekdayLong}`
+      : live.marketOpen === true ? 'today' : 'on the day';
 
   return (
     <DetailModal onClose={onClose}>
@@ -191,14 +208,14 @@ export default function IndexDrillModal({ indexKey, hist, onClose }) {
             <div className="num" style={{ fontFamily: 'var(--mt-type-sans)', fontSize: 'var(--v13-t6)', lineHeight: 1.05 }}>{fmtLevel(headline)}</div>
             {dayPct != null && (
               <div className={`num ${dayPct >= 0 ? 'up' : 'down'}`} style={{ fontWeight: 'var(--fw-600)', fontSize: 'var(--v13-t3)', marginTop: 'var(--sp-2)' }}>
-                {dayPct >= 0 ? '▲' : '▼'} {fmtPct(dayPct).replace(/^[+-]/, '')} {live.marketOpen === true ? 'today' : 'on the day'}
+                {dayPct >= 0 ? '▲' : '▼'} {fmtPct(dayPct).replace(/^[+-]/, '')} {moveWords}
               </div>
             )}
             <div style={{ fontSize: 'var(--v13-t2)', color: 'var(--mt-ink-3)', marginTop: 'var(--sp-3)' }}>
               {/* "live" only while the market is open (LESSONS 4.32; 2026-10-29: this
                   read "live" at 10 PM). After the bell the same quote is the close. */}
               {livePrice != null
-                ? (live.marketOpen === true ? <>{stampLive(q.barTs, q.fetchedAt)} · vs prev close {fmtLevel(prevClose)}</> : <>close · vs prev close {fmtLevel(prevClose)}</>)
+                ? (showLive || quoteIsOld ? <>{stampLive(q.barTs, q.fetchedAt)} · vs prev close {fmtLevel(prevClose)}</> : <>close · vs prev close {fmtLevel(prevClose)}</>)
                 : (asOf ? <>close {asOf}</> : null)}
             </div>
           </div>

@@ -13,11 +13,17 @@
    `pct: true`  — the move is quoted in percent. Equity indexes, FX and
                   commodities are quoted that way on every desk. Rates, spreads
                   and vol indexes move in their own points, so they are not.
-   `live`       — quote symbol on the shared live-quote path. Only the three
-                  US equity indexes have one: in the session they show the live
+   `live`       — quote symbol on the shared live-quote path. The four US
+                  equity indexes have one: in the session they show the live
                   level and move, outside it the last close. Everything else is
                   a daily series and is stamped "close" (LESSONS 4.26 rule 1:
                   a move renders with its session, in the same element).
+   `allHours`   — a market that never closes (Bitcoin). Its live quote is
+                  shown around the clock, stamped with the time of the quote;
+                  the US session does not gate it (2026-11-23: on a Monday
+                  morning the tile and its pop-up still showed Sunday's
+                  close). The move is measured from the last daily close, the
+                  same base the stored series uses.
    `ind`        — the Macro indicator the tile opens, in place, over whatever
                   page the reader is on (LESSONS 9.16). A tile with no
                   indicator behind it is a quote, not a button, and does not
@@ -97,7 +103,7 @@ export const TAPE = [
     { key: 'cmdty_soybeans', label: 'Soybeans', dec: 0, pct: true, ind: 'cmdty_soybeans' },
   ] },
   { group: 'Crypto', items: [
-    { key: 'crypto_btc', label: 'Bitcoin', dec: 0, pct: true, idx: 'crypto_btc' },
+    { key: 'crypto_btc', label: 'Bitcoin', dec: 0, pct: true, idx: 'crypto_btc', live: 'BTC-USD', allHours: true },
   ] },
 ];
 export const TAPE_ITEMS = TAPE.flatMap((g) => g.items);
@@ -146,7 +152,7 @@ function tapeTile(r, lv, liveQ, marketOpen) {
       value: live.price,
       pct: base != null ? ((live.price / base) - 1) * 100 : null,
       dd: base != null ? live.price - base : null,
-      stamp: marketOpen === true ? stampLive(live.barTs, live.fetchedAt) : stampClose(live.barTs),
+      stamp: marketOpen === true || r.allHours ? stampLive(live.barTs, live.fetchedAt) : stampClose(live.barTs),
     };
   }
   if (!lv) return null;

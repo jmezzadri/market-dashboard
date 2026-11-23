@@ -606,7 +606,11 @@ export default function MethodologyPage() {
               alerts when holdings exceed 105% of the account&rsquo;s value; a small margin debit below
               that is not an alert, and the all-clear line states the invested share the check used.
               {' '}<b>Price stamp.</b> The page says which prices it shows: <i>live prices</i> only while the
-              US market is open (the broker&rsquo;s marks, synced every 10 minutes); after the bell, until
+              US market is open (the broker&rsquo;s marks, synced every 10 minutes &mdash; the line at
+              the top of the page gives the time of the last sync and says &ldquo;updated every 10
+              minutes&rdquo;, so the time moves in ten-minute steps, not continuously; a sync more than
+              15 minutes old in an open session reads <i>prices at</i> that time and says the update is
+              late); after the bell, until
               the after-close snapshot is taken, <i>prices at 3:50 PM ET</i>; once it is, <i>after-hours
               prices</i> with the time it was taken, because the broker&rsquo;s marks at that moment
               include after-hours trading and are not the official close. The snapshot stamps its own
@@ -1005,10 +1009,16 @@ export default function MethodologyPage() {
               own time trails the moment it was fetched by more than three minutes, the strip says{' '}
               <b>delayed</b> and gives the time of the quote it shows (the Russell 2000 runs about
               fifteen minutes behind the other three US indexes on the free feed). Every other figure
-              shows the weekday of the close it belongs to (&ldquo;Fri close&rdquo;,
-              and &ldquo;Sun close&rdquo; for Bitcoin, which trades through the weekend). Overseas
-              closes, currencies and commodities have no intraday feed, so during a US session they
-              still show the last completed close with its day. The Morning Brief carries the time it
+              shows the weekday of the close it belongs to (&ldquo;Fri close&rdquo;). A quote whose own
+              time is not in today&rsquo;s New York day is that earlier day&rsquo;s last print, and is
+              named that way: for its first fifteen minutes of a session the delayed Russell 2000
+              still reads &ldquo;Fri close&rdquo; on a Monday, and its pop-up says the move was
+              &ldquo;on Friday&rdquo;, never &ldquo;today&rdquo;. <b>Bitcoin</b> never closes, so its
+              quote is live around the clock with the time of the quote, and its move is measured
+              from the last daily close (the day ends at midnight UTC) &mdash; the same base as its
+              stored history; if the live quote is unavailable it falls back to the last daily close
+              with its weekday. Overseas closes, currencies and commodities have no intraday feed,
+              so during a US session they still show the last completed close with its day. The Morning Brief carries the time it
               was written (&ldquo;written 5:41 am ET&rdquo;); any level quoted inside it is the level
               at that time, which is why a brief&rsquo;s overnight oil price can differ from the
               strip&rsquo;s prior close.

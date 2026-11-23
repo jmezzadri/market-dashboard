@@ -2269,6 +2269,7 @@
       "failure_mode": "Live price column / Live line shows em-dash or last cached bar; engines unaffected (all trading/scoring stays on prices_eod + broker fills, LESSONS 8.6). Coverage: ~4,000 US stocks + major ETFs; uncovered names em-dash by design (Joe 2026-07-27).",
       "owner": "Data Steward",
       "sla_basis": "Market-hours-only clock (paper-intraday precedent): 3h in NYSE session time; clock pauses at the close. Display-only feed.",
+      "notes": "The same function also answers the price strip's live quotes for the four US equity indexes (^GSPC, ^IXIC, ^DJI, ^RUT) and, since 2026-11-23, Bitcoin (BTC-USD) \u2014 from Yahoo chart meta, the provider of those series' stored daily closes, never from London Strategic Edge. Bitcoin is refreshed at every hour (60 s cache) because its market never closes. Those quotes never stamp this feed's health row.",
       "id": "market.lse-intraday-live"
     },
     "equity.lse-iv-scan-daily": {
