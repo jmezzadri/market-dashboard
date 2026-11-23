@@ -601,32 +601,32 @@ export default function MethodologyPage() {
               elasticity to the VIX since 2006 and has no brake figure, because a one-day jump
               cannot trip a two-close rule. These are projections of the rule, labelled as such
               &mdash; they assume the beta holds and are not a backtest of today&rsquo;s names.
-              <b>Alerts</b> fire on exactly the rules printed
+              {' '}<b>Alerts</b> fire on exactly the rules printed
               under the alert log, and nothing else. Borrowing is a leverage rule, not a cash rule: it
               alerts when holdings exceed 105% of the account&rsquo;s value; a small margin debit below
               that is not an alert, and the all-clear line states the invested share the check used.
-              <b>Price stamp.</b> The page says which prices it shows: <i>live prices</i> only while the
+              {' '}<b>Price stamp.</b> The page says which prices it shows: <i>live prices</i> only while the
               US market is open (the broker&rsquo;s marks, synced every 10 minutes); after the bell, until
               the after-close snapshot is taken, <i>prices at 3:50 PM ET</i>; once it is, <i>after-hours
               prices</i> with the time it was taken, because the broker&rsquo;s marks at that moment
               include after-hours trading and are not the official close. The snapshot stamps its own
               time on the mark. A mark stamped inside market hours on an earlier day reads <i>prices at</i>
-              that day and time, never <i>after-hours</i>. The stamp is said once, at the top of the page.
-              <b>Monthly returns.</b> One figure per month, starting with the book&rsquo;s first day
+              {' '}that day and time, never <i>after-hours</i>. The stamp is said once, at the top of the page.
+              {' '}<b>Monthly returns.</b> One figure per month, starting with the book&rsquo;s first day
               holding stock; the cash days before launch are account setup, not a month the book was
               invested. The current month is labelled month-to-date.
-              <b>Index rows.</b> SPY, QQQ and DIA in the returns table are measured on each fund&rsquo;s
+              {' '}<b>Index rows.</b> SPY, QQQ and DIA in the returns table are measured on each fund&rsquo;s
               official daily close (the same closes the market tape uses) for YTD and inception, so those
               figures are close-to-close. On the evening of a session, before that day&rsquo;s official
               close is loaded, the row uses the snapshot price for that one day.
-              <b>The Day column</b> is one measurement for every row: the latest snapshot&rsquo;s marks
+              {' '}<b>The Day column</b> is one measurement for every row: the latest snapshot&rsquo;s marks
               against the previous snapshot&rsquo;s marks, for the book and for the three funds alike,
               because the snapshot records them at the same minute. A note under the table names the
               two marks it runs between. QQQ tracks the Nasdaq-100, not the Nasdaq Composite shown on
               the tape.
-              <b>Exposure.</b> The Exposure tile and the sentence in the risk checks print the same
+              {' '}<b>Exposure.</b> The Exposure tile and the sentence in the risk checks print the same
               figure: stock held as a share of the book&rsquo;s value at the latest mark.
-              <b>Held since.</b> The holdings table shows the first day of each name&rsquo;s current run
+              {' '}<b>Held since.</b> The holdings table shows the first day of each name&rsquo;s current run
               in the book, read from the daily position records: a name present on a day it was absent
               the day before starts a run that day, and a name that drops out ends its run, so a
               sell-out followed by a later buy-back is a new run (matching the broker&rsquo;s average

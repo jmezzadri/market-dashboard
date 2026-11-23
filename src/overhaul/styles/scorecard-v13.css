@@ -70,7 +70,8 @@
    column takes the slack and wraps; nothing is ever truncated with an ellipsis. */
 .v13.home-v12.sc-wrap.sc-pro .sc-table .c-class { width: 112px; }
 .v13.home-v12.sc-wrap.sc-pro .sc-table .c-date { width: 106px; }
-.v13.home-v12.sc-wrap.sc-pro .sc-table .c-days { width: 76px; }
+.v13.home-v12.sc-wrap.sc-pro .sc-table .c-days { width: 84px; } /* 2026-11-23: 76px left "to Nov 20" 3px past its cell at 1440-1560 */
+.v13.home-v12.sc-wrap.sc-pro .sc-table td.num .sc-evline { white-space: nowrap; }
 .v13.home-v12.sc-wrap.sc-pro .sc-table .c-num { width: 78px; }
 .v13.home-v12.sc-wrap.sc-pro .sc-table .c-exc { width: 108px; }
 .v13.home-v12.sc-wrap.sc-pro .sc-table .c-ctb { width: 116px; }
