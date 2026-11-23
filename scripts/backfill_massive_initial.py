@@ -388,7 +388,30 @@ def main():
     #      on weekends + holidays: Yahoo returns the most recent
     #      session, which is already in the table).
     today_utc = date.today().isoformat()
-    if date_used != today_utc:
+    # 2026-11-23 (health sweep): skip when Massive already holds the last
+    # COMPLETED New York session. Before this, every weekend run (and every
+    # run on a weekday morning or evening once the panel had landed) asked
+    # Yahoo for "the latest bar", got the very session Massive had just
+    # written, and upserted it over the canonical bar on the same
+    # (ticker, trade_date) key: on Sat 2026-11-21 ~500 Friday rows (AAPL,
+    # SPY...) were rewritten as yahoo-sameday with Yahoo's volume and float
+    # closes (342.5599975...) and stayed that way all weekend. The fallback
+    # exists only to supply a session Massive does not have yet.
+    try:
+        from zoneinfo import ZoneInfo
+        ny = datetime.now(ZoneInfo("America/New_York"))
+        last_done = ny.date()
+        if ny.weekday() >= 5 or (ny.hour, ny.minute) < (16, 5):
+            last_done -= timedelta(days=1)
+        while last_done.weekday() >= 5:
+            last_done -= timedelta(days=1)
+        last_done = last_done.isoformat()
+    except Exception:
+        last_done = today_utc
+    if date_used and date_used >= last_done:
+        print(f"\n[2.5/5] Yahoo same-day fallback skipped: Massive already has {date_used}, "
+              f"the last completed New York session ({last_done})")
+    elif date_used != today_utc:
         print(f"\n[2.5/5] Yahoo same-day fallback (Polygon landed {date_used}, today is {today_utc})…")
         try:
             # Build the universe of names worth pulling intraday — the
@@ -420,7 +443,7 @@ def main():
 
             # (b) Watchlist
             status, body = http_json(
-                f"{URL}/rest/v1/watchlist?select=ticker",
+                f"{URL}/rest/v1/watchlist_items?select=ticker",  # table is watchlist_items (watchlist 404s)
                 headers=sb_headers,
             )
             if status < 300 and isinstance(body, list):

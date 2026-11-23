@@ -120,4 +120,9 @@
 .mt-overhaul .mt-terminal .wl-panel .dt-table th[data-col="remove"],
 .mt-overhaul .mt-terminal .wl-panel .dt-table td[data-col="remove"] {
   position: sticky; right: 0; z-index: 1; background: var(--tm-panel);
+  /* 2026-11-23 health sweep: on a phone the column scrolling under the pin
+     showed only its leading "-" ("-16.4%" cut to "-"), a stray mark under no
+     heading. A panel-coloured fade on the pin's left edge hides the sliver
+     and reads as "more to the right". */
+  box-shadow: -18px 0 12px -4px var(--tm-panel);
 }

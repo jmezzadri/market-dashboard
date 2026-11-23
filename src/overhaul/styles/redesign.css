@@ -468,9 +468,10 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .mt-terminal .tm-code { flex: none; background: var(--tm-amber); color: var(--tm-page); font-weight: var(--fw-600); padding: 0 var(--sp-6); font-size: var(--v13-t2); line-height: 1.5; }
 .mt-overhaul .mt-terminal .tm-ptitle { font-size: var(--v13-t2); color: var(--tm-text); letter-spacing: 0.02em; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* 2026-11-02: panel titles wrap on a phone instead of cutting the date off ("RISK MEASURES · AFTER OCT 30 CL…"). */
-@media (max-width: 600px) { .mt-overhaul .mt-terminal .tm-ptitle { white-space: normal; overflow: visible; } }
+/* 2026-11-23 (health sweep): widened from 600px to 1400px — at 1340 the Paper backtest title was cut to "AUG 202…". */
+@media (max-width: 1400px) { .mt-overhaul .mt-terminal .tm-ptitle { white-space: normal; overflow: visible; } }
 /* 2026-11-05 (health sweep): the wrapped second line ("CLOSE") was clipped against the bar's bottom border — the bar kept its fixed one-line height and overflow:hidden. On a phone the bar grows to fit the wrapped title. */
-@media (max-width: 600px) { .mt-overhaul .mt-terminal .tm-phead:not(.tm-phead--btn) { height: auto; min-height: var(--tm-panel-head-h); padding-top: var(--sp-4); padding-bottom: var(--sp-4); } }
+@media (max-width: 1400px) { .mt-overhaul .mt-terminal .tm-phead:not(.tm-phead--btn) { height: auto; min-height: var(--tm-panel-head-h); padding-top: var(--sp-4); padding-bottom: var(--sp-4); } }
 /* Same day: the /macro phone panel buttons lost their own padding to the .tm-phead rule above (higher specificity), so "RATES" sat on the top border and "1 big move" broke, leaving "move" alone on the last line. Restore the button padding and keep each count whole. */
 .mt-overhaul .mt-terminal .tm-phead.tm-phead--btn { height: auto; padding: var(--sp-8) var(--sp-10); }
 .mt-overhaul .tm-counts > span { white-space: nowrap; }
@@ -569,6 +570,15 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-c-pct.is-ext .tm-pctfill { background: var(--tm-amber); }
 .mt-overhaul .tm-c-flag { font-size: var(--v13-t1); font-weight: var(--fw-600); color: var(--tm-amber); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
 .mt-overhaul .tm-flag--phone { display: none; }
+/* 2026-11-23 health sweep: between 861px and 1340px the three Macro panels
+   leave the name column 59px wide ("Manufacturing" and "Unemployment" ran
+   past it at 1280). The FLAG column folds under the name, as on a phone, so
+   the name gets its 86px back. */
+@media (min-width: 861px) and (max-width: 1340px) {
+  .mt-overhaul .tm-cols, .mt-overhaul .tm-row { grid-template-columns: minmax(0, 1fr) 86px 52px 78px; }
+  .mt-overhaul .tm-flag--phone { display: block; font-family: var(--mt-type-mono); font-size: var(--v13-t1); font-weight: var(--fw-600); color: var(--tm-amber); text-transform: uppercase; }
+  .mt-overhaul .tm-c-flag, .mt-overhaul .tm-cols-flag { display: none; }
+}
 .mt-overhaul .tm-panel--econ .tm-pbody { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--sp-24); padding: var(--sp-4) 0; }
 .mt-overhaul .tm-panel--econ .tm-cols { display: none; }
 .mt-overhaul .tm-panel--econ .tm-ghead, .mt-overhaul .tm-panel--econ .tm-empty { grid-column: 1 / -1; }
@@ -653,7 +663,7 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 .mt-overhaul .tm-pop { animation: tm-fade var(--ed-dur-pop) ease-out calc(var(--ed-dur-stagger) * 7 + var(--ed-dur-draw)) both; }
 @keyframes tm-fade { from { opacity: 0; } to { opacity: 1; } }
 .mt-overhaul .tm-returns { border-left: 1px solid var(--tm-border-2); min-width: 0; }
-.mt-overhaul .tm-cols--ret, .mt-overhaul .tm-row--ret { grid-template-columns: minmax(0, 1fr) 70px 70px 70px; gap: var(--sp-6); }
+.mt-overhaul .tm-cols--ret, .mt-overhaul .tm-row--ret { grid-template-columns: minmax(52px, 1fr) repeat(3, minmax(0, 70px)); gap: var(--sp-6); } /* 2026-11-23: a 31px first column at 900-1280 let "RETURNS" run into DAY */
 .mt-overhaul .tm-row--ret { padding: var(--sp-6) var(--sp-10); cursor: default; }
 .mt-overhaul .tm-row--ret > span:first-child { font-weight: var(--fw-600); }
 .mt-overhaul .r { text-align: right; }
@@ -697,7 +707,7 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 /* ATTR */
 .mt-overhaul .tm-attrcols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .mt-overhaul .tm-attr-col:first-child { border-right: 1px solid var(--tm-border-2); }
-.mt-overhaul .tm-attr-row { grid-template-columns: minmax(0, 1fr) 54px 68px; gap: var(--sp-4); width: 100%; background: none; border-left: 0; border-right: 0; border-top: 0; color: inherit; font: inherit; text-align: right; }
+.mt-overhaul .tm-attr-row { grid-template-columns: minmax(34px, 1fr) 54px 68px; /* 2026-11-23: tickers overran a 26px column at 1340 */ gap: var(--sp-4); width: 100%; background: none; border-left: 0; border-right: 0; border-top: 0; color: inherit; font: inherit; text-align: right; }
 .mt-overhaul .tm-attr-t { text-align: left; font-weight: var(--fw-600); color: var(--tm-text); }
 /* RISK */
 .mt-overhaul .tm-alertline { display: flex; align-items: center; gap: var(--sp-8); padding: var(--sp-8) var(--sp-10); border-bottom: 1px solid var(--tm-border-2); font-family: var(--mt-type-sans); font-size: var(--v13-t3); color: var(--tm-text-3); line-height: 1.4; }
@@ -769,7 +779,7 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
   .mt-overhaul .tm-row--ret { padding: var(--sp-8) var(--sp-10); }
   .mt-overhaul .tm-riskgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mt-overhaul .tm-tilt { grid-template-columns: 84px minmax(0, 1fr) 46px; padding: var(--sp-5) 0; }
-  .mt-overhaul .tm-attr-row { min-height: var(--ed-tap); grid-template-columns: minmax(0, 1fr) 54px 68px; }
+  .mt-overhaul .tm-attr-row { min-height: var(--ed-tap); grid-template-columns: minmax(34px, 1fr) 54px 68px; }
   .mt-overhaul .tm-sector { grid-template-columns: 120px minmax(0, 1fr) 76px; }
   .mt-overhaul .tm-footnote { padding: var(--sp-6) var(--sp-8) var(--sp-10); }
 }

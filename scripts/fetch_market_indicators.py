@@ -58,7 +58,7 @@ TARGETS = [
     ("dax_index",      "^GDAXI",      "DAX",              "Equities",    "index"),
     ("crypto_btc",     "BTC-USD",     "Bitcoin",          "Crypto",      "$"),
     ("cmdty_platinum", "PL=F",        "Platinum",         "Commodities", "$/oz"),
-    ("cmdty_ttf",      "TTF=F",       "European natural gas (Dutch TTF)", "Commodities", "EUR/MWh"),
+    ("cmdty_ttf",      "TTF=F",       "European natural gas (Dutch TTF)", "Commodities", "€/MWh"),  # 2026-11-23: same symbol as the registry and the brief; "88.45 EUR/MWh" overran its column on /macro
 ]
 
 
