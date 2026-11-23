@@ -144,6 +144,9 @@ async function pool<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): Prom
 
 /* ── mode: quotes ─────────────────────────────────────────────────────── */
 
+// A crypto pair quoted in dollars ("BTC-USD") trades around the clock.
+const allHours = (sym: string) => /^[A-Z0-9]{2,10}-USD$/.test(sym);
+
 async function modeQuotes(symbols: string[]) {
   const syms = [...new Set(symbols.map((s) => String(s || "").trim().toUpperCase()).filter(Boolean))].slice(0, MAX_SYMBOLS);
   if (!syms.length) return { quotes: [], marketOpen: marketOpen() };
@@ -160,6 +163,11 @@ async function modeQuotes(symbols: string[]) {
     if (!row) return true;
     const age = (nowMs - (Date.parse(String(row.fetched_at)) || 0)) / 1000;
     if (row.covered === false) return age > UNCOVERED_TTL_S;
+    // A market that never closes (BTC-USD on the price strip, 2026-11-23) is
+    // refreshed on the open-market rhythm at every hour of every day: the US
+    // session's 30-minute closed cache would leave it half an hour old all
+    // night and all weekend.
+    if (allHours(s)) return age > 60;
     // Fallback-sourced rows refresh a little slower: Yahoo is unmetered and
     // unkeyed, so we spend its calls sparingly. 60 s is still inside a
     // reader's attention span for a quote.
@@ -208,7 +216,9 @@ async function modeQuotes(symbols: string[]) {
     const fetchOne = async (sym: string): Promise<Json | null> => {
       // Index symbols are never in an equity candles universe. Don't spend a
       // vendor call (and a guaranteed 400) to learn that every 45 seconds.
-      if (sym.startsWith("^")) {
+      // Crypto pairs are quoted from Yahoo too — the provider of the stored
+      // daily series, so the live quote and its base share one source.
+      if (sym.startsWith("^") || allHours(sym)) {
         const y = await yahooQuote(sym).catch(() => null);
         if (y) return y;
         const priorIdx = bySym.get(sym);

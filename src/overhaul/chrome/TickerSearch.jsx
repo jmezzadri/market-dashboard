@@ -129,9 +129,9 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
   const onKey = (e) => {
     if (e.key === 'Escape') { setOpen(false); return; }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      if (!open || !res.length) return;
+      if (!open || !shownRows.length) return;
       e.preventDefault();
-      setHi((h) => (e.key === 'ArrowDown' ? Math.min(h + 1, res.length - 1) : Math.max(h - 1, 0)));
+      setHi((h) => (e.key === 'ArrowDown' ? Math.min(h + 1, shownRows.length - 1) : Math.max(h - 1, 0)));
       return;
     }
     if (e.key !== 'Enter') return;
@@ -145,6 +145,17 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
     }
     enterPending.current = true;
   };
+
+  /* While the next search runs, the menu shows only the earlier matches that
+     ALSO match the text now in the box — never a row the new text rules out
+     (2026-11-23 check: type "app" then "x" and Apple stayed listed, faded,
+     under "Searching…"). With none left it says "Searching…" and nothing
+     else. The list may be incomplete until the answer lands; it is never
+     wrong. */
+  const liveTerm = termOf(q).toLowerCase();
+  const shownRows = phase === 'searching'
+    ? res.filter((r) => String(r.ticker || '').toLowerCase().startsWith(liveTerm) || String(r.name || '').toLowerCase().includes(liveTerm))
+    : res;
 
   const fmtCap = (c) => { const n = Number(c); if (!Number.isFinite(n) || n <= 0) return ''; if (n >= 1e12) return '$' + (n/1e12).toFixed(1) + 'T'; if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B'; if (n >= 1e6) return '$' + (n/1e6).toFixed(0) + 'M'; return ''; };
 
@@ -175,10 +186,10 @@ export default function TickerSearch({ className = '', autoFocus = false }) {
       />
       <span className="rd-search-cursor" aria-hidden="true" />
       {open && q.trim() && (
-        <div className={`rd-search-menu${phase === 'searching' && res.length ? ' is-stale' : ''}`} role="listbox" aria-label="Matching stocks" aria-busy={phase === 'searching' ? 'true' : undefined}>
-          {res.length > 0 ? (
+        <div className={`rd-search-menu${phase === 'searching' && shownRows.length ? ' is-stale' : ''}`} role="listbox" aria-label="Matching stocks" aria-busy={phase === 'searching' ? 'true' : undefined}>
+          {shownRows.length > 0 ? (
             <>
-              {res.map((r, i) => (
+              {shownRows.map((r, i) => (
                 <div
                   key={r.ticker}
                   role="option"

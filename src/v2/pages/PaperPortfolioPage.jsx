@@ -805,8 +805,12 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
   const markInSession = markInSessionHours && markIsToday;
   const markIsLivePrice = markInSession && marketOpenNow;
   const markAtClose = markHM === '16:00';
+  const markAgeMin = latestNav?.created_at ? (Date.now() - new Date(latestNav.created_at).getTime()) / 60_000 : null;
+  const markOverdue = markIsLivePrice && markAgeMin != null && markAgeMin > 15;
   const priceBasis = latestNav?.created_at
-    ? (markIsLivePrice
+    ? (markOverdue
+      ? `prices at ${fmtTimeET(latestNav.created_at)}`
+      : markIsLivePrice
       ? `live prices · ${fmtTimeET(latestNav.created_at)}`
       : markAtClose
         ? `closing prices · ${markDayET || fmtDayET(latestNav.created_at)}`
@@ -816,6 +820,17 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             ? `prices at ${markDayET ? `${markDayET}, ` : ''}${fmtTimeET(latestNav.created_at)}`
             : `after-hours prices · ${markIsToday ? '' : `${markDayET}, `}${fmtTimeET(latestNav.created_at)}`)
     : null;
+
+  // 2026-11-23 weekly check (and 11-16): "LIVE PRICES · 9:50 AM" read at 9:52
+  // looked frozen. It was not — the broker's marks are synced every ten
+  // minutes during the session and the stamp is the time of the last sync —
+  // but the page never said so. The header line now states the rhythm, and
+  // says so plainly when a sync is late (more than 15 minutes old in an open
+  // session) instead of going on calling an old mark live.
+  const priceBasisHead = !priceBasis ? null
+    : markOverdue ? `${priceBasis} · the 10-minute update is late`
+      : markIsLivePrice ? `${priceBasis} · updated every 10 minutes`
+        : priceBasis;
 
   // The two marks the DAY column runs between, in words.
   const prevNav = nav && nav.length >= 2 ? nav[nav.length - 2] : null;
@@ -1425,7 +1440,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
             <Link to="/methodology#portfolio" className="tm-plink">Methodology ▸</Link>
           </div>
           <div className="tm-pfill" />
-          <div className="tm-marks rd-num">{priceBasis ? priceBasis.toUpperCase() : 'NO MARKS YET'}{ls ? ` · ${marksN} DAILY ${marksN === 1 ? 'MARK' : 'MARKS'}${inceptionShort ? ` SINCE ${inceptionShort.toUpperCase()}` : ''}` : ''}</div>
+          <div className="tm-marks rd-num">{priceBasisHead ? priceBasisHead.toUpperCase() : 'NO MARKS YET'}{ls ? ` · ${marksN} DAILY ${marksN === 1 ? 'MARK' : 'MARKS'}${inceptionShort ? ` SINCE ${inceptionShort.toUpperCase()}` : ''}` : ''}</div>
         </section>
 
         {notice}
