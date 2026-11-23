@@ -368,6 +368,38 @@
       "link": "gmail thread 1a1f3eb7d56db1cc",
       "read_on": "2026-11-20",
       "fed": "fact base: S&P 7,323.63 on Nov 18 (fifth straight loss); Anthropic priced at $83 above its range; staples sector +14.6% quarter-to-date and Target comps +5.6% (fed the staples-against-the-S&P test: lagged a median 4 points over three months after a top-5% quarter, halves disagree, no note)"
+    },
+    {
+      "sender": "macro-ops.com (Vol Street Journal)",
+      "received": "2026-11-22",
+      "subject": "Vol Street Journal :: Episode 49",
+      "link": "https://macro-ops.com/wp-content/uploads/2026/11/VSJ-Ep.-49-Market-Brief.pdf",
+      "read_on": "2026-11-23",
+      "fed": "fact base: VIX touched about 40 with the deepest spot-to-30-day-futures inversion in a long time, implied correlation above 30, high-yield spreads at new wides; stance is defensive until proven otherwise (fed the buy-after-the-panic test: 9 cases of VIX at or above 35 with an inverted curve, median +10.4% in three months, but only 1 of 9 had the 2-year yield rising and returns ran +0.59 with the 2-year over the hold - no note). Methods queued: VIX against a model value; depth of the inversion as a bottoming signal"
+    },
+    {
+      "sender": "macro-ops.com",
+      "received": "2026-11-22",
+      "subject": "This Infinite Game: Peripheral Vision",
+      "link": "gmail thread 1a203e57b3360ca5",
+      "read_on": "2026-11-23",
+      "fed": "sixteen dated 2026 commodity breakouts with measured-move targets, winners only - usable as test cases, not evidence; no new positions or exits disclosed"
+    },
+    {
+      "sender": "squad@thedailyupside.com",
+      "received": "2026-11-20",
+      "subject": "ANTs in the Pants",
+      "link": "gmail thread 1a1f91d5cf1c17c9",
+      "read_on": "2026-11-23",
+      "fed": "fact base: Anthropic closed up 17% on its debut while the S&P fell 2%; hedge-fund net momentum exposure down from 60% in the summer to about 8% (fed the Nasdaq-100 against staples test: median +9.5% in three months after an S&P week of -7.5% or worse, but the required stop was hit in 7 of 13 - no note)"
+    },
+    {
+      "sender": "squad@thedailyupside.com",
+      "received": "2026-11-22",
+      "subject": "Real Estate's Silver Tsunami",
+      "link": "https://www.thedailyupside.com/newsletter/tdu-november-22-2026/",
+      "read_on": "2026-11-23",
+      "fed": "fact base: pending home sales -16.7% y/y in October; existing-home sales forecast under 4 million in 2027; no market view"
     }
   ]
 }
