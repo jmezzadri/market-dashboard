@@ -1,0 +1,46 @@
+signal dates: ['1997-10-27', '1998-08-31', '2000-04-14', '2001-09-17', '2002-07-22', '2008-09-29', '2009-02-17', '2011-08-08', '2015-08-24', '2018-02-08', '2018-12-24', '2020-02-27', '2022-05-11', '2025-04-04', '2026-11-20']
+
+A. Did the low hold? sessions to the first S&P close below the signal-day close (next 62)
+  1997-10-27 next day +5.8%  retest after None sessions  lowest +3.2%  63 sessions +12.1%
+  1998-08-31 next day +4.2%  retest after None sessions  lowest +0.6%  63 sessions +21.0%
+  2000-04-14 next day +3.5%  retest after None sessions  lowest +1.4%  63 sessions +11.0%
+  2001-09-17 next day -0.2%  retest after 1 sessions  lowest -6.7%  63 sessions +8.5%
+  2002-07-22 next day -2.7%  retest after 1 sessions  lowest -5.0%  63 sessions +7.8%
+  2008-09-29 next day +4.1%  retest after 4 sessions  lowest -32.3%  63 sessions -22.0%
+  2009-02-17 next day -0.2%  retest after 1 sessions  lowest -14.0%  63 sessions +15.2%
+  2011-08-08 next day +4.6%  retest after 39 sessions  lowest -2.1%  63 sessions +11.8%
+  2015-08-24 next day -1.2%  retest after 1 sessions  lowest -1.2%  63 sessions +10.5%
+  2018-02-08 next day +1.5%  retest after 35 sessions  lowest -0.1%  63 sessions +5.6%
+  2018-12-24 next day +5.1%  retest after None sessions  lowest +4.2%  63 sessions +19.3%
+  2020-02-27 next day -0.4%  retest after 1 sessions  lowest -25.1%  63 sessions +1.8%
+  2022-05-11 next day -0.1%  retest after 1 sessions  lowest -6.8%  63 sessions +6.9%
+  2025-04-04 next day -0.2%  retest after 1 sessions  lowest -1.7%  63 sessions +22.8%
+  2026-11-20 pending
+  closed below the crash-week low first in 10 of 14
+
+B. Entry at the next close, 62 sessions, with and without a stop
+  SPY                        no stop                            n=14 mean  +7.7 median  +8.0 up 13/14 stopped  0 worst  -25.1 | any start mean +2.1 median +3.2 up 68% | halves +5.6/+9.8
+  SPY                        5% stop                            n=14 mean  +3.7 median  +5.0 up  8/14 stopped  6 worst   -9.7 | any start mean +2.1 median +3.2 up 68% | halves +2.8/+4.6
+  SPY                        7.5% stop                          n=14 mean  +5.6 median  +7.2 up 11/14 stopped  3 worst  -16.3 | any start mean +2.1 median +3.2 up 68% | halves +4.1/+7.1
+  SPY                        10% stop                           n=14 mean  +5.3 median  +7.2 up 11/14 stopped  3 worst  -16.3 | any start mean +2.1 median +3.2 up 68% | halves +3.5/+7.1
+  SPY                        exit on S&P close below the low    n=14 mean  +2.0 median  +0.1 up  7/14 stopped 10 worst   -6.4 | any start mean +2.1 median +3.2 up 68% | halves +3.4/+0.7
+  QQQ                        no stop                            n=12 mean +12.3 median +12.6 up 11/12 stopped  0 worst  -25.8 | any start mean +3.1 median +4.2 up 68% | halves +8.6/+15.9
+  QQQ                        5% stop                            n=12 mean  +2.3 median  -5.4 up  4/12 stopped  8 worst   -6.2 | any start mean +3.1 median +4.2 up 68% | halves -5.6/+10.2
+  QQQ                        7.5% stop                          n=12 mean  +2.8 median  +0.6 up  6/12 stopped  6 worst  -13.8 | any start mean +3.1 median +4.2 up 68% | halves -6.1/+11.6
+  QQQ                        10% stop                           n=12 mean  +5.7 median  +8.8 up  7/12 stopped  5 worst  -13.8 | any start mean +3.1 median +4.2 up 68% | halves -0.2/+11.6
+  QQQ                        exit on S&P close below the low    n=12 mean  +0.8 median  -1.0 up  4/12 stopped 10 worst   -7.5 | any start mean +3.1 median +4.2 up 68% | halves -1.3/+2.9
+  QQQ long / XLU short       no stop                            n=12 mean +11.0 median +10.2 up 10/12 stopped  0 worst  -10.4 | any start mean +1.9 median +2.1 up 58% | halves +11.3/+10.6
+  QQQ long / XLU short       5% stop                            n=12 mean  +0.7 median  -5.6 up  5/12 stopped  7 worst  -12.8 | any start mean +1.9 median +2.1 up 58% | halves -3.7/+5.1
+  QQQ long / XLU short       7.5% stop                          n=12 mean  +5.1 median  +4.5 up  7/12 stopped  5 worst  -12.8 | any start mean +1.9 median +2.1 up 58% | halves +3.7/+6.6
+  QQQ long / XLU short       10% stop                           n=12 mean  +7.0 median  +4.9 up  8/12 stopped  3 worst  -14.6 | any start mean +1.9 median +2.1 up 58% | halves +3.4/+10.6
+  QQQ long / XLU short       exit on S&P close below the low    n=12 mean  -2.5 median  -1.8 up  3/12 stopped 10 worst  -17.7 | any start mean +1.9 median +2.1 up 58% | halves -3.8/-1.3
+  XLK long / XLU short       no stop                            n=12 mean +10.8 median  +7.2 up 10/12 stopped  0 worst   -9.4 | any start mean +1.5 median +1.8 up 57% | halves +8.9/+12.8
+  XLK long / XLU short       5% stop                            n=12 mean  +3.1 median  +0.1 up  6/12 stopped  6 worst  -13.3 | any start mean +1.5 median +1.8 up 57% | halves -3.1/+9.4
+  XLK long / XLU short       7.5% stop                          n=12 mean  +5.4 median  +6.0 up  7/12 stopped  5 worst  -13.3 | any start mean +1.5 median +1.8 up 57% | halves +2.0/+8.9
+  XLK long / XLU short       10% stop                           n=12 mean  +7.0 median  +7.0 up  8/12 stopped  4 worst  -13.3 | any start mean +1.5 median +1.8 up 57% | halves +1.2/+12.8
+  XLK long / XLU short       exit on S&P close below the low    n=12 mean  -2.7 median  -2.2 up  3/12 stopped 10 worst  -21.7 | any start mean +1.5 median +1.8 up 57% | halves -4.9/-0.5
+  XLK long / XLP short       no stop                            n=12 mean  +9.7 median  +9.3 up 10/12 stopped  0 worst   -9.0 | any start mean +1.5 median +2.2 up 60% | halves +4.0/+15.4
+  XLK long / XLP short       5% stop                            n=12 mean  +4.7 median  +1.7 up  6/12 stopped  6 worst   -7.6 | any start mean +1.5 median +2.2 up 60% | halves -3.8/+13.2
+  XLK long / XLP short       7.5% stop                          n=12 mean  +7.4 median  +9.3 up  8/12 stopped  4 worst   -9.6 | any start mean +1.5 median +2.2 up 60% | halves +2.0/+12.7
+  XLK long / XLP short       10% stop                           n=12 mean  +6.2 median  +9.3 up  8/12 stopped  4 worst  -13.6 | any start mean +1.5 median +2.2 up 60% | halves +0.2/+12.3
+  XLK long / XLP short       exit on S&P close below the low    n=12 mean  -0.9 median  -0.1 up  6/12 stopped 10 worst  -14.9 | any start mean +1.5 median +2.2 up 60% | halves -4.2/+2.4

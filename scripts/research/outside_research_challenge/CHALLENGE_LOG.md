@@ -19,6 +19,88 @@ Procedure: `PLAYBOOK.md`. Posts already read: `processed_posts.json`.
 
 ---
 
+## 2026-11-24 — after an 8% week, is the first bounce a sale, a purchase, or neither?
+
+One new letter since Nov 17 (a macro letter of Nov 23, read in full from the
+inbox) and one newsletter issue; a bank's 2027 equity outlook email of Nov 20
+was read for the consensus only (`letters_read.json`). The two public posts
+of Nov 13-14 are still unread and stay unprocessed. Nothing from Praetorian
+or Greenhaven Road.
+
+**What their work does that ours does not.** The macro letter trades WITH
+price through a crash: it stayed short the Nasdaq-100 under its 200-day
+through the S&P 500's 8.6% week (Nov 16-20) and reads retail leverage as
+proof no washout has happened. The street's reflex is the opposite — every
+2027 target published last week sits 15-20% above the index. We had tested
+the level of panic (Nov 23 sweep: VIX at or above 35) but never the PATH
+after it: does the first bounce hold, and does either side survive a stop?
+
+**The question that puts to us.** After an S&P week of -8% or worse, is the
+next quarter a short (their book), a long (the street), or a trade neither
+can hold with the stop our own contract requires? And does the answer change
+for the sectors that fell most?
+
+**The test.** `crash_week_retest_test.py`, output `results_2026-11-24.txt`.
+SPY 1996-2026, QQQ 1999-2026, XLK / XLU / XLP 1998-2026 from the price store.
+Signal: five-session return of -8% or worse, episodes 63 sessions apart (14
+scored; Nov 20 is the 15th). Entry at the NEXT close, 62 sessions held,
+against every start in the same sample. Then the same trades with a 5%, 7.5%
+and 10% stop, and with an exit on the first S&P close below the signal-day
+close.
+
+**The result.** No short: the S&P was higher 62 sessions after a next-day
+entry in 13 of 14 (median +8.0% against +3.2% for any start; both halves),
+the Nasdaq-100 in 11 of 12 (median +12.6% against +4.2%). But no stopped long
+either: the index closed back below the signal-day close first in 10 of 14,
+so a 5% stop cuts the S&P average to +3.7% and the Nasdaq-100's to +2.3%
+(stopped in 8 of 12). Where the next day rose 3.5% or more, as on Nov 23,
+the low held in 4 of 6 (1997, 1998, 2000, 2018), was retested once (2011) and
+failed once (2008): median +7.1% from that close against a 4.5% loss at the
+low — under two to one. Sectors: the Nasdaq-100 against utilities returned a
+median +10.2% (10 of 12, both halves, any start +2.1%; holds for weeks of -6%
+to -10%), technology against staples +9.3% (10 of 12) — and a 5% stop was hit
+in 7 and 6 of 12, leaving +0.7% and +4.7% on average. Defensives lagged the
+index in 9 of 12 cases (utilities median -9.1 points, staples -4.1).
+
+**What changed in MacroTilt.** Nothing in the book. Three habits: (1) "buy
+the crash week" and "sell the first bounce" are both recorded as untradeable
+under the two-to-one rule — the edge is real only for a holder who sits
+through a retest of the low; (2) the brief may say defensives have lagged
+the index in the quarter after an 8% week in 9 of 12 cases — a dated,
+measured fact — but not that the low is in; (3) the skip table shows the
+stopped average next to the unstopped median for every candidate, so a
+near-miss is visible as a stop problem and not as a missing edge.
+
+### Not yet tested — carried to the next read
+
+- An entry rule for the crash-week long that waits for the retest: buy the
+  first close back above the signal-day close AFTER a close below it — does
+  it keep the gain with a stop under half of it? (from this test)
+- Nvidia-type single names after a +12% day: higher a month later in 13 of 14
+  since 2010 (median +10.8% against +3.0%) — split earnings days from
+  market-rebound days; no past case had an open accounting inquiry.
+- Refiners after a 20% one-month fall with the diesel margin above its 80th
+  percentile of three years: median +22.8% a quarter later, 5 cases; shrinks
+  to +10.2% (9 cases) at a 15% fall — too thin today, re-test when the open
+  energy call is closed (0.69 correlation with it).
+- Forward P/E down 10%+ inside a calendar year (needs a forward-earnings
+  series) (carried).
+- Six and twelve months after a midterm, split by Fed direction (carried).
+- Silver after a 15%+ three-week fall below its 200-day: re-run today, 10
+  cases, median +8.5% a quarter later but mean +2.6% against +3.9% and a
+  worst case of -34% — an entry rule is still the open question (carried).
+- Retail margin debt (FINRA) against currency in circulation (needs the
+  series on file) (carried).
+- One-month implied correlation above 25 (needs COR1M history) (carried).
+- MOVE up 25+ points in 21 sessions while VIX <= 18 (carried).
+- Tight range followed by a break to a new 3-month high (carried).
+- Corporate-bond-to-Treasury relative strength, spread-based (carried).
+- Gold miners after the 10-year falls 30bp+ off a one-year high: re-run
+  today, 11 cases, median +12.3% over six months but up in only 6 of 11 with
+  a median 13% dip first — entry rule still open (carried from Nov 10).
+
+---
+
 ## 2026-11-17 — implied volatility under realized with a flat curve: an "unstable calm", or just a description of a selloff?
 
 Two new reads since Nov 10 (a macro letter of Nov 16 and a volatility brief of
