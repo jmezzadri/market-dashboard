@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-11-23T21:35:32Z",
+  "generated_at": "2026-11-24T02:09:56Z",
   "window": {
-    "from": "2026-11-16",
-    "to": "2027-02-01"
+    "from": "2026-11-17",
+    "to": "2027-02-02"
   },
   "counts": {
-    "total": 77,
+    "total": 76,
     "tier1": 23
   },
   "sources": [
@@ -30,21 +30,10 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-02-01",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-02-02",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
-    {
-      "date": "2026-11-16",
-      "time_et": "8:30 AM",
-      "name": "Empire State survey",
-      "short": "Empire",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "New York Fed manufacturing survey \u2014 the first regional read each month.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-11-17",
       "time_et": "8:30 AM",
