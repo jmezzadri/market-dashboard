@@ -50,8 +50,8 @@ CONTRACT v2 (notes dated from 2026-10-21; LESSONS 6.26)
     Five or more matching cases: the edge must clear the baseline inside
     them. Fewer: the note may still publish if |correlation(case return,
     factor change)| < 0.30, disclosed in `other_side` and `edge.summary`,
-    with the stop at most one third of the expected return and
-    `sizing.weight` 5 (half size).
+    with the stop at most one third of the expected return (two thirds
+    from 2026-11-25, rule 13) and `sizing.weight` 5 (half size).
 9.  A positioning edge needs ten years of data OR the instrument's full CFTC
     history plus `threshold_scan[]` with the edge's sign unchanged from the
     published percentile to twice it.
@@ -69,6 +69,22 @@ CONTRACT v2 (notes dated from 2026-10-21; LESSONS 6.26)
 12. `sizing.weight` on every note: 10 standard, 5 under the rule-8 fallback,
     1–2 for an event idea. Fixed at publication; the book test uses the real
     weights.
+
+THE STOPPED OUTCOME (notes dated from 2026-11-25; Joe, 2026-11-24)
+------------------------------------------------------------------
+13. Reward against risk. Notes dated before 2026-11-25: `expected_return.pct`
+    is at least 2x `loss_at_stop_pct` (a stop of at most one third of it
+    under the rule-8 fallback). Notes dated from 2026-11-25: the floor is 1x
+    (1.5x under the fallback — a stop of at most two thirds), and in exchange
+    a standard note carries `edge.backtest.with_stop{stop_pct, n, stopped,
+    mean, median, win_rate}` — the SAME backtest cases replayed with the
+    note's own stop (out at the stop when it prints, else held to the
+    horizon). `with_stop.mean` must clear the pace bar for the horizon, and
+    `expected_return.pct` may not exceed the better of `with_stop.median` and
+    `with_stop.mean`: the published return is the stopped outcome, never the
+    unstopped one. Event notes stay exempt. A note whose vehicle is a listed
+    option (return and loss stated on the premium) keeps the 2x rule and
+    carries no `with_stop`.
 """
 
 from __future__ import annotations
@@ -135,7 +151,9 @@ MIN_EXPECTED_RETURN_PCT = 15.0
 #       (MARKET_ANNUAL_PCT) by MARGIN_ANNUAL_PCT — i.e. HURDLE_ANNUAL_PCT a
 #       year, pro-rated to the horizon (1 month 1.67%, 6 months 10%,
 #       12 months 20%, 18 months 30%);
-#   (b) still pay at least twice its loss at the stop;
+#   (b) still pay at least twice its loss at the stop (from 2026-11-25: at
+#       least the loss itself, proven on the backtest with the stop applied —
+#       see STOPPED_OUTCOME_FROM);
 #   (c) be INCREMENTAL to the open book: adding it must raise the book's
 #       expected return over the S&P per unit of risk (risk-adjusted expected
 #       return). The 2026-10-07 cap on book volatility was withdrawn
@@ -190,6 +208,7 @@ FALLBACK_WEIGHT = 5.0                  # half size: the price of publishing out 
 EVENT_WEIGHT_MIN, EVENT_WEIGHT_MAX = 1.0, 2.0
 MAX_DEPENDENCE_CORRELATION = 0.30
 FALLBACK_STOP_FRACTION = 3.0           # loss at stop <= pct / 3 under the fallback (normal rule: /2)
+#                                        Notes dated before STOPPED_OUTCOME_FROM, and option-vehicle notes.
 EVENT_MIN_ODDS_MULTIPLE = 1.5          # our odds >= 1.5 x the breakeven the premium implies
 EVENT_MAX_RESOLVE_MONTHS = 6
 EVENT_STRUCTURES = {"call_spread", "put_spread", "call", "put"}
@@ -207,6 +226,34 @@ INVERSE_FUNDS = {
 FALLBACK_DISCLOSURE_RE = re.compile(
     r"\b(no|none|only\s+\w+|\w+\s+of\s+(?:the\s+)?\w+|fewer\s+than\s+\w+)\b[^.]{0,80}?"
     r"\b(cases?|episodes?)\b[^.]{0,160}?\b(today|current|this|present)\b", re.I)
+# ── THE STOPPED OUTCOME (Joe, 2026-11-24; LESSONS 10.13) ────────────────────
+# Eighteen skipped mornings and no note since Oct 22. The research that
+# morning showed the 2x rule, not a missing edge, was killing the candidates:
+# after an S&P 500 week of -8% or worse the index was higher three months
+# later in 13 of 14 cases (median +8.0%), but a 5% stop was hit in 6 of the 14
+# and cut the average to +3.7%, while a 7.5% stop left +5.6% on average,
+# +7.2% median, 11 of 14 winning. A rule that compares the gain with the loss
+# and ignores how OFTEN each happens forces the stop so tight that it is hit
+# on the way to being right. So from STOPPED_OUTCOME_FROM:
+#   * the floor is MIN_REWARD_TO_RISK_STOPPED (the call pays at least what it
+#     risks), FALLBACK_REWARD_TO_RISK_STOPPED under the fewer-than-five-cases
+#     fallback (a stop of at most two thirds of the expected return);
+#   * in exchange a standard note carries edge.backtest.with_stop — the SAME
+#     backtest cases replayed with the note's own stop — and that stopped
+#     average must clear the pace bar, and expected_return.pct may not exceed
+#     the stopped outcome. The test is what the reader would have earned
+#     following the note as written, stop included.
+# Event notes stay exempt (the premium is the stop). A note whose vehicle is a
+# listed option states pct and loss on the PREMIUM and keeps the old rule
+# (MIN_REWARD_TO_RISK, FALLBACK_STOP_FRACTION) with no with_stop block.
+# Notes dated earlier keep the old rule, so the archive and any correction of
+# an old note still validate.
+STOPPED_OUTCOME_FROM = "2026-11-25"
+MIN_REWARD_TO_RISK_STOPPED = 1.0       # pct >= loss at the stop
+FALLBACK_REWARD_TO_RISK_STOPPED = 1.5  # under the fallback: loss at stop <= pct / 1.5 (two thirds)
+MIN_WITH_STOP_CASES = 3
+WITH_STOP_MATCH_PCT = 0.5              # with_stop.stop_pct within this of expected_return.loss_at_stop_pct
+WITH_STOP_ROUNDING_PCT = 0.05          # pct may sit this far above the stopped outcome (rounding)
 MARKET_ANNUAL_PCT = 10.0      # S&P 500 long-run total return, the bar to beat
 MARGIN_ANNUAL_PCT = 10.0      # the "healthy margin" over it (Joe, 2026-10-07: "make it 20% a year")
 HURDLE_ANNUAL_PCT = MARKET_ANNUAL_PCT + MARGIN_ANNUAL_PCT
@@ -814,6 +861,75 @@ def _num(x, default=None):
         return default
 
 
+def is_option_vehicle(idea: dict) -> bool:
+    """The note's vehicle is a listed option (scorecard.option or
+    the_trade.option): its return and its loss are stated on the premium."""
+    sc = idea.get("scorecard") if isinstance(idea.get("scorecard"), dict) else {}
+    tt = idea.get("the_trade") if isinstance(idea.get("the_trade"), dict) else {}
+    return isinstance(sc.get("option"), dict) or isinstance(tt.get("option"), dict)
+
+
+def stopped_outcome_rule(idea: dict) -> bool:
+    """True when the 2026-11-24 rule applies: a standard note (not an event
+    note, not an option-vehicle note) dated from STOPPED_OUTCOME_FROM."""
+    return (str(idea.get("date", "")) >= STOPPED_OUTCOME_FROM
+            and not is_event(idea) and not is_option_vehicle(idea))
+
+
+def _validate_with_stop(bt: dict, er_pct: float, loss: float, pace_bar: float, months: float) -> None:
+    """The backtest replayed with the note's own stop (2026-11-24). `pace_bar`
+    is the pro-rated hurdle validate() already computed for expected_return.pct."""
+    ws = bt.get("with_stop")
+    if not isinstance(ws, dict):
+        raise ContractError(
+            "edge.backtest.with_stop{stop_pct, n, stopped, mean, median, win_rate} is required — the SAME backtest "
+            "cases replayed with the note's own stop (out at the stop when it prints, otherwise held to the horizon). "
+            "The return a reader earns is the one with the stop applied, so that is the one the note is judged on")
+    vals = {}
+    for k in ("stop_pct", "n", "stopped", "mean", "median", "win_rate"):
+        v = ws.get(k)
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or v != v:
+            raise ContractError(f"edge.backtest.with_stop.{k} must be a number, got {v!r}")
+        vals[k] = float(v)
+    for k in ("n", "stopped"):
+        if vals[k] != int(vals[k]):
+            raise ContractError(f"edge.backtest.with_stop.{k} must be a whole number of cases, got {ws.get(k)!r}")
+    n, stopped = int(vals["n"]), int(vals["stopped"])
+    if n < MIN_WITH_STOP_CASES:
+        raise ContractError(f"edge.backtest.with_stop.n is {n} — too few cases to judge the stop on")
+    try:
+        bt_n = int(bt.get("n"))
+    except (TypeError, ValueError):
+        bt_n = None
+    if bt_n is not None and n != bt_n and len(str(ws.get("note") or "").strip()) < 20:
+        raise ContractError(
+            f"edge.backtest.with_stop.n is {n} but edge.backtest.n is {bt_n} — the stop is tested on the same cases "
+            "as the edge. If a case had to be left out, say which and why in with_stop.note (one sentence)")
+    if not (0 <= stopped <= n):
+        raise ContractError(f"edge.backtest.with_stop.stopped is {stopped} — it counts the cases that hit the stop, "
+                            f"so it is between 0 and with_stop.n ({n})")
+    if not (0.0 <= vals["win_rate"] <= 100.0):
+        raise ContractError("edge.backtest.with_stop.win_rate is a percentage, 0 to 100 — the share of cases that "
+                            "ended higher with the stop applied")
+    if abs(abs(vals["stop_pct"]) - loss) > WITH_STOP_MATCH_PCT + 1e-9:
+        raise ContractError(
+            f"edge.backtest.with_stop.stop_pct is {abs(vals['stop_pct']):g}% but expected_return.loss_at_stop_pct is "
+            f"{loss:g}% — the backtest must be replayed with the stop the note publishes (within "
+            f"{WITH_STOP_MATCH_PCT:g} of a point)")
+    if vals["mean"] < pace_bar - 1e-9:
+        raise ContractError(
+            f"edge.backtest.with_stop.mean is {vals['mean']:g}% — with the note's {loss:g}% stop applied, the {n} past "
+            f"cases averaged less than the bar for this horizon ({pace_bar:.2f}% over {months:.2f} months, "
+            f"{HURDLE_ANNUAL_PCT:g}% a year); the stop was hit in {stopped} of {n}. Try a different stop and re-run the "
+            "replay, or drop the idea")
+    best = max(vals["median"], vals["mean"])
+    if er_pct > best + WITH_STOP_ROUNDING_PCT + 1e-9:
+        raise ContractError(
+            f"expected_return.pct ({er_pct:g}%) is above what the backtest earned with the stop applied (median "
+            f"{vals['median']:g}%, average {vals['mean']:g}%) — the published expected return is the stopped outcome, "
+            f"not the unstopped one; state at most {best:g}%")
+
+
 def _months_between(d0: dt.date, d1: dt.date) -> float:
     return (d1 - d0).days / DAYS_PER_MONTH
 
@@ -1227,15 +1343,22 @@ def _validate_regime_match_v2(idea: dict, bt: dict, er: dict, warnings: list) ->
                 "condition on the named factor — e.g. 'Only one of the seven past cases had the Fed raising rates as "
                 "it is today.'")
     pct, loss = _num(er.get("pct")), _num(er.get("loss_at_stop_pct"))
-    if pct is not None and loss is not None and loss > pct / FALLBACK_STOP_FRACTION + 1e-9:
+    # 2026-11-24 — one third for notes dated before STOPPED_OUTCOME_FROM and
+    # for option-vehicle notes; two thirds for a standard note dated from it.
+    if stopped_outcome_rule(idea):
+        frac, frac_words, stop_words = FALLBACK_REWARD_TO_RISK_STOPPED, "two thirds", "two-thirds stop"
+        loss = abs(loss) if loss is not None else None
+    else:
+        frac, frac_words, stop_words = FALLBACK_STOP_FRACTION, "one third", "one-third stop"
+    if pct is not None and loss is not None and loss > pct / frac + 1e-9:
         msg = (f"fallback stop: loss at the stop is {loss:g}% against an expected {pct:g}% — under the fewer-than-five-cases "
-               f"fallback the stop may be at most one third of the expected return ({pct / FALLBACK_STOP_FRACTION:.2f}%)")
+               f"fallback the stop may be at most {frac_words} of the expected return ({pct / frac:.2f}%)")
         if _option_grandfathered(idea):
             warnings.append("GRANDFATHERED (vehicle re-stated on the option, #1277): " + msg)
         else:
             raise ContractError(msg)
     warnings.append(f"published under the Decision-1 fallback: {mc} matching case(s), dependence correlation {corr:+.2f}, "
-                    f"weight {FALLBACK_WEIGHT:g}, one-third stop")
+                    f"weight {FALLBACK_WEIGHT:g}, {stop_words}")
     return True
 
 
@@ -1505,8 +1628,8 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
         # Decision 1 (2026-10-21) — {factor, matching_cases, result | dependence}.
         # Fewer than five matching cases is no longer an automatic veto: the
         # note may publish if the history did not ride the factor, disclosed,
-        # at half size, with a one-third stop. `fallback` feeds the weight and
-        # stop checks below.
+        # at half size, with a one-third stop (two-thirds from
+        # STOPPED_OUTCOME_FROM). `fallback` feeds the weight check below.
         fallback = _validate_regime_match_v2(idea, bt, idea.get("expected_return") or {}, warnings)
     elif str(idea.get("date", "")) >= REGIME_MATCH_FROM and not event:
         rm = str(bt.get("regime_match") or "").strip()
@@ -1857,7 +1980,12 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
             if len(str(er.get(k) or "").strip()) < 20:
                 raise ContractError(f"expected_return.{k} must say, in a sentence, how the called-for return is earned")
         # Downside protection: what the position loses if the stop prints, on
-        # the same basis, and the call must pay at least twice that.
+        # the same basis, and the call must pay at least twice that. From
+        # STOPPED_OUTCOME_FROM (Joe, 2026-11-24) a standard note must pay at
+        # least the loss itself and prove the stop on its own backtest
+        # (edge.backtest.with_stop); option-vehicle notes keep the 2x rule.
+        stopped_rule = stopped_outcome_rule(idea)
+        rr_floor = MIN_REWARD_TO_RISK_STOPPED if stopped_rule else MIN_REWARD_TO_RISK
         try:
             loss = abs(float(er.get("loss_at_stop_pct")))
         except (TypeError, ValueError):
@@ -1865,15 +1993,15 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                                 "on the same basis as pct (a positive number)")
         if loss <= 0:
             raise ContractError("expected_return.loss_at_stop_pct must be a positive number")
-        if not event and er_pct < MIN_REWARD_TO_RISK * loss and _option_grandfathered(idea):
+        if not event and er_pct < rr_floor * loss and _option_grandfathered(idea):
             # A note published before OPTION_VEHICLE_FROM on an underlying
             # basis and since re-stated on the option it named (#1277): the
             # honest risk/reward on the vehicle is published and shown, not
             # hidden behind the index arithmetic it passed with. Dated, so no
             # new note can use it.
             warnings.append(f"GRANDFATHERED (vehicle re-stated on the option, #1277): expected_return.pct ({er_pct:g}%) "
-                            f"is less than {MIN_REWARD_TO_RISK:g}x the loss at the stop ({loss:g}%) on the option")
-        elif not event and er_pct < MIN_REWARD_TO_RISK * loss:
+                            f"is less than {rr_floor:g}x the loss at the stop ({loss:g}%) on the option")
+        elif not event and er_pct < rr_floor * loss:
             # 2026-10-09 — Joe can waive the 2x rule for one named note. He was
             # shown that the energy call's history supports a 10% gain against
             # a 10% stop (no stop level gave 2x: a tighter stop was hit in 7 of
@@ -1888,12 +2016,17 @@ def validate(idea: dict, published: list[dict] | None = None) -> list[str]:
                   and len(str(wv.get("reason", "")).strip()) >= 80)
             if not ok:
                 raise ContractError(
-                    f"expected_return.pct ({er_pct:g}%) is less than {MIN_REWARD_TO_RISK:g}x the loss at the stop ({loss:g}%) — "
+                    f"expected_return.pct ({er_pct:g}%) is less than {rr_floor:g}x the loss at the stop ({loss:g}%) — "
                     "tighten the stop, change the instrument, or drop the idea. (Joe alone can waive this for a "
                     "single note: expected_return.reward_risk_waiver{approved_by: 'Joe', approved_on, reason>=80 chars}.)")
             warnings.append(
                 f"reward-to-risk waiver used: {er_pct:g}% expected against {loss:g}% at the stop "
                 f"(approved by Joe {wv.get('approved_on')})")
+        if stopped_rule:
+            # The same cases, replayed with this stop: the stopped average
+            # clears the pace bar (`need`, computed above for pct) and pct is
+            # no more than the stopped outcome.
+            _validate_with_stop(bt, er_pct, loss, need, hm)
 
     # 3h-pre — Decision 5 (2026-10-21): the book is a notional 100 and every
     # note states its weight, banded by type. Fixed at publication (main()
