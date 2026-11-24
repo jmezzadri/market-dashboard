@@ -158,6 +158,13 @@
 "read": "full (PDF brief)",
 "processed": "2026-11-17",
 "published": "2026-11-15"
+},
+{
+"url": "gmail thread-f:1882654630215898182",
+"read": "full letter from the inbox",
+"processed": "2026-11-24",
+"published": "2026-11-23",
+"source": "alex@macro-ops.com"
 }
 ],
 "source": "Macro Ops — macro-ops.com/research/ — public pages only, never a member login",
@@ -171,5 +178,5 @@
 "method_to_test": "exit a commodity-adjacent equity when its price reaches replacement cost (the refiner exit) — test on our refiner screen"
 }
 ],
-"last_checked": "2026-11-17"
+"last_checked": "2026-11-24"
 }
