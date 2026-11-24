@@ -9,7 +9,7 @@
    itself past the ellipsis. */
 export default function shortName(name) {
   const s = String(name || '')
-    .replace(/,?\s+(Common Stock|Ordinary Shares?|Class [A-C]\b.*|Inc\.?|Corp\.?|Corporation|Incorporated|Holdings?|plc|Ltd\.?|N\.V\.|S\.A\.)(\s.*)?$/i, '')
+    .replace(/,?\s+(Common Stock|Ordinary Shares?|Class [A-C]\b.*|Inc\.?|Corp\.?|Corporation|Incorporated|Holdings?|plc|Ltd\.?|N\.V\.|S\.A\.B\.?(\s+de\s+C\.V\.?)?|S\.A\.)(\s.*)?$/i, '')
     .replace(/[\s,.]+$/, '');
   return s || String(name || '');
 }

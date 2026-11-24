@@ -1167,7 +1167,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     { l: `TOTAL RETURN${inceptionShort ? ` SINCE ${inceptionShort.toUpperCase()}` : ''}`, v: ls ? signPct(ls.since) : '—', s: ls?.spxSince != null ? `S&P 500 ${signPct(ls.spxSince)} over the same period` : 'S&P 500 comparison prints with the first mark', cls: ls ? signCls(ls.since) : 'fl' },
     { l: 'EXPOSURE', v: latestNav ? fmtPctPlain(invested, 1) : '—', s: `Gross, net long · cash ${fmtUsd(cash)}`, cls: '' },
     { l: 'INFORMATION RATIO', v: ls?.ir != null ? ls.ir.toFixed(2) : '—', s: ls?.ir == null ? needs(ls?.n ?? 0, 20) : 'vs S&P 500, annualized', cls: '' },
-    { l: 'SHARPE RATIO', v: ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—', s: ls?.sharpe == null ? `${marksN} of 60 marks; prints at 60` : 'since inception · vs ~4% cash', cls: ls?.sharpe == null ? 'fl' : '' },
+    { l: 'SHARPE RATIO', v: ls?.sharpe != null ? ls.sharpe.toFixed(2) : '—', s: ls?.sharpe == null ? `${ls?.n ?? 0} of 60 daily returns; prints at 60` : 'since inception · vs ~4% cash', cls: ls?.sharpe == null ? 'fl' : '' },
     { l: '10-DAY VALUE AT RISK', v: cr ? `−${fmtUsd(cr.var10 * equity)}` : '—', s: cr ? `${fmtPctPlain(cr.var10, 1)} of the book · 99% · as of ${riskAsOf}` : (riskNote || needsDays(250)), cls: cr ? 'down' : 'fl' },
   ];
 
