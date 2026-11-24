@@ -77,6 +77,15 @@ export function longDate(iso) {
    on re-measured, the arithmetic, our view now. Nothing here is computed. */
 const VERDICT_LABEL = { intact: 'Intact', weakened: 'Weakened', broken: 'Broken' };
 const pct1 = (v) => (v === null || v === undefined ? '—' : `${v > 0 ? '+' : ''}${Number(v).toFixed(1)}%`);
+/* "2026-11-20" -> "Fri, Nov 20 close": the review's mark date in the words the
+   Scorecard row beside it uses (health sweep 2026-11-24 — the modal printed
+   the raw ISO date). */
+const closeDate = (iso) => {
+  if (!iso) return 'latest close';
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })} close`;
+};
 const prob = (p) => (p === null || p === undefined ? '—' : `${Math.round(100 * p)}%`);
 
 export function ThesisReview({ review }) {
@@ -92,7 +101,7 @@ export function ThesisReview({ review }) {
       </p>
       <div className="idea-modal-facts">
         {[
-          ['Return so far', `${pct1(q.mark_pct)} to ${q.mark_date || '—'}`],
+          ['Return so far', `${pct1(q.mark_pct)} to the ${closeDate(q.mark_date)}`],
           ['What the note called for', review.called_for_pct != null ? `${pct1(review.called_for_pct)} over ${review.horizon_label || `${review.horizon_months} months`} — ${review.called_for_basis || ''}` : null],
           ['Where it can finish, no view', rng ? `10th ${pct1(rng.p10)} · median ${pct1(rng.p50)} · 90th ${pct1(rng.p90)} (from the position's own volatility)` : null],
           ['Chance of finishing positive', rng ? prob(q.p_finish_positive) : null],
