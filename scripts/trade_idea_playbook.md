@@ -26,8 +26,9 @@ validates the note against the contract and merges it into
 the caption in `x_pending_posts`; the `X-CHART-EMAIL` workflow on the
 `x-charts` branch sends the approval email; the `x-post-approval` edge
 function commits the note through `ops-code-commit` and posts to X on Joe's
-tap. **The session never emails, never trades, never posts, never commits the
-note itself, and never pushes with its own git credentials.**
+tap. **The session never trades, never posts, never commits the note itself,
+never pushes with its own git credentials, and emails nobody except Joe's own
+approval email when the workflow's send has not arrived (step 6).**
 
 ## THE RESEARCH FAN-OUT — before the sweep, every run (Joe, 2026-10-14)
 
@@ -105,8 +106,29 @@ binds here:
   assets ("WTI vs Brent", never "the US discount to world oil"); say
   mechanisms the way a trader says them aloud ("If Hormuz reopens, Brent
   falls to meet WTI"). Standard shorthand (WTI, Brent, breakevens, bps, 2s10s)
-  is correct on charts and captions. Plain-English translation is for what
-  Joe reads in chat and email only.
+  is correct ON THE CHART. Plain-English translation is for what Joe reads in
+  chat and email — and, from 2026-11-24, for the caption (next rule).
+- **Captions are plain full sentences — always (Joe, 2026-11-24).** Joe, on a
+  caption written in fragments: *"The caption is so confusing. Please make it
+  more clear."* Then: *"Yes always write that way."* Every caption is complete
+  sentences a reader with no market background follows on one read. No
+  fragments ("3 months later: higher 13 times, median +10.7%"), no symbols
+  standing in for words ("~7,650", "-8.6%" as a sentence opener), no
+  compressed asides, no back-reference to an earlier post that needs
+  decoding. One fact per sentence, a blank line between ideas, and the last
+  line is what history or the finding points to next, with its number and
+  date. The caption that passed:
+  > The S&P 500 fell 8.6% last week. That has happened 14 times before since 1997.
+  >
+  > 13 of those 14 times, stocks were higher three months later. Typical gain: 10.7%.
+  >
+  > The catch: 10 times, they fell below the crash low first.
+  >
+  > History points to about 7,650 by late February.
+
+  If a change of view from a recent caption must be reconciled (Consistency
+  rule below), it is one full sentence that stands on its own; if it cannot
+  be said plainly inside the limit, leave it to the chart's small print.
 - **Framing rule (2026-07-22).** A broken model is a repricing or a premium,
   never a fair-value call or a price target; say what stopped driving the
   asset and what drives it now.
@@ -204,8 +226,9 @@ g. Record the skip: `select * from ops_record_skip('trade_ideas', '<why no
    note cleared the bar>; research chart queued: <the finding in a clause>');`
 h. Verify delivery: wait ~90 seconds, then search Joe's Gmail
    (`search_threads`, query: `subject:"Approve today's X chart"
-   newer_than:1d`). If it has not arrived after two checks, that needs Joe —
-   say so in bold on the first line.
+   newer_than:1d`). If it has not arrived, send it through Joe's Gmail
+   connection exactly as step 6 describes (subject `Approve today's X chart
+   - <Month D, YYYY>`, chart image, caption, the two links).
 
 ## NEVER WAIT FOR A RELEASE (Joe, 2026-10-14)
 
@@ -1531,8 +1554,28 @@ g. Record the outcome: `select * from ops_record_publish('trade_ideas')` on
 (`search_threads`, query: `subject:"Approve today's Trade Idea" newer_than:1d`)
 for today's email. On a skip day with a research chart queued, the subject to
 search for is `"Approve today's X chart"` instead (RESEARCH CHART ON SKIP
-DAYS, step h). If it has not arrived after two checks, say so plainly in
-the reply. The site is verified AFTER approval by the next run (step 0 of the
+DAYS, step h). **If it has not arrived, send it through Joe's Gmail
+connection (Joe, 2026-11-24: "Gmail connection").** The site's own email
+password has been refused by Google since 2026-11-11 (LESSONS 4.48), so the
+`X-CHART-EMAIL` workflow fails at login and the approval never reaches him —
+that is how the Oct 28 idea expired untapped and how Nov 24's chart had to be
+approved from chat. So: after the one ~90-second wait, search once; if today's
+email is absent, load the Gmail send tool with ToolSearch (query "gmail
+send") and send ONE message to josephmezzadri@gmail.com with the SAME
+subject the workflow would have used (`Approve today's Trade Idea - <Month D,
+YYYY>` or `Approve today's X chart - <Month D, YYYY>`). The HTML body, in this
+order: the note title and the `note_lines` as a bulleted list (idea days
+only); the chart as an image from
+`https://raw.githubusercontent.com/jmezzadri/market-dashboard/<commit_sha>/chart.png`;
+the caption exactly as queued; then two links on their own lines — "Approve"
+(`approve_url`) and "Request changes" (`changes_url`); and, when `post_to_x`
+is false, the `no_x_reason` sentence. A plain-text body carries the same
+content with the two links written out. Searching first is what prevents a
+second email on the day the workflow's own send works again. This is the one
+email the run may send, to Joe only; the rule against emailing anyone else
+stands. If the Gmail send also fails, call PushNotification with one line
+saying the approval could not be delivered. Never say the email was sent
+without the send tool's success result in hand. The site is verified AFTER approval by the next run (step 0 of the
 next day reads `trade_ideas.json` and the homepage tile) — a note that is not
 yet approved is not on the site and must not be "verified" there.
 
