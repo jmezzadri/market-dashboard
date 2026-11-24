@@ -654,7 +654,8 @@ export default function MethodologyPage() {
         {/* 04 — Macro Scorecard: the Trade Idea contract and how every call is
             marked. Every number here is quoted from scripts/build_trade_idea.py
             and scripts/score_trade_ideas.py (LESSONS 9.3); rewritten 2026-10-21
-            for Contract v2 (LESSONS 6.26). */}
+            for Contract v2 (LESSONS 6.26); exit-level rule updated 2026-11-24
+            (LESSONS 10.13). */}
         <article id="scorecard" className="me-section">
           <div className="me-num">04</div>
           <div>
@@ -684,10 +685,22 @@ export default function MethodologyPage() {
               <b>The return bar is a pace.</b> The note states the return it calls for on the position a
               retail account would hold, and that return must run at <b>20% a year</b> — the S&amp;P
               500&rsquo;s long-run 10% plus a 10-point margin — pro-rated to the horizon: 1.67% for one
-              month, 5% for three, 10% for six, 20% for twelve. It must also pay <b>at least twice</b>
-              what the position loses if the stated exit level prints. Every leg names a vehicle a US
+              month, 5% for three, 10% for six, 20% for twelve. Every leg names a vehicle a US
               retail brokerage can hold: a listed stock, a fund, or listed options on one — never a
               futures contract or a swap.
+            </p>
+            <p className="me-body-p">
+              <b>The exit level is tested, not assumed.</b> The note states what the position loses if
+              its exit level prints, and the call must pay <b>at least that much</b>. It also replays
+              its own historical cases with that exit level applied — out at the exit level when it
+              prints, otherwise held to the horizon — and shows how many cases were stopped out, the
+              average and median result, and the share that ended higher. That <b>average with the
+              exit applied</b> must still clear the return bar, and the expected return the note
+              publishes can be no higher than the better of that average and median. This rule applies
+              to notes dated from November 25, 2026. Earlier notes had to pay at least twice the loss
+              at the exit level, with no replay; that rule looked only at the size of the gain against
+              the size of the loss, not at how often each happened, and it forced exit levels so tight
+              that sound ideas were stopped out on the way to working.
             </p>
             <p className="me-body-p">
               <b>Today&rsquo;s conditions.</b> The note names the one factor it says is driving the
@@ -696,8 +709,8 @@ export default function MethodologyPage() {
               fewer, the idea may still publish only if the cases&rsquo; returns did not depend on that
               factor — the correlation between each case&rsquo;s return and the factor&rsquo;s move over
               the hold must be <b>under 0.30</b> in absolute value — and then the note says so in plain
-              words, carries an exit level at most <b>one third</b> of the expected return, and is sized
-              at half the standard weight.
+              words, carries an exit level at most <b>two thirds</b> of the expected return (one third
+              on notes dated before November 25, 2026), and is sized at half the standard weight.
             </p>
             <p className="me-body-p">
               <b>Positioning edges</b> (bets that an extreme in futures positioning reverses) are measured
@@ -723,15 +736,16 @@ export default function MethodologyPage() {
               breakeven odds the premium implies, each link in the chain from the event to the
               instrument carries a measured number from a dated source, and the structure is a spread
               or single option on a listed underlying with the premium stated as the most it can lose.
-              It is exempt from the pace bar and the two-to-one rule: the premium is the stop.
+              It is exempt from the pace bar and the exit-level rule: the premium is the stop.
             </p>
             <p className="me-body-p">
               <b>Option vehicles.</b> A directional note may tell the reader to buy a listed put or call
               instead of shares. Then the note states the contract — the fund, put or call, strike and
               expiry — the Scorecard marks that option (see below), and the expected return and the
-              loss at the exit level are stated on the premium, so the bar and the two-to-one rule are
-              judged on the trade the reader actually holds. The move in the underlying the note calls
-              for is stated separately, and that is what the book test paces.
+              loss at the exit level are stated on the premium, so the bar is judged on the trade the
+              reader actually holds. An option note must still pay <b>at least twice</b> what the
+              premium loses at the exit level, and does not carry the replay. The move in the
+              underlying the note calls for is stated separately, and that is what the book test paces.
             </p>
             <p className="me-body-p">
               <b>The book.</b> The book is a notional 100. A standard idea is sized at <b>10</b>, an
@@ -742,9 +756,10 @@ export default function MethodologyPage() {
               of volatility at the real weights. The weight is written at publication and never changed.
             </p>
             <div className="me-formula" data-mono="code">
-              bar       = 20% a year pro-rated to the horizon · expected return ≥ 2 × loss at the exit level<br />
+              bar       = 20% a year pro-rated to the horizon · expected return ≥ loss at the exit level (≥ 2 × on an option)<br />
+              exit      = same cases replayed with the exit level · average ≥ the bar · expected return ≤ the better of that average and median<br />
               edge      = cases · what followed · the unconditional outcome over the same hold<br />
-              today     = ≥ 5 matching cases, or |corr(case return, factor move)| &lt; 0.30 at half size and a one-third stop<br />
+              today     = ≥ 5 matching cases, or |corr(case return, factor move)| &lt; 0.30 at half size and a two-thirds stop<br />
               position  = ≥ 10 episodes · ≥ 10 years or full history with no sign flip to 2× the threshold<br />
               short     = the asset's own median forward return &lt; 0, else a pair only<br />
               event     = our odds ≥ 1.5 × breakeven · measured transmission · premium is the max loss · resolves ≤ 6 months<br />

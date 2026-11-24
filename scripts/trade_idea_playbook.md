@@ -1,6 +1,6 @@
 # Trade Idea + X Chart — scheduled-session playbook
 
-> **Final reply (Joe, 2026-11-18 — overrides any reporting step in the task's own instructions):** this task runs in the background. When nothing needs Joe, end the run WITH NO FINAL TEXT AT ALL: no one-liner, no "all clear", no summary, no table, no attachment, no SendUserMessage, no PushNotification. Only when something needs a decision or action from Joe: that request in bold on the first line, then at most three short lines. LESSONS 1.0. On a queued day the approval email is how Joe sees the idea; do not attach the chart in chat. On a skip day the candidate table stays in the run's working notes and the reason is recorded with ops_record_skip.
+> **Final reply (Joe, 2026-11-18 — overrides any reporting step in the task's own instructions):** this task runs in the background. When nothing needs Joe, end the run WITH NO FINAL TEXT AT ALL: no one-liner, no "all clear", no summary, no table, no attachment, no SendUserMessage, no PushNotification. Only when something needs a decision or action from Joe: that request in bold on the first line, then at most three short lines. LESSONS 1.0. On a queued day the approval email is how Joe sees the idea; do not attach the chart in chat. On a skip day the candidate table stays in the run's working notes and the reason is recorded with ops_record_skip; if the run queued a research chart (RESEARCH CHART ON SKIP DAYS, Joe 2026-11-24), the "Approve today's X chart" email is how Joe sees it — still no final text.
 
 **Who runs this:** the "MacroTilt Trade Idea + X Chart" scheduled task, every
 weekday before the US open (merged 2026-10-14 from the separate Trade Idea and
@@ -14,7 +14,10 @@ X caption. Both go to Joe in ONE approval email. Nothing publishes until he
 taps Approve: the tap commits the note to the site (the daily scorer and the
 Scorecard page follow from that automatically) and then posts the chart to X.
 Most days nothing clears the bar and the run ends in a recorded skip — that is
-the normal outcome.
+the normal outcome. A skip no longer means silence on X (Joe, 2026-11-24): on
+a skip day the run still builds one research chart from the day's best-tested
+finding and queues it for his approval with no note attached — see RESEARCH
+CHART ON SKIP DAYS.
 
 **Division of labor:** the session COMPOSES the note and DRAWS the chart.
 Everything after that is code: `scripts/build_trade_idea.py --prepare-file`
@@ -133,6 +136,76 @@ binds here:
 - **Caption.** Under 280 characters, lead with the most startling number,
   short lines, NO URL anywhere (X spam label, 2026-08-07 — the link lives in
   the bio) until Joe says the label cleared.
+
+## RESEARCH CHART ON SKIP DAYS (Joe, 2026-11-24)
+
+Until now a chart was built only when a note passed, so eighteen skipped
+mornings in a row meant nothing went to X after Oct 22. The research those
+mornings was real — tested findings with a baseline and a sample size — it
+just did not clear the bar for a trade. From 2026-11-24, when no note clears
+the bar the run still builds ONE research chart from the day's best-tested
+finding and queues it for Joe's approval with no note attached. Posting to X
+is not hostage to the trade bar. LESSONS 10.13.
+
+**What the chart is.**
+
+- **A measured finding, with its baseline and its sample size.** What was
+  tested, the result, what the same measure does from any start, and how many
+  cases — all three on the chart ("higher three months later in 13 of 14
+  cases, against 68% of the time from any start").
+- **It says plainly that it is research, not a trade** — on the chart and in
+  the caption (for example "Research, not a trade."). The top-right label
+  reads "Research · <Month D, YYYY>", not "Trade Idea".
+- **It never invents a trade to go with it.** No instrument to buy, no entry,
+  no stop, no target, no expected return. If the finding had a trade that
+  cleared the bar, it would be a note.
+- **Every rule in THE CHART applies unchanged:** the forward-view title (what
+  the finding says happens NEXT, with a number and where possible a date),
+  the so-what rule, the voice rule, the framing rule, plain words, the numbers
+  rule (computed in Python from data pulled this run and hand-verified), the
+  brand recipe, verify by looking, the consistency check against the captions
+  of the last ~10 rows of `x_pending_posts`, and the caption rules (under 280
+  characters, no URL).
+- **No chart when nothing is worth one.** If every test that day came out
+  inside the noise — no result separated from its baseline — there is no
+  chart, and the skip reason says so ("...; no research chart: every test was
+  inside the noise").
+- **The gates still bind.** One live approval at a time. The X monthly cap
+  (10 posted per calendar month) applies: at 10 or more there is no research
+  chart — with no note there is nothing else for Joe to approve — and the
+  skip reason says the cap was reached.
+- **The skip is still a skip.** Record it with `ops_record_skip`, never
+  `ops_record_publish`: a research chart is not a publish, and the skip
+  counter keeps counting. Add to the reason that a research chart was queued
+  and on what finding.
+
+**Queue steps — the same flow as step 5, with no note attached.**
+
+a. Build the chart and the caption.
+b. `import secrets; token = secrets.token_hex(16)`.
+c. Insert the row with NULLs for the three note columns, doubling any single
+   quotes: `insert into x_pending_posts (post_date, caption, approval_token,
+   note_b64, note_title, note_id, post_to_x) values ('<today ET>',
+   '<caption>', '<token>', null, null, null, true) returning id;`
+d. Write `meta.json` as one line with exactly these four keys and NO
+   `note_title` and NO `note_lines`: `{"post_date":"<today ET>",
+   "approve_url":"https://macrotilt.com/api/xapprove?id=<id>&t=<token>&a=approve",
+   "changes_url":"https://macrotilt.com/api/xapprove?id=<id>&t=<token>&a=changes",
+   "post_to_x":true}`. The missing note title is what makes the email subject
+   "Approve today's X chart" and makes Approve post to X only — nothing is
+   committed to the site.
+e. Push `chart.png`, `caption.txt` and `meta.json` in ONE commit through the
+   `gh-push` function (branch `x-charts`; token as in step 5e). The response
+   is `{"ok":true,"commit_sha":"..."}`; if not, report the error field and
+   stop.
+f. Pin the chart: `update x_pending_posts set chart_sha='<commit_sha>' where
+   id='<id>';`
+g. Record the skip: `select * from ops_record_skip('trade_ideas', '<why no
+   note cleared the bar>; research chart queued: <the finding in a clause>');`
+h. Verify delivery: wait ~90 seconds, then search Joe's Gmail
+   (`search_threads`, query: `subject:"Approve today's X chart"
+   newer_than:1d`). If it has not arrived after two checks, that needs Joe —
+   say so in bold on the first line.
 
 ## NEVER WAIT FOR A RELEASE (Joe, 2026-10-14)
 
@@ -446,7 +519,7 @@ a forced note is worse than a late one.
 
 `date`, `kind` (one of macro / cross-asset / single-name / rates / credit / fx /
 commodity / equity), `title`, `dek`, `position_type`, `call`,
-`the_trade{buy, sell?, short?, sizing?}`, `edge{source, summary, backtest{window,n,result,baseline}}`,
+`the_trade{buy, sell?, short?, sizing?}`, `edge{source, summary, backtest{window,n,result,baseline,with_stop}}`,
 `variant`, `instrument`, `horizon`, `thesis[]`
 (three or more), `evidence[]` (each `{claim, value, source, as_of}`),
 `charts[]` (2–5), `levels{trigger, invalidation, target}`, `sections[]` (each
@@ -455,6 +528,36 @@ and — for every note dated 2026-10-01 or later — `expected_return{pct, basis
 instrument}` (a pace of 20% a year, see "The bar") and `review_conditions[]` (below);
 and from 2026-10-21 `sizing{weight}` on every note (10 / 5 / 1–2, see the book
 section) and, for `kind: event`, the `event{}` block (see "Event notes").
+
+**The backtest with the stop applied (Joe, 2026-11-24 — required on every
+standard note dated 2026-11-25 or later; not on event notes or notes whose
+vehicle is a listed option).** `edge.backtest.with_stop` is the SAME backtest
+cases replayed with the note's own stop: in each case, out at the stop the
+first time it prints, otherwise held to the horizon.
+
+```json
+"backtest": {
+  "window": "SPY, 1997 to 2026; S&P 500 weeks of -8% or worse, entry at the next close, held 62 sessions",
+  "n": 14,
+  "result": "higher three months later in 13 of 14; average +7.7%, median +8.0%",
+  "baseline": "any start over the same years: average +2.1%, median +3.2%, higher 68% of the time",
+  "with_stop": {"stop_pct": 7.5, "n": 14, "stopped": 3,
+                "mean": 5.6, "median": 7.2, "win_rate": 79}
+}
+```
+
+(The numbers are the 2026-11-24 test in
+`scripts/research/outside_research_challenge/results_2026-11-24.txt`; here the
+note could publish at most +7.2% against a 7.5% stop, and the stopped average
+of +5.6% clears the 5% bar for three months.)
+
+`stop_pct` is the stop used in the replay and must match
+`expected_return.loss_at_stop_pct` (within half a point); `n` is the number of
+cases replayed and equals `backtest.n` (if a case had to be left out, say
+which and why in `with_stop.note`); `stopped` is how many hit the stop; `mean`
+and `median` are the returns with the stop applied, in per cent; `win_rate`
+is the share of cases that ended higher, 0 to 100. The rule these numbers are
+held to is 0b in "The bar".
 
 ### Review conditions — the claims the weekly review will re-measure (2026-09-30)
 
@@ -655,8 +758,8 @@ no backtest and is not scored like a standard note. Required fields:
 "sizing": {"weight": 1.5}
 ```
 
-The three tests, contract-enforced, replace the pace bar and the 2×-stop
-rule: **(1) odds gap** — our odds at least 1.5× the breakeven the premium
+The three tests, contract-enforced, replace the pace bar and the
+reward-against-stop rule (0b): **(1) odds gap** — our odds at least 1.5× the breakeven the premium
 implies (premium share of width = breakeven), argued with dated facts; both
 sets of odds appear in the note; **(2) transmission is measured** — each link
 carries a number from a dated source or our own data; **(3) defined risk,
@@ -892,7 +995,8 @@ and `loss_at_stop_pct` are then ON THE PREMIUM (what the reader's position
 does if the call works, and if the stop prints mid-hold — model both with
 `score_trade_ideas.black_scholes` from the entry close and show the arithmetic
 in `basis`; the loss cannot exceed 100), the two-to-one rule is judged on
-those, and `expected_return.underlying_pct` states the move in the underlying
+those (an option note keeps two-to-one after 2026-11-24 and carries no
+`with_stop` block — see 0b), and `expected_return.underlying_pct` states the move in the underlying
 the note calls for, which is what the book test paces. The scorer marks the
 option every session and settles it at intrinsic value at expiry or the
 planned close, whichever is first; the exit level on the underlying still
@@ -922,8 +1026,10 @@ factor's change over the holding period, computed across all cases, is under
 0.30 in absolute value (the sample's returns did not ride the factor) — and
 the note then carries all three of: a plain sentence in `other_side` AND in
 `edge.summary` saying no (or only N) past cases had today's condition; a stop
-at most ONE THIRD of `expected_return.pct` (the normal rule is one half); and
-`sizing.weight` 5, half the standard idea. Why: today's state — a Fed raising
+at most TWO THIRDS of `expected_return.pct` (Joe, 2026-11-24, for notes
+dated 2026-11-25 or later; the normal rule is the whole of it — see 0b.
+Earlier-dated notes and option-vehicle notes: one third, against a normal
+one half); and `sizing.weight` 5, half the standard idea. Why: today's state — a Fed raising
 rates into an oil shock, the 10-year above 5%, record-tight spreads — matches
 one or two cases in twenty years for almost any factor, so the old automatic
 veto shut the product. The Oct 7 banks note would still die under the
@@ -949,10 +1055,39 @@ from the roll, so a volatility note states its vehicle and the expected roll
 cost over the hold in `expected_return.basis`, and the Scorecard marks the
 fund, not the index.
 
-**0b. Downside stated, and the call pays at least twice it.**
+**0b. Downside stated, the call pays at least what it risks, and the stop is
+proven on the backtest (Joe, 2026-11-24).**
 `expected_return.loss_at_stop_pct` is what the position loses if the stop
-prints, on the same basis as `pct`; the contract requires `pct` to be at least
-2x that number. A 20% call with a 15% stop is a coin flip with a story.
+prints, on the same basis as `pct`. For notes dated 2026-11-25 or later the
+contract requires:
+
+- `pct` at least 1x `loss_at_stop_pct` (1.5x under the five-case fallback —
+  a stop of at most two thirds of `pct`);
+- `edge.backtest.with_stop` (step 3): the same cases replayed with this
+  note's stop;
+- `with_stop.mean` at or above the pace bar for the horizon (the table in
+  rule 0) — the average a reader would have earned following the note as
+  written, stop included, still beats 20% a year;
+- `pct` no higher than the better of `with_stop.median` and `with_stop.mean`:
+  the published expected return is the stopped outcome, never the unstopped
+  one.
+
+Why it changed: the old rule (`pct` at least 2x the loss, one third under the
+fallback) compared the size of the gain with the size of the loss and ignored
+how often each happens. After an S&P 500 week of -8% or worse the index was
+higher three months later in 13 of 14 cases (median +8.0%), but the 5% stop
+the old rule forced was hit in 6 of the 14 and cut the average to +3.7%; a
+7.5% stop left +5.6% on average, +7.2% median, 11 of 14 winning. The rule,
+not a missing edge, had killed most candidates across 18 skipped mornings. So
+choose the stop by replaying the cases at two or three stops and publishing
+the one with the best stopped outcome — a stop that is hit on the way to
+being right is not protection. A 20% call with a 15% stop is still a coin
+flip with a story unless the replay shows otherwise.
+
+Unchanged: event notes are exempt (the premium is the stop). A note whose
+vehicle is a listed option keeps two-to-one on the premium (one third under
+the fallback) and carries no `with_stop`. Notes dated before 2026-11-25 keep
+the old rule, so a correction of an old note still validates.
 
 **0c. Not the same bet twice — against the OPEN book.** The contract computes
 the candidate position's daily returns over the last 126 sessions and rejects
@@ -1279,8 +1414,9 @@ rejects one that is missing or too short.
     changed on republish.
 13. **`regime_match` is an object** `{factor, matching_cases, result |
     dependence}`; fewer than five matching cases requires |correlation| < 0.30,
-    the disclosure sentence in `other_side` AND `edge.summary`, a one-third
-    stop and weight 5.
+    the disclosure sentence in `other_side` AND `edge.summary`, a stop of at
+    most two thirds of the expected return (Joe, 2026-11-24; one third on
+    notes dated before 2026-11-25 and on option-vehicle notes) and weight 5.
 14. **Positioning under ten years** needs `full_history: true`, `first_report`,
     `threshold`, and a `threshold_scan[]` with no sign flip.
 15. **An outright short** needs `edge.backtest.absolute` with a negative
@@ -1289,7 +1425,18 @@ rejects one that is missing or too short.
 16. **An event note** needs the `event{}` block, a spread or single option on
     a listed underlying, `edge_odds` ≥ 1.5× breakeven, measured transmission,
     `resolves_by` ≤ 6 months, no price stop; it is exempt from the pace bar
-    and the 2×-stop rule.
+    and the reward-against-stop rule (17).
+17. **Reward against the stop (Joe, 2026-11-24; notes dated 2026-11-25 or
+    later).** `expected_return.pct` is at least 1x `loss_at_stop_pct` (1.5x
+    under the five-case fallback), and a standard note carries
+    `edge.backtest.with_stop{stop_pct, n, stopped, mean, median, win_rate}` —
+    the same cases replayed with the note's own stop: `n` at least 3 and
+    equal to `backtest.n` unless `with_stop.note` explains the difference;
+    `stopped` between 0 and `n`; `stop_pct` within half a point of
+    `loss_at_stop_pct`; `mean` at or above the pace bar for the horizon;
+    `pct` no higher than the better of `median` and `mean`. A note whose
+    vehicle is a listed option keeps 2x on the premium and carries no
+    `with_stop`; notes dated earlier keep 2x (one third under the fallback).
 
 **4. Validate through the versioned contract.**
 
@@ -1382,7 +1529,9 @@ g. Record the outcome: `select * from ops_record_publish('trade_ideas')` on
 
 **6. Verify delivery.** Wait ~90 seconds, then search Joe's Gmail
 (`search_threads`, query: `subject:"Approve today's Trade Idea" newer_than:1d`)
-for today's email. If it has not arrived after two checks, say so plainly in
+for today's email. On a skip day with a research chart queued, the subject to
+search for is `"Approve today's X chart"` instead (RESEARCH CHART ON SKIP
+DAYS, step h). If it has not arrived after two checks, say so plainly in
 the reply. The site is verified AFTER approval by the next run (step 0 of the
 next day reads `trade_ideas.json` and the homepage tile) — a note that is not
 yet approved is not on the site and must not be "verified" there.
@@ -1414,11 +1563,14 @@ someone who has never seen MacroTilt.
    period tested (1 week, 2 weeks, 1 month, 3 months, 6 months, as
    applicable), same row numbers as Table 1. Columns: `# | Hold | Bar (the
    minimum return for that hold: 0.38% / 0.77% / 1.67% / 5% / 10%) | Expected
-   return (the median past case — the number we would publish) | Gap | Pass? |
+   return (the past cases WITH THE STOP APPLIED — median and average; the
+   number we would publish. Joe, 2026-11-24) | Gap | Pass? |
    Beats baseline (average vs any start; both halves?) | Enough history
    (cases / years) | Today's conditions (matching cases, or the dependence
    check: "only 1 of 7 cases; returns ran at +0.12 with the factor — passes
-   at half size") | Risk (worst case vs the stop; book overlap) | Killed by
+   at half size") | Risk (the stop, how many cases hit it — "7.5% stop, hit
+   in 3 of 14" — and that the call pays at least what it risks; book
+   overlap) | Killed by
    (the one test and the one number)`. Shorts show the relative and the
    absolute test as two rows. Every kill test gets its own visible pass or
    fail with the gap, so Joe can see how close a near-miss was and decide to

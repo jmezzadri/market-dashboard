@@ -12,6 +12,11 @@ Fixtures, one per rule the October 21 review changed:
     seven-month resolve date, one refused on the odds gap;
   * Decision 5 — a note without a weight refused, a wrong weight refused,
     the weight immutable on republish.
+  * The stopped outcome (2026-11-24, LESSONS 10.13) — a note dated before
+    2026-11-25 still needs 2x its stop; a later one passes at 1.2x with a
+    valid with_stop block and fails without it, with a stopped average under
+    the pace bar, or with pct above the stopped outcome; the fallback needs
+    1.5x; an option-vehicle note still needs 2x.
 
 Run:  python scripts/test_build_trade_idea.py
 """
@@ -585,6 +590,144 @@ class TestDailyCheckContract(Base):
     def test_well_formed_machine_form_passes_the_review_block(self):
         err = self._contract_error_for(self._rc())
         self.assertNotIn("review_conditions", err)
+
+
+class TestStoppedOutcome(Base):
+    """2026-11-24 (Joe; LESSONS 10.13): from STOPPED_OUTCOME_FROM a standard
+    note pays at least its loss at the stop (1.5x under the fallback) and
+    proves the stop on its own backtest — edge.backtest.with_stop. Earlier
+    notes, and notes whose vehicle is a listed option, keep the 2x rule."""
+
+    NEW = B.STOPPED_OUTCOME_FROM
+    SIX_CASES = {"factor": "oil above $90 a barrel (today $109)", "matching_cases": 6,
+                 "result": "inside the six matching cases: median +24% over 126 sessions, positive in 5 of 6, against the +4.2% baseline"}
+    RC = [{"claim": "Brent stays high", "measure": "Brent front month", "at_publication": "90 on 2026-11-20",
+           "holds_while": "at or above 85", "critical": True,
+           "check": {"series": "cmdty_brent", "op": ">=", "level": 85},
+           "driver": {"series": "cmdty_brent", "direction": "up", "move_start": {"date": "2026-08-01", "value": 80}}}]
+
+    def _note(self, date=None, pct=12.0, loss=10.0, with_stop="default", fallback=False):
+        """A six-month note (bar: 10%) at 1.2 to 1 unless told otherwise."""
+        n = standard_note(date=date or self.NEW, sizing={"weight": 5 if fallback else 10},
+                          review_conditions=copy.deepcopy(self.RC))
+        if not fallback:
+            n["edge"]["backtest"]["regime_match"] = dict(self.SIX_CASES)
+        n["expected_return"]["pct"] = pct
+        n["expected_return"]["loss_at_stop_pct"] = loss
+        if with_stop == "default":
+            with_stop = {"stop_pct": loss, "n": 7, "stopped": 2, "mean": 11.0, "median": 12.5, "win_rate": 71}
+        if with_stop is not None:
+            n["edge"]["backtest"]["with_stop"] = with_stop
+        return n
+
+    def test_the_date_gate_and_the_constants(self):
+        self.assertEqual(B.STOPPED_OUTCOME_FROM, "2026-11-25")
+        self.assertEqual(B.MIN_REWARD_TO_RISK, 2.0)
+        self.assertEqual(B.FALLBACK_STOP_FRACTION, 3.0)
+        self.assertEqual(B.MIN_REWARD_TO_RISK_STOPPED, 1.0)
+        self.assertEqual(B.FALLBACK_REWARD_TO_RISK_STOPPED, 1.5)
+
+    def test_a_note_dated_before_the_rule_still_needs_two_to_one(self):
+        n = self._note(date="2026-11-24")                       # 12% against a 10% stop, replay and all
+        self.refuse(n, "less than 2x the loss at the stop")
+        n = self._note(date="2026-11-24", pct=20.0, with_stop=None)
+        B.validate(n, [])                                       # 2 to 1, and no with_stop asked of an old note
+
+    def test_a_new_note_passes_at_1_2_to_1_with_a_valid_replay(self):
+        B.validate(self._note(), [])
+
+    def test_a_new_note_must_still_pay_at_least_what_it_risks(self):
+        ws = {"stop_pct": 13.0, "n": 7, "stopped": 1, "mean": 11.0, "median": 12.5, "win_rate": 71}
+        self.refuse(self._note(loss=13.0, with_stop=ws), "less than 1x the loss at the stop")
+
+    def test_a_new_note_without_the_replay_is_refused(self):
+        self.refuse(self._note(with_stop=None), "edge.backtest.with_stop", "is required")
+        self.refuse(self._note(pct=28.0, loss=9.0, with_stop=None), "edge.backtest.with_stop")   # even at 3 to 1
+
+    def test_every_field_of_the_replay_is_a_number(self):
+        for k in ("stop_pct", "n", "stopped", "mean", "median", "win_rate"):
+            n = self._note()
+            del n["edge"]["backtest"]["with_stop"][k]
+            self.refuse(n, f"with_stop.{k} must be a number")
+        n = self._note()
+        n["edge"]["backtest"]["with_stop"]["mean"] = "11%"
+        self.refuse(n, "with_stop.mean must be a number")
+
+    def test_the_stopped_average_must_clear_the_pace_bar(self):
+        n = self._note()
+        n["edge"]["backtest"]["with_stop"]["mean"] = 9.4          # the bar for six months is 10%
+        self.refuse(n, "with_stop.mean is 9.4%", "10.00% over 6.00 months")
+
+    def test_the_published_return_cannot_exceed_the_stopped_outcome(self):
+        n = self._note(pct=14.0)                                 # median 12.5, average 11.0
+        self.refuse(n, "expected_return.pct (14%)", "the stopped outcome", "at most 12.5%")
+        B.validate(self._note(pct=12.5), [])
+        B.validate(self._note(pct=12.55), [])                    # rounding allowance of 0.05
+
+    def test_the_replay_uses_the_stop_the_note_publishes(self):
+        n = self._note()
+        n["edge"]["backtest"]["with_stop"]["stop_pct"] = 7.5     # the note says 10
+        self.refuse(n, "with_stop.stop_pct is 7.5%", "loss_at_stop_pct is 10%")
+        n["edge"]["backtest"]["with_stop"]["stop_pct"] = 9.5     # within half a point
+        B.validate(n, [])
+
+    def test_the_replay_covers_the_same_cases_unless_it_says_why_not(self):
+        n = self._note()
+        n["edge"]["backtest"]["with_stop"]["n"] = 6              # the backtest has 7
+        self.refuse(n, "with_stop.n is 6 but edge.backtest.n is 7")
+        n["edge"]["backtest"]["with_stop"]["note"] = "The 2008 case is left out: the fund did not trade through that window."
+        B.validate(n, [])
+        n = self._note()
+        n["edge"]["backtest"]["with_stop"].update(n=2, stopped=0, note="Only two of the seven cases have daily prices to replay.")
+        self.refuse(n, "with_stop.n is 2", "too few")
+
+    def test_stopped_and_win_rate_are_in_range(self):
+        n = self._note()
+        n["edge"]["backtest"]["with_stop"]["stopped"] = 8
+        self.refuse(n, "with_stop.stopped is 8")
+        n = self._note()
+        n["edge"]["backtest"]["with_stop"]["win_rate"] = 0.71
+        B.validate(n, [])                                        # 0 to 100; a fraction is in range, the playbook says per cent
+        n["edge"]["backtest"]["with_stop"]["win_rate"] = 171
+        self.refuse(n, "with_stop.win_rate")
+
+    def test_a_new_fallback_note_needs_one_and_a_half_to_one(self):
+        n = self._note(pct=12.0, loss=9.0, fallback=True)        # 12 / 1.5 = 8 is the most allowed
+        self.refuse(n, "fallback stop", "two thirds", "8.00%")
+        w = B.validate(self._note(pct=12.0, loss=8.0, fallback=True), [])
+        self.assertTrue(any("Decision-1 fallback" in x and "two-thirds stop" in x for x in w), w)
+
+    def test_an_old_fallback_note_still_needs_a_one_third_stop(self):
+        n = self._note(date="2026-11-24", pct=28.0, loss=12.0, fallback=True, with_stop=None)
+        self.refuse(n, "fallback stop", "one third")
+
+    def _option(self, loss, fallback=False):
+        n = option_note(date=self.NEW, review_conditions=copy.deepcopy(self.RC),
+                        sizing={"weight": 5 if fallback else 10})
+        if not fallback:
+            n["edge"]["backtest"]["regime_match"] = dict(self.SIX_CASES)
+        n["the_trade"]["option"]["expiry"] = "2026-12-18"
+        n["the_trade"]["buy"] = "SPY at-the-money puts, Dec 18 expiry."
+        n["the_trade"]["buy_line"] = "SPY 773 put, Dec 18 expiry"
+        n["instrument"] = "SPY 773 put, Dec 18 expiry"
+        n["expected_return"]["instrument"] = "SPY 773 put, Dec 18 expiry — the return is on the premium"
+        n["expected_return"]["loss_at_stop_pct"] = loss
+        return n
+
+    def test_an_option_note_still_needs_two_to_one_on_the_premium(self):
+        self.refuse(self._option(57.0), "less than 2x the loss at the stop")     # 109 against 57: 1.9 to 1
+        n = self._option(54.0)                                    # 2.02 to 1
+        B.validate(n, [])                                         # and no with_stop is asked of it
+        self.assertNotIn("with_stop", n["edge"]["backtest"])
+
+    def test_an_option_note_under_the_fallback_keeps_the_one_third_stop(self):
+        self.refuse(self._option(40.0, fallback=True), "fallback stop", "one third")   # 109 / 3 = 36.33
+        B.validate(self._option(36.0, fallback=True), [])
+
+    def test_an_event_note_stays_exempt(self):
+        n = event_note(date=self.NEW, review_conditions=copy.deepcopy(self.RC))
+        n["event"]["implied_odds"]["as_of"] = "2026-11-20"
+        B.validate(n, [])
 
 
 if __name__ == "__main__":
