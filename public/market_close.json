@@ -1,32 +1,31 @@
 {
-  "date": "2026-11-24",
+  "date": "2026-11-25",
   "edition": "close",
   "label": "Market Close",
-  "written_at": "2026-11-24T18:43:32-05:00",
-  "headline": "S&P 500 -0.5%, Nasdaq 100 -2.0%, Dow above 50,000, chip ETF -7.3%, Ambarella -37% after hours",
-  "stance": "Chip stocks gave back part of Monday's rally while the Dow rose. Treasuries barely moved ahead of Wednesday's PCE.",
+  "written_at": "2026-11-25T18:43:19-05:00",
+  "headline": "S&P -0.3% after -2.7% at midday, Dow +0.3% off a 1,105-point drop, Palo Alto -3.5% after hours",
+  "stance": "Stocks recovered most of a 4% tech drop by the close. Treasuries kept a 6bp rally after core PCE came in above forecast.",
   "trigger": null,
   "scorecard": [
     {
-      "call": "Morning: Nvidia -4% pre-market after its CEO was reinstated.",
-      "actual": "Selling grew. Nvidia closed -5.9% at $155.38."
+      "call": "Morning: Nasdaq futures lower on tariff reports.",
+      "actual": "Right, then reversed. Nasdaq 100 fell more than 4% at the low and closed -0.6%."
     },
     {
-      "call": "Morning: US stock futures lower (~4:23am ET).",
-      "actual": "Held for tech only. Nasdaq 100 closed -2.0%; the Dow closed +0.9%."
+      "call": "Midday: 10y 4.81%, -10bp, despite core PCE above forecast.",
+      "actual": "Gave back part. 10y closed 4.85%, -6bp."
     },
     {
-      "call": "Morning: Treasuries did not move on Monday's rally.",
-      "actual": "Same again. 10y closed 4.91%, -1bp."
+      "call": "Midday: gold $3,441, -3.2%, lower with stocks.",
+      "actual": "Reversed. Gold futures $3,601, +1.1% (~6:32pm ET), off a 14-month low."
     }
   ],
   "sections": [
     {
       "title": "Macro & Rates",
       "bullets": [
-        "Consumer confidence 103.3 in November vs 92.5 expected (~10:00am ET).",
-        "$70bn 5y auction stopped at 4.719% vs 4.716% when-issued (~1:06pm ET). Bid-to-cover 2.37x vs 2.31x average.",
-        "WTI settled $82.05, +2.35% (~2:53pm ET). Gold futures -2.5% to $3,559 (~6:32pm ET)."
+        "$44bn 7y auction stopped at 4.708% vs 4.698% when-issued, a 1bp tail (~11:54am ET).",
+        "Beige Book: 8 of 12 Fed districts grew, down from 9 in October. Wage pressures picked up (~2:12pm ET)."
       ],
       "positioning": null,
       "single_name": null
@@ -34,9 +33,8 @@
     {
       "title": "Equity Markets",
       "bullets": [
-        "Semiconductor ETF -7.3% at the close after Monday's +15.0%.",
-        "Consumer staples ETF +1.7% and Russell 2000 +0.6% at the close.",
-        "European stocks fell on new US tariff plans: Italy -1.8%, DAX -1.3% (~12:06pm ET)."
+        "Dow was down 1,105 points at its low and closed +0.3%. Russell 2000 +0.7% (~4:24pm ET).",
+        "VIX 28.3 at the close, still above 3-month VIX at 26.3. Near-term hedges stay in demand."
       ],
       "positioning": null,
       "single_name": null
@@ -44,7 +42,8 @@
     {
       "title": "Credit & Liquidity",
       "bullets": [
-        "HYG -0.12%, LQD -0.13% at the close. Credit ETFs fell far less than tech stocks."
+        "HYG +0.1%, LQD +0.5% at the close. Credit ETFs rose on a down day for the S&P.",
+        "South Africa's central bank warned AI borrowing is becoming a bond market risk (~5:34pm ET)."
       ],
       "positioning": null,
       "single_name": null
@@ -52,38 +51,34 @@
   ],
   "items": [
     {
-      "head": "Ambarella -37% after hours (~6:42pm ET)",
-      "body": "Missed Q3 estimates and guided Q4 far below forecasts (~5:00pm ET). Stock had closed -20.0%."
+      "head": "Palo Alto Networks -3.5% after hours (~6:42pm ET)",
+      "body": "Reports say a former executive accused it of accounting fraud (~4:55pm ET). Stock had closed +0.9%."
     },
     {
-      "head": "Urban Outfitters -12% after hours (~6:35pm ET)",
-      "body": "Shares fell after Q3 results (~4:56pm ET)."
+      "head": "HP Inc +11.5% at the close",
+      "body": "Earnings beat lifted the stock during the tech selloff (~4:36pm ET)."
     },
     {
-      "head": "Workday -7.6% after hours (~6:40pm ET)",
-      "body": "Beat on revenue and earnings per share (~4:18pm ET). Revenue $2.705bn, +11.2% from a year ago."
-    },
-    {
-      "head": "Dell +1.5% after hours (~6:42pm ET)",
-      "body": "Sales more than doubled on AI servers; $25bn buyback (~5:07pm ET). Stock had closed -11.8%."
+      "head": "Nvidia -3.9% at the close, $149.30",
+      "body": "Moody's kept its Aa1 rating but flagged key-person and governance risks (~5:18pm ET)."
     }
   ],
   "watch": [
     {
-      "head": "PCE, GDP, claims, durables, Nov 25, 8:30",
-      "body": "Last inflation read before the Dec 9 FOMC."
-    },
-    {
-      "head": "New home sales, Nov 25, 10:00",
-      "body": "Contracts signed on newly built homes."
-    },
-    {
-      "head": "New US tariffs expected this week",
-      "body": "Reported plans cover China and dozens of other countries (~11:00am ET)."
+      "head": "Bank of Korea decision, ~8:00pm ET tonight",
+      "body": "Last decision of 2026. A rate rise is expected (~4:09pm ET)."
     },
     {
       "head": "US markets closed Thursday",
-      "body": "Thanksgiving. Jobless claims move up to Wednesday."
+      "body": "Thanksgiving. Stocks close early Friday at 1:00, bonds at 2:00."
+    },
+    {
+      "head": "Advance goods trade, Nov 27, 8:30",
+      "body": "Early read on the goods trade gap and inventories."
+    },
+    {
+      "head": "ISM Manufacturing and JOLTS, Dec 1, 10:00",
+      "body": "First tier-1 data after the holiday, eight days before the Dec 9 FOMC."
     }
   ]
 }
