@@ -1458,6 +1458,16 @@ They are not the same series and they are nowhere near each other:
 
 **2026-11-17 addendum (same sweep) — a column hidden by CSS still counts in a colspan.** On a phone the Watchlist hides its drag-handle column with `display: none`, but the table footer folded that column into its label's colspan, so the label covered Ticker, Price AND Day and every footer value printed one column to the right: the day average under "1 month", the since-added average under "Tag". Desktop was correct, so only a 390px read showed it. The footer now gives the drag column its own cell with the drag column's class, so whatever hides the column hides the cell. **Rule:** a cell that stands in for a column carries that column's class; never fold an optional column into another cell's colspan. Sweep check: at 390, each footer value's left edge = its column header's left edge.
 
+### 4.56 (2026-11-25, health sweep) — A continuous futures series is two contracts in expiry week; name the contract
+
+**What happened:** The 9.40 open item, measured. In the week before the January ICE Brent contract expires (Mon Nov 30), Yahoo's continuous BZ=F keeps January in its settled daily history but serves FEBRUARY as the live quote and as the newest bar. The 22:15Z evening pass stored Nov 23 = 86.72 and Nov 24 = 88.50 (February); the overnight passes rewrote them to 89.37 and 91.40 (January — identical to the explicit BZF27.NYM bars; BZG27.NYM printed 86.68 and 88.78). So each evening the tape showed Brent −1.0% on a day the front month rose 2.3% and WTI rose 1.9% — a 2.9-point gap, just under the page's 3-point roll guard, so nothing hid it. At 11:00Z on Nov 25 BZ=F's live quote was 88.09 against a 91.40 prior close: −3.6%, 0.4 points from firing the midday Brent gate on a day January Brent was −0.3%.
+
+**Fix:** `scripts/futures_contracts.py` names the front ICE Brent contract for any date (month M expires on the last London business day of month M−2). The EOD producer replaces the last 10 days of BZ=F with that contract's own bars (history before that stays the continuous series; a failed contract fetch changes nothing). `midday_gates.py` quotes the named contract and measures it from that contract's own previous close.
+
+**Rule:** (1) A continuous futures symbol is a splice; in expiry week its live bar and its daily history can be different contracts. Any number that compares a live or newest value with a prior close reads one named contract for both. (2) A guard tuned on the page (3 points) is not a fix at the producer: a wrong close that slips under it is still published to every other reader (the brief, the midday gate, the close edition). (3) WTI, RBOB and ULSD have the same shape; checked this run — CL=F's live and history are both January today, so nothing changed for them; the next WTI expiry (Dec 18) is the date to look again.
+
+**Applies to:** Lead Developer, every futures feed.
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.

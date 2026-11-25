@@ -185,12 +185,30 @@ def main():
     for key, (sym, feed_key, label, unit) in QUOTES.items():
         prior = (latest.get(feed_key) or {}).get("value")
         prior_asof = (latest.get(feed_key) or {}).get("as_of")
+        # 2026-11-25 (LESSONS 4.56): in an ICE Brent expiry week BZ=F's live
+        # quote is already the NEXT contract while the prior close on file is
+        # the expiring one - a roll gap that reads as a 3-4% fall. Quote the
+        # front contract by name and measure it from its own previous close.
+        own_prior = None
+        if key == "brent":
+            try:
+                sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+                from futures_contracts import brent_front_symbol
+                fsym = brent_front_symbol(today)
+                px, ts = quote(fsym)
+                own_prior = _json(f"{YH}/{fsym}", {"range": "1d", "interval": "5m"})["chart"]["result"][0]["meta"].get("chartPreviousClose")
+                sym = fsym
+            except Exception as e:  # noqa: BLE001 - fall back to the continuous quote
+                problems.append(f"Brent front contract unavailable ({e}); continuous BZ=F used")
         try:
-            px, ts = quote(sym)
+            if key != "brent" or sym == "BZ=F":
+                px, ts = quote(sym)
         except Exception as e:  # noqa: BLE001
             problems.append(f"{label}: quote failed ({e}); gate left quiet")
             q[key] = None
             continue
+        if own_prior:
+            prior = own_prior
         if prior is None:
             problems.append(f"{label}: no prior close in brief-latest; gate left quiet")
             q[key] = None

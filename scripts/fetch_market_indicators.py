@@ -230,6 +230,53 @@ def fetch(ticker):
 INDEX_CLOSE_GRACE_MIN = 20
 
 
+# --- Brent: the vendor's continuous series splices two contracts in expiry week
+# 2026-11-25 (health sweep, LESSONS 4.56). In the week before an ICE Brent
+# contract expires, Yahoo's continuous BZ=F keeps the EXPIRING month in its
+# settled daily history but serves the NEXT month as the live / newest bar.
+# Seen twice: the evening pass stored Nov 23 = 86.72 and Nov 24 = 88.50 (the
+# February contract) while the overnight pass rewrote both to 89.37 and 91.40
+# (January, which Reuters and the explicit BZF27.NYM bar agree on). Every
+# evening the tape showed Brent -1.0% on a day the front month rose 2.3% -
+# just under the 3-point roll guard on the page, so nothing hid it. The fix
+# reads the front contract by name for the recent dates and lets it win.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from futures_contracts import brent_front_symbol  # noqa: E402  (stdlib-only helper)
+
+
+BRENT_FRONT_DAYS = 10
+
+
+def brent_front_fix(pts, fetcher=None, today=None):
+    """Replace BZ=F's recent points with the explicit front contract's bars
+    for the same dates. Points older than BRENT_FRONT_DAYS are left alone
+    (history is the vendor's continuous series, as before). A contract that
+    cannot be fetched changes nothing."""
+    import datetime as _dtm
+    fetcher = fetcher or (lambda s: fetch(s)[0])
+    today = today or _dtm.date.today()
+    since = (today - _dtm.timedelta(days=BRENT_FRONT_DAYS)).isoformat()
+    recent = [p for p in pts if str(p[0]) >= since]
+    front = {}
+    for sym in sorted({brent_front_symbol(p[0]) for p in recent}):
+        try:
+            bars = fetcher(sym)
+        except Exception as e:  # noqa: BLE001 - keep the continuous series
+            print(f"  brent front month: {sym} unavailable ({e}); continuous series kept")
+            continue
+        for bd, bv in bars:
+            if str(bd) >= since and brent_front_symbol(bd) == sym:
+                front[str(bd)] = bv
+    out = []
+    for d, v in pts:
+        f = front.get(str(d))
+        if f is not None and v and abs(f / v - 1) > 0.002:
+            print(f"  brent front month: {d} {v} -> {f} ({brent_front_symbol(d)}; the continuous series had the next contract)")
+            v = f
+        out.append([d, v])
+    return out
+
+
 def index_cutoff(q, now_ts=None):
     """For an equity INDEX: the newest exchange-local date whose regular
     session has ended (plus grace), as ISO; None for anything else so the
@@ -595,6 +642,8 @@ def run():
                 pts = [p for p in pts if p[0] <= cutoff]
             if not pts:
                 raise RuntimeError("no completed-session bars")
+            if key == "cmdty_brent":
+                pts = brent_front_fix(pts)
             # Stored points get the same cut: the merge below keeps anything
             # already on file, so a future-dated bar written by an earlier run
             # would otherwise survive as the newest point forever.
@@ -894,6 +943,24 @@ def selftest():
     ok &= good
     print(f"  {'OK' if good else 'FAIL'} index_cutoff: Tokyo 23:00 -> {c_tk_eve}; Tokyo 15:40 -> {c_tk_grace}; "
           f"Frankfurt 16:00 -> {c_de_mid}; future -> {c_fut}")
+    # Brent front month (2026-11-25): Jan-27 expires Mon Nov 30 2026, so Nov 24
+    # and Nov 30 are BZF27, Dec 1 and Dec 31 (its expiry day) BZG27; an Aug month end on the summer
+    # bank holiday rolls back to the Friday; the explicit contract wins on
+    # recent dates and nothing older is touched.
+    import datetime as _dtb
+    syms = (brent_front_symbol("2026-11-24"), brent_front_symbol("2026-11-30"),
+            brent_front_symbol("2026-12-01"), brent_front_symbol("2026-12-31"),
+            brent_front_symbol("2026-08-31"), brent_front_symbol("2026-08-28"))
+    good = syms == ("BZF27.NYM", "BZF27.NYM", "BZG27.NYM", "BZG27.NYM", "BZX26.NYM", "BZV26.NYM")
+    _cont = [["2026-11-10", 90.0], ["2026-11-23", 86.72], ["2026-11-24", 88.50]]
+    _fix = brent_front_fix(_cont, fetcher=lambda s: [["2026-11-23", 89.37], ["2026-11-24", 91.40]],
+                           today=_dtb.date(2026, 11, 24))
+    good &= _fix == [["2026-11-10", 90.0], ["2026-11-23", 89.37], ["2026-11-24", 91.40]]
+    def _boom(s):
+        raise RuntimeError("429")
+    good &= brent_front_fix(_cont, fetcher=_boom, today=_dtb.date(2026, 11, 24)) == _cont
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} brent front month: {syms}; fixed {_fix[-2:]}")
     # merge guard
     import tempfile
     global HISTORY_PATH
