@@ -1,57 +1,45 @@
 {
-  "date": "2026-11-23",
+  "date": "2026-11-25",
   "edition": "midday",
   "label": "Midday Update",
-  "written_at": "2026-11-23T11:34:26-05:00",
-  "headline": "S&P 500 +5.0% at 11:33, Brent -6.6%, VIX 27.4, 10y 4.94%",
-  "stance": "Stocks rebounded hard on news before the open; the S&P 500 is up 5% after seven straight losses. Oil fell on returning supply; Treasuries barely moved.",
+  "written_at": "2026-11-25T11:35:11-05:00",
+  "headline": "S&P -2.7% at 11:34, VIX 33.9, 10y 4.81% -10bp, core PCE 3.3% vs 3.2% expected",
+  "stance": "Tech selling deepened after the open and pulled gold lower too. Treasuries rallied 10bp even with core PCE above forecast.",
   "trigger": {
     "gate": "Equities",
-    "detail": "S&P 500 7,256 at 11:33, +5.0% vs Friday's close. Brent $86.51 at 11:23, -6.6%."
+    "detail": "S&P 7,004, -2.74% at 11:34am ET; VIX 33.9, +28.6%"
   },
   "scorecard": [
     {
-      "call": "Nasdaq 100 futures +3% pre-market.",
-      "actual": "Rally more than doubled: Nasdaq +7% at 11:13 (CNBC). Biggest Nasdaq opening gain since at least 1991."
+      "call": "Nasdaq futures lower on tariff reports",
+      "actual": "Right. Nasdaq -4% at 11:19am ET. The US proposed tariffs on 14 trading partners at 11:02am ET."
     },
     {
-      "call": "Treasuries are working as an equity hedge into the Dec 9 FOMC.",
-      "actual": "Untested today: 10y 4.94% at 11:18, +1.6bp, while stocks rose 5%."
+      "call": "Treasury yields lower ahead of PCE and GDP",
+      "actual": "Right, and further. 10y 4.81% at 11:19am ET, -10bp, despite core PCE above forecast."
     },
     {
-      "call": "Libya output down; Houthis claim a strike on a Saudi refinery.",
-      "actual": "Brent fell anyway: $86.51 at 11:23, -6.6% on returning supply."
+      "call": "Crude fell in early Asian trade",
+      "actual": "Reversed. Brent $93.30 at 11:24am ET, +2.1%, after Saudi Arabia shot down drones over Ras Tanura."
     }
   ],
   "bullets": [
-    "S&P 500 7,256 at 11:33, +5.0% vs Friday. VIX 27.4, down from 35.9 at Friday's close.",
-    "US services flash purchasing managers index 54.7 vs 55.7 expected (~9:45am ET). Manufacturing 54.5 vs 54.9.",
-    "Brent $86.51 at 11:23, -6.6%. West Texas crude at its lowest since late August (~10:51am ET).",
-    "Dollar index 104.47 at 11:23, +0.6%. 10y yield 4.94% at 11:18, +1.6bp.",
-    "MOVE bond volatility index 104.0 at 11:18, down 2.3 points."
+    "Core PCE +3.3% y/y in October vs 3.2% expected. Headline 3.8%, as expected (8:30am ET).",
+    "Q3 GDP revised to 4.3% vs 3.5% expected. Initial claims 189K vs 201K expected (8:30am ET).",
+    "Firm growth and sticky inflation support a hike at the FOMC, Dec 9. The 10y fell anyway.",
+    "Chipmakers led stocks lower after the open (~10:33am ET).",
+    "Gold $3,441, -3.2% (~10:47am ET), lower with stocks despite the drop in yields."
   ],
   "items": [
     {
-      "head": "Nvidia reinstates Jensen Huang as CEO",
-      "body": "Board says it had input from senior US officials (~8:56am ET). Stock +33% (~11:17am ET)."
-    },
-    {
-      "head": "CoreWeave +24% in AI-linked rally",
-      "body": "Oracle also higher on the Nvidia news (~10:03am ET, ~11:27am ET)."
-    },
-    {
-      "head": "UnitedHealth, Humana, CVS fall",
-      "body": "US government targets Medicare Advantage star ratings (~9:39am ET)."
+      "head": "Nvidia gives back over half of Monday's rally",
+      "body": "Led chip stocks lower after the open (~10:43am ET)."
     }
   ],
   "watch": [
     {
-      "head": "PCE, GDP, claims, durables, Wed 8:30",
-      "body": "All four land Wednesday morning. US markets close Thursday for Thanksgiving."
-    },
-    {
-      "head": "Iran",
-      "body": "Trump told Fox News strikes on Iran could resume after New Year without a deal (~7:30am ET)."
+      "head": "Thanksgiving, Thursday",
+      "body": "US stock and bond markets closed. Friday's session ends early."
     }
   ]
 }
