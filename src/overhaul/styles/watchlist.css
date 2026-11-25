@@ -124,5 +124,15 @@
      showed only its leading "-" ("-16.4%" cut to "-"), a stray mark under no
      heading. A panel-coloured fade on the pin's left edge hides the sliver
      and reads as "more to the right". */
-  box-shadow: -18px 0 12px -4px var(--tm-panel);
+}
+/* 2026-11-25 health sweep: that fade never painted. The table uses
+   border-collapse: collapse, and Chromium draws no box-shadow on a collapsed
+   cell, so at 390px SPCX/LUNR/DELL/HPE still each showed a red "-" (the start
+   of "-14.4%", 4px left of the pin) under no heading. The cover is now a
+   pseudo-element on the pinned cell: solid for 12px, then a short fade. */
+.mt-overhaul .mt-terminal .wl-panel .dt-table th[data-col="remove"]::before,
+.mt-overhaul .mt-terminal .wl-panel .dt-table td[data-col="remove"]::before {
+  content: ""; position: absolute; top: 0; bottom: 0; right: 100%; width: 22px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--tm-panel) 10px, var(--tm-panel));
 }

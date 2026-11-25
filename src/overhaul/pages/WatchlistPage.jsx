@@ -154,8 +154,9 @@ function buildColumns({ onRemove, onUpdate, paperDate, factorDate }) {
     num('avg_dollar_vol', 'Daily $ volume', 'Technicals', 'Average dollars traded per day over the last three months — how easily the stock can be bought or sold.', (v) => big(v), { width: 108, hidden: true }),
 
     { key: 'next_earnings', label: 'Next earnings', group: 'Earnings', tip: 'The next date the company is expected to report results, and whether that is before the market opens or after it closes. A date several weeks out is an estimate until the company confirms it.', align: 'r', width: 150,
-      sortValue: (r) => (r.f?.next_earnings ? Date.parse(r.f.next_earnings) : null),
-      render: (r) => (r.f?.next_earnings ? <>{day(r.f.next_earnings)}{r.f.earnings_time ? <span className="wl-mut"> · {r.f.earnings_time === 'before the open' ? 'pre-open' : 'after close'}</span> : null}</> : DASH) },
+      // A report date already past is not "next" (2026-11-25: DELL read "Nov 24 · after close" the morning after it reported, until the 08:00 ET rebuild).
+      sortValue: (r) => (daysUntil(r.f?.next_earnings) != null ? Date.parse(r.f.next_earnings) : null),
+      render: (r) => (daysUntil(r.f?.next_earnings) != null ? <>{day(r.f.next_earnings)}{r.f.earnings_time ? <span className="wl-mut"> · {r.f.earnings_time === 'before the open' ? 'pre-open' : 'after close'}</span> : null}</> : DASH) },
     { key: 'days_to_earnings', label: 'Days to earnings', group: 'Earnings', tip: 'Calendar days from today until the next expected earnings report.', align: 'r', width: 124, hidden: true,
       sortValue: (r) => daysUntil(r.f?.next_earnings),
       cellClass: (r) => { const d = daysUntil(r.f?.next_earnings); return d != null && d <= 7 ? 'warn' : ''; },
