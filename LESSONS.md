@@ -2922,6 +2922,14 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 
 **Applies to:** UX Designer (lead), Lead Developer.
 
+### 9.42 (2026-11-26, health sweep) — A search by symbol is not a search for the company; and an empty cell or a loading panel never reads as a fact
+
+**What happened:** Reading the stock pages on Thanksgiving morning: (1) LUNR's News panel was six option-contract quote pages out of ten ("LUNR261127P00013500 Interactive Stock Chart | LUNR Nov 2026 13.500 put Stock") plus "LunR Royalties", a different company; DE's held "Électricité De Strasbourg", "Verve Group (VRV.DE)" and "Globant (2G2.DE)"; KO's "Coca Cola Femsa (KOF)"; ON, ALL and T were almost wholly other stories ("all-stock deal", "Stock Market's Pain"). The feed searches the symbol as plain text, and since 2026-11-05 it no longer passes the company name. (2) On a slow load the Risk panel of a stock with ten years of history read "n/a · since — listing · 0 sessions" — the empty history was taken for a stock listed today. (3) SPCX's header printed "Space Exploration Technologies Corp. Class A Common Stock" over three lines while the Watchlist row that links to it says "Space Exploration Technologies". (4) The Watchlist printed a bare "—" under Next earnings for all six names and under Next ex-dividend for Apple, and KO's day move as a red "-0.0%". (5) The Macro positioning rows printed "—" where the side is NEUTRAL. (6) On Thanksgiving the home page listed Dec 1-8 under "This Week's Data".
+
+**Fix:** `lib/newsRelevance.js` keeps a headline only if it prints the symbol exactly (not inside another listing) or names the company, and drops option-contract pages and headlines that tag only another listing; applied to the live feed and the stored rows. An empty history is not a recent listing (`riskStats`), and the Risk rows show a skeleton while it loads. The stock header shows `shortName()` with the registered name as its tooltip. The Watchlist says "not announced", "not declared" or "no dividend"; a move that rounds to zero prints "0.0%" in neither colour. Positioning rows read NEUTRAL. The home list is headed "The Week Ahead" once it runs into next week. Methodology updated for all four.
+
+**Rule:** (1) A free-text search by symbol is checked for relevance before it is shown: one-, two- and common-word symbols (DE, KO, ON, ALL, T, F, V) are the test cases. (2) A figure that cannot exist yet because data is still loading shows a skeleton, never the sentence for a figure that cannot exist at all. (3) The same company is named the same way on every surface that links to it. (4) A number that rounds to zero is printed and coloured as zero.
+
 # 10 · THE PUBLISHED BOOK — trade ideas & notes
 
 ### 9.26 (2026-10-14) — Every banner tile opens a detail panel; a series is never added to the banner as a bare quote

@@ -263,6 +263,16 @@ export default function HomePage() {
     const inWeek = calDays.filter((d) => d.date <= endISO);
     return inWeek.length >= 2 ? inWeek : calDays.slice(0, 4);
   }, [calDays, todayISO]);
+  /* The heading names what the list holds: once it has run on into next week
+     it is "The Week Ahead", not "This Week's Data" (health sweep 2026-11-26 —
+     Thanksgiving Thursday listed Dec 1-8 under "This Week's Data"). */
+  const weekEndISO = (() => {
+    if (!todayISO) return null;
+    const t = new Date(`${todayISO}T00:00:00Z`);
+    const e = new Date(t); e.setUTCDate(t.getUTCDate() + (7 - (t.getUTCDay() || 7)));
+    return e.toISOString().slice(0, 10);
+  })();
+  const weekLabel = weekEndISO && weekDays.some((d) => d.date > weekEndISO) ? 'The Week Ahead' : "This Week's Data";
 
   const heroChart = idea?.charts?.[0];
   const briefDate = edition?.date ? weekdayDate(edition.date) : '';
@@ -419,9 +429,9 @@ export default function HomePage() {
           </article>
 
           {/* ── This Week's Data ────────────────────────────────────── */}
-          <aside className="ed-data rd-rise d4" aria-label="This week's data">
+          <aside className="ed-data rd-rise d4" aria-label={weekLabel}>
             <div className="ed-data-head">
-              <span className="ed-label">This Week's Data</span>
+              <span className="ed-label">{weekLabel}</span>
               <span className="ed-legend"><span className="ed-dot" aria-hidden="true" />Market-moving</span>
             </div>
             {weekDays.map((d, di) => (

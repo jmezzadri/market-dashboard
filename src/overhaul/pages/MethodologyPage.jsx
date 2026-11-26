@@ -276,7 +276,9 @@ export default function MethodologyPage() {
               The flag word names the end of the 3-year range the reading sits in, read against the
               indicator's own definition — so a wide HY OAS reads CHEAP, and a low HY vs IG Ratio (the
               investment-grade fund price over the high-yield fund price, low when junk has outperformed quality)
-              reads RISK-ON. Then come its speculator positioning rows from the CFTC. On a phone the panels fold, one open at a time.
+              reads RISK-ON. Then come its speculator positioning rows from the CFTC: each names where speculators&rsquo;
+              net position sits in its own history &mdash; SHORT in the lower quarter, LONG in the upper quarter, NEUTRAL in
+              between. On a phone the panels fold, one open at a time.
               Clicking any row opens the chart.
             </p>
             <div className="me-formula" data-mono="code">
@@ -917,7 +919,8 @@ export default function MethodologyPage() {
             </p>
             <p className="me-body-p">
               <b>Dividends.</b> <b>Next ex-dividend</b> is the earliest declared ex-dividend date from today
-              onward. <b>Dividend yield</b> follows the same rule as the ticker page: the latest regular cash
+              onward; a company that pays a dividend but has not declared the next one reads <i>not declared</i>,
+              and one that pays none reads <i>no dividend</i>. <b>Dividend yield</b> follows the same rule as the ticker page: the latest regular cash
               dividend multiplied by its declared payments per year (or the last twelve months of regular
               dividends where no frequency is declared), divided by the last close. A stock whose last regular
               dividend is more than 400 days old shows no yield.
@@ -956,10 +959,17 @@ export default function MethodologyPage() {
               with whether it falls before the market opens or after it closes where the calendar says. A
               date is firm once the company announces it; a date several weeks out is the calendar&rsquo;s
               estimate from the company&rsquo;s reporting history and can move. A company with no date in
-              the next three months shows a dash. <b>Days to earnings</b> counts calendar days from today.
+              the next three months reads <i>not announced</i>. <b>Days to earnings</b> counts calendar days from today.
               Analyst ratings and price targets are not shown: the site has no licensed source for them.
             </p>
 
+            <p className="me-body-p">
+              <b>Headlines on a stock page.</b> The News panel searches public news by the stock&rsquo;s
+              symbol, then keeps only headlines about that company: ones that print the symbol itself (not
+              as part of another listing such as &ldquo;VRV.DE&rdquo;) or name the company. Quote pages
+              for single option contracts, and stories about another company that shares the letters, are
+              left out &mdash; so a short symbol such as DE or KO can show fewer than ten.
+            </p>
             <h3 className="me-h3" id="watchlist-table" style={{ scrollMarginTop: 120 }}>
               Sorting, ordering and views
             </h3>

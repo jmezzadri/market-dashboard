@@ -335,7 +335,8 @@ export default function MacroPage() {
     return (
       <a key={'pos-'+m.market} className="tm-row rd-num" onClick={() => { hideTip(); setSelectedPos({ ...m, domain: dom }); }} onMouseEnter={(e)=>showTip(e, posTip(m))} onMouseLeave={hideTip}>
         <span className="tm-c-name">{m.market}{flag && <span className="tm-flag tm-flag--phone">{flag}</span>}</span>
-        <span className="tm-c-last tm-c-side">{side || '—'}</span>
+        {/* Middle of its own range is NEUTRAL, said in words (LESSONS 9.33; was a bare "—"). */}
+        <span className="tm-c-last tm-c-side">{side || (pct != null ? 'NEUTRAL' : '—')}</span>
         <span className={`tm-c-chg ${ch ? ch.cls : 'fl'}`}>{ch ? ch.txt : '—'}</span>
         <span className={`tm-c-pct${ext(pct) ? ' is-ext' : ''}`}><span className="tm-pctbar" aria-hidden="true"><span className="tm-pctfill" style={{ '--w': `${Math.max(pct ?? 0, 2)}%` }} /></span><span className="tm-pctnum">{pct != null ? pct : '—'}</span></span>
         <span className="tm-c-flag">{flag}</span>
