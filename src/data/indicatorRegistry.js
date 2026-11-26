@@ -20,7 +20,7 @@ cmdty_oil:["WTI Crude","Commodity price","commodities",2,"$/bbl",1,null,null,nul
 "Front-month NYMEX WTI crude futures (CL), daily settlement. Source: Yahoo Finance CL=F. Pill state: trailing 3-year percentile, two-sided (75th/25th amber, 85th/15th red)."],
 cmdty_brent:["Brent Crude","Commodity price","commodities",2,"$/bbl",1,null,null,null,null,null,false,
 "Front-month ICE Brent futures price — the global benchmark pricing roughly two-thirds of world crude. The Brent–WTI spread reflects US export economics and Atlantic-basin supply.",
-"Front-month ICE Brent crude futures (BZ), daily settlement. Source: Yahoo Finance BZ=F. Pill state: trailing 3-year percentile, two-sided (75th/25th amber, 85th/15th red)."],
+"Front-month ICE Brent crude futures (BZ), daily settlement. Source: Yahoo Finance BZ=F, with the latest 10 sessions taken from the named front-month contract so the newest close and the one before it are the same contract (LESSONS 4.56). Pill state: trailing 3-year percentile, two-sided (75th/25th amber, 85th/15th red)."],
 cmdty_natgas:["Natural Gas","Commodity price","commodities",2,"$/MMBtu",2,null,null,null,null,null,false,
 "Front-month Henry Hub futures price — the US gas benchmark. Weather-driven heating and cooling demand plus LNG export capacity dominate; among the most volatile major commodities.",
 "Front-month NYMEX Henry Hub natural gas futures (NG), daily settlement. Source: Yahoo Finance NG=F. Pill state: trailing 3-year percentile, two-sided (75th/25th amber, 85th/15th red)."],

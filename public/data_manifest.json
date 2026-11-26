@@ -3391,7 +3391,7 @@
    "description": "Brent crude front-month futures (BZ=F) \u2014 the global oil benchmark, ranked into its own 3-year range.",
    "sourcing_mode": "STP from vendor",
    "source_vendor": "Yahoo Finance",
-   "source_endpoint": "Yahoo chart API BZ=F",
+   "source_endpoint": "Yahoo chart API BZ=F; the latest 10 sessions from the named front-month contract (e.g. BZF27.NYM)",
    "license_tier": "free",
    "monthly_cost_usd": 0,
    "cadence": "daily",
