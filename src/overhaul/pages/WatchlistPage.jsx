@@ -42,8 +42,10 @@ const DASH = '—';
 
 /* ---------- formatters ---------- */
 const n = (v) => (v == null || v === '' || Number.isNaN(Number(v)) ? null : Number(v));
-const pct = (v, d = 1) => (n(v) == null ? DASH : `${n(v) > 0 ? '+' : ''}${(n(v) * 100).toFixed(d)}%`);
-const pctPlain = (v, d = 1) => (n(v) == null ? DASH : `${(n(v) * 100).toFixed(d)}%`);
+// A move that rounds to zero prints "0.0%", never "-0.0%" (KO, 2026-11-26).
+const fix = (x, d) => { const t = x.toFixed(d); return Number(t) === 0 ? (0).toFixed(d) : t; };
+const pct = (v, d = 1) => (n(v) == null ? DASH : `${Number(fix(n(v) * 100, d)) > 0 ? '+' : ''}${fix(n(v) * 100, d)}%`);
+const pctPlain = (v, d = 1) => (n(v) == null ? DASH : `${fix(n(v) * 100, d)}%`);
 const usd = (v) => (n(v) == null ? DASH : `$${n(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 const big = (v) => {
   const x = n(v);
@@ -74,7 +76,8 @@ const daysUntil = (iso) => {
   const d = Math.round((Date.parse(`${String(iso).slice(0, 10)}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / 86400000);
   return d < 0 ? null : d;
 };
-const sign = (v) => (n(v) == null ? 'muted' : n(v) > 0 ? 'up' : n(v) < 0 ? 'dn' : '');
+// Coloured by the figure as printed: a move that prints 0.0% is neither green nor red.
+const sign = (v) => { if (n(v) == null) return 'muted'; const r = Number(fix(n(v) * 100, 1)); return r > 0 ? 'up' : r < 0 ? 'dn' : ''; };
 const titleCase = (s) => (s ? String(s).toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()) : null);
 
 /* ---------- small pieces ---------- */
@@ -153,21 +156,23 @@ function buildColumns({ onRemove, onUpdate, paperDate, factorDate }) {
     num('volume', 'Volume', 'Technicals', 'Shares traded on the most recent trading day.', (v) => count(v), { width: 82, hidden: true }),
     num('avg_dollar_vol', 'Daily $ volume', 'Technicals', 'Average dollars traded per day over the last three months — how easily the stock can be bought or sold.', (v) => big(v), { width: 108, hidden: true }),
 
-    { key: 'next_earnings', label: 'Next earnings', group: 'Earnings', tip: 'The next date the company is expected to report results, and whether that is before the market opens or after it closes. A date several weeks out is an estimate until the company confirms it.', align: 'r', width: 150,
+    { key: 'next_earnings', label: 'Next earnings', group: 'Earnings', tip: 'The next date the company is expected to report results, and whether that is before the market opens or after it closes. \u201cNot announced\u201d means the earnings calendar has no date for the company yet.', align: 'r', width: 150,
       // A report date already past is not "next" (2026-11-25: DELL read "Nov 24 · after close" the morning after it reported, until the 08:00 ET rebuild).
       sortValue: (r) => (daysUntil(r.f?.next_earnings) != null ? Date.parse(r.f.next_earnings) : null),
-      render: (r) => (daysUntil(r.f?.next_earnings) != null ? <>{day(r.f.next_earnings)}{r.f.earnings_time ? <span className="wl-mut"> · {r.f.earnings_time === 'before the open' ? 'pre-open' : 'after close'}</span> : null}</> : DASH) },
+      render: (r) => (daysUntil(r.f?.next_earnings) != null ? <>{day(r.f.next_earnings)}{r.f.earnings_time ? <span className="wl-mut"> · {r.f.earnings_time === 'before the open' ? 'pre-open' : 'after close'}</span> : null}</> : (r.f ? <span className="wl-mut">not announced</span> : DASH)) },
     { key: 'days_to_earnings', label: 'Days to earnings', group: 'Earnings', tip: 'Calendar days from today until the next expected earnings report.', align: 'r', width: 124, hidden: true,
       sortValue: (r) => daysUntil(r.f?.next_earnings),
       cellClass: (r) => { const d = daysUntil(r.f?.next_earnings); return d != null && d <= 7 ? 'warn' : ''; },
-      render: (r) => { const d = daysUntil(r.f?.next_earnings); return d == null ? DASH : d === 0 ? 'Today' : String(d); } },
+      render: (r) => { const d = daysUntil(r.f?.next_earnings); return d == null ? (r.f ? <span className="wl-mut">not announced</span> : DASH) : d === 0 ? 'Today' : String(d); } },
 
     num('market_cap', 'Market cap', 'Company', 'The total market value of the company’s shares: the share count in the listing reference record times the last close shown in this row. Blank for funds and for companies the record does not cover.', (v) => big(v), { width: 96 }),
     { key: 'industry', label: 'Industry', group: 'Company', tip: 'The industry the company reports under in its regulatory filings.', align: 'l', width: 170, hidden: true,
       sortValue: (r) => r.industry || null, render: (r) => r.industry || DASH },
 
-    { key: 'next_ex_div', label: 'Next ex-dividend', group: 'Dividends', tip: 'The next date on which the stock starts trading without its upcoming dividend. Buy before this date to receive it.', align: 'r', width: 122,
-      sortValue: (r) => (r.f?.next_ex_div ? Date.parse(r.f.next_ex_div) : null), render: (r) => day(r.f?.next_ex_div) },
+    { key: 'next_ex_div', label: 'Next ex-dividend', group: 'Dividends', tip: 'The next date on which the stock starts trading without its upcoming dividend. Buy before this date to receive it. \u201cNot declared\u201d: the company pays a dividend but has not set the next date yet.', align: 'r', width: 122,
+      // An empty cell says why (LESSONS 9.33): no dividend at all, or the next one not declared yet.
+      sortValue: (r) => (r.f?.next_ex_div ? Date.parse(r.f.next_ex_div) : null),
+      render: (r) => (r.f?.next_ex_div ? day(r.f.next_ex_div) : !r.f ? DASH : <span className="wl-mut">{n(r.f.div_yield) > 0 ? 'not declared' : 'no dividend'}</span>) },
     num('div_yield', 'Dividend yield', 'Dividends', 'The latest regular dividend, annualized, as a percentage of the last close.', (v) => pctPlain(v, 2), { width: 108, hidden: true }),
 
     num('si_pct_float', 'Short interest', 'Short interest', 'The share of the freely traded shares that are sold short, from the exchange settlement reports published twice a month.', (v) => (n(v) == null ? DASH : `${n(v).toFixed(1)}%`), { width: 106, hidden: true }),

@@ -33,6 +33,8 @@ import { SITE_NAME } from '../chrome/siteNav';
 import useTickerSuggestions from '../../hooks/useTickerSuggestions';
 import useTickerEodHistory from '../../hooks/useTickerEodHistory';
 import useTickerEodPrice from '../../hooks/useTickerEodPrice';
+import shortName from '../lib/shortName';
+import { isAboutTicker, companyKeys } from '../lib/newsRelevance';
 
 function sma(rows, period) {
   const out = [];
@@ -519,8 +521,8 @@ export default function TickerPage() {
   // which had real coverage. Search by ticker alone.
   const liveNews = useLiveTickerNews(sym, '', true);
   const mergedNews = useMemo(
-    () => mergeTickerNews(newsEvents, liveNews.items),
-    [newsEvents, liveNews.items],
+    () => mergeTickerNews(newsEvents, liveNews.items, sym, companyKeys(companyName)),
+    [newsEvents, liveNews.items, sym, companyName],
   );
 
   /* ---- Does this symbol exist at all? (Joe 2026-07-30) ----------------
@@ -579,7 +581,10 @@ export default function TickerPage() {
           <div className="tk-tape-idtext">
             {/* Loading is a skeleton, never a sentence or a dash that reads as an
                 answer (LESSONS 9.13; Muse 2026-10-29 item 1, ticker hero 10-30). */}
-            <div className="tk-name">{info.loading ? <span className="rd-skel rd-skel--line is-short" /> : (info.name || sym)}</div>
+            {/* The company, as the Watchlist names it; the registered name with its
+                share class is the tooltip (health sweep 2026-11-26: SPCX's
+                "…Corp. Class A Common Stock" ran to three lines). */}
+            <div className="tk-name" title={info.name || undefined}>{info.loading ? <span className="rd-skel rd-skel--line is-short" /> : (info.name ? shortName(info.name) : sym)}</div>
             <div className="tk-meta">
               {sector && <span>{sector}</span>}
               {sector && exchange && <span className="lm-flowfootsep" />}
@@ -848,15 +853,15 @@ export default function TickerPage() {
               <span className="tk-panelnote">annualized · trailing</span>
             </div>
             <dl className="tk-kv">
-              <KvRow label={`Beta · ${risk.short ? 'since listing' : '1y'}`} note={beta1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Sensitivity to the S&P 500: covariance of daily returns vs SPY over variance of SPY, trailing year."
+              <KvRow loading={histAll.loading && !hist.length} label={`Beta · ${risk.short ? 'since listing' : '1y'}`} note={beta1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Sensitivity to the S&P 500: covariance of daily returns vs SPY over variance of SPY, trailing year."
                 value={beta1y != null ? beta1y.toFixed(2) : risk.short ? 'n/a' : '—'} />
-              <KvRow label="Realized vol · 30d" tip="Standard deviation of daily log returns over the last 30 sessions, annualized."
+              <KvRow loading={histAll.loading && !hist.length} label="Realized vol · 30d" tip="Standard deviation of daily log returns over the last 30 sessions, annualized."
                 value={risk.vol30 != null ? `${(risk.vol30 * 100).toFixed(1)}%` : '—'} />
-              <KvRow label={`Realized vol · ${risk.short ? 'since listing' : '1y'}`} note={risk.vol1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Standard deviation of daily log returns over the last 252 sessions, annualized."
+              <KvRow loading={histAll.loading && !hist.length} label={`Realized vol · ${risk.short ? 'since listing' : '1y'}`} note={risk.vol1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Standard deviation of daily log returns over the last 252 sessions, annualized."
                 value={risk.vol1y != null ? `${(risk.vol1y * 100).toFixed(1)}%` : risk.short ? 'n/a' : '—'} />
-              <KvRow label={`Max drawdown · ${risk.short ? 'since listing' : '1y'}`} note={risk.mdd1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Largest peak-to-trough fall in the closing price over the last 252 sessions."
+              <KvRow loading={histAll.loading && !hist.length} label={`Max drawdown · ${risk.short ? 'since listing' : '1y'}`} note={risk.mdd1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Largest peak-to-trough fall in the closing price over the last 252 sessions."
                 value={risk.mdd1y != null ? `${(risk.mdd1y * 100).toFixed(1)}%` : risk.short ? 'n/a' : '—'} tone={risk.mdd1y != null ? 'down' : ''} />
-              <KvRow label={`Avg daily move · ${risk.short ? 'since listing' : '1y'}`} note={risk.avgAbs1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Mean absolute daily return over the last 252 sessions."
+              <KvRow loading={histAll.loading && !hist.length} label={`Avg daily move · ${risk.short ? 'since listing' : '1y'}`} note={risk.avgAbs1y != null ? null : risk.short ? `since ${fmtDateShort(risk.since)} listing · ${risk.sessions} sessions` : null} tip="Mean absolute daily return over the last 252 sessions."
                 value={risk.avgAbs1y != null ? `${(risk.avgAbs1y * 100).toFixed(2)}%` : risk.short ? 'n/a' : '—'} />
             </dl>
           </article>
@@ -890,12 +895,15 @@ function normHeadline(h) {
 /* Merge stored ticker_events news rows with the live Google News feed into a
    single, deduped, newest-first list. Live items are pushed first so their
    (fresher) source attribution wins on a duplicate headline. */
-function mergeTickerNews(storedEvents, liveItems) {
+function mergeTickerNews(storedEvents, liveItems, sym, keys) {
   const out = [];
   const seen = new Set();
   const push = (it) => {
     const key = normHeadline(it.headline);
     if (!it.headline || !key || seen.has(key)) return;
+    // Only headlines about THIS stock: no option-contract quote pages, no other
+    // company that shares the letters (lib/newsRelevance.js, 2026-11-26).
+    if (sym && !isAboutTicker(it.headline, sym, keys)) return;
     seen.add(key);
     out.push(it);
   };
@@ -983,7 +991,9 @@ function perfTable(rows, benchRows) {
 
 function riskStats(rows) {
   const n = rows.length;
-  if (n < 2) return { vol30: null, vol1y: null, mdd1y: null, avgAbs1y: null, short: true, sessions: n, since: rows[0]?.date };
+  // No rows yet is not a recent listing: "since — listing · 0 sessions" printed
+  // while the history loaded (health sweep 2026-11-26).
+  if (n < 2) return { vol30: null, vol1y: null, mdd1y: null, avgAbs1y: null, short: n === 1, sessions: n, since: rows[0]?.date };
   const lr = [];
   for (let i = 1; i < n; i += 1) {
     if (rows[i].close > 0 && rows[i - 1].close > 0) lr.push(Math.log(rows[i].close / rows[i - 1].close));
@@ -1032,7 +1042,7 @@ function TapeStat({ label, value, sub, loading = false }) {
   );
 }
 
-function KvRow({ label, value, note, tip, tone = '' }) {
+function KvRow({ label, value, note, tip, tone = '', loading = false }) {
   return (
     <div className="tk-kvrow">
       <dt>
@@ -1040,8 +1050,8 @@ function KvRow({ label, value, note, tip, tone = '' }) {
         {tip && <Tip content={tip}><span className="tk-info">ⓘ</span></Tip>}
       </dt>
       <dd>
-        <b className={`num ${tone}`}>{value}</b>
-        {note && <span className="tk-kvnote">{note}</span>}
+        <b className={`num ${tone}`}>{loading ? <span className="rd-skel rd-skel--v" /> : value}</b>
+        {note && !loading && <span className="tk-kvnote">{note}</span>}
       </dd>
     </div>
   );
