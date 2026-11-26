@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-25T23:36:12Z",
+  "generated_at": "2026-11-26T02:57:33Z",
   "window": {
-    "from": "2026-11-18",
-    "to": "2027-02-03"
+    "from": "2026-11-19",
+    "to": "2027-02-04"
   },
   "counts": {
     "total": 74,
-    "tier1": 23
+    "tier1": 25
   },
   "sources": [
     "FRED release calendar (api.stlouisfed.org) \u2014 BLS, BEA, Census and Federal Reserve releases",
@@ -30,32 +30,10 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-02-03",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-02-04",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
-    {
-      "date": "2026-11-18",
-      "time_et": "8:30 AM",
-      "name": "Housing starts & permits",
-      "short": "Starts",
-      "tier": 2,
-      "category": "Housing",
-      "blurb": "New residential construction \u2014 starts, permits and completions.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
-    {
-      "date": "2026-11-18",
-      "time_et": "4:00 PM",
-      "name": "Foreign Treasury flows (TIC)",
-      "short": "TIC",
-      "tier": 3,
-      "category": "Flows",
-      "blurb": "Cross-border purchases of US securities \u2014 who is funding the deficit.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-11-19",
       "time_et": "8:30 AM",
@@ -853,6 +831,28 @@
       "category": "Surveys",
       "blurb": "Services-sector survey \u2014 the larger share of the economy.",
       "source": "ISM published schedule (computed)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2027-02-04",
+      "time_et": "7:00 AM",
+      "name": "Bank of England decision (MPC)",
+      "short": "BoE",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "Bank of England rate decision with the MPC vote split, published at noon London time.",
+      "source": "Bank of England MPC dates (bankofengland.co.uk)",
+      "time_source": "published release policy"
+    },
+    {
+      "date": "2027-02-04",
+      "time_et": "8:15 AM",
+      "name": "ECB decision (Governing Council)",
+      "short": "ECB",
+      "tier": 1,
+      "category": "Policy",
+      "blurb": "European Central Bank rate decision and statement, with a 8:45 AM ET press conference.",
+      "source": "ECB Governing Council calendar (ecb.europa.eu)",
       "time_source": "published release policy"
     }
   ]
