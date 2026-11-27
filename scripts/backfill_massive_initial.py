@@ -34,6 +34,16 @@ from urllib.error import HTTPError, URLError
 THROTTLE_SECONDS = 15       # 60 / 5 calls per minute, +25% margin (PR was 13s — May 2 still 429'd)
 PAGE_SIZE = 1000
 
+
+# NYSE full-day holidays (LESSONS 4.57) — the Yahoo same-day fallback must not
+# treat one as a session Massive is missing.
+NYSE_FULL_HOLIDAYS = {
+    "2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03", "2026-05-25",
+    "2026-06-19", "2026-07-03", "2026-09-07", "2026-11-26", "2026-12-25",
+    "2027-01-01", "2027-01-18", "2027-02-15", "2027-03-26", "2027-05-31",
+    "2027-06-18", "2027-07-05", "2027-09-06", "2027-11-25", "2027-12-24",
+}
+
 def env(name, dotenv=None):
     """Read env var from os.environ or .env.local fallback."""
     if name in os.environ and os.environ[name]:
@@ -403,7 +413,11 @@ def main():
         last_done = ny.date()
         if ny.weekday() >= 5 or (ny.hour, ny.minute) < (16, 5):
             last_done -= timedelta(days=1)
-        while last_done.weekday() >= 5:
+        # 2026-11-27 (health sweep, LESSONS 4.57): an NYSE holiday is not a
+        # session either. At 01:17 ET the day after Thanksgiving this took
+        # Thursday 11-26 as "last completed", saw Massive at 11-25, fired the
+        # fallback and rewrote 519 canonical Wednesday rows as yahoo-sameday.
+        while last_done.weekday() >= 5 or last_done.isoformat() in NYSE_FULL_HOLIDAYS:
             last_done -= timedelta(days=1)
         last_done = last_done.isoformat()
     except Exception:

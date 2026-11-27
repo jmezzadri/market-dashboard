@@ -181,7 +181,15 @@ NYSE_HOLIDAYS_2026 = {
     "2026-09-07",  # Labor Day
     "2026-11-26",  # Thanksgiving
     "2026-12-25",  # Christmas
+    # 2027 (added 2026-11-27, LESSONS 4.57 — the name stays for its callers)
+    "2027-01-01", "2027-01-18", "2027-02-15", "2027-03-26", "2027-05-31",
+    "2027-06-18", "2027-07-05", "2027-09-06", "2027-11-25", "2027-12-24",
 }
+
+# Indices computed only from a US exchange's own session (Cboe, ICE BofA MOVE):
+# a point dated an NYSE holiday is the next session's overnight print, not a
+# close (LESSONS 4.57). Futures, FX, crypto and foreign indices are NOT here.
+US_CASH_SESSION_SERIES = ("vix", "vxn", "vix3m", "vix_ts", "gvz", "ovx", "move")
 
 
 def _trading_days_behind(last_date_iso, today=None):
@@ -1989,6 +1997,22 @@ def main():
                           f"{', '.join(regressed)}")
         except Exception as _ce:
             print(f"  carry-forward step skipped: {_ce}")
+        # ── A US cash-session index has no close on an NYSE holiday ──────────
+        # Yahoo's ^VIX history carries a bar dated each US holiday since May
+        # 2026 (05-25, 09-07, 11-26): Cboe's overnight session for the next
+        # trading day, stamped with the holiday's date. On Thanksgiving morning
+        # after it the tape showed VIX "Thu close 26.80" and the brief printed
+        # 26.80 as "Wed Nov 25 close" while the file's own Nov 25 point read
+        # 28.29. Drop those dates AFTER the point-union, which would otherwise
+        # restore a held holiday point forever. LESSONS 4.57.
+        for _ind in US_CASH_SESSION_SERIES:
+            _e = data.get(_ind)
+            if not isinstance(_e, dict) or not _e.get("points"):
+                continue
+            _kept = [p for p in _e["points"] if str(p[0])[:10] not in NYSE_HOLIDAYS_2026]
+            if len(_kept) != len(_e["points"]):
+                print(f"  {_ind}: dropped {len(_e['points']) - len(_kept)} NYSE-holiday point(s)")
+                _e["points"] = _kept
         # ── Re-stamp as_of + stats AFTER the merge steps (LESSONS 4.36) ──────
         # attach_stats_and_as_of() runs inside fetch_all(), BEFORE the
         # point-union above. When the fresh fetch comes back truncated and the
