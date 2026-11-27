@@ -269,6 +269,14 @@ function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
 
 /* ---------- main component ---------- */
 
+/* A move that rounds to zero at two decimals is printed and coloured as zero:
+   no arrow, no sign, neither colour (LESSONS 9.42 rule 4; PFE read a green
+   "▲ $0.00 (0.00%)" on 2026-11-27 while the Watchlist read a neutral 0.0%). */
+const isFlatMove = (pct, abs) => Math.abs(Number(pct)) < 0.005 && Math.abs(Number(abs)) < 0.005;
+const moveDir = (pct, abs) => (isFlatMove(pct, abs) ? 'flat' : pct >= 0 ? 'up' : 'down');
+const moveArrow = (pct, abs) => (isFlatMove(pct, abs) ? '' : pct >= 0 ? '▲ ' : '▼ ');
+const moveSign = (pct, abs) => (isFlatMove(pct, abs) ? '' : pct > 0 ? '+' : pct < 0 ? '−' : '');
+
 export default function TickerPage() {
   const { symbol } = useParams();
   const sym = (symbol || '').toUpperCase();
@@ -353,6 +361,7 @@ export default function TickerPage() {
   const chgPct  = eod?.day_pct != null ? Number(eod.day_pct) : null;
   const hasChg  = Number.isFinite(chgPct);
   const prevClose = eod?.prev_close ?? null;
+  const chgAbs = hasChg && hasPrice ? (prevClose != null ? (price - prevClose) : (price * chgPct) / (100 + chgPct)) : 0;
   const priceAsOf = eod?.trade_date || null;
   // A prices_eod row dated later than the latest COMPLETED NYSE session is an
   // in-progress (intraday) print from the same-day Yahoo fallback — it is NOT
@@ -597,8 +606,8 @@ export default function TickerPage() {
           {liveHero ? (
             <>
               <div className="tk-price num">${fmt(livePrice, 2)}</div>
-              <div className={`tk-priceΔ num ${livePct >= 0 ? 'up' : 'down'}`}>
-                {livePct >= 0 ? '▲' : '▼'} ${Math.abs(livePrice - liveBase).toFixed(2)} ({livePct > 0 ? '+' : ''}{livePct.toFixed(2)}%) today
+              <div className={`tk-priceΔ num ${moveDir(livePct, livePrice - liveBase)}`}>
+                {moveArrow(livePct, livePrice - liveBase)}${Math.abs(livePrice - liveBase).toFixed(2)} ({moveSign(livePct, livePrice - liveBase)}{Math.abs(livePct).toFixed(2)}%) today
               </div>
               <div className="tk-liveline num">
                 <FreshnessChip elementId="market-lse_intraday-live" variant="dot" />
@@ -610,9 +619,9 @@ export default function TickerPage() {
             <>
               <div className="tk-price num">{hasPrice ? `$${fmt(price, 2)}` : resolveLoading ? <span className="rd-skel rd-skel--v" /> : '—'}</div>
               {hasPrice && hasChg && (
-                <div className={`tk-priceΔ num ${chgPct >= 0 ? 'up' : 'down'}`}>
-                  {chgPct >= 0 ? '▲' : '▼'} ${Math.abs(prevClose != null ? (price - prevClose) : (price * chgPct) / (100 + chgPct)).toFixed(2)}{' '}
-                  ({chgPct > 0 ? '+' : ''}{Number(chgPct).toFixed(2)}%)
+                <div className={`tk-priceΔ num ${moveDir(chgPct, chgAbs)}`}>
+                  {moveArrow(chgPct, chgAbs)}${Math.abs(chgAbs).toFixed(2)}{' '}
+                  ({moveSign(chgPct, chgAbs)}{Math.abs(Number(chgPct)).toFixed(2)}%)
                   <span className="tk-chgsession">{isIntraday ? ' today' : (priceAsOf ? ` · ${fmtDateShort(priceAsOf)}` : '')}</span>
                 </div>
               )}
@@ -628,7 +637,7 @@ export default function TickerPage() {
                             at 9:40 PM). */}
                         <span className="tk-livelabel">{closedQuoteLabel(liveQ?.barTs, lseLive.marketOpen)}</span> ${fmt(livePrice, 2)}
                         {livePct != null && (
-                          <span className={livePct >= 0 ? 'up' : 'down'}>{' '}{livePct >= 0 ? '+' : ''}{livePct.toFixed(2)}%</span>
+                          <span className={moveDir(livePct, livePrice - liveBase)}>{' '}{moveSign(livePct, livePrice - liveBase)}{Math.abs(livePct).toFixed(2)}%</span>
                         )}
                       </>
                     ) : (

@@ -21,16 +21,16 @@ export const PRIMARY_NAV = [
   { to: '/watchlist', label: 'Watchlist' },
 ];
 
-// Footer only. Bugs is the one page behind sign-in, so it is listed only for
-// a signed-in visitor — a signed-out one is never shown a link that bounces
-// them to a login card.
+// Footer only. Bugs is the one admin page, so it is listed only for an admin:
+// a signed-out visitor would bounce to a login card, and a signed-in member
+// who is not an admin landed on "Not authorized" (health sweep 2026-11-27).
 // 2026-10-29: the Data page is public, so it lives at /data. Its old address
 // (/admin/data) read as a back-office page behind a login; it now redirects
 // here so old links and bookmarks still land.
 export const REFERENCE_NAV = [
   { to: '/methodology', label: 'Methodology' },
   { to: '/data', label: 'Data' },
-  { to: '/admin/bugs', label: 'Bugs', signedInOnly: true },
+  { to: '/admin/bugs', label: 'Bugs', adminOnly: true },
 ];
 
 export const PAGE_NAME = {

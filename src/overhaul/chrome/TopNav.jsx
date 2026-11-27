@@ -20,6 +20,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
+import { useIsAdmin } from '../../hooks/useIsAdmin';
 import { supabase } from '../../lib/supabase';
 import useScrollLock from '../lib/useScrollLock';
 import { useTweaks } from '../tweaks/TweaksContext';
@@ -42,6 +43,7 @@ function pageName(pathname) {
 export default function TopNav() {
   const { user, loading } = useSession();
   const signedIn = !!user;
+  const { isAdmin } = useIsAdmin();
   const email = user?.email || '';
   const { pathname } = useLocation();
   const { tweaks, setTweak } = useTweaks();
@@ -172,7 +174,7 @@ export default function TopNav() {
                 {item.label}
               </NavLink>
             ))}
-            {REFERENCE_NAV.filter((p) => !p.signedInOnly || signedIn).map((item) => (
+            {REFERENCE_NAV.filter((p) => !p.adminOnly || isAdmin).map((item) => (
               <NavLink key={item.to} to={item.to} className="rd-drawer-link rd-drawer-link--ref">
                 {item.label}
               </NavLink>
