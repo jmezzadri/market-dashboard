@@ -272,7 +272,7 @@ export function NotFoundPage() {
       </p>
       <ul>
         {PRIMARY_NAV.map((p) => <li key={p.to}><Link to={p.to}>{p.label}</Link></li>)}
-        {REFERENCE_NAV.filter((p) => !p.signedInOnly).map((p) => <li key={p.to}><Link to={p.to}>{p.label}</Link></li>)}
+        {REFERENCE_NAV.filter((p) => !p.adminOnly).map((p) => <li key={p.to}><Link to={p.to}>{p.label}</Link></li>)}
       </ul>
       <Contact />
     </div>

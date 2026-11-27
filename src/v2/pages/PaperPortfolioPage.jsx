@@ -1069,11 +1069,17 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
     );
   }
 
+  // In the book's first calendar year the YTD column was the inception
+  // return under another name, and on the index rows it printed SPY "YTD
+  // -6.56%" while every stock page's S&P YTD read +5.1% (health sweep
+  // 2026-11-27). It joins in January, when the book has a prior-year close.
+  const ytdShown = !(perf && perf.ytdFromStart);
   const periods = [
     { id: 'day', label: 'DAY' },
-    { id: 'ytd', label: 'YTD' },
+    ...(ytdShown ? [{ id: 'ytd', label: 'YTD' }] : []),
     { id: 'since', label: 'INCEPT' },
   ];
+  const retCls = ytdShown ? '' : ' tm-ret2';
   const perfRows = perf ? perf.rows : PERF_ROWS.map((r) => ({ ...r, day: {}, ytd: {}, since: {} }));
   const cellPct = (c) => (c?.pct == null ? '—' : fmtPct(c.pct, 2));
   const cellCls = (c) => (c?.pct == null ? 'fl' : c.pct >= 0 ? 'up' : 'down');
@@ -1236,9 +1242,9 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
 
   const returnsBlock = (
     <div className="tm-returns">
-      <div className="tm-cols tm-cols--ret rd-num"><span>RETURNS</span>{periods.map((p) => <span key={p.id} className="r">{p.label}</span>)}</div>
+      <div className={`tm-cols tm-cols--ret${retCls} rd-num`}><span>RETURNS</span>{periods.map((p) => <span key={p.id} className="r">{p.label}</span>)}</div>
       {perfRows.map((r) => (
-        <div key={r.id} className="tm-row tm-row--ret rd-num">
+        <div key={r.id} className={`tm-row tm-row--ret${retCls} rd-num`}>
           <span className={r.id === 'paper' ? 'is-amber' : ''}>{r.id === 'paper' ? 'Book' : r.label}</span>
           {periods.map((p) => <span key={p.id} className={`r ${cellCls(r[p.id])}`}>{cellPct(r[p.id])}</span>)}
         </div>
@@ -1266,7 +1272,7 @@ export default function PaperPortfolioPage({ onOpenTicker }) {
         </div>
       )}
       {dayBasis && <div className="tm-pnote tm-pnote--block">Day, every row: {dayBasis}.</div>}
-      {perf && perf.ytdFromStart && <div className="tm-pnote tm-pnote--block">Index rows: $1,000,000 in each index’s fund (SPY, QQQ, DIA) at the close before the book’s first day. The book started this year, so YTD and inception match until January.</div>}
+      {perf && perf.ytdFromStart && <div className="tm-pnote tm-pnote--block">Index rows: $1,000,000 in each index’s fund (SPY, QQQ, DIA) at the close before the book’s first day. INCEPT runs from {inceptionShort || 'the book’s first day'} for every row; a YTD column joins in January, once the book has a prior-year close.</div>}
     </div>
   );
 

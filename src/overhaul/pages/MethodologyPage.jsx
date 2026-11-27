@@ -266,7 +266,7 @@ export default function MethodologyPage() {
             <p className="me-body-p">
               The <b>summary strip</b> above the panels shows three counts for each category: how many of its gauges — the
               indicators and the positioning rows together — are <b>stretched</b> (Extreme), how many are
-              <b>elevated</b>, and how many indicators just printed a <b>big move</b> (the latest one-step change,
+              {' '}<b>elevated</b>, and how many indicators just printed a <b>big move</b> (the latest one-step change,
               divided by the indicator's median move over its trailing 60 observations, ranks in the
               top 10% of that same ratio over the last 3 years). The
               category with the largest share of its gauges stretched — plus half the share elevated — is
@@ -623,7 +623,9 @@ export default function MethodologyPage() {
               invested. The current month is labelled month-to-date.
               {' '}<b>Index rows.</b> SPY, QQQ and DIA in the returns table are measured on each fund&rsquo;s
               official daily close (the same closes the market tape uses) for YTD and inception, so those
-              figures are close-to-close. On the evening of a session, before that day&rsquo;s official
+              figures are close-to-close. In the book&rsquo;s first calendar year there is no YTD column:
+              it would repeat the inception figure, and an index row labelled YTD would contradict the
+              index&rsquo;s own calendar-year return shown on every stock page. It appears in January. On the evening of a session, before that day&rsquo;s official
               close is loaded, the row uses the snapshot price for that one day.
               {' '}<b>The Day column</b> is one measurement for every row: the latest snapshot&rsquo;s marks
               against the previous snapshot&rsquo;s marks, for the book and for the three funds alike,

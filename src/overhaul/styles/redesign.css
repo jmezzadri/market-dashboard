@@ -664,6 +664,7 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
 @keyframes tm-fade { from { opacity: 0; } to { opacity: 1; } }
 .mt-overhaul .tm-returns { border-left: 1px solid var(--tm-border-2); min-width: 0; }
 .mt-overhaul .tm-cols--ret, .mt-overhaul .tm-row--ret { grid-template-columns: minmax(52px, 1fr) repeat(3, minmax(0, 70px)); gap: var(--sp-6); } /* 2026-11-23: a 31px first column at 900-1280 let "RETURNS" run into DAY */
+.mt-overhaul .tm-cols--ret.tm-ret2, .mt-overhaul .tm-row--ret.tm-ret2 { grid-template-columns: minmax(52px, 1fr) repeat(2, minmax(0, 70px)); } /* 2026-11-27: no YTD column in the book's first year */
 .mt-overhaul .tm-row--ret { padding: var(--sp-6) var(--sp-10); cursor: default; }
 .mt-overhaul .tm-row--ret > span:first-child { font-weight: var(--fw-600); }
 .mt-overhaul .r { text-align: right; }
@@ -776,6 +777,7 @@ html[data-skin='terminal'], html[data-skin='terminal'] body, html[data-skin='ter
   .mt-overhaul .tm-chartwrap { padding: var(--sp-10) var(--sp-8) var(--sp-4); }
   .mt-overhaul .tm-returns { border-left: 0; border-top: 1px solid var(--tm-border-2); }
   .mt-overhaul .tm-cols--ret, .mt-overhaul .tm-row--ret { grid-template-columns: minmax(0, 1fr) 66px 66px 66px; }
+  .mt-overhaul .tm-cols--ret.tm-ret2, .mt-overhaul .tm-row--ret.tm-ret2 { grid-template-columns: minmax(0, 1fr) 66px 66px; }
   .mt-overhaul .tm-row--ret { padding: var(--sp-8) var(--sp-10); }
   .mt-overhaul .tm-riskgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mt-overhaul .tm-tilt { grid-template-columns: 84px minmax(0, 1fr) 46px; padding: var(--sp-5) 0; }

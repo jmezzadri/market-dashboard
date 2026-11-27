@@ -2942,6 +2942,16 @@ He was right twice over. I fixed the collision he pointed at and never scrolled 
 
 # 10 · THE PUBLISHED BOOK — trade ideas & notes
 
+### 9.43 (2026-11-27, health sweep) — A column label is a claim about every row; a fix for one surface is checked on its siblings
+
+**What happened:** (1) The Paper returns table printed SPY "YTD −6.56%", QQQ −11.56%, DIA −5.70% while every stock page's Performance table read S&P 500 YTD +5.1%: in the book's first calendar year the YTD column runs from the book's start for every row (a deliberate 2026-10-07 choice, so the index is not measured over a year against weeks of the book), which made it the inception column under a label that is false for the index rows. (2) PFE's stock page header read a green "▲ $0.00 (0.00%)" — 9.42 rule 4 fixed a zero move on the Watchlist only. (3) The footer and phone drawer showed "Bugs" to every signed-in visitor; for anyone not an admin it opened "Not authorized". (4) Methodology printed "how many areelevated" — the JSX line-join fault of 9.38, one more instance.
+
+**Fix:** the Paper table drops the YTD column while the book has no prior-year close (the note under the table and the Methodology say so; it appears in January). The stock page header and its live line print a move that rounds to zero with no arrow, no sign and neither colour. "Bugs" is listed for admins only (`adminOnly`, `useIsAdmin`). `{' '}` before the `<b>elevated</b>` line.
+
+**Rule:** (1) A column header is read as true for every row under it: when a period means something different for one row type, change the header or drop the column, never explain it in a footnote. (2) A display rule fixed on one surface (zero move, short name, date format) is searched for on every surface that prints the same figure in the same run (`grep` the arrow/sign logic). (3) A link is shown only to someone it works for.
+
+**Applies to:** the weekday health sweep and every page change.
+
 ### 9.26 (2026-10-14) — Every banner tile opens a detail panel; a series is never added to the banner as a bare quote
 **What happened:** The banner was widened to 33 series on 2026-10-09. Eight of the new ones (Russell 2000, Nikkei, DAX, Bitcoin, Dutch TTF, gasoline, diesel, platinum) were added as display-only quotes — no Macro indicator behind them, no level panel — on the reasoning in the tape file's own comments that "a tile with no indicator behind it is a quote, not a button". Five days later Joe clicked TTF, then Gasoline: "why cant I click and open a modal?" The reader does not see a distinction between tiles; the banner is one surface and he expects one behaviour across it.
 **Rule:** Every tile on the market banner opens something. A series joins the banner only together with its drill, in the same change: a price that mean-reverts (commodity, FX rate, spread, vol) is registered as a Macro indicator — registry entry, DIRECTION, TAILS, manifest consumer surface — so its tile opens the indicator detail; an index or asset that trends (an equity index, Bitcoin) gets an entry in the index level panel instead, because a percentile of a trending level is not a statistic (see the panel's own header note). "Shown only on the banner" is not a valid state for a series.

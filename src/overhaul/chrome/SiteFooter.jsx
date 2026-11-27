@@ -1,21 +1,21 @@
 /* SiteFooter — one compact band on every page (2026-10-28 redesign): the
    wordmark, a one-line disclaimer, and the reference links inline —
-   Methodology, Data, (Bugs when signed in), About, Email us, Terms, Privacy.
+   Methodology, Data, (Bugs for an admin), About, Email us, Terms, Privacy.
    Replaces the five-column footer and the empty gap above it (Joe's
    approved Home board). Page names come from chrome/siteNav.js.
    Styling lives in styles/redesign.css. */
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useSession } from '../../auth/useSession';
+import { useIsAdmin } from '../../hooks/useIsAdmin';
 import { REFERENCE_NAV } from './siteNav';
 
 const CONTACT_EMAIL = 'admin@macrotilt.com';
 
 export default function SiteFooter() {
   const year = new Date().getFullYear();
-  const { user } = useSession();
-  const reference = REFERENCE_NAV.filter((p) => !p.signedInOnly || !!user);
+  const { isAdmin } = useIsAdmin();
+  const reference = REFERENCE_NAV.filter((p) => !p.adminOnly || isAdmin);
   return (
     <footer className="rd-foot">
       <div className="rd-foot-in">
