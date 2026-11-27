@@ -1,10 +1,9 @@
 {
-  "date": "2026-11-25",
-  "checked_at": "2026-11-25T11:34:17-05:00",
+  "date": "2026-11-27",
+  "checked_at": "2026-11-27T11:34:10-05:00",
   "fired": true,
   "fired_gates": [
-    "Equities",
-    "Rates"
+    "Equities"
   ],
   "gates": [
     {
@@ -26,7 +25,7 @@
     {
       "name": "Equities",
       "measure": "S&P 500 vs prior close; VIX",
-      "value": "S&P 7,004, -2.74% vs 2026-11-24 close; VIX 33.9, +28.6%",
+      "value": "S&P 7,276, +1.29% vs 2026-11-25 close; VIX 25.4, -10.2%",
       "threshold": "S&P ±1.0% or VIX +15% or VIX ≥30",
       "fired": true,
       "as_of": "11:34 AM ET",
@@ -35,16 +34,16 @@
     {
       "name": "Rates",
       "measure": "10y yield; MOVE",
-      "value": "10y 4.81%, -10.3bp vs 2026-11-24 close; MOVE 101.9, +3.11",
+      "value": "10y 4.92%, +6.8bp vs 2026-11-25 close; MOVE 95.3, -2.22",
       "threshold": "10y ±10bp or MOVE +8pts",
-      "fired": true,
+      "fired": false,
       "as_of": "11:19 AM ET",
       "source": "Yahoo chart endpoint vs brief-latest prior close"
     },
     {
       "name": "Oil and dollar",
       "measure": "Brent; DXY",
-      "value": "Brent $93.30, +2.08% vs 2026-11-24 close; DXY 103.94, +0.13%",
+      "value": "Brent $94.30, -0.33% vs 2026-11-25 close; DXY 104.02, +0.26%",
       "threshold": "Brent ±4% or DXY ±0.75%",
       "fired": false,
       "as_of": "11:24 AM ET",
