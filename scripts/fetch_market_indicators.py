@@ -173,16 +173,29 @@ def uranium_reading_date(now=None):
     off Saturday/Sunday."""
     import datetime as _dtm
     d = _dtm.date.fromisoformat(last_settled_date(now))
-    while d.weekday() >= 5:
+    while d.weekday() >= 5 or d.isoformat() in US_MARKET_HOLIDAYS:
         d -= _dtm.timedelta(days=1)
     return d.isoformat()
 
 
+# NYSE full-day holidays. Numerco publishes no spot uranium price on a US
+# market holiday: on Thanksgiving 2026 the Wednesday reading (89.50) was filed
+# again under Thu 11-26 and the tile read "Thu close 0.00%" (LESSONS 4.57).
+US_MARKET_HOLIDAYS = {
+    "2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03", "2026-05-25",
+    "2026-06-19", "2026-07-03", "2026-09-07", "2026-11-26", "2026-12-25",
+    "2027-01-01", "2027-01-18", "2027-02-15", "2027-03-26", "2027-05-31",
+    "2027-06-18", "2027-07-05", "2027-09-06", "2027-11-25", "2027-12-24",
+}
+
+
 def _uranium_point_ok(date_s, reading_date):
-    """A stored daily uranium point is kept only on a weekday on or before the
-    reading date — the same cut applied to points already on file (4.41)."""
+    """A stored daily uranium point is kept only on a weekday that is not a US
+    market holiday, on or before the reading date — the same cut applied to
+    points already on file (4.41, 4.57)."""
     import datetime as _dtm
-    return date_s <= reading_date and _dtm.date.fromisoformat(date_s).weekday() < 5
+    return (date_s <= reading_date and _dtm.date.fromisoformat(date_s).weekday() < 5
+            and date_s not in US_MARKET_HOLIDAYS)
 
 
 def fetch(ticker):
@@ -840,6 +853,12 @@ def selftest():
     good = (u1, u2, u3, u4) == ("2026-10-29", "2026-10-29", "2026-10-23", "2026-10-30") and keep == ["2026-10-23", "2026-10-29"]
     ok &= good
     print(f"  {'OK' if good else 'FAIL'} uranium reading date: {u1} {u2} {u3} {u4}; kept {keep}")
+    # Thanksgiving 2026 (4.57): Fri 04:40 ET -> Wed; the Thursday point is dropped.
+    u5 = uranium_reading_date(_td.datetime(2026, 11, 27, 4, 40, tzinfo=_ny))
+    keep5 = [d for d in ("2026-11-25", "2026-11-26") if _uranium_point_ok(d, u5)]
+    good = u5 == "2026-11-25" and keep5 == ["2026-11-25"]
+    ok &= good
+    print(f"  {'OK' if good else 'FAIL'} uranium holiday: {u5}; kept {keep5}")
     # daily_bars: London-midnight FX bar is dated by London, the appended live
     # quote and a null close are not bars.
     _lon = _zi2("Europe/London")

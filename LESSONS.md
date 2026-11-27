@@ -1468,6 +1468,16 @@ They are not the same series and they are nowhere near each other:
 
 **Applies to:** Lead Developer, every futures feed.
 
+### 4.57 (2026-11-27, health sweep) — An NYSE holiday is not a session; every "last completed day" rule needs the holiday calendar, not just the weekend
+
+**What happened:** The morning after Thanksgiving three separate producers each treated Thursday 11-26 as a US session. (1) Yahoo's ^VIX history carries a bar dated every US holiday since May (05-25, 09-07, 11-26) — the next session's overnight print under the holiday's date. The tape read "VIX 26.8 −1.5 Thu close" and the morning brief printed VIX 26.80 −1.49 under "Wed Nov 25 close", while the same file's Nov 25 point was 28.29 and the brief's own VIX 1m/3m (1.076 = 28.29/26.29) was computed from it. (2) The uranium reading date rolled back off weekends only, so Wednesday's 89.50 was filed again under Thursday and the tile read "Thu close 0.00%" — the 10-30 fault, on a holiday instead of a weekend. (3) MASSIVE-DAILY's same-day fallback took Thursday as "the last completed New York session" at 01:17 ET Friday, saw Massive at Wednesday, fired, and rewrote 519 canonical Wednesday rows (AAPL, SPY, the watchlist names) as yahoo-sameday — the 9.38 overwrite, through the holiday door.
+
+**Fix:** `fetch_history.py` drops NYSE-holiday points from the US cash-session indices (VIX, VXN, VIX3M, VIX/VIX3M, GVZ, OVX, MOVE) after the point-union, so a held holiday point cannot come back. `uranium_reading_date()` and `_uranium_point_ok()` skip US market holidays (self-test case added). The Massive fallback's last-completed-session loop skips NYSE holidays. The 519 rows heal on this evening's Massive run, which re-upserts Wednesday's panel.
+
+**Rule:** (1) Any code that computes "the last completed session" or "the business day this reading belongs to" walks back over weekends AND the exchange's holidays; a weekday is not a session. (2) The sweep's tile-date check is run against the exchange calendar on the morning after every holiday: a US cash series with a point dated a US holiday is a red even when the value looks plausible. (3) Holiday lists in this repo are per-file constants (fetch_history.py, fetch_market_indicators.py, backfill_massive_initial.py, build_daily_brief.py, paper_fill_watchdog.py) and end at 2027; extend all of them together.
+
+**Applies to:** Lead Developer, every producer that dates a reading.
+
 ### 5.1 (2026-06-09) — Scheduled notification emails are once-per-day even when their workflow fires many times
 
 **What happened:** Joe received 7–8 paper-trading emails in one day instead of 2: the morning workflow deliberately fires every 30 minutes as insurance against late scheduling, and order submission was rerun-safe — but every fire re-sent its email.
