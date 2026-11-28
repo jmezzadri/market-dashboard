@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-11-27T23:24:39Z",
+  "generated_at": "2026-11-28T02:51:34Z",
   "window": {
-    "from": "2026-11-20",
-    "to": "2027-02-05"
+    "from": "2026-11-21",
+    "to": "2027-02-06"
   },
   "counts": {
-    "total": 71,
+    "total": 70,
     "tier1": 25
   },
   "sources": [
@@ -30,21 +30,10 @@
     "Consensus expectations are not shown \u2014 there is no free source for them (June 2026 decision: no paid vendor)."
   ],
   "problems": [
-    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-02-05",
+    "NAR existing home sales: schedule ends 2026-12-09, window runs to 2027-02-06",
     "NASS calendar parsed to zero rows across the window"
   ],
   "events": [
-    {
-      "date": "2026-11-20",
-      "time_et": "10:00 AM",
-      "name": "Consumer sentiment (Michigan, final)",
-      "short": "UMich final",
-      "tier": 2,
-      "category": "Surveys",
-      "blurb": "University of Michigan consumer sentiment and household inflation expectations, final reading.",
-      "source": "FRED release calendar",
-      "time_source": "published release policy"
-    },
     {
       "date": "2026-11-23",
       "time_et": "8:30 AM",
